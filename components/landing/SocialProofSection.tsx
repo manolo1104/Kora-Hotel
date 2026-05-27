@@ -1,3 +1,8 @@
+// ─── Reemplaza con la URL de tu foto cuando la tengas ────────────────────────
+// Ejemplo: "https://tu-dominio.com/fotos/manolo.jpg"
+// O sube la foto a /public/manolo.jpg y pon: "/manolo.jpg"
+const FOTO_MANOLO = "";
+
 const metrics = [
   {
     value: "+40%",
@@ -29,12 +34,20 @@ export function SocialProofSection() {
                 que realmente funcionara para hoteles como el nuestro.&rdquo;
               </p>
               <footer className="mt-7 flex items-center gap-4">
-                <div
-                  className="w-12 h-12 rounded-full bg-kora-primary flex items-center justify-center flex-shrink-0"
-                  aria-hidden="true"
-                >
-                  <span className="text-white font-bold text-base">MC</span>
-                </div>
+                {FOTO_MANOLO ? (
+                  <img
+                    src={FOTO_MANOLO}
+                    alt="Manolo Covarrubias"
+                    className="w-12 h-12 rounded-full object-cover flex-shrink-0"
+                  />
+                ) : (
+                  <div
+                    className="w-12 h-12 rounded-full bg-kora-primary flex items-center justify-center flex-shrink-0"
+                    aria-hidden="true"
+                  >
+                    <span className="text-white font-bold text-base">MC</span>
+                  </div>
+                )}
                 <div>
                   <p className="font-semibold text-kora-text">Manolo Covarrubias</p>
                   <p className="text-sm text-kora-muted">

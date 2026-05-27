@@ -13,6 +13,17 @@ export const metadata: Metadata = {
 
 const WA_URL = `https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "524891251458"}?text=Hola%2C%20vi%20el%20caso%20de%20Par%C3%A1iso%20Encantado%20y%20quiero%20saber%20m%C3%A1s`;
 
+// ─── Fotos del hotel ──────────────────────────────────────────────────────────
+// Cuando tengas fotos, pega aquí las URLs.
+// Puedes subir las imágenes a /public/hotel/ y referenciarlas como "/hotel/foto1.jpg"
+// O usar URLs externas (Cloudinary, tu CDN, etc.)
+const FOTOS_HOTEL: { src: string; alt: string }[] = [
+  // { src: "/hotel/fachada.jpg", alt: "Fachada del Hotel Paraíso Encantado" },
+  // { src: "/hotel/habitacion-suite.jpg", alt: "Suite Jardín" },
+  // { src: "/hotel/alberca.jpg", alt: "Área de alberca y jardín" },
+  // { src: "/hotel/entorno.jpg", alt: "Entorno natural en Xilitla" },
+];
+
 export default function CasoParaisoEncantadoPage() {
   return (
     <main className="pt-16">
@@ -79,6 +90,61 @@ export default function CasoParaisoEncantadoPage() {
           </div>
         </div>
       </section>
+
+      {/* Galería del hotel — aparece cuando FOTOS_HOTEL tiene imágenes */}
+      {FOTOS_HOTEL.length > 0 && (
+        <section className="py-10 bg-white border-b border-gray-100">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {FOTOS_HOTEL.map((foto, i) => (
+                <div
+                  key={i}
+                  className={`overflow-hidden rounded-xl ${i === 0 ? "col-span-2 row-span-2 aspect-square" : "aspect-square"}`}
+                >
+                  <img
+                    src={foto.src}
+                    alt={foto.alt}
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Placeholder visible hasta que lleguen las fotos */}
+      {FOTOS_HOTEL.length === 0 && (
+        <section className="py-8 bg-white border-b border-gray-100">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {[
+                { span: "col-span-2 row-span-2 aspect-square", label: "Fachada" },
+                { span: "aspect-square", label: "Habitación" },
+                { span: "aspect-square", label: "Jardín" },
+              ].map((slot, i) => (
+                <div
+                  key={i}
+                  className={`${slot.span} rounded-xl bg-kora-primary/8 border-2 border-dashed border-kora-primary/20 flex flex-col items-center justify-center gap-2`}
+                >
+                  <span className="text-2xl" aria-hidden="true">📷</span>
+                  <span className="text-xs font-medium text-kora-muted">
+                    {slot.label}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <p className="mt-3 text-xs text-kora-muted text-center">
+              Agrega fotos del hotel en{" "}
+              <code className="bg-gray-100 px-1.5 py-0.5 rounded">
+                FOTOS_HOTEL
+              </code>{" "}
+              dentro de este archivo
+            </p>
+          </div>
+        </section>
+      )}
 
       {/* Tabs section */}
       <section className="py-14 sm:py-20 bg-kora-bg">
