@@ -1,4 +1,17 @@
+"use client";
+
+import { motion } from "motion/react";
 import { ArrowRight, MessageCircle } from "lucide-react";
+
+const EASE = [0.23, 1, 0.32, 1] as const;
+
+function item(delay: number) {
+  return {
+    initial: { opacity: 0, transform: "translateY(24px)" },
+    animate: { opacity: 1, transform: "translateY(0px)" },
+    transition: { duration: 0.55, delay, ease: EASE },
+  };
+}
 
 function HotelIllustration() {
   return (
@@ -55,8 +68,9 @@ function HotelIllustration() {
         <circle cx="358" cy="162" r="2.2" fill="#52B788" fillOpacity="0.45" />
       </svg>
 
+      {/* Floating notification — bobs slowly (CSS, off main thread) */}
       <div
-        className="absolute top-6 right-0 xl:-right-4 bg-white rounded-2xl shadow-md border border-gray-100 px-3 py-2.5 flex items-center gap-2.5 w-48"
+        className="animate-float absolute top-6 right-0 xl:-right-4 bg-white rounded-2xl shadow-md border border-gray-100 px-3 py-2.5 flex items-center gap-2.5 w-48"
         aria-hidden="true"
       >
         <div className="w-8 h-8 rounded-full bg-[#25D366] flex items-center justify-center flex-shrink-0">
@@ -68,8 +82,9 @@ function HotelIllustration() {
         </div>
       </div>
 
+      {/* Floating metric — slightly different phase */}
       <div
-        className="absolute bottom-12 left-0 xl:-left-4 bg-kora-primary rounded-2xl shadow-md px-4 py-3 text-white"
+        className="animate-float-delayed absolute bottom-12 left-0 xl:-left-4 bg-kora-primary rounded-2xl shadow-md px-4 py-3 text-white"
         aria-hidden="true"
       >
         <p className="text-[10px] font-semibold text-kora-accent uppercase tracking-widest">
@@ -92,36 +107,36 @@ export function Hero() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 xl:gap-16 items-center">
 
             <div className="space-y-7">
-              <h1 className="text-4xl sm:text-5xl xl:text-[3.5rem] font-bold tracking-tight text-kora-text leading-tight">
+              <motion.h1 {...item(0)} className="text-4xl sm:text-5xl xl:text-[3.5rem] font-bold tracking-tight text-kora-text leading-tight">
                 Tu hotel lleno.{" "}
                 <span className="text-kora-primary">
                   Sin depender de Booking.
                 </span>
-              </h1>
+              </motion.h1>
 
-              <p className="text-base sm:text-lg text-kora-muted leading-relaxed max-w-[52ch]">
+              <motion.p {...item(0.12)} className="text-base sm:text-lg text-kora-muted leading-relaxed max-w-[52ch]">
                 Kora es el sistema todo-en-uno que gestiona tu hotel, responde
                 WhatsApps a las 2 AM, toma reservas directo y te dice
                 exactamente qué está pasando con tu ocupación. Todo en español.
-              </p>
+              </motion.p>
 
-              <div className="flex flex-col sm:flex-row gap-3">
+              <motion.div {...item(0.22)} className="flex flex-col sm:flex-row gap-3">
                 <a
                   href="#contacto"
-                  className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-kora-accent text-kora-primary font-semibold text-sm hover:bg-kora-accent-dark transition-colors"
+                  className="btn-press inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-kora-accent text-kora-primary font-semibold text-sm hover:bg-kora-accent-dark transition-colors"
                 >
                   Ver demo en vivo
                   <ArrowRight size={16} />
                 </a>
                 <a
                   href="#contacto"
-                  className="inline-flex items-center justify-center px-6 py-3.5 rounded-full border-2 border-kora-primary text-kora-primary font-semibold text-sm hover:bg-kora-primary hover:text-white transition-colors"
+                  className="btn-press inline-flex items-center justify-center px-6 py-3.5 rounded-full border-2 border-kora-primary text-kora-primary font-semibold text-sm hover:bg-kora-primary hover:text-white transition-colors"
                 >
                   Solicitar acceso anticipado
                 </a>
-              </div>
+              </motion.div>
 
-              <div className="space-y-3 pt-1">
+              <motion.div {...item(0.32)} className="space-y-3 pt-1">
                 <p className="text-sm text-kora-muted">
                   Ya usado en{" "}
                   <span className="font-semibold text-kora-text">
@@ -133,12 +148,17 @@ export function Hero() {
                   <span className="text-kora-accent font-bold text-base leading-none">★</span>
                   Ahorra hasta $12,000 MXN/mes en comisiones de OTAs
                 </div>
-              </div>
+              </motion.div>
             </div>
 
-            <div className="hidden lg:block">
+            <motion.div
+              className="hidden lg:block"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.8, delay: 0.1, ease: "easeOut" }}
+            >
               <HotelIllustration />
-            </div>
+            </motion.div>
           </div>
         </div>
       </section>

@@ -10,6 +10,69 @@ body {
   background-color: #fafaf8;
 }
 
+/* ─── Custom easing curves (Emil Kowalski) ──────────────────────────────────── */
+
+:root {
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+}
+
+/* ─── Button press feedback ─────────────────────────────────────────────────── */
+
+.btn-press {
+  transition: transform 150ms var(--ease-out);
+}
+.btn-press:active {
+  transform: scale(0.97);
+}
+
+/* ─── Card hover lift (non-touch only) ──────────────────────────────────────── */
+
+@media (hover: hover) and (pointer: fine) {
+  .card-hover {
+    transition: transform 220ms var(--ease-out), box-shadow 220ms ease;
+  }
+  .card-hover:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 36px rgba(27, 67, 50, 0.09);
+  }
+}
+
+/* ─── Hero floating card animations ─────────────────────────────────────────── */
+
+@keyframes kora-float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-10px); }
+}
+@keyframes kora-float-delayed {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-7px); }
+}
+
+.animate-float {
+  animation: kora-float 4s ease-in-out infinite;
+}
+.animate-float-delayed {
+  animation: kora-float-delayed 5s ease-in-out infinite;
+  animation-delay: 1.5s;
+}
+
+/* ─── Reduced motion overrides ──────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-float,
+  .animate-float-delayed {
+    animation: none;
+  }
+  .btn-press:active {
+    transform: none;
+  }
+  .card-hover:hover {
+    transform: none;
+    box-shadow: none;
+  }
+}
+
 /* ─── Blog article callout components ───────────────────────────────────────── */
 
 @layer components {

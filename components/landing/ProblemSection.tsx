@@ -1,4 +1,5 @@
 import { PhoneOff, Percent, FileSpreadsheet, BarChart3 } from "lucide-react";
+import { Reveal } from "@/components/shared/Reveal";
 
 const pains = [
   {
@@ -23,24 +24,25 @@ export function ProblemSection() {
   return (
     <section className="py-20 sm:py-24 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-kora-text mb-12 text-center">
-          ¿Te suena familiar?
-        </h2>
+        <Reveal>
+          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-kora-text mb-12 text-center">
+            ¿Te suena familiar?
+          </h2>
+        </Reveal>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5 max-w-3xl mx-auto lg:max-w-none">
           {pains.map(({ Icon, text }, i) => (
-            <div
-              key={i}
-              className="flex gap-4 p-5 sm:p-6 rounded-2xl border border-gray-100 bg-white shadow-sm"
-            >
-              <div
-                className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center"
-                style={{ backgroundColor: "rgba(27, 67, 50, 0.08)" }}
-              >
-                <Icon size={20} className="text-kora-primary" aria-hidden="true" />
+            <Reveal key={i} delay={0.06 + i * 0.07}>
+              <div className="card-hover flex gap-4 p-5 sm:p-6 rounded-2xl border border-gray-100 bg-white shadow-sm h-full">
+                <div
+                  className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center"
+                  style={{ backgroundColor: "rgba(27, 67, 50, 0.08)" }}
+                >
+                  <Icon size={20} className="text-kora-primary" aria-hidden="true" />
+                </div>
+                <p className="text-kora-text text-sm sm:text-base leading-relaxed">{text}</p>
               </div>
-              <p className="text-kora-text text-sm sm:text-base leading-relaxed">{text}</p>
-            </div>
+            </Reveal>
           ))}
         </div>
       </div>

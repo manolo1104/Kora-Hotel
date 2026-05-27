@@ -6,6 +6,7 @@ import {
   TrendingUp,
   BarChart2,
 } from "lucide-react";
+import { Reveal } from "@/components/shared/Reveal";
 
 const modules = [
   {
@@ -88,45 +89,52 @@ export function SolutionSection() {
   return (
     <section id="caracteristicas" className="py-20 sm:py-24 bg-kora-bg">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="max-w-2xl mb-12">
-          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-kora-text">
-            Todo lo que necesita tu hotel, en un solo lugar
-          </h2>
-          <p className="mt-4 text-kora-muted text-base sm:text-lg leading-relaxed">
-            Sin configuraciones complicadas. Sin soporte en inglés. Sin sorpresas.
-          </p>
-        </div>
+        <Reveal>
+          <div className="max-w-2xl mb-12">
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-kora-text">
+              Todo lo que necesita tu hotel, en un solo lugar
+            </h2>
+            <p className="mt-4 text-kora-muted text-base sm:text-lg leading-relaxed">
+              Sin configuraciones complicadas. Sin soporte en inglés. Sin sorpresas.
+            </p>
+          </div>
+        </Reveal>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {modules.map(({ Icon, name, description, style, span }, i) => {
             const s = styleMap[style];
             const isLarge = span === 2;
             return (
-              <div
+              <Reveal
                 key={i}
-                className={`${s.wrapper} rounded-2xl p-6 ${isLarge ? "sm:col-span-2 lg:col-span-2" : ""} ${isLarge ? "sm:p-8" : ""}`}
+                delay={0.05 + i * 0.06}
+                className={`${isLarge ? "sm:col-span-2 lg:col-span-2" : ""}`}
               >
                 <div
-                  className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 ${
-                    style === "dark" ? s.icon : ""
-                  }`}
-                  style={
-                    style !== "dark"
-                      ? { backgroundColor: "rgba(27, 67, 50, 0.08)" }
-                      : undefined
-                  }
+                  className={`${s.wrapper} rounded-2xl p-6 h-full ${isLarge ? "sm:p-8" : ""}`}
                 >
-                  <Icon
-                    size={isLarge ? 22 : 20}
-                    className={style === "dark" ? "text-kora-accent" : "text-kora-primary"}
-                    aria-hidden="true"
-                  />
+                  <div
+                    className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 ${
+                      style === "dark" ? s.icon : ""
+                    }`}
+                    style={
+                      style !== "dark"
+                        ? { backgroundColor: "rgba(27, 67, 50, 0.08)" }
+                        : undefined
+                    }
+                  >
+                    <Icon
+                      size={isLarge ? 22 : 20}
+                      className={style === "dark" ? "text-kora-accent" : "text-kora-primary"}
+                      aria-hidden="true"
+                    />
+                  </div>
+                  <h3 className={`font-bold text-base ${isLarge ? "sm:text-lg" : ""} ${s.name} mb-2`}>
+                    {name}
+                  </h3>
+                  <p className={`text-sm leading-relaxed ${s.desc}`}>{description}</p>
                 </div>
-                <h3 className={`font-bold text-base ${isLarge ? "sm:text-lg" : ""} ${s.name} mb-2`}>
-                  {name}
-                </h3>
-                <p className={`text-sm leading-relaxed ${s.desc}`}>{description}</p>
-              </div>
+              </Reveal>
             );
           })}
         </div>

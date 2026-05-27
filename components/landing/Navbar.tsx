@@ -1,7 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { Menu, X } from "lucide-react";
+
+const EASE = [0.23, 1, 0.32, 1] as const;
 
 const navLinks = [
   { label: "Características", href: "/caracteristicas" },
@@ -61,7 +64,7 @@ export function Navbar() {
           ))}
           <a
             href="/#contacto"
-            className="inline-flex items-center px-5 py-2.5 rounded-full bg-kora-primary text-white text-sm font-semibold hover:bg-kora-primary-dark transition-colors"
+            className="btn-press inline-flex items-center px-5 py-2.5 rounded-full bg-kora-primary text-white text-sm font-semibold hover:bg-kora-primary-dark transition-colors"
           >
             Solicitar demo
           </a>
@@ -77,27 +80,35 @@ export function Navbar() {
         </button>
       </nav>
 
-      {menuOpen && (
-        <div className="md:hidden bg-white border-t border-gray-100 px-4 py-5 space-y-4 shadow-lg">
-          {navLinks.map((link) => (
+      <AnimatePresence>
+        {menuOpen && (
+          <motion.div
+            className="md:hidden bg-white border-t border-gray-100 px-4 py-5 space-y-4 shadow-lg overflow-hidden"
+            initial={{ opacity: 0, transform: "translateY(-8px)" }}
+            animate={{ opacity: 1, transform: "translateY(0px)" }}
+            exit={{ opacity: 0, transform: "translateY(-8px)" }}
+            transition={{ duration: 0.15, ease: EASE }}
+          >
+            {navLinks.map((link) => (
+              <a
+                key={link.href}
+                href={link.href}
+                className="block text-sm font-medium text-kora-text py-1"
+                onClick={() => setMenuOpen(false)}
+              >
+                {link.label}
+              </a>
+            ))}
             <a
-              key={link.href}
-              href={link.href}
-              className="block text-sm font-medium text-kora-text py-1"
+              href="/#contacto"
+              className="btn-press block w-full text-center px-5 py-3 rounded-full bg-kora-primary text-white text-sm font-semibold"
               onClick={() => setMenuOpen(false)}
             >
-              {link.label}
+              Solicitar demo
             </a>
-          ))}
-          <a
-            href="/#contacto"
-            className="block w-full text-center px-5 py-3 rounded-full bg-kora-primary text-white text-sm font-semibold"
-            onClick={() => setMenuOpen(false)}
-          >
-            Solicitar demo
-          </a>
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </header>
   );
 }

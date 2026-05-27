@@ -1,6 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
+
+const EASE = [0.23, 1, 0.32, 1] as const;
 
 const tabs = [
   { id: "problema", label: "El problema" },
@@ -352,31 +355,23 @@ export function CasoTabs() {
         ))}
       </div>
 
-      {/* Tab panels */}
-      <div
-        id={`panel-problema`}
-        role="tabpanel"
-        aria-labelledby={`tab-problema`}
-        hidden={active !== "problema"}
-      >
-        {active === "problema" && <TabProblema />}
-      </div>
-      <div
-        id={`panel-implementacion`}
-        role="tabpanel"
-        aria-labelledby={`tab-implementacion`}
-        hidden={active !== "implementacion"}
-      >
-        {active === "implementacion" && <TabImplementacion />}
-      </div>
-      <div
-        id={`panel-resultados`}
-        role="tabpanel"
-        aria-labelledby={`tab-resultados`}
-        hidden={active !== "resultados"}
-      >
-        {active === "resultados" && <TabResultados />}
-      </div>
+      {/* Tab panels — crossfade on switch */}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={active}
+          role="tabpanel"
+          id={`panel-${active}`}
+          aria-labelledby={`tab-${active}`}
+          initial={{ opacity: 0, transform: "translateY(10px)" }}
+          animate={{ opacity: 1, transform: "translateY(0px)" }}
+          exit={{ opacity: 0, transform: "translateY(-4px)" }}
+          transition={{ duration: 0.2, ease: EASE }}
+        >
+          {active === "problema" && <TabProblema />}
+          {active === "implementacion" && <TabImplementacion />}
+          {active === "resultados" && <TabResultados />}
+        </motion.div>
+      </AnimatePresence>
     </div>
   );
 }

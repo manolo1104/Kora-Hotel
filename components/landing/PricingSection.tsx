@@ -51,7 +51,7 @@ export function PricingSection() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
           {/* Plan ancla — Esencial */}
-          <div className="bg-white rounded-3xl p-8 border border-gray-200">
+          <div className="card-hover bg-white rounded-3xl p-8 border border-gray-200">
             <p className="text-sm font-bold text-kora-muted mb-1">
               Kora Esencial
             </p>
@@ -86,7 +86,7 @@ export function PricingSection() {
 
             <a
               href="#contacto"
-              className="mt-8 block w-full py-3.5 rounded-full border-2 border-gray-200 text-kora-muted font-semibold text-sm hover:border-kora-primary hover:text-kora-primary transition-colors text-center"
+              className="btn-press mt-8 block w-full py-3.5 rounded-full border-2 border-gray-200 text-kora-muted font-semibold text-sm hover:border-kora-primary hover:text-kora-primary transition-colors text-center"
             >
               Empezar con Esencial
             </a>
@@ -134,7 +134,7 @@ export function PricingSection() {
 
             <a
               href="#contacto"
-              className="mt-8 block w-full py-4 rounded-full bg-kora-accent text-kora-primary font-bold text-base hover:bg-kora-accent-dark transition-colors text-center"
+              className="btn-press mt-8 block w-full py-4 rounded-full bg-kora-accent text-kora-primary font-bold text-base hover:bg-kora-accent-dark transition-colors text-center"
             >
               Quiero ser hotel fundador
             </a>
