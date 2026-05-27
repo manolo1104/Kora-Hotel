@@ -1,5 +1,9 @@
 import Link from "next/link";
 
+// Actualiza estas URLs cuando crees las cuentas sociales
+const LINKEDIN_URL = ""; // e.g. "https://linkedin.com/company/kora-hotel"
+const INSTAGRAM_URL = ""; // e.g. "https://instagram.com/korahotel"
+
 const navLinks = [
   { label: "Inicio", href: "/" },
   { label: "Características", href: "/caracteristicas" },
@@ -73,6 +77,34 @@ export function Footer() {
                 </a>
               </li>
             </ul>
+
+            {/* Social links — activar cuando estén creadas las cuentas */}
+            {(LINKEDIN_URL || INSTAGRAM_URL) && (
+              <div className="mt-5 flex gap-3">
+                {LINKEDIN_URL && (
+                  <a
+                    href={LINKEDIN_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="LinkedIn de Kora"
+                    className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 transition-colors flex items-center justify-center text-white/60 hover:text-white text-xs font-bold"
+                  >
+                    in
+                  </a>
+                )}
+                {INSTAGRAM_URL && (
+                  <a
+                    href={INSTAGRAM_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Instagram de Kora"
+                    className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 transition-colors flex items-center justify-center text-white/60 hover:text-white text-xs font-bold"
+                  >
+                    ig
+                  </a>
+                )}
+              </div>
+            )}
           </div>
         </div>
 

@@ -2,8 +2,11 @@ export interface Article {
   slug: string;
   title: string;
   excerpt: string;
+  author: string;
   date: string;
   publishedIso: string;
+  updatedIso?: string;
+  updatedDate?: string;
   readTime: string;
   category: string;
   tags: string[];
@@ -20,6 +23,7 @@ export const articles: Article[] = [
       "Cómo aumentar reservas directas en tu hotel y dejar de pagar comisiones a Booking",
     excerpt:
       "El 18% que le pagas a Booking en cada reserva puede quedarse en tu hotel. Aquí están las 5 estrategias concretas que usan los hoteles boutique que sí lo logran.",
+    author: "Manolo Covarrubias",
     date: "20 de mayo, 2026",
     publishedIso: "2026-05-20",
     readTime: "6 min",
@@ -165,6 +169,7 @@ export const articles: Article[] = [
       "Revenue management para hoteles boutique en México: guía práctica sin tecnicismos",
     excerpt:
       "Aprende a ajustar tus precios según demanda real, puentes y eventos locales. Sin ser un experto ni contratar a un revenue manager.",
+    author: "Manolo Covarrubias",
     date: "15 de mayo, 2026",
     publishedIso: "2026-05-15",
     readTime: "8 min",
@@ -319,6 +324,7 @@ export const articles: Article[] = [
       "Agente de WhatsApp con IA para hoteles: cómo dejar de perder reservas de noche",
     excerpt:
       "Cada mensaje de WhatsApp sin respuesta es una reserva que se va. En 2026, un agente de IA puede cerrar reservas completas mientras duermes. Así funciona.",
+    author: "Manolo Covarrubias",
     date: "5 de mayo, 2026",
     publishedIso: "2026-05-05",
     readTime: "6 min",
@@ -462,4 +468,11 @@ export function extractHeadings(
     headings.push({ id: match[1], text });
   }
   return headings;
+}
+
+export function calculateReadTime(html: string): string {
+  const text = html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+  const wordCount = text.split(" ").filter(Boolean).length;
+  const minutes = Math.max(1, Math.ceil(wordCount / 200));
+  return `${minutes} min`;
 }

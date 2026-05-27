@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { articles } from "@/lib/articles";
 import { BarraCTA } from "@/components/shared/BarraCTA";
 
 export const metadata: Metadata = {
@@ -7,93 +9,105 @@ export const metadata: Metadata = {
     "Artículos sobre gestión hotelera inteligente, revenue management y cómo los hoteles boutique en México pueden crecer con tecnología.",
 };
 
-const articles = [
-  {
-    slug: "como-aumentar-reservas-directas",
-    title:
-      "Cómo aumentar tus reservas directas y dejar de pagar comisiones a Booking",
-    excerpt:
-      "El 18% que le pagas a Booking en cada reserva puede quedarse en tu hotel. Te explicamos cómo.",
-    date: "20 de mayo, 2026",
-    readTime: "5 min",
-    image:
-      "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&auto=format&q=75",
-    imageAlt: "Recepción de hotel boutique",
-  },
-  {
-    slug: "revenue-management-hoteles-boutique-mexico",
-    title: "Guía completa: Revenue management para hoteles boutique en México",
-    excerpt:
-      "Sube y baja tus precios según la demanda, puentes y eventos locales. Sin ser un experto.",
-    date: "15 de mayo, 2026",
-    readTime: "8 min",
-    image:
-      "https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=800&auto=format&q=75",
-    imageAlt: "Vista de alberca en hotel boutique",
-  },
-  {
-    slug: "agente-whatsapp-ia-hotel-2026",
-    title:
-      "Por qué tu hotel boutique necesita un agente de WhatsApp con IA en 2026",
-    excerpt:
-      "Las reservas que pierdes de noche porque nadie contesta son dinero que se va. Esto tiene solución.",
-    date: "5 de mayo, 2026",
-    readTime: "6 min",
-    image:
-      "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=800&auto=format&q=75",
-    imageAlt: "Habitación de hotel boutique con vista",
-  },
-];
+const categories = Array.from(new Set(articles.map((a) => a.category)));
 
 export default function BlogPage() {
   return (
     <main className="pt-16">
+      {/* Header */}
       <section className="py-16 sm:py-20 bg-white border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <p className="text-xs font-bold text-kora-accent uppercase tracking-widest mb-3">
+            {articles.length} artículos publicados
+          </p>
           <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-kora-text">
             Blog
           </h1>
-          <p className="mt-4 text-kora-muted text-lg">
+          <p className="mt-3 text-kora-muted text-lg max-w-xl">
             Gestión hotelera inteligente para hoteles boutique en México.
           </p>
+
+          {/* Category pills */}
+          <div className="mt-6 flex flex-wrap gap-2">
+            {categories.map((cat) => (
+              <span
+                key={cat}
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-kora-bg border border-gray-200 text-xs font-semibold text-kora-muted"
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-kora-accent flex-shrink-0" />
+                {cat}
+              </span>
+            ))}
+          </div>
         </div>
       </section>
 
+      {/* Articles grid */}
       <section className="py-16 sm:py-20 bg-kora-bg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {articles.map((article) => (
               <article
                 key={article.slug}
-                className="bg-white rounded-2xl overflow-hidden border border-gray-100 flex flex-col"
+                className="bg-white rounded-2xl overflow-hidden border border-gray-100 flex flex-col hover:border-kora-primary/20 transition-colors"
               >
-                <div className="aspect-video overflow-hidden">
+                <Link
+                  href={`/blog/${article.slug}`}
+                  className="block aspect-video overflow-hidden"
+                  tabIndex={-1}
+                  aria-hidden="true"
+                >
                   <img
                     src={article.image}
                     alt={article.imageAlt}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
                     loading="lazy"
                   />
-                </div>
+                </Link>
+
                 <div className="p-6 flex flex-col flex-1">
-                  <div className="flex items-center gap-3 text-xs text-kora-muted mb-3">
-                    <time>{article.date}</time>
-                    <span aria-hidden="true">·</span>
-                    <span>{article.readTime} de lectura</span>
-                  </div>
+                  {/* Category */}
+                  <span className="text-[10px] font-bold text-kora-accent uppercase tracking-widest mb-3">
+                    {article.category}
+                  </span>
+
+                  {/* Title */}
                   <h2 className="font-bold text-kora-text text-base leading-snug mb-3">
-                    {article.title}
+                    <Link
+                      href={`/blog/${article.slug}`}
+                      className="hover:text-kora-primary transition-colors"
+                    >
+                      {article.title}
+                    </Link>
                   </h2>
+
+                  {/* Excerpt */}
                   <p className="text-sm text-kora-muted leading-relaxed flex-1">
                     {article.excerpt}
                   </p>
-                  <a
+
+                  {/* Meta */}
+                  <div className="mt-5 pt-4 border-t border-gray-100 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="w-6 h-6 rounded-full bg-kora-primary flex items-center justify-center flex-shrink-0">
+                        <span className="text-white text-[9px] font-bold">MC</span>
+                      </div>
+                      <span className="text-xs text-kora-muted truncate">
+                        {article.author}
+                      </span>
+                    </div>
+                    <span className="text-xs text-kora-muted flex-shrink-0">
+                      {article.readTime} de lectura
+                    </span>
+                  </div>
+
+                  <Link
                     href={`/blog/${article.slug}`}
-                    className="mt-5 inline-flex items-center text-sm font-semibold text-kora-primary hover:text-kora-accent transition-colors"
+                    className="mt-4 inline-flex items-center text-sm font-semibold text-kora-primary hover:text-kora-accent transition-colors"
                     aria-label={`Leer artículo: ${article.title}`}
                   >
-                    Leer artículo
-                  </a>
+                    Leer artículo →
+                  </Link>
                 </div>
               </article>
             ))}

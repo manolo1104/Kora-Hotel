@@ -157,12 +157,20 @@ export default async function BlogArticlePage({ params }: Props) {
 
               {/* Meta bar */}
               <div className="flex flex-wrap items-center gap-3 text-xs text-kora-muted border-t border-b border-gray-100 py-3 mb-10">
-                <span>
-                  Por{" "}
-                  <strong className="text-kora-text font-semibold">Equipo Kora</strong>
-                </span>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-5 h-5 rounded-full bg-kora-primary flex items-center justify-center flex-shrink-0">
+                    <span className="text-white text-[8px] font-bold">MC</span>
+                  </div>
+                  <strong className="text-kora-text font-semibold">{article.author}</strong>
+                </div>
                 <span aria-hidden="true" className="text-gray-300">·</span>
                 <time dateTime={article.publishedIso}>{article.date}</time>
+                {article.updatedDate && (
+                  <>
+                    <span aria-hidden="true" className="text-gray-300">·</span>
+                    <span>Actualizado: {article.updatedDate}</span>
+                  </>
+                )}
                 <span aria-hidden="true" className="text-gray-300">·</span>
                 <span>{article.readTime} de lectura</span>
               </div>
@@ -213,12 +221,13 @@ export default async function BlogArticlePage({ params }: Props) {
               {/* Author card */}
               <div className="mt-14 pt-10 border-t border-gray-100 flex items-start gap-4">
                 <div className="w-12 h-12 rounded-full bg-kora-primary flex items-center justify-center flex-shrink-0">
-                  <span className="text-white font-bold text-sm">K</span>
+                  <span className="text-white font-bold text-sm">MC</span>
                 </div>
                 <div>
-                  <p className="font-semibold text-kora-text text-sm">Equipo Kora</p>
-                  <p className="text-xs text-kora-muted mt-1 leading-relaxed max-w-sm">
-                    Kora es el sistema operativo para hoteles boutique en México. Escribimos sobre distribución hotelera, revenue management y tecnología práctica para hoteleros independientes.
+                  <p className="font-semibold text-kora-text text-sm">{article.author}</p>
+                  <p className="text-xs text-kora-text font-medium mt-0.5">Fundador de Kora · Hotel Paraíso Encantado, Xilitla SLP</p>
+                  <p className="text-xs text-kora-muted mt-1.5 leading-relaxed max-w-sm">
+                    Creé Kora porque no encontré un sistema que realmente funcionara para mi hotel boutique. Escribo sobre lo que aprendo operando un hotel en México y construyendo tecnología para hoteleros independientes.
                   </p>
                 </div>
               </div>

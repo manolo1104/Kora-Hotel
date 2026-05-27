@@ -49,7 +49,7 @@ export function PricingSection() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
           {/* Plan ancla — Esencial */}
           <div className="bg-white rounded-3xl p-8 border border-gray-200">
             <p className="text-sm font-bold text-kora-muted mb-1">

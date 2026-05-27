@@ -135,13 +135,6 @@ export default function CasoParaisoEncantadoPage() {
                 </div>
               ))}
             </div>
-            <p className="mt-3 text-xs text-kora-muted text-center">
-              Agrega fotos del hotel en{" "}
-              <code className="bg-gray-100 px-1.5 py-0.5 rounded">
-                FOTOS_HOTEL
-              </code>{" "}
-              dentro de este archivo
-            </p>
           </div>
         </section>
       )}

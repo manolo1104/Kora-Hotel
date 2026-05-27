@@ -173,8 +173,84 @@ export default function ComoFuncionaPage() {
         </div>
       </section>
 
+      {/* Primer día operando */}
+      <section className="py-14 sm:py-20 bg-kora-bg border-t border-gray-100">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-10">
+            <h2 className="text-2xl sm:text-3xl font-bold text-kora-text mb-3">
+              Así se ve tu primera semana con Kora
+            </h2>
+            <p className="text-kora-muted text-sm max-w-lg mx-auto">
+              Lo que cambia no es solo la tecnología — es lo que haces y no haces cada día.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Sin Kora */}
+            <div className="bg-red-50 border border-red-100 rounded-2xl p-6">
+              <p className="text-xs font-bold text-red-600 uppercase tracking-widest mb-5">
+                Sin Kora
+              </p>
+              <div className="space-y-5">
+                {[
+                  {
+                    time: "8:00 AM",
+                    desc: "Abres Booking, Airbnb, WhatsApp y revisas las llamadas perdidas de la noche. 20 minutos solo para ver qué pasó.",
+                  },
+                  {
+                    time: "11:30 PM",
+                    desc: "Un huésped escribe preguntando disponibilidad para el fin de semana. Nadie contesta. Al día siguiente ya reservó en otro lado.",
+                  },
+                  {
+                    time: "Fin de mes",
+                    desc: "¿Cuánto pagaste en comisiones a las OTAs? No lo sabes exactamente. Tienes que juntar los datos de 3 canales distintos.",
+                  },
+                ].map((item) => (
+                  <div key={item.time} className="flex gap-3">
+                    <span className="text-xs font-bold text-red-400 flex-shrink-0 w-16 pt-0.5">
+                      {item.time}
+                    </span>
+                    <p className="text-sm text-red-800/80 leading-relaxed">{item.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Con Kora */}
+            <div className="bg-kora-primary rounded-2xl p-6">
+              <p className="text-xs font-bold text-kora-accent uppercase tracking-widest mb-5">
+                Con Kora
+              </p>
+              <div className="space-y-5">
+                {[
+                  {
+                    time: "8:00 AM",
+                    desc: "Recibes el reporte diario automático: ocupación, check-ins programados y reservas nuevas que llegaron mientras dormías.",
+                  },
+                  {
+                    time: "11:30 PM",
+                    desc: "El agente de IA responde, muestra disponibilidad y cierra la reserva directamente por WhatsApp. Tú duermes. La reserva llega.",
+                  },
+                  {
+                    time: "Fin de mes",
+                    desc: "El dashboard muestra todo: OTAs vs directo, comisiones pagadas, RevPAR, ahorro acumulado. Un solo número por semana.",
+                  },
+                ].map((item) => (
+                  <div key={item.time} className="flex gap-3">
+                    <span className="text-xs font-bold text-kora-accent flex-shrink-0 w-16 pt-0.5">
+                      {item.time}
+                    </span>
+                    <p className="text-sm text-white/80 leading-relaxed">{item.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* CTA */}
-      <section className="py-16 sm:py-20 bg-kora-bg border-t border-gray-100">
+      <section className="py-16 sm:py-20 bg-white border-t border-gray-100">
         <div className="max-w-xl mx-auto px-4 text-center">
           <h2 className="text-2xl sm:text-3xl font-bold text-kora-text mb-4">
             Empezamos esta semana
