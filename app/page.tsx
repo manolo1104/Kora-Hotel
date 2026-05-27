@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Hero } from "@/components/landing/Hero";
 import { ProblemSection } from "@/components/landing/ProblemSection";
 import { SolutionSection } from "@/components/landing/SolutionSection";
+import { IntegracionesSection } from "@/components/landing/IntegracionesSection";
 import { ComparisonSection } from "@/components/landing/ComparisonSection";
 import { SocialProofSection } from "@/components/landing/SocialProofSection";
 import { PricingSection } from "@/components/landing/PricingSection";
@@ -34,6 +35,7 @@ export default function HomePage() {
       <Hero />
       <ProblemSection />
       <SolutionSection />
+      <IntegracionesSection />
       <ComparisonSection />
       <SocialProofSection />
       <PricingSection />

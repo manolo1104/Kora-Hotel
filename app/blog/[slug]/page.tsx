@@ -1,93 +1,145 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import { getArticle, articles } from "@/lib/articles";
+import { notFound } from "next/navigation";
 
 interface Props {
   params: Promise<{ slug: string }>;
 }
 
+export async function generateStaticParams() {
+  return articles.map((a) => ({ slug: a.slug }));
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const title = slug
-    .split("-")
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(" ");
+  const article = getArticle(slug);
+  if (!article) return { title: "Artículo no encontrado — Kora" };
 
   return {
-    title: `${title} — Blog Kora`,
-    description:
-      "Lee este artículo del blog de Kora sobre gestión hotelera inteligente para hoteles boutique en México.",
+    title: `${article.title} — Blog Kora`,
+    description: article.excerpt,
     openGraph: {
-      title: `${title} — Blog Kora`,
+      title: article.title,
+      description: article.excerpt,
       type: "article",
       locale: "es_MX",
+      images: [article.image],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: article.title,
+      description: article.excerpt,
+      images: [article.image],
     },
   };
 }
 
 export default async function BlogArticlePage({ params }: Props) {
   const { slug } = await params;
-  const title = slug
-    .split("-")
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(" ");
+  const article = getArticle(slug);
+
+  if (!article) notFound();
 
   return (
     <main className="pt-16">
-      <section className="py-16 sm:py-20 bg-kora-bg border-b border-gray-100">
+      {/* Header */}
+      <section className="py-12 sm:py-16 bg-kora-bg border-b border-gray-100">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-          <a
+          <Link
             href="/blog"
             className="inline-flex items-center text-sm text-kora-muted hover:text-kora-primary transition-colors mb-6"
-            aria-label="Volver al blog"
           >
             ← Volver al blog
-          </a>
+          </Link>
           <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-kora-text leading-tight">
-            {title}
+            {article.title}
           </h1>
           <div className="flex items-center gap-3 text-xs text-kora-muted mt-4">
-            <time>Mayo 2026</time>
+            <time dateTime={article.date}>{article.date}</time>
+            <span aria-hidden="true">·</span>
+            <span>{article.readTime} de lectura</span>
             <span aria-hidden="true">·</span>
             <span>Kora</span>
           </div>
         </div>
       </section>
 
-      <section className="py-12 sm:py-16 bg-white">
+      {/* Cover image */}
+      <div className="bg-white">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pt-10">
+          <div className="aspect-video rounded-2xl overflow-hidden">
+            <img
+              src={article.image}
+              alt={article.imageAlt}
+              className="w-full h-full object-cover"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Article body */}
+      <section className="py-10 sm:py-14 bg-white">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
           <div
-            className="aspect-video bg-gradient-to-br from-kora-primary/10 to-kora-accent/20 rounded-2xl mb-10"
-            aria-hidden="true"
+            className="
+              prose prose-gray max-w-none
+              prose-headings:font-bold prose-headings:tracking-tight prose-headings:text-kora-text
+              prose-h2:text-2xl prose-h2:mt-10 prose-h2:mb-4
+              prose-h3:text-lg prose-h3:mt-8 prose-h3:mb-3
+              prose-p:text-kora-text prose-p:leading-relaxed prose-p:mb-5
+              prose-ul:my-4 prose-ul:space-y-2 prose-li:text-kora-text
+              prose-ol:my-4 prose-ol:space-y-2
+              prose-strong:text-kora-text prose-strong:font-semibold
+              prose-a:text-kora-primary prose-a:no-underline hover:prose-a:underline
+            "
+            dangerouslySetInnerHTML={{ __html: article.content }}
           />
 
-          <div className="prose prose-gray max-w-none">
-            <p className="text-kora-muted text-sm p-4 bg-kora-bg rounded-xl border border-gray-100 font-medium">
-              TODO: Conectar con fuente de contenido real. Por ahora este
-              artículo es un placeholder con slug: <code>{slug}</code>
-            </p>
-            <p className="mt-6 text-kora-text leading-relaxed">
-              Este artículo sobre gestión hotelera inteligente está en camino.
-              Mientras tanto, escríbenos directamente por WhatsApp y uno de
-              nuestros expertos responde tus preguntas.
-            </p>
+          {/* CTA card */}
+          <div className="mt-14 pt-10 border-t border-gray-100">
+            <div className="bg-kora-primary rounded-2xl p-7 sm:p-9 text-center">
+              <h2 className="font-bold text-white text-xl sm:text-2xl tracking-tight mb-3">
+                ¿Quieres aplicarlo en tu hotel?
+              </h2>
+              <p className="text-white/70 text-sm leading-relaxed mb-7 max-w-md mx-auto">
+                Te mostramos el sistema completo en 20 minutos, con tus números
+                reales y configurado para tu tipo de hotel.
+              </p>
+              <Link
+                href="/#contacto"
+                className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full bg-kora-accent text-kora-primary font-bold text-sm hover:bg-kora-accent-dark transition-colors"
+              >
+                Solicitar mi lugar como hotel fundador
+                <ArrowRight size={15} aria-hidden="true" />
+              </Link>
+            </div>
           </div>
 
-          <div className="mt-12 pt-8 border-t border-gray-100">
-            <div className="bg-kora-bg rounded-2xl p-6 sm:p-8 text-center">
-              <h2 className="font-bold text-kora-text text-lg">
-                ¿Te interesa lo que leíste?
-              </h2>
-              <p className="mt-2 text-kora-muted text-sm">
-                Solicita tu lugar como hotel fundador y ve Kora funcionando en
-                tu hotel.
-              </p>
-              <a
-                href="/#contacto"
-                className="mt-5 inline-flex items-center gap-2 px-6 py-3 rounded-full bg-kora-accent text-kora-primary font-semibold text-sm hover:bg-kora-accent-dark transition-colors"
-              >
-                Solicitar mi lugar
-                <ArrowRight size={15} aria-hidden="true" />
-              </a>
+          {/* Related articles */}
+          <div className="mt-12">
+            <h3 className="font-bold text-kora-text text-lg mb-6">
+              Más artículos
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {articles
+                .filter((a) => a.slug !== slug)
+                .slice(0, 2)
+                .map((related) => (
+                  <Link
+                    key={related.slug}
+                    href={`/blog/${related.slug}`}
+                    className="group block bg-kora-bg rounded-2xl p-5 border border-gray-100 hover:border-kora-primary/20 transition-colors"
+                  >
+                    <p className="font-semibold text-kora-text text-sm leading-snug group-hover:text-kora-primary transition-colors">
+                      {related.title}
+                    </p>
+                    <p className="mt-2 text-xs text-kora-muted">
+                      {related.readTime} de lectura
+                    </p>
+                  </Link>
+                ))}
             </div>
           </div>
         </div>
