@@ -1,0 +1,86 @@
+"use client";
+
+import { useState } from "react";
+import { ChevronDown } from "lucide-react";
+
+const faqs = [
+  {
+    question: "¿Necesito saber de tecnología para usar Kora?",
+    answer:
+      "No. Nosotros instalamos todo, capacitamos a tu equipo y quedamos disponibles por WhatsApp. Si sabes usar tu celular, sabes usar Kora.",
+  },
+  {
+    question: "¿Qué pasa con mis reservas actuales en Booking o Airbnb?",
+    answer:
+      "Kora se conecta con tus OTAs existentes. No pierdes reservas, solo empiezas a capturar las que antes perdías.",
+  },
+  {
+    question: "¿Cuánto tiempo tarda la implementación?",
+    answer:
+      "48 a 72 horas. Tú nos das acceso y nosotros configuramos todo. Tu equipo recibe capacitación antes de arrancar.",
+  },
+  {
+    question: "¿Funciona sin internet estable?",
+    answer:
+      "Sí. Kora tiene modo offline para operaciones básicas (check-in, check-out) que se sincronizan cuando regresa la conexión.",
+  },
+  {
+    question: "¿Incluye la facturación electrónica (CFDI)?",
+    answer:
+      "Sí, Kora genera CFDI 4.0 directamente desde cada reserva, integrado con el SAT.",
+  },
+];
+
+export function FAQSection() {
+  const [open, setOpen] = useState<number | null>(null);
+
+  return (
+    <section className="py-20 sm:py-24 bg-white">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-kora-text mb-12 text-center">
+          Preguntas frecuentes
+        </h2>
+
+        <div className="space-y-2" role="list">
+          {faqs.map((faq, i) => (
+            <div
+              key={i}
+              className="border border-gray-200 rounded-2xl overflow-hidden"
+              role="listitem"
+            >
+              <button
+                className="w-full flex items-center justify-between p-5 sm:p-6 text-left bg-white hover:bg-gray-50 transition-colors"
+                onClick={() => setOpen(open === i ? null : i)}
+                aria-expanded={open === i}
+                aria-controls={`faq-answer-${i}`}
+                id={`faq-question-${i}`}
+              >
+                <span className="font-semibold text-kora-text pr-4 text-sm sm:text-base">
+                  {faq.question}
+                </span>
+                <ChevronDown
+                  size={18}
+                  className={`flex-shrink-0 text-kora-muted transition-transform duration-200 ${
+                    open === i ? "rotate-180" : ""
+                  }`}
+                  aria-hidden="true"
+                />
+              </button>
+
+              {open === i && (
+                <div
+                  id={`faq-answer-${i}`}
+                  role="region"
+                  aria-labelledby={`faq-question-${i}`}
+                  className="px-5 sm:px-6 pb-5 sm:pb-6 text-kora-muted text-sm sm:text-base leading-relaxed"
+                >
+                  {faq.answer}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
