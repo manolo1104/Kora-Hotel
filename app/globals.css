@@ -9,3 +9,113 @@ html {
 body {
   background-color: #fafaf8;
 }
+
+/* ─── Blog article callout components ───────────────────────────────────────── */
+
+@layer components {
+
+  /* TL;DR / resumen al inicio */
+  .callout-summary {
+    @apply bg-[#FAFAF8] border-l-4 border-[#52B788] rounded-r-2xl p-5 my-8;
+  }
+  .callout-summary-title {
+    @apply text-xs font-bold text-[#1B4332] uppercase tracking-widest mb-3;
+  }
+  .callout-summary ul {
+    @apply space-y-1.5 m-0 pl-0 list-none;
+  }
+  .callout-summary li {
+    @apply flex items-start gap-2 text-sm text-[#1A1A1A] leading-snug m-0;
+  }
+  .callout-summary li::before {
+    content: "✓";
+    @apply text-[#52B788] font-bold flex-shrink-0 mt-0.5;
+  }
+
+  /* Estadística destacada */
+  .callout-stat {
+    @apply bg-[#1B4332] rounded-2xl p-6 my-8 text-center;
+  }
+  .callout-stat-number {
+    @apply block text-4xl sm:text-5xl font-bold text-[#52B788] tabular-nums;
+  }
+  .callout-stat-label {
+    @apply block text-sm text-white/70 mt-2 leading-snug;
+  }
+
+  /* Tip / consejo accionable */
+  .callout-tip {
+    @apply bg-[#52B788]/10 border border-[#52B788]/30 rounded-2xl p-5 my-8;
+  }
+  .callout-tip-title {
+    @apply flex items-center gap-2 text-sm font-bold text-[#1B4332] mb-2;
+  }
+  .callout-tip p {
+    @apply text-sm text-[#1A1A1A] leading-relaxed m-0;
+  }
+
+  /* Dato importante / advertencia */
+  .callout-note {
+    @apply bg-amber-50 border border-amber-200 rounded-2xl p-5 my-8;
+  }
+  .callout-note p {
+    @apply text-sm text-amber-900 leading-relaxed m-0;
+  }
+
+  /* Pull quote */
+  .callout-quote {
+    @apply border-l-4 border-[#52B788] pl-6 my-8;
+  }
+  .callout-quote p {
+    @apply text-lg sm:text-xl font-medium text-[#1A1A1A] leading-relaxed italic m-0;
+  }
+  .callout-quote cite {
+    @apply block text-sm font-semibold text-[#1B4332] mt-3 not-italic;
+  }
+
+  /* Comparación antes/después en tabla */
+  .callout-compare {
+    @apply grid grid-cols-2 gap-3 my-8 not-prose;
+  }
+  .callout-compare-before {
+    @apply bg-red-50 border border-red-100 rounded-2xl p-4;
+  }
+  .callout-compare-after {
+    @apply bg-[#52B788]/10 border border-[#52B788]/30 rounded-2xl p-4;
+  }
+  .callout-compare-label {
+    @apply text-[10px] font-bold uppercase tracking-widest mb-3;
+  }
+  .callout-compare ul {
+    @apply space-y-1.5 m-0 pl-0 list-none;
+  }
+  .callout-compare li {
+    @apply text-xs leading-snug m-0;
+  }
+
+  /* CTA dentro del artículo */
+  .callout-cta {
+    @apply bg-[#1B4332] rounded-2xl p-6 my-10 text-center not-prose;
+  }
+  .callout-cta p {
+    @apply text-white/80 text-sm leading-relaxed mt-2 mb-4;
+  }
+  .callout-cta a {
+    @apply inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#52B788] text-[#1B4332] font-bold text-sm hover:bg-[#3FA070] transition-colors no-underline;
+  }
+
+  /* Tabla dentro de artículo */
+  .article-table {
+    @apply w-full text-sm my-8 not-prose;
+  }
+  .article-table th {
+    @apply text-left text-xs font-bold text-[#6B7280] uppercase tracking-wider py-2 px-3 bg-[#FAFAF8] border-b border-gray-200;
+  }
+  .article-table td {
+    @apply py-3 px-3 border-b border-gray-100 text-[#1A1A1A];
+  }
+  .article-table tr:last-child td {
+    @apply border-0;
+  }
+
+}
