@@ -1,0 +1,9 @@
+Especificaciones OG Image Kora:
+- Dimensiones: 1200 x 630 px
+- Fondo: #1B4332 (verde oscuro)
+- Texto principal: "Kora" en blanco,
+  tipografía bold, centrado
+- Subtexto: "Sistema hotelero con IA
+  para hoteles boutique en México"
+  en #52B788, debajo del título
+- Sin imágenes adicionales

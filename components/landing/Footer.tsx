@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export function Footer() {
   return (
     <footer className="bg-[#0F1F15] text-white py-12">
@@ -14,12 +16,12 @@ export function Footer() {
             className="flex items-center gap-6 text-sm text-white/50"
             aria-label="Links del pie de página"
           >
-            <a href="#" className="hover:text-white transition-colors">
+            <Link href="/privacidad" className="hover:text-white transition-colors">
               Política de privacidad
-            </a>
-            <a href="#" className="hover:text-white transition-colors">
+            </Link>
+            <Link href="/terminos" className="hover:text-white transition-colors">
               Términos
-            </a>
+            </Link>
           </nav>
         </div>
 
