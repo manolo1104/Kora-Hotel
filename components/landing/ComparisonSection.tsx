@@ -1,5 +1,6 @@
 import { CheckCircle2, XCircle } from "lucide-react";
 import { Reveal } from "@/components/shared/Reveal";
+import { CountUp } from "@/components/shared/CountUp";
 
 const tools = [
   { name: "PMS básico", cost: "$1,200 MXN" },
@@ -52,7 +53,9 @@ export function ComparisonSection() {
               </div>
               <div className="mt-5 pt-4 border-t border-white/20 flex items-center justify-between gap-4">
                 <span className="font-semibold text-white text-sm">Total mensual</span>
-                <span className="font-bold text-lg text-red-300 whitespace-nowrap">$5,300 MXN/mes</span>
+                <span className="font-bold text-lg text-red-300 whitespace-nowrap">
+                  <CountUp to={5300} prefix="$" className="tabular-nums" /> MXN/mes
+                </span>
               </div>
             </div>
           </Reveal>
@@ -76,7 +79,9 @@ export function ComparisonSection() {
               </div>
               <div className="mt-5 pt-4 border-t border-kora-primary/20 flex items-center justify-between gap-4">
                 <span className="font-semibold text-kora-primary text-sm">Todo incluido</span>
-                <span className="font-bold text-2xl text-kora-primary whitespace-nowrap">$2,990 MXN/mes</span>
+                <span className="font-bold text-2xl text-kora-primary whitespace-nowrap">
+                  <CountUp to={2990} prefix="$" className="tabular-nums" /> MXN/mes
+                </span>
               </div>
             </div>
           </Reveal>
