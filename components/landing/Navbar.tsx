@@ -5,9 +5,9 @@ import { Menu, X } from "lucide-react";
 
 const navLinks = [
   { label: "Características", href: "/caracteristicas" },
+  { label: "Cómo funciona", href: "/como-funciona" },
   { label: "Precios", href: "/precios" },
   { label: "Blog", href: "/blog" },
-  { label: "Demo", href: "/casos/paraiso-encantado" },
 ];
 
 export function Navbar() {

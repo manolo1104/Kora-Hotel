@@ -7,7 +7,7 @@ export const metadata: Metadata = {
     "Artículos sobre gestión hotelera inteligente, revenue management y cómo los hoteles boutique en México pueden crecer con tecnología.",
 };
 
-const placeholderArticles = [
+const articles = [
   {
     slug: "como-aumentar-reservas-directas",
     title:
@@ -16,6 +16,9 @@ const placeholderArticles = [
       "El 18% que le pagas a Booking en cada reserva puede quedarse en tu hotel. Te explicamos cómo.",
     date: "20 de mayo, 2026",
     readTime: "5 min",
+    image:
+      "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&auto=format&q=75",
+    imageAlt: "Recepción de hotel boutique",
   },
   {
     slug: "revenue-management-hoteles-boutique-mexico",
@@ -24,6 +27,9 @@ const placeholderArticles = [
       "Sube y baja tus precios según la demanda, puentes y eventos locales. Sin ser un experto.",
     date: "15 de mayo, 2026",
     readTime: "8 min",
+    image:
+      "https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=800&auto=format&q=75",
+    imageAlt: "Vista de alberca en hotel boutique",
   },
   {
     slug: "agente-whatsapp-ia-hotel-2026",
@@ -33,6 +39,9 @@ const placeholderArticles = [
       "Las reservas que pierdes de noche porque nadie contesta son dinero que se va. Esto tiene solución.",
     date: "5 de mayo, 2026",
     readTime: "6 min",
+    image:
+      "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=800&auto=format&q=75",
+    imageAlt: "Habitación de hotel boutique con vista",
   },
 ];
 
@@ -53,15 +62,19 @@ export default function BlogPage() {
       <section className="py-16 sm:py-20 bg-kora-bg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {placeholderArticles.map((article) => (
+            {articles.map((article) => (
               <article
                 key={article.slug}
                 className="bg-white rounded-2xl overflow-hidden border border-gray-100 flex flex-col"
               >
-                <div
-                  className="aspect-video bg-gradient-to-br from-kora-primary/10 to-kora-accent/20"
-                  aria-hidden="true"
-                />
+                <div className="aspect-video overflow-hidden">
+                  <img
+                    src={article.image}
+                    alt={article.imageAlt}
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                  />
+                </div>
                 <div className="p-6 flex flex-col flex-1">
                   <div className="flex items-center gap-3 text-xs text-kora-muted mb-3">
                     <time>{article.date}</time>
@@ -85,11 +98,6 @@ export default function BlogPage() {
               </article>
             ))}
           </div>
-
-          <p className="mt-12 text-center text-xs text-kora-muted">
-            TODO: Conectar con el agente de blog automático para publicar
-            contenido generado con IA.
-          </p>
         </div>
       </section>
 
