@@ -57,6 +57,54 @@ body {
   animation-delay: 1.5s;
 }
 
+/* ─── Button fill sweep (left → right via background-size) ──────────────────── */
+/*
+   Works on any colored button without z-index conflicts.
+   The white overlay is visible on dark (kora-primary) and medium (kora-accent) buttons.
+   Composable with btn-press (transform) and btn-arrow (svg translate).
+*/
+.btn-fill {
+  background-image: linear-gradient(rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.2));
+  background-size: 0% 100%;
+  background-position: left center;
+  background-repeat: no-repeat;
+  transition: background-size 400ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.btn-fill:hover {
+  background-size: 100% 100%;
+}
+
+/* ─── Integration pill marquee ───────────────────────────────────────────────── */
+
+.marquee-viewport {
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
+  mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
+}
+@keyframes kora-marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+.marquee-track {
+  display: flex;
+  width: max-content;
+  gap: 1rem;
+  animation: kora-marquee 28s linear infinite;
+}
+.marquee-track:hover {
+  animation-play-state: paused;
+}
+
+/* ─── Card glow (recommended pricing card) ───────────────────────────────────── */
+
+.card-glow {
+  transition: box-shadow 300ms ease, transform 220ms var(--ease-out);
+}
+.card-glow:hover {
+  box-shadow: 0 0 0 3px rgba(82, 183, 136, 0.25), 0 24px 48px rgba(27, 67, 50, 0.15);
+  transform: translateY(-2px);
+}
+
 /* ─── Badge spring entrance ─────────────────────────────────────────────────── */
 
 @keyframes kora-badge-in {

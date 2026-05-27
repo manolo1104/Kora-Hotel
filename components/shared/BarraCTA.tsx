@@ -15,7 +15,7 @@ export function BarraCTA() {
           </p>
           <a
             href="/#contacto"
-            className="btn-press mt-6 inline-flex items-center gap-2 px-6 py-3.5 rounded-full bg-white text-kora-primary font-bold text-sm hover:bg-gray-50 transition-colors"
+            className="btn-press btn-arrow mt-6 inline-flex items-center gap-2 px-6 py-3.5 rounded-full bg-white text-kora-primary font-bold text-sm hover:bg-gray-50 transition-colors"
           >
             Solicitar mi lugar
             <ArrowRight size={16} aria-hidden="true" />

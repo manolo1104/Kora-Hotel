@@ -73,11 +73,17 @@ export function FAQSection() {
           {faqs.map((faq, i) => (
             <div
               key={i}
-              className="border border-gray-200 rounded-2xl overflow-hidden"
+              className={`border rounded-2xl overflow-hidden transition-colors duration-200 ${
+                open === i
+                  ? "border-kora-accent/30 bg-kora-bg/40"
+                  : "border-gray-200"
+              }`}
               role="listitem"
             >
               <button
-                className="w-full flex items-center justify-between p-5 sm:p-6 text-left bg-white hover:bg-gray-50 transition-colors"
+                className={`w-full flex items-center justify-between p-5 sm:p-6 text-left transition-colors ${
+                  open === i ? "bg-transparent" : "bg-white hover:bg-gray-50"
+                }`}
                 onClick={() => setOpen(open === i ? null : i)}
                 aria-expanded={open === i}
                 aria-controls={`faq-answer-${i}`}

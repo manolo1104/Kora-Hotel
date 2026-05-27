@@ -33,9 +33,9 @@ export function ProblemSection() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5 max-w-3xl mx-auto lg:max-w-none">
           {pains.map(({ Icon, text }, i) => (
             <Reveal key={i} delay={0.06 + i * 0.07}>
-              <div className="card-hover flex gap-4 p-5 sm:p-6 rounded-2xl border border-gray-100 bg-white shadow-sm h-full">
+              <div className="group card-hover flex gap-4 p-5 sm:p-6 rounded-2xl border border-gray-100 bg-white shadow-sm h-full">
                 <div
-                  className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center"
+                  className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover:scale-110 group-hover:rotate-6"
                   style={{ backgroundColor: "rgba(27, 67, 50, 0.08)" }}
                 >
                   <Icon size={20} className="text-kora-primary" aria-hidden="true" />

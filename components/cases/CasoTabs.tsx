@@ -244,7 +244,13 @@ function TabResultados() {
                   <span className="font-bold text-red-600">75%</span>
                 </div>
                 <div className="h-2 bg-red-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-red-400 rounded-full" style={{ width: "75%" }} />
+                  <motion.div
+                    className="h-full bg-red-400 rounded-full"
+                    initial={{ width: 0 }}
+                    whileInView={{ width: "75%" }}
+                    transition={{ duration: 0.8, ease: EASE, delay: 0.1 }}
+                    viewport={{ once: true }}
+                  />
                 </div>
               </div>
               <div>
@@ -253,7 +259,13 @@ function TabResultados() {
                   <span className="font-bold">25%</span>
                 </div>
                 <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-gray-300 rounded-full" style={{ width: "25%" }} />
+                  <motion.div
+                    className="h-full bg-gray-300 rounded-full"
+                    initial={{ width: 0 }}
+                    whileInView={{ width: "25%" }}
+                    transition={{ duration: 0.7, ease: EASE, delay: 0.2 }}
+                    viewport={{ once: true }}
+                  />
                 </div>
               </div>
             </div>
@@ -269,7 +281,13 @@ function TabResultados() {
                   <span className="font-bold text-kora-muted">53%</span>
                 </div>
                 <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-kora-muted/40 rounded-full" style={{ width: "53%" }} />
+                  <motion.div
+                    className="h-full bg-kora-muted/40 rounded-full"
+                    initial={{ width: 0 }}
+                    whileInView={{ width: "53%" }}
+                    transition={{ duration: 0.8, ease: EASE, delay: 0.1 }}
+                    viewport={{ once: true }}
+                  />
                 </div>
               </div>
               <div>
@@ -278,7 +296,13 @@ function TabResultados() {
                   <span className="font-bold text-kora-primary">47%</span>
                 </div>
                 <div className="h-2 bg-kora-accent/20 rounded-full overflow-hidden">
-                  <div className="h-full bg-kora-accent rounded-full" style={{ width: "47%" }} />
+                  <motion.div
+                    className="h-full bg-kora-accent rounded-full"
+                    initial={{ width: 0 }}
+                    whileInView={{ width: "47%" }}
+                    transition={{ duration: 0.9, ease: EASE, delay: 0.2 }}
+                    viewport={{ once: true }}
+                  />
                 </div>
               </div>
             </div>
@@ -344,13 +368,20 @@ export function CasoTabs() {
             aria-controls={`panel-${tab.id}`}
             id={`tab-${tab.id}`}
             onClick={() => setActive(tab.id)}
-            className={`flex-1 py-2.5 px-3 rounded-xl text-sm font-semibold transition-all duration-200 ${
+            className={`relative flex-1 py-2.5 px-3 rounded-xl text-sm font-semibold transition-colors duration-200 ${
               active === tab.id
-                ? "bg-white text-kora-primary shadow-sm"
+                ? "text-kora-primary"
                 : "text-kora-muted hover:text-kora-text"
             }`}
           >
-            {tab.label}
+            {active === tab.id && (
+              <motion.div
+                layoutId="tab-pill"
+                className="absolute inset-0 bg-white rounded-xl shadow-sm"
+                transition={{ type: "spring", stiffness: 400, damping: 35 }}
+              />
+            )}
+            <span className="relative z-10">{tab.label}</span>
           </button>
         ))}
       </div>

@@ -141,7 +141,7 @@ export function Hero() {
               <motion.div {...item(0.22)} className="flex flex-col sm:flex-row gap-3">
                 <a
                   href="#contacto"
-                  className="btn-press btn-arrow inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-kora-accent text-kora-primary font-semibold text-sm hover:bg-kora-accent-dark transition-colors"
+                  className="btn-press btn-arrow btn-fill inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-kora-accent text-kora-primary font-semibold text-sm hover:bg-kora-accent-dark transition-colors"
                 >
                   Ver demo en vivo
                   <ArrowRight size={16} />

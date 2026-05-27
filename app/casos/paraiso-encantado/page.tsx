@@ -160,7 +160,7 @@ export default function CasoParaisoEncantadoPage() {
             href={WA_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-8 py-4 rounded-full bg-kora-accent text-kora-primary font-bold text-sm hover:bg-kora-accent-dark transition-colors"
+            className="btn-press btn-arrow btn-fill inline-flex items-center gap-2 px-8 py-4 rounded-full bg-kora-accent text-kora-primary font-bold text-sm hover:bg-kora-accent-dark transition-colors"
           >
             Quiero ver el demo
             <ArrowRight size={16} aria-hidden="true" />

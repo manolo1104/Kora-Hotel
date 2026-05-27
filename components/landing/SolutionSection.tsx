@@ -111,10 +111,10 @@ export function SolutionSection() {
                 className={`${isLarge ? "sm:col-span-2 lg:col-span-2" : ""}`}
               >
                 <div
-                  className={`${s.wrapper} rounded-2xl p-6 h-full ${isLarge ? "sm:p-8" : ""}`}
+                  className={`group ${s.wrapper} rounded-2xl p-6 h-full ${isLarge ? "sm:p-8" : ""}`}
                 >
                   <div
-                    className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 ${
+                    className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover:scale-110 group-hover:-rotate-6 ${
                       style === "dark" ? s.icon : ""
                     }`}
                     style={

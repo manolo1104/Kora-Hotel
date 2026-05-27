@@ -1,5 +1,6 @@
 import { Reveal } from "@/components/shared/Reveal";
 
+// Duplicated for seamless CSS marquee loop
 const integraciones = [
   {
     name: "Booking.com",
@@ -65,11 +66,12 @@ export function IntegracionesSection() {
           </div>
         </Reveal>
 
-        <div className="flex flex-wrap justify-center gap-4">
-          {integraciones.map((int, i) => (
-            <Reveal key={int.name} delay={0.05 + i * 0.05}>
+        <div className="marquee-viewport mt-2">
+          <div className="marquee-track" aria-hidden="true">
+            {[...integraciones, ...integraciones].map((int, i) => (
               <div
-                className={`flex items-center gap-3 px-5 py-3.5 rounded-2xl border transition-shadow card-hover ${
+                key={`${int.name}-${i}`}
+                className={`flex items-center gap-3 px-5 py-3.5 rounded-2xl border flex-shrink-0 ${
                   int.status === "active"
                     ? "bg-white border-gray-200 shadow-sm"
                     : "bg-gray-50 border-gray-100 opacity-60"
@@ -97,9 +99,15 @@ export function IntegracionesSection() {
                   </p>
                 </div>
               </div>
-            </Reveal>
-          ))}
+            ))}
+          </div>
         </div>
+        {/* Accessible static list for screen readers */}
+        <ul className="sr-only" aria-label="Integraciones disponibles">
+          {integraciones.map((int) => (
+            <li key={int.name}>{int.name} — {int.status === "active" ? "Activo" : "Próximamente"}</li>
+          ))}
+        </ul>
       </div>
     </section>
   );

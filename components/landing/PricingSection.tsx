@@ -99,7 +99,7 @@ export function PricingSection() {
 
           {/* Plan fundador — Completo */}
           <Reveal delay={0.2}>
-            <div className="relative bg-white rounded-3xl p-8 border-2 border-kora-primary shadow-xl shadow-kora-primary/5 h-full">
+            <div className="card-glow relative bg-white rounded-3xl p-8 border-2 border-kora-primary h-full">
               <div className="absolute -top-4 left-1/2 -translate-x-1/2">
                 <span className="animate-badge-in inline-flex items-center px-4 py-1.5 rounded-full bg-kora-accent text-kora-primary text-xs font-bold whitespace-nowrap">
                   Recomendado · Setup gratis
@@ -140,7 +140,7 @@ export function PricingSection() {
 
               <a
                 href="#contacto"
-                className="btn-press btn-arrow mt-8 flex items-center justify-center gap-2 w-full py-4 rounded-full bg-kora-accent text-kora-primary font-bold text-base hover:bg-kora-accent-dark transition-colors text-center"
+                className="btn-press btn-arrow btn-fill mt-8 flex items-center justify-center gap-2 w-full py-4 rounded-full bg-kora-accent text-kora-primary font-bold text-base hover:bg-kora-accent-dark transition-colors text-center"
               >
                 Quiero ser hotel fundador
               </a>

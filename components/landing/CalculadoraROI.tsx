@@ -377,7 +377,7 @@ export function CalculadoraROI() {
             href={WA_CALC_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="btn-press btn-arrow inline-flex items-center gap-2 px-6 py-3.5 rounded-full bg-kora-accent text-kora-primary font-bold text-sm hover:bg-kora-accent-dark transition-colors"
+            className="btn-press btn-arrow btn-fill inline-flex items-center gap-2 px-6 py-3.5 rounded-full bg-kora-accent text-kora-primary font-bold text-sm hover:bg-kora-accent-dark transition-colors"
           >
             Hablar con Manolo por WhatsApp
             <ArrowRight size={15} aria-hidden="true" />

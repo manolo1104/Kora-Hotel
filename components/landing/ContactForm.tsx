@@ -142,7 +142,7 @@ export function ContactForm() {
 
                 <button
                   type="submit"
-                  className="btn-press w-full py-4 rounded-full bg-kora-accent text-kora-primary font-bold text-base hover:bg-kora-accent-dark transition-colors mt-2"
+                  className="btn-press btn-fill w-full py-4 rounded-full bg-kora-accent text-kora-primary font-bold text-base hover:bg-kora-accent-dark transition-colors mt-2"
                 >
                   Solicitar mi lugar
                 </button>

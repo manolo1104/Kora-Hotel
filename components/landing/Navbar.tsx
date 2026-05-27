@@ -45,7 +45,7 @@ export function Navbar() {
       >
         <a
           href="/"
-          className="text-2xl font-bold tracking-tight text-kora-primary"
+          className="text-2xl font-bold tracking-tight text-kora-primary transition-transform hover:scale-105 origin-left"
           aria-label="Kora - Inicio"
         >
           Kora
@@ -63,7 +63,7 @@ export function Navbar() {
           ))}
           <a
             href="/#contacto"
-            className="btn-press btn-arrow inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-kora-primary text-white text-sm font-semibold hover:bg-kora-primary-dark transition-colors"
+            className="btn-press btn-arrow btn-fill inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-kora-primary text-white text-sm font-semibold hover:bg-kora-primary-dark transition-colors"
           >
             Solicitar demo
           </a>
