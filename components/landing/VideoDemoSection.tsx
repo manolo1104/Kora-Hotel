@@ -1,3 +1,5 @@
+import { Reveal } from "@/components/shared/Reveal";
+
 // ─── Configuración del video ──────────────────────────────────────────────────
 //
 // Cuando tengas el video listo (Loom, YouTube u otro), pega aquí la URL de
@@ -11,7 +13,6 @@
 //
 const VIDEO_EMBED_URL = "";
 
-// Título del video que aparece en el placeholder mientras no hay video
 const VIDEO_DURATION = "90 segundos";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -36,68 +37,57 @@ export function VideoDemoSection() {
   return (
     <section className="py-14 sm:py-20 bg-kora-bg border-t border-gray-100">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-8">
-          <p className="text-xs font-bold text-kora-muted uppercase tracking-widest mb-2">
-            Demo en vivo
-          </p>
-          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-kora-text">
-            Míralo en {VIDEO_DURATION}
-          </h2>
-          <p className="mt-3 text-kora-muted text-sm max-w-lg mx-auto">
-            Un recorrido completo del sistema: desde el mensaje de WhatsApp del
-            huésped hasta la reserva confirmada en el PMS.
-          </p>
-        </div>
+        <Reveal>
+          <div className="text-center mb-8">
+            <p className="text-xs font-bold text-kora-muted uppercase tracking-widest mb-2">
+              Demo en vivo
+            </p>
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-kora-text">
+              Míralo en {VIDEO_DURATION}
+            </h2>
+            <p className="mt-3 text-kora-muted text-sm max-w-lg mx-auto">
+              Un recorrido completo del sistema: desde el mensaje de WhatsApp del
+              huésped hasta la reserva confirmada en el PMS.
+            </p>
+          </div>
+        </Reveal>
 
-        <div className="rounded-2xl overflow-hidden shadow-xl shadow-kora-primary/10 aspect-video bg-kora-primary relative">
-          {VIDEO_EMBED_URL ? (
-            <iframe
-              src={VIDEO_EMBED_URL}
-              title="Demo de Kora"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-              className="w-full h-full border-0"
-            />
-          ) : (
-            /* Placeholder — se reemplaza cuando VIDEO_EMBED_URL tenga valor */
-            <div className="w-full h-full flex flex-col items-center justify-center gap-4 select-none">
-              {/* Subtle grid background */}
-              <div
-                className="absolute inset-0 opacity-10"
-                style={{
-                  backgroundImage:
-                    "repeating-linear-gradient(0deg,transparent,transparent 39px,rgba(82,183,136,.4) 39px,rgba(82,183,136,.4) 40px),repeating-linear-gradient(90deg,transparent,transparent 39px,rgba(82,183,136,.4) 39px,rgba(82,183,136,.4) 40px)",
-                }}
-                aria-hidden="true"
+        <Reveal delay={0.12}>
+          <div className="rounded-2xl overflow-hidden shadow-xl shadow-kora-primary/10 aspect-video bg-kora-primary relative">
+            {VIDEO_EMBED_URL ? (
+              <iframe
+                src={VIDEO_EMBED_URL}
+                title="Demo de Kora"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                className="w-full h-full border-0"
               />
-              <PlayIcon />
-              <div className="text-center z-10 px-4">
-                <p className="text-white font-bold text-lg">
-                  Video demo próximamente
-                </p>
-                <p className="text-kora-accent/80 text-sm mt-1">
-                  Recorrido del sistema en {VIDEO_DURATION}
-                </p>
+            ) : (
+              <div className="w-full h-full flex flex-col items-center justify-center gap-4 select-none">
+                <div
+                  className="absolute inset-0 opacity-10"
+                  style={{
+                    backgroundImage:
+                      "repeating-linear-gradient(0deg,transparent,transparent 39px,rgba(82,183,136,.4) 39px,rgba(82,183,136,.4) 40px),repeating-linear-gradient(90deg,transparent,transparent 39px,rgba(82,183,136,.4) 39px,rgba(82,183,136,.4) 40px)",
+                  }}
+                  aria-hidden="true"
+                />
+                <PlayIcon />
+                <div className="text-center z-10 px-4">
+                  <p className="text-white font-bold text-lg">
+                    Video demo próximamente
+                  </p>
+                  <p className="text-kora-accent/80 text-sm mt-1">
+                    Recorrido del sistema en {VIDEO_DURATION}
+                  </p>
+                </div>
+                <div className="absolute bottom-5 right-5 bg-white/10 text-white/60 text-xs px-3 py-1.5 rounded-full">
+                  Loom · {VIDEO_DURATION}
+                </div>
               </div>
-              <div className="absolute bottom-5 right-5 bg-white/10 text-white/60 text-xs px-3 py-1.5 rounded-full">
-                Loom · {VIDEO_DURATION}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {!VIDEO_EMBED_URL && (
-          <p className="mt-4 text-center text-xs text-kora-muted">
-            Para activar el video: abre{" "}
-            <code className="bg-gray-100 px-1.5 py-0.5 rounded text-kora-primary">
-              components/landing/VideoDemoSection.tsx
-            </code>{" "}
-            y pega la URL de embed en{" "}
-            <code className="bg-gray-100 px-1.5 py-0.5 rounded text-kora-primary">
-              VIDEO_EMBED_URL
-            </code>
-          </p>
-        )}
+            )}
+          </div>
+        </Reveal>
       </div>
     </section>
   );

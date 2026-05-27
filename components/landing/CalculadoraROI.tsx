@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ArrowRight } from "lucide-react";
+import { Reveal } from "@/components/shared/Reveal";
 
 const WA_CALC_URL = `https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "524891251458"}?text=Hola%2C%20us%C3%A9%20la%20calculadora%20de%20Kora%20y%20quiero%20saber%20m%C3%A1s`;
 
@@ -256,6 +257,7 @@ export function CalculadoraROI() {
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* ── Card ── */}
+        <Reveal>
         <div className="rounded-2xl border border-kora-primary overflow-hidden shadow-lg shadow-kora-primary/10">
           {/* Header */}
           <div className="bg-kora-primary px-6 py-5 sm:px-8 sm:py-6">
@@ -357,6 +359,7 @@ export function CalculadoraROI() {
             </div>
           </div>
         </div>
+        </Reveal>
 
         {/* Legal note */}
         <p className="mt-5 text-xs text-kora-muted text-center leading-relaxed px-2">
@@ -374,7 +377,7 @@ export function CalculadoraROI() {
             href={WA_CALC_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-6 py-3.5 rounded-full bg-kora-accent text-kora-primary font-bold text-sm hover:bg-kora-accent-dark transition-colors"
+            className="btn-press btn-arrow inline-flex items-center gap-2 px-6 py-3.5 rounded-full bg-kora-accent text-kora-primary font-bold text-sm hover:bg-kora-accent-dark transition-colors"
           >
             Hablar con Manolo por WhatsApp
             <ArrowRight size={15} aria-hidden="true" />

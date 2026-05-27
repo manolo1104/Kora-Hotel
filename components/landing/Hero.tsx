@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "motion/react";
+import { motion, useMotionValue, useMotionTemplate } from "motion/react";
 import { ArrowRight, MessageCircle } from "lucide-react";
 
 const EASE = [0.23, 1, 0.32, 1] as const;
@@ -98,18 +98,36 @@ function HotelIllustration() {
 }
 
 export function Hero() {
+  const mouseX = useMotionValue(400);
+  const mouseY = useMotionValue(300);
+  const background = useMotionTemplate`radial-gradient(600px at ${mouseX}px ${mouseY}px, rgba(82,183,136,0.07), transparent 65%)`;
+
   return (
     <>
       <div id="hero-sentinel" className="absolute top-32 pointer-events-none" aria-hidden="true" />
 
-      <section className="min-h-[100dvh] flex items-center bg-kora-bg pt-16 overflow-x-hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full py-16 lg:py-0">
+      <section
+        className="relative min-h-[100dvh] flex items-center bg-kora-bg pt-16 overflow-x-hidden"
+        onMouseMove={(e) => {
+          const rect = e.currentTarget.getBoundingClientRect();
+          mouseX.set(e.clientX - rect.left);
+          mouseY.set(e.clientY - rect.top);
+        }}
+      >
+        {/* Ambient cursor glow — off main thread via MotionValue */}
+        <motion.div
+          className="absolute inset-0 pointer-events-none"
+          style={{ background }}
+          aria-hidden="true"
+        />
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full py-16 lg:py-0 relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 xl:gap-16 items-center">
 
             <div className="space-y-7">
               <motion.h1 {...item(0)} className="text-4xl sm:text-5xl xl:text-[3.5rem] font-bold tracking-tight text-kora-text leading-tight">
                 Tu hotel lleno.{" "}
-                <span className="text-kora-primary">
+                <span className="text-shimmer text-kora-primary">
                   Sin depender de Booking.
                 </span>
               </motion.h1>
@@ -123,7 +141,7 @@ export function Hero() {
               <motion.div {...item(0.22)} className="flex flex-col sm:flex-row gap-3">
                 <a
                   href="#contacto"
-                  className="btn-press inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-kora-accent text-kora-primary font-semibold text-sm hover:bg-kora-accent-dark transition-colors"
+                  className="btn-press btn-arrow inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-kora-accent text-kora-primary font-semibold text-sm hover:bg-kora-accent-dark transition-colors"
                 >
                   Ver demo en vivo
                   <ArrowRight size={16} />
@@ -144,7 +162,7 @@ export function Hero() {
                   </span>{" "}
                   · Xilitla, SLP
                 </p>
-                <div className="inline-flex items-center gap-2 bg-[#1B4332]/8 text-kora-primary px-4 py-2 rounded-full text-sm font-medium">
+                <div className="animate-pulse-ring inline-flex items-center gap-2 bg-[#1B4332]/8 text-kora-primary px-4 py-2 rounded-full text-sm font-medium">
                   <span className="text-kora-accent font-bold text-base leading-none">★</span>
                   Ahorra hasta $12,000 MXN/mes en comisiones de OTAs
                 </div>
@@ -153,8 +171,8 @@ export function Hero() {
 
             <motion.div
               className="hidden lg:block"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.8, delay: 0.1, ease: "easeOut" }}
             >
               <HotelIllustration />

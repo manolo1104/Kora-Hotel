@@ -1,3 +1,5 @@
+import { Reveal } from "@/components/shared/Reveal";
+
 const integraciones = [
   {
     name: "Booking.com",
@@ -47,52 +49,55 @@ export function IntegracionesSection() {
   return (
     <section className="py-14 sm:py-16 bg-white border-t border-gray-100">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-10">
-          <p className="text-xs font-bold text-kora-muted uppercase tracking-widest mb-2">
-            Integraciones
-          </p>
-          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-kora-text">
-            Se conecta con lo que ya usas
-          </h2>
-          <p className="mt-3 text-kora-muted text-sm max-w-xl mx-auto">
-            Kora no reemplaza tus canales: los une en un solo lugar. Tus
-            reservas de Booking, tus mensajes de WhatsApp y tu contabilidad
-            fiscal, todo sincronizado.
-          </p>
-        </div>
+        <Reveal>
+          <div className="text-center mb-10">
+            <p className="text-xs font-bold text-kora-muted uppercase tracking-widest mb-2">
+              Integraciones
+            </p>
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-kora-text">
+              Se conecta con lo que ya usas
+            </h2>
+            <p className="mt-3 text-kora-muted text-sm max-w-xl mx-auto">
+              Kora no reemplaza tus canales: los une en un solo lugar. Tus
+              reservas de Booking, tus mensajes de WhatsApp y tu contabilidad
+              fiscal, todo sincronizado.
+            </p>
+          </div>
+        </Reveal>
 
         <div className="flex flex-wrap justify-center gap-4">
-          {integraciones.map((int) => (
-            <div
-              key={int.name}
-              className={`flex items-center gap-3 px-5 py-3.5 rounded-2xl border transition-shadow ${
-                int.status === "active"
-                  ? "bg-white border-gray-200 shadow-sm hover:shadow-md"
-                  : "bg-gray-50 border-gray-100 opacity-60"
-              }`}
-            >
+          {integraciones.map((int, i) => (
+            <Reveal key={int.name} delay={0.05 + i * 0.05}>
               <div
-                className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
-                style={{ backgroundColor: int.color }}
-                aria-hidden="true"
+                className={`flex items-center gap-3 px-5 py-3.5 rounded-2xl border transition-shadow card-hover ${
+                  int.status === "active"
+                    ? "bg-white border-gray-200 shadow-sm"
+                    : "bg-gray-50 border-gray-100 opacity-60"
+                }`}
               >
-                <span className="text-white text-[10px] font-bold">
-                  {int.abbr}
-                </span>
+                <div
+                  className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{ backgroundColor: int.color }}
+                  aria-hidden="true"
+                >
+                  <span className="text-white text-[10px] font-bold">
+                    {int.abbr}
+                  </span>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-kora-text leading-none">
+                    {int.name}
+                  </p>
+                  <p className="text-[10px] mt-0.5 font-medium leading-none">
+                    {int.status === "active" ? (
+                      <span className="text-kora-accent">Activo</span>
+                    ) : (
+                      <span className="text-kora-muted">Próximamente</span>
+                    )}
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-semibold text-kora-text leading-none">
-                  {int.name}
-                </p>
-                <p className="text-[10px] mt-0.5 font-medium leading-none">
-                  {int.status === "active" ? (
-                    <span className="text-kora-accent">Activo</span>
-                  ) : (
-                    <span className="text-kora-muted">Próximamente</span>
-                  )}
-                </p>
-              </div>
-            </div>
+            </Reveal>
           ))}
         </div>
       </div>

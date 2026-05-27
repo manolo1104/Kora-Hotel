@@ -9,6 +9,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { BarraCTA } from "@/components/shared/BarraCTA";
+import { Reveal } from "@/components/shared/Reveal";
 
 export const metadata: Metadata = {
   title: "Cómo funciona Kora — Onboarding en 48 horas",
@@ -102,38 +103,40 @@ export default function ComoFuncionaPage() {
               aria-hidden="true"
             />
 
-            <ol className="space-y-10">
+            <div className="space-y-10">
               {steps.map((step, i) => (
-                <li key={i} className="relative flex gap-6 sm:gap-8">
-                  {/* Step number bubble */}
-                  <div className="flex-shrink-0 relative z-10">
-                    <div className="w-11 h-11 rounded-full bg-kora-primary flex items-center justify-center text-white shadow-md">
-                      {step.icon}
+                <Reveal key={i} delay={0.06 + i * 0.07}>
+                  <div className="relative flex gap-6 sm:gap-8">
+                    {/* Step number bubble */}
+                    <div className="flex-shrink-0 relative z-10">
+                      <div className="w-11 h-11 rounded-full bg-kora-primary flex items-center justify-center text-white shadow-md">
+                        {step.icon}
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="pb-2 flex-1">
-                    <div className="flex items-center gap-3 mb-1.5">
-                      <span className="text-xs font-bold text-kora-muted uppercase tracking-widest">
-                        {step.num}
-                      </span>
-                      <span className="text-xs font-semibold text-kora-accent bg-kora-accent/10 px-2.5 py-0.5 rounded-full">
-                        {step.duration}
-                      </span>
+                    <div className="pb-2 flex-1">
+                      <div className="flex items-center gap-3 mb-1.5">
+                        <span className="text-xs font-bold text-kora-muted uppercase tracking-widest">
+                          {step.num}
+                        </span>
+                        <span className="text-xs font-semibold text-kora-accent bg-kora-accent/10 px-2.5 py-0.5 rounded-full">
+                          {step.duration}
+                        </span>
+                      </div>
+                      <h2 className="text-lg sm:text-xl font-bold text-kora-text mb-2">
+                        {step.title}
+                      </h2>
+                      <p className="text-sm sm:text-base text-kora-muted leading-relaxed mb-2">
+                        {step.description}
+                      </p>
+                      <p className="text-xs text-kora-primary/70 font-medium">
+                        {step.detail}
+                      </p>
                     </div>
-                    <h2 className="text-lg sm:text-xl font-bold text-kora-text mb-2">
-                      {step.title}
-                    </h2>
-                    <p className="text-sm sm:text-base text-kora-muted leading-relaxed mb-2">
-                      {step.description}
-                    </p>
-                    <p className="text-xs text-kora-primary/70 font-medium">
-                      {step.detail}
-                    </p>
                   </div>
-                </li>
+                </Reveal>
               ))}
-            </ol>
+            </div>
           </div>
         </div>
       </section>
@@ -158,16 +161,15 @@ export default function ComoFuncionaPage() {
                 title: "Soporte humano en español",
                 desc: "Acceso directo a WhatsApp del equipo, no a un bot de soporte.",
               },
-            ].map((g) => (
-              <div
-                key={g.title}
-                className="bg-kora-bg rounded-2xl p-6 border border-gray-100"
-              >
-                <p className="font-bold text-kora-primary text-base mb-2">
-                  {g.title}
-                </p>
-                <p className="text-sm text-kora-muted leading-relaxed">{g.desc}</p>
-              </div>
+            ].map((g, i) => (
+              <Reveal key={g.title} delay={0.06 + i * 0.08}>
+                <div className="bg-kora-bg rounded-2xl p-6 border border-gray-100 h-full">
+                  <p className="font-bold text-kora-primary text-base mb-2">
+                    {g.title}
+                  </p>
+                  <p className="text-sm text-kora-muted leading-relaxed">{g.desc}</p>
+                </div>
+              </Reveal>
             ))}
           </div>
         </div>
@@ -187,64 +189,68 @@ export default function ComoFuncionaPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Sin Kora */}
-            <div className="bg-red-50 border border-red-100 rounded-2xl p-6">
-              <p className="text-xs font-bold text-red-600 uppercase tracking-widest mb-5">
-                Sin Kora
-              </p>
-              <div className="space-y-5">
-                {[
-                  {
-                    time: "8:00 AM",
-                    desc: "Abres Booking, Airbnb, WhatsApp y revisas las llamadas perdidas de la noche. 20 minutos solo para ver qué pasó.",
-                  },
-                  {
-                    time: "11:30 PM",
-                    desc: "Un huésped escribe preguntando disponibilidad para el fin de semana. Nadie contesta. Al día siguiente ya reservó en otro lado.",
-                  },
-                  {
-                    time: "Fin de mes",
-                    desc: "¿Cuánto pagaste en comisiones a las OTAs? No lo sabes exactamente. Tienes que juntar los datos de 3 canales distintos.",
-                  },
-                ].map((item) => (
-                  <div key={item.time} className="flex gap-3">
-                    <span className="text-xs font-bold text-red-400 flex-shrink-0 w-16 pt-0.5">
-                      {item.time}
-                    </span>
-                    <p className="text-sm text-red-800/80 leading-relaxed">{item.desc}</p>
-                  </div>
-                ))}
+            <Reveal delay={0.1}>
+              <div className="bg-red-50 border border-red-100 rounded-2xl p-6 h-full">
+                <p className="text-xs font-bold text-red-600 uppercase tracking-widest mb-5">
+                  Sin Kora
+                </p>
+                <div className="space-y-5">
+                  {[
+                    {
+                      time: "8:00 AM",
+                      desc: "Abres Booking, Airbnb, WhatsApp y revisas las llamadas perdidas de la noche. 20 minutos solo para ver qué pasó.",
+                    },
+                    {
+                      time: "11:30 PM",
+                      desc: "Un huésped escribe preguntando disponibilidad para el fin de semana. Nadie contesta. Al día siguiente ya reservó en otro lado.",
+                    },
+                    {
+                      time: "Fin de mes",
+                      desc: "¿Cuánto pagaste en comisiones a las OTAs? No lo sabes exactamente. Tienes que juntar los datos de 3 canales distintos.",
+                    },
+                  ].map((item) => (
+                    <div key={item.time} className="flex gap-3">
+                      <span className="text-xs font-bold text-red-400 flex-shrink-0 w-16 pt-0.5">
+                        {item.time}
+                      </span>
+                      <p className="text-sm text-red-800/80 leading-relaxed">{item.desc}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
+            </Reveal>
 
             {/* Con Kora */}
-            <div className="bg-kora-primary rounded-2xl p-6">
-              <p className="text-xs font-bold text-kora-accent uppercase tracking-widest mb-5">
-                Con Kora
-              </p>
-              <div className="space-y-5">
-                {[
-                  {
-                    time: "8:00 AM",
-                    desc: "Recibes el reporte diario automático: ocupación, check-ins programados y reservas nuevas que llegaron mientras dormías.",
-                  },
-                  {
-                    time: "11:30 PM",
-                    desc: "El agente de IA responde, muestra disponibilidad y cierra la reserva directamente por WhatsApp. Tú duermes. La reserva llega.",
-                  },
-                  {
-                    time: "Fin de mes",
-                    desc: "El dashboard muestra todo: OTAs vs directo, comisiones pagadas, RevPAR, ahorro acumulado. Un solo número por semana.",
-                  },
-                ].map((item) => (
-                  <div key={item.time} className="flex gap-3">
-                    <span className="text-xs font-bold text-kora-accent flex-shrink-0 w-16 pt-0.5">
-                      {item.time}
-                    </span>
-                    <p className="text-sm text-white/80 leading-relaxed">{item.desc}</p>
-                  </div>
-                ))}
+            <Reveal delay={0.2}>
+              <div className="bg-kora-primary rounded-2xl p-6 h-full">
+                <p className="text-xs font-bold text-kora-accent uppercase tracking-widest mb-5">
+                  Con Kora
+                </p>
+                <div className="space-y-5">
+                  {[
+                    {
+                      time: "8:00 AM",
+                      desc: "Recibes el reporte diario automático: ocupación, check-ins programados y reservas nuevas que llegaron mientras dormías.",
+                    },
+                    {
+                      time: "11:30 PM",
+                      desc: "El agente de IA responde, muestra disponibilidad y cierra la reserva directamente por WhatsApp. Tú duermes. La reserva llega.",
+                    },
+                    {
+                      time: "Fin de mes",
+                      desc: "El dashboard muestra todo: OTAs vs directo, comisiones pagadas, RevPAR, ahorro acumulado. Un solo número por semana.",
+                    },
+                  ].map((item) => (
+                    <div key={item.time} className="flex gap-3">
+                      <span className="text-xs font-bold text-kora-accent flex-shrink-0 w-16 pt-0.5">
+                        {item.time}
+                      </span>
+                      <p className="text-sm text-white/80 leading-relaxed">{item.desc}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
+            </Reveal>
           </div>
         </div>
       </section>

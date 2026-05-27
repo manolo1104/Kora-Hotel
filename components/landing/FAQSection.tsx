@@ -2,6 +2,9 @@
 
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
+
+const EASE = [0.23, 1, 0.32, 1] as const;
 
 const faqs = [
   {
@@ -83,25 +86,34 @@ export function FAQSection() {
                 <span className="font-semibold text-kora-text pr-4 text-sm sm:text-base">
                   {faq.question}
                 </span>
-                <ChevronDown
-                  size={18}
-                  className={`flex-shrink-0 text-kora-muted transition-transform duration-200 ${
-                    open === i ? "rotate-180" : ""
-                  }`}
-                  aria-hidden="true"
-                />
+                <motion.span
+                  animate={{ rotate: open === i ? 180 : 0 }}
+                  transition={{ duration: 0.2, ease: EASE }}
+                  className="flex-shrink-0"
+                >
+                  <ChevronDown size={18} className="text-kora-muted" aria-hidden="true" />
+                </motion.span>
               </button>
 
-              {open === i && (
-                <div
-                  id={`faq-answer-${i}`}
-                  role="region"
-                  aria-labelledby={`faq-question-${i}`}
-                  className="px-5 sm:px-6 pb-5 sm:pb-6 text-kora-muted text-sm sm:text-base leading-relaxed"
-                >
-                  {faq.answer}
-                </div>
-              )}
+              <AnimatePresence initial={false}>
+                {open === i && (
+                  <motion.div
+                    key="content"
+                    id={`faq-answer-${i}`}
+                    role="region"
+                    aria-labelledby={`faq-question-${i}`}
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.22, ease: EASE }}
+                    style={{ overflow: "hidden" }}
+                  >
+                    <div className="px-5 sm:px-6 pb-5 sm:pb-6 text-kora-muted text-sm sm:text-base leading-relaxed">
+                      {faq.answer}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           ))}
         </div>

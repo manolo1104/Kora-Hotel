@@ -20,7 +20,6 @@ export function Navbar() {
   useEffect(() => {
     const sentinel = document.getElementById("hero-sentinel");
     if (!sentinel) {
-      // Páginas internas: siempre mostrar fondo blanco
       setScrolled(true);
       return;
     }
@@ -57,14 +56,14 @@ export function Navbar() {
             <a
               key={link.href}
               href={link.href}
-              className="text-sm font-medium text-kora-text hover:text-kora-primary transition-colors"
+              className="nav-link text-sm font-medium text-kora-text hover:text-kora-primary transition-colors"
             >
               {link.label}
             </a>
           ))}
           <a
             href="/#contacto"
-            className="btn-press inline-flex items-center px-5 py-2.5 rounded-full bg-kora-primary text-white text-sm font-semibold hover:bg-kora-primary-dark transition-colors"
+            className="btn-press btn-arrow inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-kora-primary text-white text-sm font-semibold hover:bg-kora-primary-dark transition-colors"
           >
             Solicitar demo
           </a>
@@ -76,36 +75,68 @@ export function Navbar() {
           aria-label={menuOpen ? "Cerrar menú" : "Abrir menú"}
           aria-expanded={menuOpen}
         >
-          {menuOpen ? <X size={22} /> : <Menu size={22} />}
+          <AnimatePresence mode="wait" initial={false}>
+            {menuOpen ? (
+              <motion.span
+                key="close"
+                initial={{ opacity: 0, rotate: -90 }}
+                animate={{ opacity: 1, rotate: 0 }}
+                exit={{ opacity: 0, rotate: 90 }}
+                transition={{ duration: 0.18, ease: EASE }}
+                className="block"
+              >
+                <X size={22} />
+              </motion.span>
+            ) : (
+              <motion.span
+                key="open"
+                initial={{ opacity: 0, rotate: 90 }}
+                animate={{ opacity: 1, rotate: 0 }}
+                exit={{ opacity: 0, rotate: -90 }}
+                transition={{ duration: 0.18, ease: EASE }}
+                className="block"
+              >
+                <Menu size={22} />
+              </motion.span>
+            )}
+          </AnimatePresence>
         </button>
       </nav>
 
       <AnimatePresence>
         {menuOpen && (
           <motion.div
-            className="md:hidden bg-white border-t border-gray-100 px-4 py-5 space-y-4 shadow-lg overflow-hidden"
-            initial={{ opacity: 0, transform: "translateY(-8px)" }}
-            animate={{ opacity: 1, transform: "translateY(0px)" }}
-            exit={{ opacity: 0, transform: "translateY(-8px)" }}
-            transition={{ duration: 0.15, ease: EASE }}
+            className="md:hidden bg-white border-t border-gray-100 px-4 py-5 shadow-lg overflow-hidden"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.22, ease: EASE }}
           >
-            {navLinks.map((link) => (
-              <a
-                key={link.href}
-                href={link.href}
-                className="block text-sm font-medium text-kora-text py-1"
+            <div className="space-y-1">
+              {navLinks.map((link, i) => (
+                <motion.a
+                  key={link.href}
+                  href={link.href}
+                  initial={{ opacity: 0, x: -12 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.22, delay: 0.05 + i * 0.06, ease: EASE }}
+                  className="block text-sm font-medium text-kora-text py-3 border-b border-gray-50 last:border-0 hover:text-kora-primary transition-colors"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  {link.label}
+                </motion.a>
+              ))}
+              <motion.a
+                href="/#contacto"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.22, delay: 0.05 + navLinks.length * 0.06, ease: EASE }}
+                className="btn-press mt-3 block w-full text-center px-5 py-3 rounded-full bg-kora-primary text-white text-sm font-semibold"
                 onClick={() => setMenuOpen(false)}
               >
-                {link.label}
-              </a>
-            ))}
-            <a
-              href="/#contacto"
-              className="btn-press block w-full text-center px-5 py-3 rounded-full bg-kora-primary text-white text-sm font-semibold"
-              onClick={() => setMenuOpen(false)}
-            >
-              Solicitar demo
-            </a>
+                Solicitar demo
+              </motion.a>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

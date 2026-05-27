@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getArticle, articles, extractHeadings } from "@/lib/articles";
 import { ShareButtons } from "@/components/blog/ShareButtons";
+import { CoverImage } from "@/components/blog/CoverImage";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -95,15 +96,7 @@ export default async function BlogArticlePage({ params }: Props) {
 
       <main className="pt-16 bg-white">
         {/* Cover image */}
-        <div className="w-full overflow-hidden bg-gray-100" style={{ maxHeight: 480 }}>
-          <img
-            src={article.image}
-            alt={article.imageAlt}
-            className="w-full object-cover"
-            style={{ aspectRatio: "21/9", maxHeight: 480 }}
-            loading="eager"
-          />
-        </div>
+        <CoverImage src={article.image} alt={article.imageAlt} />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14">
           {/* Breadcrumb */}

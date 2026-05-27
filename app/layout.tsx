@@ -4,6 +4,8 @@ import Script from "next/script";
 import { Navbar } from "@/components/landing/Navbar";
 import { Footer } from "@/components/landing/Footer";
 import { BotonWhatsApp } from "@/components/shared/BotonWhatsApp";
+import { ScrollProgressBar } from "@/components/shared/ScrollProgressBar";
+import { PageTransition } from "@/components/shared/PageTransition";
 import "./globals.css";
 
 const jakarta = Plus_Jakarta_Sans({
@@ -41,8 +43,9 @@ export default function RootLayout({
             `}</Script>
           </>
         )}
+        <ScrollProgressBar />
         <Navbar />
-        {children}
+        <PageTransition>{children}</PageTransition>
         <Footer />
         <BotonWhatsApp />
       </body>
