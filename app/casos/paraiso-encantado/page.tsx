@@ -8,7 +8,6 @@ export const metadata: Metadata = {
   title: "Caso de estudio: Hotel Paraíso Encantado — Kora",
   description:
     "Cómo Hotel Paraíso Encantado en Xilitla, SLP aumentó sus reservas directas 40% y ahorra $8,400 MXN/mes en comisiones usando Kora.",
-  openGraph: { images: ["/og-image.png"] },
 };
 
 const WA_URL = `https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "524891251458"}?text=Hola%2C%20vi%20el%20caso%20de%20Par%C3%A1iso%20Encantado%20y%20quiero%20saber%20m%C3%A1s`;

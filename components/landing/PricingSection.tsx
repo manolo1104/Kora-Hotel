@@ -1,5 +1,6 @@
 import { CheckCircle2, XCircle } from "lucide-react";
 import { Reveal } from "@/components/shared/Reveal";
+import { CountUp } from "@/components/shared/CountUp";
 
 // Actualizar manualmente cuando cambien los lugares disponibles
 const LUGARES_DISPONIBLES = 7;
@@ -60,7 +61,12 @@ export function PricingSection() {
                 Kora Esencial
               </p>
               <div className="flex items-baseline gap-2 mt-2">
-                <span className="text-4xl font-bold text-kora-text">$2,490</span>
+                <CountUp
+                  to={2490}
+                  prefix="$"
+                  duration={1.1}
+                  className="text-4xl font-bold text-kora-text tabular-nums"
+                />
                 <span className="text-kora-muted">MXN/mes</span>
               </div>
               <p className="text-xs text-kora-muted mt-1">Solo funciones básicas</p>
@@ -110,7 +116,12 @@ export function PricingSection() {
                 Kora Completo Fundador
               </p>
               <div className="flex items-baseline gap-2 mt-2">
-                <span className="text-4xl font-bold text-kora-primary">$2,990</span>
+                <CountUp
+                  to={2990}
+                  prefix="$"
+                  duration={1.1}
+                  className="text-4xl font-bold text-kora-primary tabular-nums"
+                />
                 <span className="text-kora-muted">MXN/mes</span>
               </div>
               <p className="mt-1">

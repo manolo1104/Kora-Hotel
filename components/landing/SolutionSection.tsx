@@ -7,6 +7,7 @@ import {
   BarChart2,
 } from "lucide-react";
 import { Reveal } from "@/components/shared/Reveal";
+import { TiltCard } from "@/components/shared/TiltCard";
 
 const modules = [
   {
@@ -108,10 +109,15 @@ export function SolutionSection() {
               <Reveal
                 key={i}
                 delay={0.05 + i * 0.06}
-                className={`${isLarge ? "sm:col-span-2 lg:col-span-2" : ""}`}
+                className={`${isLarge ? "sm:col-span-2 lg:col-span-2" : ""} h-full`}
               >
+                <TiltCard
+                  className="rounded-2xl h-full"
+                  max={7}
+                  glare={style === "dark" || style === "accent"}
+                >
                 <div
-                  className={`group card-hover ${s.wrapper} rounded-2xl p-6 h-full ${isLarge ? "sm:p-8" : ""}`}
+                  className={`group ${s.wrapper} rounded-2xl p-6 h-full ${isLarge ? "sm:p-8" : ""}`}
                 >
                   <div
                     className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover:scale-110 group-hover:-rotate-6 ${
@@ -134,6 +140,7 @@ export function SolutionSection() {
                   </h3>
                   <p className={`text-sm leading-relaxed ${s.desc}`}>{description}</p>
                 </div>
+                </TiltCard>
               </Reveal>
             );
           })}

@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, useInView } from "motion/react";
+import { motion, useInView, useReducedMotion } from "motion/react";
 import { useRef, type ReactNode } from "react";
 
 interface RevealProps {
@@ -30,6 +30,13 @@ export function Reveal({
 }: RevealProps) {
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true, margin: "-80px 0px" });
+  const reduce = useReducedMotion();
+
+  // Accesibilidad: si el usuario pidió menos movimiento, mostramos el
+  // contenido fijo, sin desplazamiento ni fade.
+  if (reduce) {
+    return <div className={className}>{children}</div>;
+  }
 
   return (
     <motion.div

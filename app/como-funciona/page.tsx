@@ -10,12 +10,12 @@ import {
 } from "lucide-react";
 import { BarraCTA } from "@/components/shared/BarraCTA";
 import { Reveal } from "@/components/shared/Reveal";
+import { DrawLine } from "@/components/shared/DrawLine";
 
 export const metadata: Metadata = {
   title: "Cómo funciona Kora — Onboarding en 48 horas",
   description:
     "De WhatsApp a tu primer mes operando con Kora: 5 pasos, 48 horas de setup, sin conocimientos técnicos. Así se implementa el sistema en tu hotel.",
-  openGraph: { images: ["/og-image.png"] },
 };
 
 const WA_URL = `https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "524891251458"}?text=Hola%2C%20quiero%20empezar%20con%20Kora`;
@@ -78,18 +78,24 @@ export default function ComoFuncionaPage() {
       {/* Hero */}
       <section className="py-20 sm:py-28 bg-kora-primary text-white">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <p className="text-kora-accent text-sm font-semibold uppercase tracking-widest mb-4">
-            Proceso de implementación
-          </p>
-          <h1 className="text-4xl sm:text-5xl font-bold tracking-tight leading-tight">
-            De WhatsApp a operar
-            <br />
-            en 48 horas
-          </h1>
-          <p className="mt-6 text-white/70 text-lg leading-relaxed max-w-xl mx-auto">
-            Sin conocimientos técnicos. Sin instalar nada. Tu equipo solo
-            necesita saber usar el celular.
-          </p>
+          <Reveal>
+            <p className="text-kora-accent text-sm font-semibold uppercase tracking-widest mb-4">
+              Proceso de implementación
+            </p>
+          </Reveal>
+          <Reveal delay={0.12}>
+            <h1 className="text-4xl sm:text-5xl font-bold tracking-tight leading-tight">
+              De WhatsApp a operar
+              <br />
+              en 48 horas
+            </h1>
+          </Reveal>
+          <Reveal delay={0.22}>
+            <p className="mt-6 text-white/70 text-lg leading-relaxed max-w-xl mx-auto">
+              Sin conocimientos técnicos. Sin instalar nada. Tu equipo solo
+              necesita saber usar el celular.
+            </p>
+          </Reveal>
         </div>
       </section>
 
@@ -97,11 +103,8 @@ export default function ComoFuncionaPage() {
       <section className="py-16 sm:py-24 bg-kora-bg">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="relative">
-            {/* Vertical line */}
-            <div
-              className="absolute left-[22px] top-10 bottom-10 w-px bg-kora-primary/15 hidden sm:block"
-              aria-hidden="true"
-            />
+            {/* Vertical line — se dibuja al hacer scroll */}
+            <DrawLine className="absolute left-[22px] top-10 bottom-10 w-px bg-kora-primary/15 hidden sm:block" />
 
             <div className="space-y-10">
               {steps.map((step, i) => (
