@@ -1,8 +1,16 @@
 import type { MetadataRoute } from "next";
+import { articles } from "@/lib/articles";
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://korahotel.mx";
 
 export default function sitemap(): MetadataRoute.Sitemap {
+  const articleEntries: MetadataRoute.Sitemap = articles.map((article) => ({
+    url: `${BASE_URL}/blog/${article.slug}`,
+    lastModified: new Date(article.updatedIso || article.publishedIso),
+    changeFrequency: "monthly",
+    priority: 0.7,
+  }));
+
   return [
     {
       url: BASE_URL,
@@ -40,6 +48,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "weekly",
       priority: 0.6,
     },
+    ...articleEntries,
     {
       url: `${BASE_URL}/privacidad`,
       lastModified: new Date(),

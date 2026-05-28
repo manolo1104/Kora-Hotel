@@ -29,8 +29,7 @@ export const articles: Article[] = [
     readTime: "6 min",
     category: "Distribución hotelera",
     tags: ["reservas directas", "OTAs", "Booking", "channel management"],
-    image:
-      "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1200&auto=format&q=80",
+    image: "/blog/reservas-directas.jpg",
     imageAlt: "Recepción de hotel boutique con huéspedes",
     content: `
 <div class="callout-summary">
@@ -175,8 +174,7 @@ export const articles: Article[] = [
     readTime: "8 min",
     category: "Revenue management",
     tags: ["revenue management", "RevPAR", "pricing dinámico", "tarifas hoteleras"],
-    image:
-      "https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=1200&auto=format&q=80",
+    image: "/blog/revenue-management.jpg",
     imageAlt: "Hotel boutique con alberca al atardecer",
     content: `
 <div class="callout-summary">
@@ -279,7 +277,7 @@ export const articles: Article[] = [
 
 <h3>Error 2: Subir el precio sin estrategia de tráfico directo</h3>
 
-<p>Booking rankea los hoteles parcialmente por precio. Si subes mucho sin tener <a href="/como-aumentar-reservas-directas">estrategia de reservas directas</a>, tu visibilidad en OTAs cae y con ella tus reservas. El revenue management no funciona en aislado.</p>
+<p>Booking rankea los hoteles parcialmente por precio. Si subes mucho sin tener <a href="/blog/como-aumentar-reservas-directas">estrategia de reservas directas</a>, tu visibilidad en OTAs cae y con ella tus reservas. El revenue management no funciona en aislado.</p>
 
 <h3>Error 3: No revisar los números regularmente</h3>
 
@@ -330,8 +328,7 @@ export const articles: Article[] = [
     readTime: "6 min",
     category: "Tecnología hotelera",
     tags: ["WhatsApp Business", "inteligencia artificial", "reservas", "automatización"],
-    image:
-      "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=1200&auto=format&q=80",
+    image: "/blog/agente-whatsapp.jpg",
     imageAlt: "Habitación de hotel boutique con vista a la naturaleza",
     content: `
 <div class="callout-summary">

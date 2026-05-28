@@ -11,7 +11,7 @@ import { Reveal } from "@/components/shared/Reveal";
 // YouTube: en el video → Compartir → Insertar → copia solo la URL del src
 //          Formato: "https://www.youtube.com/embed/TU_VIDEO_ID"
 //
-const VIDEO_EMBED_URL = "";
+const VIDEO_EMBED_URL = "https://www.youtube.com/embed/IE5NTgS74rY";
 
 const VIDEO_DURATION = "90 segundos";
 

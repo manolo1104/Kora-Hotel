@@ -7,6 +7,9 @@ import { motion, AnimatePresence } from "motion/react";
 
 const FORMSPREE_URL = process.env.NEXT_PUBLIC_FORMSPREE_URL ?? "";
 
+// Respaldo: si el envío falla, ofrecemos WhatsApp para no perder el lead.
+const WA_FALLBACK_URL = `https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "524891251458"}?text=Hola%2C%20quiero%20ser%20hotel%20fundador%20de%20Kora`;
+
 const benefits = [
   "Implementación gratis (valor $5,000 MXN)",
   "Precio especial $2,990 MXN/mes de por vida",
@@ -17,18 +20,44 @@ const benefits = [
 export function ContactForm() {
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+  const [error, setError] = useState(false);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    setError(false);
+
+    // Si falta configurar Formspree, no fingimos éxito: avisamos del error.
+    if (!FORMSPREE_URL) {
+      console.error(
+        "NEXT_PUBLIC_FORMSPREE_URL no está configurado: el formulario no puede enviar leads."
+      );
+      setError(true);
+      return;
+    }
+
+    const data = new FormData(e.currentTarget);
+
+    // Honeypot: si este campo oculto trae texto, es un bot. Fingimos éxito
+    // (para que el bot no reintente) pero no enviamos nada.
+    if (data.get("_gotcha")) {
+      setSent(true);
+      return;
+    }
+
     setLoading(true);
     try {
-      const data = new FormData(e.currentTarget);
       const res = await fetch(FORMSPREE_URL, {
         method: "POST",
         body: data,
         headers: { Accept: "application/json" },
       });
-      if (res.ok) setSent(true);
+      if (res.ok) {
+        setSent(true);
+      } else {
+        setError(true);
+      }
+    } catch {
+      setError(true);
     } finally {
       setLoading(false);
     }
@@ -99,6 +128,16 @@ export function ContactForm() {
                     onSubmit={handleSubmit}
                     className="space-y-4"
                   >
+                    {/* Honeypot anti-spam: oculto para personas, visible para bots */}
+                    <input
+                      type="text"
+                      name="_gotcha"
+                      tabIndex={-1}
+                      autoComplete="off"
+                      aria-hidden="true"
+                      className="hidden"
+                    />
+
                     <div>
                       <label
                         htmlFor="hotel"
@@ -189,6 +228,25 @@ export function ContactForm() {
                         className="w-full px-4 py-3 rounded-xl border border-gray-200 text-kora-text text-sm placeholder:text-kora-muted focus:outline-none focus:ring-2 focus:ring-kora-accent focus:border-transparent transition-all duration-200"
                       />
                     </div>
+
+                    {error && (
+                      <div
+                        role="alert"
+                        className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-800 leading-relaxed"
+                      >
+                        No pudimos enviar tu solicitud. Por favor escríbenos
+                        directo por{" "}
+                        <a
+                          href={WA_FALLBACK_URL}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-bold underline hover:text-red-900"
+                        >
+                          WhatsApp
+                        </a>{" "}
+                        y aseguramos tu lugar.
+                      </div>
+                    )}
 
                     <button
                       type="submit"

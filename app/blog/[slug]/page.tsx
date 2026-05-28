@@ -68,7 +68,7 @@ export default async function BlogArticlePage({ params }: Props) {
           name: "Kora",
           logo: {
             "@type": "ImageObject",
-            url: `${siteUrl}/og-image.png`,
+            url: `${siteUrl}/opengraph-image`,
           },
         },
         mainEntityOfPage: {
