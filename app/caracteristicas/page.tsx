@@ -23,9 +23,12 @@ import {
 } from "@/components/caracteristicas/Mockups";
 
 export const metadata: Metadata = {
-  title: "Características — Kora",
+  title: "Características de Kora: PMS, IA y reservas directas",
   description:
     "Motor de reservas directo, agente WhatsApp con IA, PMS, agente de llamadas, pricing dinámico y dashboard. El sistema todo-en-uno para hoteles boutique en México.",
+  alternates: {
+    canonical: "/caracteristicas",
+  },
 };
 
 const WA_URL = `https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "524891251458"}?text=Hola%2C%20quiero%20ver%20el%20demo%20de%20Kora`;

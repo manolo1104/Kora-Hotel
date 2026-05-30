@@ -31,6 +31,10 @@ yarn-error.log*
 # vercel
 .vercel
 
+# documentos internos de marketing (NO publicar)
+/marketing/
+/.agents/product-marketing.md
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

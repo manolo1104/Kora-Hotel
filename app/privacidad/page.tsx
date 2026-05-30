@@ -4,6 +4,9 @@ export const metadata: Metadata = {
   title: "Política de privacidad — Kora",
   description:
     "Política de privacidad de Kora. Cómo recopilamos, usamos y protegemos tus datos personales conforme a la LFPDPPP.",
+  alternates: {
+    canonical: "/privacidad",
+  },
 };
 
 const WA_URL = `https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "524891251458"}`;

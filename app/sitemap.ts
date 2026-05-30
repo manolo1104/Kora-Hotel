@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 import { articles } from "@/lib/articles";
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://korahotel.mx";
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.vercel.app";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const articleEntries: MetadataRoute.Sitemap = articles.map((article) => ({

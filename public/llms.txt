@@ -1,0 +1,37 @@
+# Kora
+
+> Kora es el sistema hotelero todo-en-uno con IA para hoteles boutique en México: reservas directas sin comisiones, agente de WhatsApp y llamadas 24/7, PMS, pricing dinámico y facturación CFDI 4.0. Todo en español.
+
+Kora ayuda a hoteles boutique pequeños e independientes en México a llenar sus habitaciones con reservas directas (sin pagar comisiones a OTAs como Booking o Airbnb), a contestar mensajes y llamadas automáticamente con IA las 24 horas, y a operar todo el hotel desde una sola pantalla. Está pensado para dueños de hotel sin conocimientos técnicos. Se instala llave en mano en 48 a 72 horas.
+
+## Qué incluye
+- Página web propia + motor de reservas directas sin comisiones
+- Agente de WhatsApp con IA que cotiza, cobra y confirma reservas 24/7
+- Agente de llamadas con IA en español natural
+- PMS: mapa de habitaciones, check-in, check-out, housekeeping
+- Pricing dinámico con IA según demanda, eventos y puentes
+- Dashboard con RevPAR, ocupación, canal de origen y forecast de 30 días
+- Facturación CFDI 4.0 integrada con el SAT
+- Emails automáticos pre y post estancia, CRM de huéspedes, API REST
+
+## Para quién es
+- Hoteles boutique pequeños e independientes en México
+- Operados por su dueño, sin equipo técnico
+- Que dependen demasiado de OTAs y pierden reservas fuera de horario
+
+## Precios
+- Kora Esencial: $2,490 MXN/mes (funciones básicas)
+- Kora Completo Fundador: $2,990 MXN/mes (todo incluido, setup gratis) — oferta para los primeros 10 hoteles
+- Sin contrato anual. Cancela cuando quieras. Ver: /pricing.md
+
+## Páginas clave
+- Inicio: https://kora-hotel.vercel.app/
+- Características: https://kora-hotel.vercel.app/caracteristicas
+- Precios: https://kora-hotel.vercel.app/precios
+- Cómo funciona: https://kora-hotel.vercel.app/como-funciona
+- Caso de estudio (Hotel Paraíso Encantado): https://kora-hotel.vercel.app/casos/paraiso-encantado
+- Blog: https://kora-hotel.vercel.app/blog
+
+## Contacto
+- Email: hola@korahotel.mx
+- WhatsApp: +52 489 125 1458

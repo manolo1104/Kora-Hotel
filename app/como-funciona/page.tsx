@@ -16,6 +16,9 @@ export const metadata: Metadata = {
   title: "Cómo funciona Kora — Onboarding en 48 horas",
   description:
     "De WhatsApp a tu primer mes operando con Kora: 5 pasos, 48 horas de setup, sin conocimientos técnicos. Así se implementa el sistema en tu hotel.",
+  alternates: {
+    canonical: "/como-funciona",
+  },
 };
 
 const WA_URL = `https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "524891251458"}?text=Hola%2C%20quiero%20empezar%20con%20Kora`;

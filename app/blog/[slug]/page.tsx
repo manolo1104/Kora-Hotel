@@ -21,6 +21,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: `${article.title} — Blog Kora`,
     description: article.excerpt,
+    alternates: {
+      canonical: `/blog/${article.slug}`,
+    },
     openGraph: {
       title: article.title,
       description: article.excerpt,
@@ -46,7 +49,7 @@ export default async function BlogArticlePage({ params }: Props) {
   const headings = extractHeadings(article.content);
   const related = articles.filter((a) => a.slug !== slug).slice(0, 2);
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://korahotel.mx";
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.vercel.app";
   const articleUrl = `${siteUrl}/blog/${article.slug}`;
 
   const jsonLd = {

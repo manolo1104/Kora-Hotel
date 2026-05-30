@@ -16,7 +16,7 @@ const jakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://korahotel.mx"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.vercel.app"),
 };
 
 export default function RootLayout({

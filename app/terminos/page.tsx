@@ -4,6 +4,9 @@ export const metadata: Metadata = {
   title: "Términos de servicio — Kora",
   description:
     "Términos y condiciones de uso del sistema Kora para hoteles boutique en México.",
+  alternates: {
+    canonical: "/terminos",
+  },
 };
 
 const WA_URL = `https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "524891251458"}`;

@@ -5,9 +5,12 @@ import { BarraCTA } from "@/components/shared/BarraCTA";
 import { Reveal } from "@/components/shared/Reveal";
 
 export const metadata: Metadata = {
-  title: "Blog — Kora",
+  title: "Blog Kora: gestión hotelera y reservas directas",
   description:
     "Artículos sobre gestión hotelera inteligente, revenue management y cómo los hoteles boutique en México pueden crecer con tecnología.",
+  alternates: {
+    canonical: "/blog",
+  },
 };
 
 const categories = Array.from(new Set(articles.map((a) => a.category)));
