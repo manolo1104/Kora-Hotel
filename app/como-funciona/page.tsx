@@ -287,6 +287,15 @@ export default function ComoFuncionaPage() {
               Ver precios
             </Link>
           </div>
+          <p className="mt-6 text-sm text-kora-muted">
+            ¿Aún no estás seguro?{" "}
+            <Link
+              href="/herramientas/diagnostico"
+              className="font-semibold text-kora-primary underline hover:text-kora-primary-dark"
+            >
+              Haz el diagnóstico gratis de tu hotel
+            </Link>
+          </p>
         </div>
       </section>
 

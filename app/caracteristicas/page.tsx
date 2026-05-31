@@ -45,6 +45,7 @@ interface ModuleSectionProps {
   mockup: React.ReactNode;
   reverse?: boolean;
   dark?: boolean;
+  tool?: { label: string; href: string };
 }
 
 function ModuleSection({
@@ -57,6 +58,7 @@ function ModuleSection({
   mockup,
   reverse = false,
   dark = false,
+  tool,
 }: ModuleSectionProps) {
   return (
     <section
@@ -107,6 +109,19 @@ function ModuleSection({
                 </li>
               ))}
             </ul>
+            {tool && (
+              <Link
+                href={tool.href}
+                className={`mt-6 inline-flex items-center gap-1.5 text-sm font-semibold transition-colors ${
+                  dark
+                    ? "text-kora-accent hover:text-white"
+                    : "text-kora-primary hover:text-kora-primary-dark"
+                }`}
+              >
+                {tool.label}
+                <ArrowRight size={14} aria-hidden="true" />
+              </Link>
+            )}
           </Reveal>
           <Reveal direction={reverse ? "left" : "right"} delay={0.1}>
             <TiltCard className="rounded-2xl" glare={dark}>
@@ -174,6 +189,10 @@ export default function CaracteristicasPage() {
           "Widget embebible en tu sitio web actual",
         ]}
         mockup={<ReservaMockup />}
+        tool={{
+          label: "Calcula cuánto pierdes en comisiones",
+          href: "/herramientas/calculadora-comisiones",
+        }}
       />
 
       {/* Module 2 */}
@@ -192,6 +211,10 @@ export default function CaracteristicasPage() {
         mockup={<WhatsAppMockup />}
         reverse
         dark
+        tool={{
+          label: "Prueba el generador de mensajes con IA",
+          href: "/herramientas/mensajes-whatsapp",
+        }}
       />
 
       {/* Module 3 */}
@@ -242,6 +265,10 @@ export default function CaracteristicasPage() {
           "Maximiza el RevPAR mes a mes",
         ]}
         mockup={<PricingMockup />}
+        tool={{
+          label: "Calcula tu RevPAR y tu tarifa ideal",
+          href: "/herramientas/calculadora-tarifa",
+        }}
       />
 
       {/* Module 6 */}
@@ -260,6 +287,10 @@ export default function CaracteristicasPage() {
         mockup={<DashboardMockup />}
         reverse
         dark
+        tool={{
+          label: "Calcula tu punto de equilibrio",
+          href: "/herramientas/punto-de-equilibrio",
+        }}
       />
 
       {/* CTA demo */}

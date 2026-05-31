@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { CalculadoraROI } from "@/components/landing/CalculadoraROI";
 import { PricingSection } from "@/components/landing/PricingSection";
 import { BarraCTA } from "@/components/shared/BarraCTA";
@@ -66,6 +67,17 @@ export default function PreciosPage() {
           <Reveal delay={0.12}>
             <p className="mt-4 text-kora-muted text-lg leading-relaxed">
               Un solo plan. Todo incluido. Sin sorpresas.
+            </p>
+          </Reveal>
+          <Reveal delay={0.2}>
+            <p className="mt-5 text-sm text-kora-muted">
+              ¿Cuánto te cuestan hoy las OTAs?{" "}
+              <Link
+                href="/herramientas/calculadora-comisiones"
+                className="font-semibold text-kora-primary underline hover:text-kora-primary-dark"
+              >
+                Calcúlalo gratis
+              </Link>
             </p>
           </Reveal>
         </div>

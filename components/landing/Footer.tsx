@@ -13,6 +13,14 @@ const navLinks = [
   { label: "Demo", href: "/casos/paraiso-encantado" },
 ];
 
+const toolLinks = [
+  { label: "Todas las herramientas", href: "/herramientas" },
+  { label: "Calculadora de comisiones", href: "/herramientas/calculadora-comisiones" },
+  { label: "Calculadora de tarifa", href: "/herramientas/calculadora-tarifa" },
+  { label: "Diagnóstico de tu hotel", href: "/herramientas/diagnostico" },
+  { label: "Crea tu página gratis", href: "/herramientas/mini-pagina" },
+];
+
 const legalLinks = [
   { label: "Política de privacidad", href: "/privacidad" },
   { label: "Términos de servicio", href: "/terminos" },
@@ -22,7 +30,7 @@ export function Footer() {
   return (
     <footer className="bg-[#0F1F15] text-white pt-14 pb-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-10 pb-10 border-b border-white/10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 pb-10 border-b border-white/10">
           {/* Brand */}
           <Reveal>
             <div>
@@ -44,6 +52,27 @@ export function Footer() {
               </p>
               <ul className="space-y-2.5">
                 {navLinks.map((link) => (
+                  <li key={link.href}>
+                    <Link
+                      href={link.href}
+                      className="nav-link text-sm text-white/60 hover:text-white transition-colors"
+                    >
+                      {link.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+          </Reveal>
+
+          {/* Herramientas gratis */}
+          <Reveal delay={0.15}>
+            <nav aria-label="Herramientas gratis">
+              <p className="text-xs font-bold text-white/30 uppercase tracking-widest mb-4">
+                Herramientas gratis
+              </p>
+              <ul className="space-y-2.5">
+                {toolLinks.map((link) => (
                   <li key={link.href}>
                     <Link
                       href={link.href}

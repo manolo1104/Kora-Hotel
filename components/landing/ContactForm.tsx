@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Check, Loader2 } from "lucide-react";
 import { Reveal } from "@/components/shared/Reveal";
 import { motion, AnimatePresence } from "motion/react";
@@ -21,6 +21,29 @@ export function ContactForm() {
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState(false);
+
+  // Mensaje personalizado según el resultado que traiga el usuario desde una
+  // herramienta (ej. /?perdida=144000#contacto).
+  const [personalizado, setPersonalizado] = useState<string | null>(null);
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search);
+    const perdida = Number(p.get("perdida"));
+    const puntaje = p.get("puntaje");
+    const revpar = Number(p.get("revpar"));
+    if (perdida > 0) {
+      setPersonalizado(
+        `Según tu cálculo, hoy entregas cerca de $${Math.round(perdida).toLocaleString("es-MX")} MXN al año en comisiones. Con Kora, ese dinero se queda contigo.`
+      );
+    } else if (puntaje) {
+      setPersonalizado(
+        `Tu diagnóstico dio ${puntaje}/100. Kora te ayuda a subir ese número y a depender menos de Booking.`
+      );
+    } else if (revpar > 0) {
+      setPersonalizado(
+        `Tu RevPAR es de $${Math.round(revpar).toLocaleString("es-MX")} MXN. Con el precio dinámico de Kora puedes hacerlo crecer.`
+      );
+    }
+  }, []);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -70,6 +93,13 @@ export function ContactForm() {
 
           <Reveal>
             <div>
+              {personalizado && (
+                <div className="mb-5 rounded-2xl bg-kora-accent/15 border border-kora-accent/30 p-4">
+                  <p className="text-sm text-white leading-relaxed">
+                    {personalizado}
+                  </p>
+                </div>
+              )}
               <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-white leading-tight">
                 Sé uno de los 10 hoteles fundadores
               </h2>

@@ -459,7 +459,7 @@ export function DiagnosticoHotel() {
             {nivel.koraTexto}
           </p>
           <a
-            href={`/#contacto?utm_source=diagnostico&puntaje=${puntaje}`}
+            href={`/?puntaje=${puntaje}&utm_source=diagnostico#contacto`}
             className="btn-press btn-arrow btn-fill mt-6 inline-flex items-center gap-2 px-7 py-4 rounded-full bg-kora-accent text-kora-primary font-bold text-sm hover:bg-kora-accent-dark transition-colors"
           >
             Ver cómo funciona Kora

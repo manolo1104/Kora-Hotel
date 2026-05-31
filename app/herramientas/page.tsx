@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { BarraCTA } from "@/components/shared/BarraCTA";
 import { Reveal } from "@/components/shared/Reveal";
+import { HerramientaIcono } from "@/components/herramientas/HerramientaIcono";
 import { herramientas } from "@/lib/herramientas";
 
 export const metadata: Metadata = {
@@ -51,8 +52,8 @@ export default function HerramientasPage() {
                     className="card-hover group flex flex-col h-full bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:border-kora-accent transition-colors"
                   >
                     <div className="flex items-center gap-3 mb-3">
-                      <span className="text-2xl" aria-hidden="true">
-                        {h.icono}
+                      <span className="w-10 h-10 rounded-xl bg-kora-primary/5 flex items-center justify-center text-kora-primary shrink-0">
+                        <HerramientaIcono slug={h.slug} size={20} />
                       </span>
                       <span className="text-[10px] font-bold text-kora-accent bg-kora-accent/10 px-2.5 py-0.5 rounded-full uppercase tracking-widest">
                         {h.etiqueta}
@@ -76,8 +77,8 @@ export default function HerramientasPage() {
                 ) : (
                   <div className="flex flex-col h-full bg-white/60 rounded-2xl p-6 border border-dashed border-gray-200">
                     <div className="flex items-center gap-3 mb-3">
-                      <span className="text-2xl opacity-50" aria-hidden="true">
-                        {h.icono}
+                      <span className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-kora-muted shrink-0">
+                        <HerramientaIcono slug={h.slug} size={20} />
                       </span>
                       <span className="text-[10px] font-bold text-kora-muted bg-gray-100 px-2.5 py-0.5 rounded-full uppercase tracking-widest">
                         Próximamente

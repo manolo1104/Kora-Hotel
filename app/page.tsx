@@ -7,6 +7,7 @@ import { IntegracionesSection } from "@/components/landing/IntegracionesSection"
 import { ComparisonSection } from "@/components/landing/ComparisonSection";
 import { SocialProofSection } from "@/components/landing/SocialProofSection";
 import { VideoDemoSection } from "@/components/landing/VideoDemoSection";
+import { HerramientasSection } from "@/components/landing/HerramientasSection";
 import { PricingSection } from "@/components/landing/PricingSection";
 import { FAQSection } from "@/components/landing/FAQSection";
 import { ContactForm } from "@/components/landing/ContactForm";
@@ -104,6 +105,7 @@ export default function HomePage() {
       <ComparisonSection />
       <SocialProofSection />
       <VideoDemoSection />
+      <HerramientasSection />
       <PricingSection />
       <FAQSection />
       <ContactForm />
