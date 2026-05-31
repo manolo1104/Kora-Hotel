@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { articles } from "@/lib/articles";
+import { herramientasDisponibles } from "@/lib/herramientas";
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.vercel.app";
 
@@ -10,6 +11,15 @@ export default function sitemap(): MetadataRoute.Sitemap {
     changeFrequency: "monthly",
     priority: 0.7,
   }));
+
+  const herramientaEntries: MetadataRoute.Sitemap = herramientasDisponibles.map(
+    (h) => ({
+      url: `${BASE_URL}/herramientas/${h.slug}`,
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.8,
+    })
+  );
 
   return [
     {
@@ -48,6 +58,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "weekly",
       priority: 0.6,
     },
+    {
+      url: `${BASE_URL}/herramientas`,
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
+    ...herramientaEntries,
     ...articleEntries,
     {
       url: `${BASE_URL}/privacidad`,
