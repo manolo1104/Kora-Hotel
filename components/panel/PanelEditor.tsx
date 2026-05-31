@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
+import { QRCodeCanvas } from "qrcode.react";
 import {
   Loader2,
   Check,
@@ -9,6 +10,7 @@ import {
   ImagePlus,
   ExternalLink,
   Copy,
+  Download,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -40,6 +42,7 @@ export function PanelEditor({ userId }: { userId: string }) {
   const [hotelId, setHotelId] = useState<string | null>(null);
   const [slug, setSlug] = useState("");
 
+  // Mini-página
   const [nombre, setNombre] = useState("");
   const [ubicacion, setUbicacion] = useState("");
   const [descripcion, setDescripcion] = useState("");
@@ -47,12 +50,22 @@ export function PanelEditor({ userId }: { userId: string }) {
   const [habitaciones, setHabitaciones] = useState<Habitacion[]>([]);
   const [fotos, setFotos] = useState<string[]>([]);
 
+  // Guía del huésped
+  const [wifi, setWifi] = useState("");
+  const [wifiClave, setWifiClave] = useState("");
+  const [gCheckin, setGCheckin] = useState("");
+  const [gCheckout, setGCheckout] = useState("");
+  const [reglas, setReglas] = useState(""); // una por línea
+  const [recomendaciones, setRecomendaciones] = useState(""); // una por línea
+
   const [subiendo, setSubiendo] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [guardado, setGuardado] = useState(false);
   const [error, setError] = useState("");
 
-  // Carga inicial del hotel del usuario (si ya existe).
+  const qrPaginaRef = useRef<HTMLDivElement>(null);
+  const qrGuiaRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     let activo = true;
     (async () => {
@@ -68,10 +81,17 @@ export function PanelEditor({ userId }: { userId: string }) {
         setUbicacion(data.ubicacion ?? "");
         setDescripcion(data.descripcion ?? "");
         setWhatsapp(data.whatsapp ?? "");
-        setHabitaciones(
-          Array.isArray(data.habitaciones) ? data.habitaciones : []
-        );
+        setHabitaciones(Array.isArray(data.habitaciones) ? data.habitaciones : []);
         setFotos(Array.isArray(data.fotos) ? data.fotos : []);
+        const g = data.guia ?? {};
+        setWifi(g.wifi ?? "");
+        setWifiClave(g.wifiClave ?? "");
+        setGCheckin(g.checkin ?? "");
+        setGCheckout(g.checkout ?? "");
+        setReglas(Array.isArray(g.reglas) ? g.reglas.join("\n") : "");
+        setRecomendaciones(
+          Array.isArray(g.recomendaciones) ? g.recomendaciones.join("\n") : ""
+        );
       }
       if (activo) setCargando(false);
     })();
@@ -82,7 +102,6 @@ export function PanelEditor({ userId }: { userId: string }) {
 
   const slugPreview = slug || slugify(nombre) || "tu-hotel";
 
-  // ── Habitaciones ──
   function addHab() {
     setHabitaciones((h) => [...h, { nombre: "", precio: "", descripcion: "" }]);
   }
@@ -95,7 +114,6 @@ export function PanelEditor({ userId }: { userId: string }) {
     setHabitaciones((h) => h.filter((_, idx) => idx !== i));
   }
 
-  // ── Fotos ──
   const onSubirFotos = useCallback(
     async (files: FileList | null) => {
       if (!files || files.length === 0) return;
@@ -128,7 +146,18 @@ export function PanelEditor({ userId }: { userId: string }) {
     setFotos((f) => f.filter((u) => u !== url));
   }
 
-  // ── Guardar ──
+  function descargarQR(ref: React.RefObject<HTMLDivElement | null>, archivo: string) {
+    const canvas = ref.current?.querySelector("canvas");
+    if (!canvas) return;
+    const png = (canvas as HTMLCanvasElement).toDataURL("image/png");
+    const a = document.createElement("a");
+    a.href = png;
+    a.download = archivo;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }
+
   async function guardar() {
     setError("");
     if (!nombre.trim()) {
@@ -138,6 +167,18 @@ export function PanelEditor({ userId }: { userId: string }) {
     setGuardando(true);
     setGuardado(false);
 
+    const guia = {
+      wifi: wifi.trim(),
+      wifiClave: wifiClave.trim(),
+      checkin: gCheckin.trim(),
+      checkout: gCheckout.trim(),
+      reglas: reglas.split("\n").map((l) => l.trim()).filter(Boolean),
+      recomendaciones: recomendaciones
+        .split("\n")
+        .map((l) => l.trim())
+        .filter(Boolean),
+    };
+
     const payload = {
       nombre: nombre.trim(),
       ubicacion: ubicacion.trim(),
@@ -145,6 +186,7 @@ export function PanelEditor({ userId }: { userId: string }) {
       whatsapp: whatsapp.trim(),
       habitaciones,
       fotos,
+      guia,
     };
 
     try {
@@ -155,8 +197,7 @@ export function PanelEditor({ userId }: { userId: string }) {
           .eq("id", hotelId);
         if (upErr) throw upErr;
       } else {
-        // Genera un slug único (reintenta con sufijo si ya existe).
-        let intento = slugify(nombre) || "hotel";
+        const intento = slugify(nombre) || "hotel";
         let creado = null;
         for (let i = 0; i < 4 && !creado; i++) {
           const slugTry =
@@ -169,7 +210,7 @@ export function PanelEditor({ userId }: { userId: string }) {
           if (!insErr && data) {
             creado = data;
           } else if (insErr && insErr.code !== "23505") {
-            throw insErr; // error distinto a slug duplicado
+            throw insErr;
           }
         }
         if (!creado) throw new Error("No se pudo crear. Intenta con otro nombre.");
@@ -179,8 +220,7 @@ export function PanelEditor({ userId }: { userId: string }) {
       setGuardado(true);
       setTimeout(() => setGuardado(false), 2500);
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "No se pudo guardar.";
-      setError(msg);
+      setError(e instanceof Error ? e.message : "No se pudo guardar.");
     } finally {
       setGuardando(false);
     }
@@ -193,6 +233,9 @@ export function PanelEditor({ userId }: { userId: string }) {
       </div>
     );
   }
+
+  const urlPagina = `${SITE}/h/${slug}`;
+  const urlGuia = `${SITE}/g/${slug}`;
 
   return (
     <div className="mt-8 space-y-6">
@@ -214,11 +257,17 @@ export function PanelEditor({ userId }: { userId: string }) {
             >
               <ExternalLink size={14} /> Abrir mi página
             </a>
+            <a
+              href={`/g/${slug}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-press inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-gray-200 text-kora-text font-semibold text-sm hover:border-kora-accent transition-colors"
+            >
+              <ExternalLink size={14} /> Ver guía del huésped
+            </a>
             <button
               type="button"
-              onClick={() => {
-                navigator.clipboard?.writeText(`${SITE}/h/${slug}`);
-              }}
+              onClick={() => navigator.clipboard?.writeText(urlPagina)}
               className="btn-press inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-gray-200 text-kora-text font-semibold text-sm hover:border-kora-accent transition-colors"
             >
               <Copy size={14} /> Copiar enlace
@@ -235,7 +284,6 @@ export function PanelEditor({ userId }: { userId: string }) {
       {/* Datos del hotel */}
       <div className="bg-white rounded-2xl p-6 sm:p-7 border border-gray-100 shadow-sm space-y-4">
         <h2 className="text-lg font-bold text-kora-text">Datos de tu hotel</h2>
-
         <div>
           <label className="block text-sm font-semibold text-kora-text mb-1.5">
             Nombre del hotel
@@ -247,7 +295,6 @@ export function PanelEditor({ userId }: { userId: string }) {
             placeholder="Hotel Paraíso Encantado"
           />
         </div>
-
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-semibold text-kora-text mb-1.5">
@@ -272,7 +319,6 @@ export function PanelEditor({ userId }: { userId: string }) {
             />
           </div>
         </div>
-
         <div>
           <label className="block text-sm font-semibold text-kora-text mb-1.5">
             Descripción
@@ -291,13 +337,12 @@ export function PanelEditor({ userId }: { userId: string }) {
       <div className="bg-white rounded-2xl p-6 sm:p-7 border border-gray-100 shadow-sm">
         <h2 className="text-lg font-bold text-kora-text mb-1">Fotos</h2>
         <p className="text-sm text-kora-muted mb-4">
-          Sube las mejores fotos de tu hotel (habitaciones, áreas comunes, fachada).
+          Sube las mejores fotos de tu hotel (la primera será la portada).
         </p>
-
         {fotos.length > 0 && (
           <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 mb-4">
             {fotos.map((url) => (
-              <div key={url} className="relative group">
+              <div key={url} className="relative">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={url}
@@ -316,13 +361,8 @@ export function PanelEditor({ userId }: { userId: string }) {
             ))}
           </div>
         )}
-
         <label className="btn-press inline-flex items-center gap-2 px-5 py-3 rounded-full border-2 border-kora-primary text-kora-primary font-semibold text-sm hover:bg-kora-primary hover:text-white transition-colors cursor-pointer">
-          {subiendo ? (
-            <Loader2 size={16} className="animate-spin" />
-          ) : (
-            <ImagePlus size={16} />
-          )}
+          {subiendo ? <Loader2 size={16} className="animate-spin" /> : <ImagePlus size={16} />}
           {subiendo ? "Subiendo…" : "Subir fotos"}
           <input
             type="file"
@@ -341,13 +381,9 @@ export function PanelEditor({ userId }: { userId: string }) {
         <p className="text-sm text-kora-muted mb-4">
           Los tipos de habitación que ofreces y su precio por noche.
         </p>
-
         <div className="space-y-3">
           {habitaciones.map((h, i) => (
-            <div
-              key={i}
-              className="rounded-xl border border-gray-100 p-4 bg-kora-bg/50 space-y-3"
-            >
+            <div key={i} className="rounded-xl border border-gray-100 p-4 bg-kora-bg/50 space-y-3">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <input
                   className={inputCls}
@@ -379,7 +415,6 @@ export function PanelEditor({ userId }: { userId: string }) {
             </div>
           ))}
         </div>
-
         <button
           type="button"
           onClick={addHab}
@@ -388,6 +423,132 @@ export function PanelEditor({ userId }: { userId: string }) {
           <Plus size={16} /> Agregar habitación
         </button>
       </div>
+
+      {/* Guía del huésped */}
+      <div className="bg-white rounded-2xl p-6 sm:p-7 border border-gray-100 shadow-sm space-y-4">
+        <div>
+          <h2 className="text-lg font-bold text-kora-text">Guía del huésped</h2>
+          <p className="text-sm text-kora-muted mt-0.5">
+            La info útil para tus huéspedes (wifi, horarios, reglas, recomendaciones).
+            Aparece en tu página de guía con su propio QR para la habitación.
+          </p>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-semibold text-kora-text mb-1.5">
+              Red WiFi
+            </label>
+            <input
+              className={inputCls}
+              value={wifi}
+              onChange={(e) => setWifi(e.target.value)}
+              placeholder="Nombre de la red"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-kora-text mb-1.5">
+              Clave WiFi
+            </label>
+            <input
+              className={inputCls}
+              value={wifiClave}
+              onChange={(e) => setWifiClave(e.target.value)}
+              placeholder="Contraseña"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-kora-text mb-1.5">
+              Hora de check-in
+            </label>
+            <input
+              className={inputCls}
+              value={gCheckin}
+              onChange={(e) => setGCheckin(e.target.value)}
+              placeholder="3:00 PM"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-kora-text mb-1.5">
+              Hora de check-out
+            </label>
+            <input
+              className={inputCls}
+              value={gCheckout}
+              onChange={(e) => setGCheckout(e.target.value)}
+              placeholder="12:00 PM"
+            />
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-semibold text-kora-text mb-1.5">
+            Reglas de la casa (una por línea)
+          </label>
+          <textarea
+            className={inputCls}
+            rows={3}
+            value={reglas}
+            onChange={(e) => setReglas(e.target.value)}
+            placeholder={"No fumar dentro de la habitación\nSilencio después de las 10 PM"}
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-semibold text-kora-text mb-1.5">
+            Recomendaciones de la zona (una por línea)
+          </label>
+          <textarea
+            className={inputCls}
+            rows={3}
+            value={recomendaciones}
+            onChange={(e) => setRecomendaciones(e.target.value)}
+            placeholder={"Las Pozas (Jardín de Edward James)\nCafé Conde para desayunar"}
+          />
+        </div>
+      </div>
+
+      {/* Códigos QR */}
+      {hotelId && (
+        <div className="bg-white rounded-2xl p-6 sm:p-7 border border-gray-100 shadow-sm">
+          <h2 className="text-lg font-bold text-kora-text mb-1">Tus códigos QR</h2>
+          <p className="text-sm text-kora-muted mb-5">
+            Imprímelos: el de reservas para recepción y redes; el de la guía para
+            la habitación.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div className="text-center">
+              <div
+                ref={qrPaginaRef}
+                className="inline-flex p-3 rounded-xl border border-gray-100 bg-white"
+              >
+                <QRCodeCanvas value={urlPagina} size={150} fgColor="#1B4332" level="M" marginSize={2} />
+              </div>
+              <p className="mt-2 text-xs font-semibold text-kora-text">Página de reservas</p>
+              <button
+                type="button"
+                onClick={() => descargarQR(qrPaginaRef, "qr-reservas.png")}
+                className="btn-press mt-2 inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-gray-200 text-kora-text text-sm font-semibold hover:border-kora-accent transition-colors"
+              >
+                <Download size={14} /> Descargar
+              </button>
+            </div>
+            <div className="text-center">
+              <div
+                ref={qrGuiaRef}
+                className="inline-flex p-3 rounded-xl border border-gray-100 bg-white"
+              >
+                <QRCodeCanvas value={urlGuia} size={150} fgColor="#1B4332" level="M" marginSize={2} />
+              </div>
+              <p className="mt-2 text-xs font-semibold text-kora-text">Guía del huésped</p>
+              <button
+                type="button"
+                onClick={() => descargarQR(qrGuiaRef, "qr-guia.png")}
+                className="btn-press mt-2 inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-gray-200 text-kora-text text-sm font-semibold hover:border-kora-accent transition-colors"
+              >
+                <Download size={14} /> Descargar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Guardar */}
       <div className="sticky bottom-4 z-10">

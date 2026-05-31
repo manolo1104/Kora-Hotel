@@ -154,6 +154,14 @@ export const herramientas: Herramienta[] = [
     icono: "🛎️",
     disponible: true,
   },
+  {
+    slug: "mini-pagina",
+    titulo: "Crea tu página de reservas gratis",
+    resumen: "Página de reservas por WhatsApp + guía del huésped con QR.",
+    etiqueta: "Reservas directas",
+    icono: "🌐",
+    disponible: true,
+  },
 ];
 
 /** Solo las herramientas ya publicadas (para sitemap y enlaces). */
