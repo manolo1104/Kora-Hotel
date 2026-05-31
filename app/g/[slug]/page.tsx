@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Wifi, Clock, ListChecks, MapPin, MessageCircle } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
+import { Reveal } from "@/components/shared/Reveal";
 import { SUPABASE_URL, SUPABASE_ANON_KEY, supabaseEnvReady } from "@/lib/supabase/env";
 
 export const dynamic = "force-dynamic";
@@ -93,7 +94,7 @@ export default async function GuiaHuesped({
         </div>
       </header>
 
-      <div className="max-w-xl mx-auto px-4 py-8 space-y-5">
+      <Reveal className="max-w-xl mx-auto px-4 py-8 space-y-5">
         {/* WiFi */}
         {(g.wifi || g.wifiClave) && (
           <section className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
@@ -198,7 +199,7 @@ export default async function GuiaHuesped({
             Hecho con <span className="font-bold text-kora-primary">Kora</span>
           </Link>
         </footer>
-      </div>
+      </Reveal>
     </main>
   );
 }

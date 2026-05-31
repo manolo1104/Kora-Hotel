@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { MapPin, MessageCircle } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
+import { Reveal } from "@/components/shared/Reveal";
 import { SUPABASE_URL, SUPABASE_ANON_KEY, supabaseEnvReady } from "@/lib/supabase/env";
 
 export const dynamic = "force-dynamic";
@@ -124,7 +125,7 @@ export default async function MiniPagina({
         </div>
       </section>
 
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8 space-y-8">
+      <Reveal className="max-w-2xl mx-auto px-4 sm:px-6 py-8 space-y-8">
         {/* Descripción */}
         {hotel.descripcion && (
           <section>
@@ -210,7 +211,7 @@ export default async function MiniPagina({
             Crea tu página de reservas gratis
           </Link>
         </footer>
-      </div>
+      </Reveal>
     </main>
   );
 }

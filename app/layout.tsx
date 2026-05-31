@@ -1,11 +1,7 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import Script from "next/script";
-import { Navbar } from "@/components/landing/Navbar";
-import { Footer } from "@/components/landing/Footer";
-import { BotonWhatsApp } from "@/components/shared/BotonWhatsApp";
-import { ScrollProgressBar } from "@/components/shared/ScrollProgressBar";
-import { PageTransition } from "@/components/shared/PageTransition";
+import { SiteFrame } from "@/components/shared/SiteFrame";
 import "./globals.css";
 
 const jakarta = Plus_Jakarta_Sans({
@@ -40,11 +36,7 @@ export default function RootLayout({
             `}</Script>
           </>
         )}
-        <ScrollProgressBar />
-        <Navbar />
-        <PageTransition>{children}</PageTransition>
-        <Footer />
-        <BotonWhatsApp />
+        <SiteFrame>{children}</SiteFrame>
       </body>
     </html>
   );
