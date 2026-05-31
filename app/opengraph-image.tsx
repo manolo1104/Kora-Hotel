@@ -71,7 +71,7 @@ export default function OpengraphImage() {
         </div>
 
         <div style={{ fontSize: "26px", color: "#FAFAF8", opacity: 0.7 }}>
-          korahotel.mx
+          kora-hotel.com
         </div>
       </div>
     ),
