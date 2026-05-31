@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Image as ImageIcon } from "lucide-react";
 import { CasoTabs } from "@/components/cases/CasoTabs";
 import { BarraCTA } from "@/components/shared/BarraCTA";
+import { Reveal } from "@/components/shared/Reveal";
+import { CountUp } from "@/components/shared/CountUp";
 
 export const metadata: Metadata = {
   title: "Caso de estudio: Hotel Paraíso Encantado — Kora",
@@ -38,36 +40,45 @@ export default function CasoParaisoEncantadoPage() {
           >
             ← Casos de estudio
           </Link>
-          <p className="text-kora-accent text-sm font-semibold uppercase tracking-widest mb-4">
-            Caso de estudio
-          </p>
-          <h1 className="text-4xl sm:text-5xl font-bold tracking-tight leading-tight">
-            Hotel Paraíso Encantado
-          </h1>
-          <p className="mt-3 text-white/70 text-lg">
-            Xilitla, San Luis Potosí · Hotel boutique de naturaleza
-          </p>
-          <p className="mt-6 text-white/80 text-base leading-relaxed max-w-2xl">
-            El primer hotel en adoptar Kora. Cómo pasamos del 75% de dependencia
-            en OTAs a generar el 47% de reservas directas en tres meses.
-          </p>
+          <Reveal>
+            <p className="text-kora-accent text-sm font-semibold uppercase tracking-widest mb-4">
+              Caso de estudio
+            </p>
+            <h1 className="text-4xl sm:text-5xl font-bold tracking-tight leading-tight">
+              Hotel Paraíso Encantado
+            </h1>
+            <p className="mt-3 text-white/70 text-lg">
+              Xilitla, San Luis Potosí · Hotel boutique de naturaleza
+            </p>
+            <p className="mt-6 text-white/80 text-base leading-relaxed max-w-2xl">
+              El primer hotel en adoptar Kora. Cómo pasamos del 75% de dependencia
+              en OTAs a generar el 47% de reservas directas en tres meses.
+            </p>
+          </Reveal>
 
           {/* Summary metrics */}
-          <div className="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-2xl">
-            {[
-              { value: "+40%", label: "Reservas directas" },
-              { value: "$8,400", label: "MXN/mes ahorrados" },
-              { value: "72 hrs", label: "Para implementar" },
-            ].map((m) => (
-              <div
-                key={m.label}
-                className="bg-white/10 rounded-2xl px-5 py-4 border border-white/10"
-              >
-                <p className="text-2xl font-bold text-kora-accent">{m.value}</p>
-                <p className="text-sm text-white/70 mt-0.5">{m.label}</p>
-              </div>
-            ))}
-          </div>
+          <Reveal delay={0.15}>
+            <div className="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-2xl">
+              {[
+                { to: 40, prefix: "+", suffix: "%", label: "Reservas directas" },
+                { to: 8400, prefix: "$", suffix: "", label: "MXN/mes ahorrados" },
+                { to: 72, prefix: "", suffix: " hrs", label: "Para implementar" },
+              ].map((m) => (
+                <div
+                  key={m.label}
+                  className="bg-white/10 rounded-2xl px-5 py-4 border border-white/10"
+                >
+                  <CountUp
+                    to={m.to}
+                    prefix={m.prefix}
+                    suffix={m.suffix}
+                    className="block text-2xl font-bold text-kora-accent tabular-nums"
+                  />
+                  <p className="text-sm text-white/70 mt-0.5">{m.label}</p>
+                </div>
+              ))}
+            </div>
+          </Reveal>
         </div>
       </section>
 
@@ -130,7 +141,7 @@ export default function CasoParaisoEncantadoPage() {
                   key={i}
                   className={`${slot.span} rounded-xl bg-kora-primary/8 border-2 border-dashed border-kora-primary/20 flex flex-col items-center justify-center gap-2`}
                 >
-                  <span className="text-2xl" aria-hidden="true">📷</span>
+                  <ImageIcon size={22} className="text-kora-primary/40" aria-hidden="true" />
                   <span className="text-xs font-medium text-kora-muted">
                     {slot.label}
                   </span>
@@ -150,7 +161,7 @@ export default function CasoParaisoEncantadoPage() {
 
       {/* CTA */}
       <section className="py-14 bg-white border-t border-gray-100">
-        <div className="max-w-xl mx-auto px-4 text-center">
+        <Reveal className="max-w-xl mx-auto px-4 text-center">
           <h2 className="text-2xl font-bold text-kora-text mb-3">
             ¿Tu hotel tiene los mismos problemas?
           </h2>
@@ -167,7 +178,7 @@ export default function CasoParaisoEncantadoPage() {
             Quiero ver el demo
             <ArrowRight size={16} aria-hidden="true" />
           </a>
-        </div>
+        </Reveal>
       </section>
 
       <BarraCTA />

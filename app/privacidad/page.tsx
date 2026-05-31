@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Reveal } from "@/components/shared/Reveal";
 
 export const metadata: Metadata = {
   title: "Política de privacidad — Kora",
@@ -16,12 +17,14 @@ export default function PrivacidadPage() {
     <main className="pt-16">
       <section className="py-16 sm:py-20 bg-white">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-kora-text mb-2">
-            Política de privacidad
-          </h1>
-          <p className="text-kora-muted text-sm mb-10">
-            Última actualización: mayo de 2026
-          </p>
+          <Reveal>
+            <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-kora-text mb-2">
+              Política de privacidad
+            </h1>
+            <p className="text-kora-muted text-sm mb-10">
+              Última actualización: mayo de 2026
+            </p>
+          </Reveal>
 
           <div className="space-y-10 text-kora-text text-sm sm:text-base leading-relaxed">
             <section aria-labelledby="responsable">
