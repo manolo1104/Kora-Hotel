@@ -176,57 +176,6 @@ export function PMSMockup() {
   );
 }
 
-// ─── Agente de llamadas ─────────────────────────────────────────────────────────
-
-export function LlamadasMockup() {
-  const reduce = useReducedMotion();
-  const items = [
-    { hora: "09:14", tipo: "Reserva", desc: "Suite Jardín · 3 noches · confirmada", ok: true },
-    { hora: "11:42", tipo: "Consulta", desc: "Precio fin de semana · cotización enviada", ok: true },
-    { hora: "14:07", tipo: "Reserva", desc: "Habitación Std · pendiente de pago", ok: false },
-    { hora: "16:55", tipo: "Reserva", desc: "Cabaña Huasteca · 2 noches · confirmada", ok: true },
-  ];
-  const rowAnim = (i: number) =>
-    reduce
-      ? {}
-      : {
-          initial: { opacity: 0, x: 16 },
-          whileInView: { opacity: 1, x: 0 },
-          viewport: VIEWPORT,
-          transition: { duration: 0.4, delay: i * 0.1, ease: EASE },
-        };
-
-  return (
-    <div className="bg-kora-primary rounded-2xl p-5 shadow-xl">
-      <p className="text-kora-accent text-[10px] font-bold uppercase tracking-widest mb-4">
-        Agente de llamadas activo
-      </p>
-      <div className="space-y-3">
-        {items.map((item, i) => (
-          <motion.div
-            key={i}
-            {...rowAnim(i)}
-            className="flex items-start gap-3 bg-white/10 rounded-xl p-3"
-          >
-            <div
-              className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${item.ok ? "bg-kora-accent" : "bg-amber-400"}`}
-            />
-            <div className="min-w-0">
-              <p className="text-white text-xs font-semibold">
-                {item.tipo}{" "}
-                <span className="font-normal text-white/50">{item.hora}</span>
-              </p>
-              <p className="text-white/60 text-[10px] mt-0.5 leading-tight">
-                {item.desc}
-              </p>
-            </div>
-          </motion.div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 // ─── Pricing dinámico ───────────────────────────────────────────────────────────
 
 export function PricingMockup() {

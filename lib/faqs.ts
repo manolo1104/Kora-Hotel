@@ -37,11 +37,6 @@ export const faqs: Faq[] = [
       "Sí. Tus datos son tuyos. Antes de cancelar puedes exportar todo: reservas, huéspedes, historial de pagos e informes en formato CSV y PDF. Nunca quedarás rehén del sistema.",
   },
   {
-    question: "¿Cómo funciona el agente de llamadas exactamente?",
-    answer:
-      "El agente contesta en tu nombre con voz natural en español. Responde preguntas frecuentes, cotiza disponibilidad, y cuando el huésped quiere reservar, captura sus datos y los registra directamente en el PMS. No suena a robot y no requiere que tu equipo esté disponible.",
-  },
-  {
     question: "¿El agente de WhatsApp puede cerrar reservas por sí solo?",
     answer:
       "Sí. Consulta disponibilidad en tiempo real, informa precios, envía el link de pago directo y confirma la reserva, todo sin intervención humana. Tu equipo solo entra cuando hay algo fuera de lo ordinario.",

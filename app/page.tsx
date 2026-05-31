@@ -67,7 +67,7 @@ const jsonLd = {
       inLanguage: "es-MX",
       url: SITE_URL,
       description:
-        "Sistema hotelero todo-en-uno con IA: motor de reservas directas sin comisiones, agente de WhatsApp y llamadas 24/7, PMS, pricing dinámico y CFDI 4.0. Para hoteles boutique en México.",
+        "Sistema hotelero todo-en-uno con IA: motor de reservas directas sin comisiones, agente de WhatsApp 24/7, PMS, dashboard con CRM, pricing dinámico y CFDI 4.0. Para hoteles boutique en México.",
       publisher: { "@id": `${SITE_URL}/#organization` },
       offers: {
         "@type": "Offer",

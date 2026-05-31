@@ -37,9 +37,9 @@ export default function TerminosPage() {
               <p>
                 Kora es un sistema de gestión hotelera todo-en-uno que incluye
                 motor de reservas directo, agente de WhatsApp con inteligencia
-                artificial, sistema de gestión de propiedades (PMS), agente de
-                llamadas con IA, pricing dinámico, CRM de huéspedes, blog
-                automático y dashboard de métricas. El servicio se presta de
+                artificial, sistema de gestión de propiedades (PMS), pricing
+                dinámico, CRM de huéspedes, blog automático y dashboard de
+                métricas. El servicio se presta de
                 forma exclusiva a hoteles boutique e independientes con 5 a 40
                 habitaciones en México.
               </p>

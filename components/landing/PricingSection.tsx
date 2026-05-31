@@ -9,7 +9,6 @@ const featuresCompleto = [
   "Motor de reservas directo sin comisiones",
   "Agente WhatsApp con IA (24/7)",
   "PMS completo: habitaciones, check-in, check-out, housekeeping",
-  "Agente de llamadas con IA en español",
   "Pricing dinámico con IA",
   "Dashboard + métricas + forecast 30 días",
   "Blog automático con IA",
@@ -29,7 +28,6 @@ const featuresEsencial = [
 
 const featuresEsencialNO = [
   "Agente WhatsApp con IA",
-  "Agente de llamadas con IA",
   "Pricing dinámico",
   "Dashboard y métricas avanzadas",
 ];

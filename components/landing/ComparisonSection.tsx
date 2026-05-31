@@ -15,7 +15,6 @@ const koraFeatures = [
   "Página web + motor de reservas",
   "Agente WhatsApp con IA 24/7",
   "PMS completo (rooms, check-in/out)",
-  "Agente de llamadas con IA",
   "Pricing dinámico con IA",
   "Dashboard + métricas en tiempo real",
   "Blog automático con IA",

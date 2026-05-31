@@ -22,7 +22,7 @@ const jsonLd = {
   "@type": "Product",
   name: "Kora",
   description:
-    "Sistema hotelero todo-en-uno con IA para hoteles boutique en México: reservas directas sin comisiones, agente de WhatsApp y llamadas, PMS, pricing dinámico y CFDI 4.0.",
+    "Sistema hotelero todo-en-uno con IA para hoteles boutique en México: reservas directas sin comisiones, agente de WhatsApp 24/7, PMS, dashboard con CRM, pricing dinámico y CFDI 4.0.",
   brand: {
     "@type": "Brand",
     name: "Kora",
@@ -45,7 +45,7 @@ const jsonLd = {
       url: `${SITE_URL}/precios`,
       availability: "https://schema.org/InStock",
       description:
-        "Todo incluido: IA en WhatsApp y llamadas, pricing dinámico, dashboard, CFDI 4.0 y setup gratis.",
+        "Todo incluido: IA en WhatsApp, PMS, pricing dinámico, dashboard con CRM, CFDI 4.0 y setup gratis.",
     },
   ],
 };

@@ -2,7 +2,6 @@ import {
   Globe,
   MessageSquare,
   LayoutDashboard,
-  Phone,
   TrendingUp,
   BarChart2,
 } from "lucide-react";
@@ -34,26 +33,18 @@ const modules = [
     span: 1,
   },
   {
-    Icon: Phone,
-    name: "Agente de llamadas con IA",
-    description:
-      "Contesta llamadas en español natural, verifica disponibilidad y toma la reserva.",
-    style: "light" as const,
-    span: 1,
-  },
-  {
     Icon: TrendingUp,
     name: "Pricing dinámico con IA",
     description:
       "El sistema sube y baja tus precios según la demanda, eventos locales y puentes.",
     style: "tint" as const,
-    span: 1,
+    span: 2,
   },
   {
     Icon: BarChart2,
-    name: "Dashboard + Inteligencia",
+    name: "Dashboard, métricas y CRM",
     description:
-      "RevPAR, ocupación, canal de origen y forecast de 30 días. Pregúntale al sistema lo que quieras.",
+      "Calendario con todas tus reservas, alta y edición en segundos, CRM de huéspedes y métricas (ocupación, RevPAR, forecast). Operas y mides todo tu hotel desde una pantalla.",
     style: "dark" as const,
     span: 2,
   },

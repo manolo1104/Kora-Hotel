@@ -4,7 +4,6 @@ import {
   Globe,
   MessageCircle,
   LayoutDashboard,
-  Phone,
   TrendingUp,
   BarChart2,
   CheckCircle2,
@@ -17,7 +16,6 @@ import {
   ReservaMockup,
   WhatsAppMockup,
   PMSMockup,
-  LlamadasMockup,
   PricingMockup,
   DashboardMockup,
 } from "@/components/caracteristicas/Mockups";
@@ -25,7 +23,7 @@ import {
 export const metadata: Metadata = {
   title: "Características de Kora: PMS, IA y reservas directas",
   description:
-    "Motor de reservas directo, agente WhatsApp con IA, PMS, agente de llamadas, pricing dinámico y dashboard. El sistema todo-en-uno para hoteles boutique en México.",
+    "Motor de reservas directo, agente WhatsApp con IA, PMS, dashboard con CRM y pricing dinámico. El sistema todo-en-uno para hoteles boutique en México.",
   alternates: {
     canonical: "/caracteristicas",
   },
@@ -149,8 +147,8 @@ export default function CaracteristicasPage() {
           </Reveal>
           <Reveal delay={0.12}>
             <p className="mt-5 text-kora-muted text-lg leading-relaxed max-w-2xl mx-auto">
-              Seis módulos integrados que reemplazan seis herramientas distintas.
-              Un solo pago, una sola pantalla, cero comisiones.
+              Cinco módulos integrados que reemplazan tu mezcla de herramientas
+              sueltas. Un solo pago, una sola pantalla, cero comisiones.
             </p>
           </Reveal>
           <Reveal delay={0.22}>
@@ -235,27 +233,9 @@ export default function CaracteristicasPage() {
 
       {/* Module 4 */}
       <ModuleSection
-        id="agente-llamadas"
-        icon={<Phone size={18} />}
-        tag="Módulo 4"
-        title="Agente de llamadas con IA"
-        description="Ninguna llamada perdida. El agente contesta en español, responde preguntas, cotiza disponibilidad y transfiere los datos directamente al PMS para cerrar la reserva."
-        bullets={[
-          "Contesta llamadas las 24 horas, incluso de madrugada",
-          "Voz natural en español, sin sonido robótico",
-          "Guarda el resumen de cada llamada en el CRM",
-          "Transfiere a un humano cuando el caso lo requiere",
-        ]}
-        mockup={<LlamadasMockup />}
-        reverse
-        dark
-      />
-
-      {/* Module 5 */}
-      <ModuleSection
         id="pricing-dinamico"
         icon={<TrendingUp size={18} />}
-        tag="Módulo 5"
+        tag="Módulo 4"
         title="Pricing dinámico con IA"
         description="Kora ajusta tus tarifas automáticamente según ocupación, temporada, puentes y eventos locales. Sin que tengas que hacer nada. Sin contratar un revenue manager."
         bullets={[
@@ -265,27 +245,27 @@ export default function CaracteristicasPage() {
           "Maximiza el RevPAR mes a mes",
         ]}
         mockup={<PricingMockup />}
+        reverse
         tool={{
           label: "Calcula tu RevPAR y tu tarifa ideal",
           href: "/herramientas/calculadora-tarifa",
         }}
       />
 
-      {/* Module 6 */}
+      {/* Module 5 */}
       <ModuleSection
         id="dashboard"
         icon={<BarChart2 size={18} />}
-        tag="Módulo 6"
-        title="Dashboard y métricas"
-        description="Un solo lugar para ver qué está pasando con tu hotel: ocupación real, ingresos por canal, forecast a 30 días y todas las métricas que importan, sin hojas de Excel."
+        tag="Módulo 5"
+        title="Dashboard, métricas y CRM"
+        description="El centro de operación de tu hotel: calendario con todas tus reservas, alta y edición en segundos, CRM con el historial de cada huésped y las métricas que importan. Todo en una pantalla, sin hojas de Excel."
         bullets={[
-          "Ocupación, RevPAR y ADR en tiempo real",
-          "Forecast de ocupación e ingresos a 30 días",
+          "Calendario y alta de reservas en segundos",
+          "Ocupación, RevPAR y forecast a 30 días",
+          "CRM con el historial de cada huésped",
           "Desglose de reservas por canal (directo vs OTA)",
-          "Exportación de reportes mensuales en PDF",
         ]}
         mockup={<DashboardMockup />}
-        reverse
         dark
         tool={{
           label: "Calcula tu punto de equilibrio",
