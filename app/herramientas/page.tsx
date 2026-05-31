@@ -1,10 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { ArrowRight } from "lucide-react";
 import { BarraCTA } from "@/components/shared/BarraCTA";
 import { Reveal } from "@/components/shared/Reveal";
-import { HerramientaIcono } from "@/components/herramientas/HerramientaIcono";
-import { herramientas } from "@/lib/herramientas";
+import { HerramientasExplorador } from "@/components/herramientas/HerramientasExplorador";
 
 export const metadata: Metadata = {
   title: "Herramientas gratis para hoteles | Kora",
@@ -40,62 +37,9 @@ export default function HerramientasPage() {
         </div>
       </section>
 
-      {/* Grid de herramientas */}
+      {/* Explorador: destacado + búsqueda + categorías */}
       <section className="py-14 sm:py-20 bg-kora-bg">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-            {herramientas.map((h, i) => (
-              <Reveal key={h.slug} delay={0.05 + i * 0.06}>
-                {h.disponible ? (
-                  <Link
-                    href={`/herramientas/${h.slug}`}
-                    className="card-hover group flex flex-col h-full bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:border-kora-accent transition-colors"
-                  >
-                    <div className="flex items-center gap-3 mb-3">
-                      <span className="w-10 h-10 rounded-xl bg-kora-primary/5 flex items-center justify-center text-kora-primary shrink-0">
-                        <HerramientaIcono slug={h.slug} size={20} />
-                      </span>
-                      <span className="text-[10px] font-bold text-kora-accent bg-kora-accent/10 px-2.5 py-0.5 rounded-full uppercase tracking-widest">
-                        {h.etiqueta}
-                      </span>
-                    </div>
-                    <h2 className="text-lg font-bold text-kora-text mb-1.5">
-                      {h.titulo}
-                    </h2>
-                    <p className="text-sm text-kora-muted leading-relaxed flex-1">
-                      {h.resumen}
-                    </p>
-                    <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-kora-primary">
-                      Usar gratis
-                      <ArrowRight
-                        size={15}
-                        aria-hidden="true"
-                        className="transition-transform group-hover:translate-x-1"
-                      />
-                    </span>
-                  </Link>
-                ) : (
-                  <div className="flex flex-col h-full bg-white/60 rounded-2xl p-6 border border-dashed border-gray-200">
-                    <div className="flex items-center gap-3 mb-3">
-                      <span className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-kora-muted shrink-0">
-                        <HerramientaIcono slug={h.slug} size={20} />
-                      </span>
-                      <span className="text-[10px] font-bold text-kora-muted bg-gray-100 px-2.5 py-0.5 rounded-full uppercase tracking-widest">
-                        Próximamente
-                      </span>
-                    </div>
-                    <h2 className="text-lg font-bold text-kora-text/70 mb-1.5">
-                      {h.titulo}
-                    </h2>
-                    <p className="text-sm text-kora-muted leading-relaxed flex-1">
-                      {h.resumen}
-                    </p>
-                  </div>
-                )}
-              </Reveal>
-            ))}
-          </div>
-        </div>
+        <HerramientasExplorador />
       </section>
 
       <BarraCTA />
