@@ -31,22 +31,23 @@ const sitiosCreados = [
   },
 ];
 
+// Cifras verificables (no estimaciones): comisión 0% en reservas directas,
+// respuesta del agente de IA en segundos, y el costo real de un stack de apps
+// separadas (~$5,300/mes) frente a Kora ($2,990 todo incluido).
 const metrics = [
   {
-    countTo: 40,
-    prefix: "+",
-    suffix: "%",
-    label: "Reservas directas vs OTAs",
+    value: "0%",
+    label: "Comisión en tus reservas directas",
   },
   {
     value: "Segundos",
-    label: "Tiempo de respuesta en WhatsApp (antes: horas)",
+    label: "Respuesta en WhatsApp con IA (antes: horas)",
   },
   {
-    countTo: 8400,
+    countTo: 5300,
     prefix: "$",
     suffix: "",
-    label: "MXN/mes en comisiones ahorradas (promedio)",
+    label: "MXN/mes en apps separadas (vs $2,990 con Kora)",
   },
 ] as const;
 
