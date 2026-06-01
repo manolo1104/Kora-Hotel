@@ -4,7 +4,7 @@ import { BarraCTA } from "@/components/shared/BarraCTA";
 import { Reveal } from "@/components/shared/Reveal";
 import { DescuentoMaximo } from "@/components/herramientas/DescuentoMaximo";
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.vercel.app";
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
 
 export const metadata: Metadata = {
   title: "¿Hasta cuánto puedo descontar en mi hotel sin perder? (gratis) | Kora",

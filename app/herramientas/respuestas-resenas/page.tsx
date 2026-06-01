@@ -4,7 +4,7 @@ import { BarraCTA } from "@/components/shared/BarraCTA";
 import { Reveal } from "@/components/shared/Reveal";
 import { GeneradorIA, type CampoDef } from "@/components/herramientas/GeneradorIA";
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.vercel.app";
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
 
 export const metadata: Metadata = {
   title: "Generador de respuestas a reseñas de hotel con IA (gratis) | Kora",

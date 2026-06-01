@@ -4,7 +4,7 @@ import { ArrowRight, Globe, MessageCircle, BookOpen, QrCode } from "lucide-react
 import { BarraCTA } from "@/components/shared/BarraCTA";
 import { Reveal } from "@/components/shared/Reveal";
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.vercel.app";
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
 
 export const metadata: Metadata = {
   title: "Crea la página de reservas de tu hotel gratis | Kora",
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
 
 const pasos = [
   { icon: <Globe size={20} />, t: "Crea tu cuenta gratis", d: "Con tu correo, en un minuto. Sin tarjeta." },
-  { icon: <MessageCircle size={20} />, t: "Llena los datos de tu hotel", d: "Nombre, fotos, habitaciones y tu WhatsApp." },
+  { icon: <MessageCircle size={20} />, t: "Llena los datos de tu hotel", d: "Fotos por habitación, precios por personas, amenidades y tu WhatsApp." },
   { icon: <QrCode size={20} />, t: "Comparte tu enlace y tu QR", d: "En recepción, redes y habitaciones. Listo para recibir reservas directas." },
 ];
 
@@ -89,8 +89,9 @@ export default function MiniPaginaLanding() {
                   Página de reservas por WhatsApp
                 </h2>
                 <p className="mt-1.5 text-sm text-kora-muted leading-relaxed">
-                  Tus fotos, tus habitaciones con precio y un botón para que el
-                  huésped te escriba y reserve directo. Cada reserva es 100% tuya.
+                  Fotos por habitación, precios por número de personas, amenidades
+                  con iconos, “cómo llegar” y un botón para reservar directo por
+                  WhatsApp. Cada reserva es 100% tuya.
                 </p>
               </div>
             </Reveal>

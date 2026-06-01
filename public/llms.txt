@@ -22,15 +22,16 @@ Kora ayuda a hoteles boutique pequeños e independientes en México a llenar sus
 ## Precios
 - Kora Esencial: $2,490 MXN/mes (funciones básicas)
 - Kora Completo Fundador: $2,990 MXN/mes (todo incluido, setup gratis) — oferta para los primeros 10 hoteles
+- Página web a la medida: desde $10,000 MXN (pago único) + $700 MXN/mes de mantenimiento (incluye dominio) — sitio 100% personalizado con motor de reservas propio y dashboard completo
 - Sin contrato anual. Cancela cuando quieras. Ver: /pricing.md
 
 ## Páginas clave
-- Inicio: https://kora-hotel.vercel.app/
-- Características: https://kora-hotel.vercel.app/caracteristicas
-- Precios: https://kora-hotel.vercel.app/precios
-- Cómo funciona: https://kora-hotel.vercel.app/como-funciona
-- Caso de estudio (Hotel Paraíso Encantado): https://kora-hotel.vercel.app/casos/paraiso-encantado
-- Blog: https://kora-hotel.vercel.app/blog
+- Inicio: https://kora-hotel.com/
+- Características: https://kora-hotel.com/caracteristicas
+- Precios: https://kora-hotel.com/precios
+- Cómo funciona: https://kora-hotel.com/como-funciona
+- Caso de estudio (Hotel Paraíso Encantado): https://kora-hotel.com/casos/paraiso-encantado
+- Blog: https://kora-hotel.com/blog
 
 ## Contacto
 - Email: hola@korahotel.mx

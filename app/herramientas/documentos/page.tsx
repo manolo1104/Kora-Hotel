@@ -4,7 +4,7 @@ import { BarraCTA } from "@/components/shared/BarraCTA";
 import { Reveal } from "@/components/shared/Reveal";
 import { DocumentosLegales } from "@/components/herramientas/DocumentosLegales";
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.vercel.app";
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
 
 export const metadata: Metadata = {
   title: "Política de cancelación, aviso de privacidad y reglamento para hotel (gratis) | Kora",

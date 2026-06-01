@@ -49,7 +49,7 @@ export default async function BlogArticlePage({ params }: Props) {
   const headings = extractHeadings(article.content);
   const related = articles.filter((a) => a.slug !== slug).slice(0, 2);
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.vercel.app";
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
   const articleUrl = `${siteUrl}/blog/${article.slug}`;
 
   const jsonLd = {

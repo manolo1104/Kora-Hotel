@@ -6,6 +6,31 @@ import { CountUp } from "@/components/shared/CountUp";
 // O sube la foto a /public/manolo.jpg y pon: "/manolo.jpg"
 const FOTO_MANOLO = "";
 
+// Sitios reales que hemos creado (prueba del servicio de página a la medida).
+// Cuando tengas el link de Refacciones Franco, ponlo en su "url".
+const sitiosCreados = [
+  {
+    logo: "/portfolio/paraiso-encantado.png",
+    nombre: "Hotel Paraíso Encantado",
+    url: "https://paraisoencantado.com",
+  },
+  {
+    logo: "/portfolio/huasteca-tours.png",
+    nombre: "Huasteca Potosina Tours",
+    url: "https://www.huasteca-potosina.com",
+  },
+  {
+    logo: "/portfolio/papan-huasteco.png",
+    nombre: "El Papán Huasteco",
+    url: "https://papan-huasteco.vercel.app",
+  },
+  {
+    logo: "/portfolio/refacciones-franco.png",
+    nombre: "Refacciones Franco",
+    url: "https://refacciones-franco.vercel.app",
+  },
+];
+
 const metrics = [
   {
     countTo: 40,
@@ -90,6 +115,55 @@ export function SocialProofSection() {
             ))}
           </div>
         </div>
+
+        {/* Sitios que hemos creado — prueba del servicio de página a la medida */}
+        <Reveal delay={0.1}>
+          <div className="mt-14 pt-12 border-t border-gray-100">
+            <p className="text-center text-sm font-semibold text-kora-muted uppercase tracking-widest">
+              Sitios reales que hemos creado
+            </p>
+            <p className="mt-2 text-center text-kora-muted text-sm max-w-xl mx-auto">
+              Páginas a la medida que diseñamos y publicamos para negocios reales —
+              el mismo cuidado que ponemos en tu hotel.
+            </p>
+            <div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-4">
+              {sitiosCreados.map((s) => {
+                const inner = (
+                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm h-28 flex items-center justify-center p-5 transition-all duration-300 group-hover:shadow-md group-hover:-translate-y-0.5">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={s.logo}
+                      alt={s.nombre}
+                      className="max-h-16 max-w-full w-auto object-contain"
+                    />
+                  </div>
+                );
+                return s.url ? (
+                  <a
+                    key={s.nombre}
+                    href={s.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`Ver el sitio de ${s.nombre}`}
+                    className="group block"
+                  >
+                    {inner}
+                    <p className="mt-2 text-center text-xs text-kora-muted group-hover:text-kora-primary transition-colors">
+                      {s.nombre}
+                    </p>
+                  </a>
+                ) : (
+                  <div key={s.nombre} className="group block">
+                    {inner}
+                    <p className="mt-2 text-center text-xs text-kora-muted">
+                      {s.nombre}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </Reveal>
       </div>
     </section>
   );

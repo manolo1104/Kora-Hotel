@@ -36,7 +36,7 @@ export const metadata: Metadata = {
 };
 
 const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.vercel.app";
+  process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
 
 const jsonLd = {
   "@context": "https://schema.org",

@@ -27,6 +27,17 @@ Moneda: MXN (pesos mexicanos). Facturación mensual. Sin contrato anual; cancela
   - API REST para integraciones
   - Setup gratis + capacitación incluida
 
+## Página web a la medida (servicio hecho para ti)
+- Precio: desde $10,000 MXN (pago único) + $700 MXN/mes de mantenimiento
+- El mantenimiento incluye tu dominio propio
+- Para: hoteles que quieren un sitio 100% personalizado, no una plantilla
+- Incluye:
+  - Diseño 100% personalizado para tu hotel
+  - Motor de reservas directo, sin comisiones
+  - Dashboard completo (calendario, PMS, CRM, métricas y CFDI 4.0)
+  - Dominio propio, hosting, certificado SSL y actualizaciones
+  - Construcción, publicación y capacitación llave en mano
+
 ## Notas
 - Implementación llave en mano en 48 a 72 horas.
 - Soporte en español por WhatsApp.

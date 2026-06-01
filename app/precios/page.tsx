@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 };
 
 const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.vercel.app";
+  process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
 
 const jsonLd = {
   "@context": "https://schema.org",
@@ -46,6 +46,16 @@ const jsonLd = {
       availability: "https://schema.org/InStock",
       description:
         "Todo incluido: IA en WhatsApp, PMS, pricing dinámico, dashboard con CRM, CFDI 4.0 y setup gratis.",
+    },
+    {
+      "@type": "Offer",
+      name: "Página web a la medida",
+      price: "10000",
+      priceCurrency: "MXN",
+      url: `${SITE_URL}/precios`,
+      availability: "https://schema.org/InStock",
+      description:
+        "Servicio hecho a tu medida: sitio 100% personalizado con motor de reservas propio y dashboard completo. Desde $10,000 MXN pago único más $700 MXN/mes de mantenimiento (incluye dominio).",
     },
   ],
 };

@@ -1,9 +1,19 @@
-import { CheckCircle2, XCircle } from "lucide-react";
+import { CheckCircle2, XCircle, Sparkles } from "lucide-react";
 import { Reveal } from "@/components/shared/Reveal";
 import { CountUp } from "@/components/shared/CountUp";
 
 // Actualizar manualmente cuando cambien los lugares disponibles
 const LUGARES_DISPONIBLES = 7;
+
+// Servicio "hecho a tu medida": construimos el sitio + reservas + dashboard.
+const featuresPaginaWeb = [
+  "Diseño 100% personalizado para tu hotel (no plantillas)",
+  "Motor de reservas directo, sin comisiones",
+  "Dashboard completo: calendario, PMS, CRM, métricas y CFDI",
+  "Tu dominio propio incluido en el mantenimiento",
+  "Hosting, certificado de seguridad (SSL) y actualizaciones",
+  "Lo construimos, publicamos y te capacitamos",
+];
 
 const featuresCompleto = [
   "Motor de reservas directo sin comisiones",
@@ -160,6 +170,71 @@ export function PricingSection() {
             </div>
           </Reveal>
         </div>
+
+        {/* Servicio a la medida — página web + reservas + dashboard */}
+        <Reveal delay={0.15}>
+          <div
+            id="pagina-web"
+            className="card-glow relative mt-8 overflow-hidden rounded-3xl bg-kora-primary p-8 sm:p-10 border-2 border-kora-primary"
+          >
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+              {/* Texto + precio */}
+              <div>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 text-kora-accent text-xs font-bold mb-4">
+                  <Sparkles size={13} aria-hidden="true" />
+                  Hecho a tu medida
+                </span>
+                <h3 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
+                  Tu página web a la medida, con motor de reservas y dashboard
+                </h3>
+                <p className="mt-3 text-white/70 text-sm sm:text-base leading-relaxed">
+                  ¿No quieres una plantilla? Te diseñamos y construimos un sitio
+                  100% personalizado para tu hotel, con tu propio motor de
+                  reservas (sin comisiones) y el dashboard completo para operar
+                  todo. Llave en mano.
+                </p>
+
+                <div className="mt-6 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                  <span className="text-sm text-white/60">Desde</span>
+                  <CountUp
+                    to={10000}
+                    prefix="$"
+                    duration={1.1}
+                    className="text-4xl font-bold text-white tabular-nums"
+                  />
+                  <span className="text-white/70">MXN · pago único</span>
+                </div>
+                <p className="mt-1 text-sm text-kora-accent font-semibold">
+                  + $700 MXN/mes de mantenimiento · incluye tu dominio
+                </p>
+
+                <a
+                  href="#contacto"
+                  className="btn-press btn-arrow btn-fill mt-7 inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-full bg-kora-accent text-kora-primary font-bold text-base hover:bg-kora-accent-dark transition-colors"
+                >
+                  Quiero mi página a la medida
+                </a>
+              </div>
+
+              {/* Lista de lo que incluye */}
+              <ul
+                className="space-y-3 lg:border-l lg:border-white/10 lg:pl-12"
+                aria-label="Lo que incluye el servicio a la medida"
+              >
+                {featuresPaginaWeb.map((f) => (
+                  <li key={f} className="flex items-start gap-2.5">
+                    <CheckCircle2
+                      size={18}
+                      className="flex-shrink-0 text-kora-accent mt-0.5"
+                      aria-hidden="true"
+                    />
+                    <span className="text-sm sm:text-base text-white/90">{f}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </Reveal>
       </div>
     </section>
   );

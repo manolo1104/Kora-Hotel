@@ -13,14 +13,22 @@ import {
   Download,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { AMENIDADES } from "@/lib/amenidades";
 
 const inputCls =
   "w-full px-4 py-3 rounded-xl border border-gray-200 text-kora-text text-sm placeholder:text-kora-muted focus:outline-none focus:ring-2 focus:ring-kora-accent focus:border-transparent transition-all duration-200";
 
+interface Tarifa {
+  personas: string;
+  precio: string;
+}
 interface Habitacion {
   nombre: string;
   precio: string;
   descripcion: string;
+  capacidad?: string;
+  fotos?: string[];
+  tarifas?: Tarifa[];
 }
 
 function slugify(s: string): string {
@@ -33,7 +41,7 @@ function slugify(s: string): string {
     .slice(0, 40);
 }
 
-const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.vercel.app";
+const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
 
 export function PanelEditor({ userId }: { userId: string }) {
   const supabase = createClient();
@@ -50,6 +58,12 @@ export function PanelEditor({ userId }: { userId: string }) {
   const [habitaciones, setHabitaciones] = useState<Habitacion[]>([]);
   const [fotos, setFotos] = useState<string[]>([]);
 
+  // Extras (nivel hotel)
+  const [amenidades, setAmenidades] = useState<string[]>([]);
+  const [instagram, setInstagram] = useState("");
+  const [facebook, setFacebook] = useState("");
+  const [mapsUrl, setMapsUrl] = useState("");
+
   // Guía del huésped
   const [wifi, setWifi] = useState("");
   const [wifiClave, setWifiClave] = useState("");
@@ -59,6 +73,7 @@ export function PanelEditor({ userId }: { userId: string }) {
   const [recomendaciones, setRecomendaciones] = useState(""); // una por línea
 
   const [subiendo, setSubiendo] = useState(false);
+  const [subiendoHab, setSubiendoHab] = useState<number | null>(null);
   const [guardando, setGuardando] = useState(false);
   const [guardado, setGuardado] = useState(false);
   const [error, setError] = useState("");
@@ -83,6 +98,11 @@ export function PanelEditor({ userId }: { userId: string }) {
         setWhatsapp(data.whatsapp ?? "");
         setHabitaciones(Array.isArray(data.habitaciones) ? data.habitaciones : []);
         setFotos(Array.isArray(data.fotos) ? data.fotos : []);
+        const ex = data.extras ?? {};
+        setAmenidades(Array.isArray(ex.amenidades) ? ex.amenidades : []);
+        setInstagram(ex.instagram ?? "");
+        setFacebook(ex.facebook ?? "");
+        setMapsUrl(ex.mapsUrl ?? "");
         const g = data.guia ?? {};
         setWifi(g.wifi ?? "");
         setWifiClave(g.wifiClave ?? "");
@@ -105,7 +125,11 @@ export function PanelEditor({ userId }: { userId: string }) {
   function addHab() {
     setHabitaciones((h) => [...h, { nombre: "", precio: "", descripcion: "" }]);
   }
-  function updateHab(i: number, campo: keyof Habitacion, valor: string) {
+  function updateHab(
+    i: number,
+    campo: "nombre" | "precio" | "descripcion" | "capacidad",
+    valor: string
+  ) {
     setHabitaciones((h) =>
       h.map((it, idx) => (idx === i ? { ...it, [campo]: valor } : it))
     );
@@ -114,36 +138,117 @@ export function PanelEditor({ userId }: { userId: string }) {
     setHabitaciones((h) => h.filter((_, idx) => idx !== i));
   }
 
+  // Tarifas por número de personas (por habitación)
+  function addTarifa(i: number) {
+    setHabitaciones((h) =>
+      h.map((it, idx) =>
+        idx === i
+          ? { ...it, tarifas: [...(it.tarifas ?? []), { personas: "", precio: "" }] }
+          : it
+      )
+    );
+  }
+  function updateTarifa(i: number, j: number, campo: keyof Tarifa, valor: string) {
+    setHabitaciones((h) =>
+      h.map((it, idx) =>
+        idx === i
+          ? {
+              ...it,
+              tarifas: (it.tarifas ?? []).map((t, tj) =>
+                tj === j ? { ...t, [campo]: valor } : t
+              ),
+            }
+          : it
+      )
+    );
+  }
+  function removeTarifa(i: number, j: number) {
+    setHabitaciones((h) =>
+      h.map((it, idx) =>
+        idx === i
+          ? { ...it, tarifas: (it.tarifas ?? []).filter((_, tj) => tj !== j) }
+          : it
+      )
+    );
+  }
+
+  function toggleAmenidad(key: string) {
+    setAmenidades((a) =>
+      a.includes(key) ? a.filter((k) => k !== key) : [...a, key]
+    );
+  }
+
+  // Sube archivos al bucket "fotos" y devuelve las URLs públicas. Reutilizable
+  // para las fotos del hotel y para las fotos de cada habitación.
+  const subirArchivos = useCallback(
+    async (files: FileList | null): Promise<string[]> => {
+      if (!files || files.length === 0) return [];
+      const nuevas: string[] = [];
+      for (const file of Array.from(files)) {
+        const limpio = file.name.replace(/[^a-zA-Z0-9.]/g, "_");
+        const rnd = Math.random().toString(36).slice(2, 6);
+        const path = `${userId}/${Date.now()}-${rnd}-${limpio}`;
+        const { error: upErr } = await supabase.storage
+          .from("fotos")
+          .upload(path, file, { upsert: false });
+        if (upErr) {
+          setError("No se pudo subir una foto. Inténtalo de nuevo.");
+          continue;
+        }
+        const { data } = supabase.storage.from("fotos").getPublicUrl(path);
+        nuevas.push(data.publicUrl);
+      }
+      return nuevas;
+    },
+    [supabase, userId]
+  );
+
   const onSubirFotos = useCallback(
     async (files: FileList | null) => {
       if (!files || files.length === 0) return;
       setSubiendo(true);
       setError("");
       try {
-        const nuevas: string[] = [];
-        for (const file of Array.from(files)) {
-          const limpio = file.name.replace(/[^a-zA-Z0-9.]/g, "_");
-          const path = `${userId}/${Date.now()}-${limpio}`;
-          const { error: upErr } = await supabase.storage
-            .from("fotos")
-            .upload(path, file, { upsert: false });
-          if (upErr) {
-            setError("No se pudo subir una foto. Inténtalo de nuevo.");
-            continue;
-          }
-          const { data } = supabase.storage.from("fotos").getPublicUrl(path);
-          nuevas.push(data.publicUrl);
-        }
+        const nuevas = await subirArchivos(files);
         setFotos((f) => [...f, ...nuevas]);
       } finally {
         setSubiendo(false);
       }
     },
-    [supabase, userId]
+    [subirArchivos]
   );
 
   function removeFoto(url: string) {
     setFotos((f) => f.filter((u) => u !== url));
+  }
+
+  const onSubirFotosHab = useCallback(
+    async (i: number, files: FileList | null) => {
+      if (!files || files.length === 0) return;
+      setSubiendoHab(i);
+      setError("");
+      try {
+        const nuevas = await subirArchivos(files);
+        setHabitaciones((h) =>
+          h.map((it, idx) =>
+            idx === i ? { ...it, fotos: [...(it.fotos ?? []), ...nuevas] } : it
+          )
+        );
+      } finally {
+        setSubiendoHab(null);
+      }
+    },
+    [subirArchivos]
+  );
+
+  function removeFotoHab(i: number, url: string) {
+    setHabitaciones((h) =>
+      h.map((it, idx) =>
+        idx === i
+          ? { ...it, fotos: (it.fotos ?? []).filter((u) => u !== url) }
+          : it
+      )
+    );
   }
 
   function descargarQR(ref: React.RefObject<HTMLDivElement | null>, archivo: string) {
@@ -179,7 +284,14 @@ export function PanelEditor({ userId }: { userId: string }) {
         .filter(Boolean),
     };
 
-    const payload = {
+    const extras = {
+      amenidades,
+      instagram: instagram.trim(),
+      facebook: facebook.trim(),
+      mapsUrl: mapsUrl.trim(),
+    };
+
+    const payloadBase = {
       nombre: nombre.trim(),
       ubicacion: ubicacion.trim(),
       descripcion: descripcion.trim(),
@@ -188,27 +300,44 @@ export function PanelEditor({ userId }: { userId: string }) {
       fotos,
       guia,
     };
+    const payload = { ...payloadBase, extras };
+
+    // Si la columna "extras" aún no existe en la base (falta correr el SQL),
+    // guardamos con "payloadBase" (sin ella) para que el resto —incluidas las
+    // fotos/tarifas por habitación, que viven en "habitaciones"— sí se guarde.
+    const COL_FALTANTE = "42703";
 
     try {
       if (hotelId) {
-        const { error: upErr } = await supabase
+        let { error: upErr } = await supabase
           .from("hoteles")
           .update(payload)
           .eq("id", hotelId);
+        if (upErr && upErr.code === COL_FALTANTE) {
+          ({ error: upErr } = await supabase
+            .from("hoteles")
+            .update(payloadBase)
+            .eq("id", hotelId));
+        }
         if (upErr) throw upErr;
       } else {
         const intento = slugify(nombre) || "hotel";
         let creado = null;
+        let usarExtras = true;
         for (let i = 0; i < 4 && !creado; i++) {
           const slugTry =
             i === 0 ? intento : `${intento}-${Math.random().toString(36).slice(2, 6)}`;
+          const cuerpo = usarExtras ? payload : payloadBase;
           const { data, error: insErr } = await supabase
             .from("hoteles")
-            .insert({ ...payload, owner_id: userId, slug: slugTry })
+            .insert({ ...cuerpo, owner_id: userId, slug: slugTry })
             .select("id, slug")
             .single();
           if (!insErr && data) {
             creado = data;
+          } else if (insErr && insErr.code === COL_FALTANTE && usarExtras) {
+            usarExtras = false; // reintenta sin "extras"
+            i--;
           } else if (insErr && insErr.code !== "23505") {
             throw insErr;
           }
@@ -395,7 +524,7 @@ export function PanelEditor({ userId }: { userId: string }) {
                   className={inputCls}
                   value={h.precio}
                   onChange={(e) => updateHab(i, "precio", e.target.value)}
-                  placeholder="Precio por noche (ej. 1500)"
+                  placeholder="Precio base por noche (ej. 1500)"
                   inputMode="numeric"
                 />
               </div>
@@ -405,12 +534,107 @@ export function PanelEditor({ userId }: { userId: string }) {
                 onChange={(e) => updateHab(i, "descripcion", e.target.value)}
                 placeholder="Breve descripción (opcional)"
               />
+
+              {/* Capacidad */}
+              <div className="sm:max-w-[50%]">
+                <input
+                  className={inputCls}
+                  value={h.capacidad ?? ""}
+                  onChange={(e) => updateHab(i, "capacidad", e.target.value)}
+                  placeholder="Capacidad: máx. huéspedes (ej. 4)"
+                  inputMode="numeric"
+                />
+              </div>
+
+              {/* Precios por número de personas */}
+              <div className="rounded-lg bg-white border border-gray-100 p-3">
+                <p className="text-xs font-semibold text-kora-text mb-2">
+                  Precios por número de personas{" "}
+                  <span className="font-normal text-kora-muted">(opcional)</span>
+                </p>
+                {(h.tarifas ?? []).map((t, j) => (
+                  <div key={j} className="flex items-center gap-2 mb-2">
+                    <input
+                      className={`${inputCls} !py-2`}
+                      value={t.personas}
+                      onChange={(e) => updateTarifa(i, j, "personas", e.target.value)}
+                      placeholder="Personas (ej. 2)"
+                      inputMode="numeric"
+                    />
+                    <input
+                      className={`${inputCls} !py-2`}
+                      value={t.precio}
+                      onChange={(e) => updateTarifa(i, j, "precio", e.target.value)}
+                      placeholder="Precio (ej. 1900)"
+                      inputMode="numeric"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeTarifa(i, j)}
+                      className="btn-press flex-shrink-0 w-9 h-9 rounded-lg border border-gray-200 flex items-center justify-center text-red-600 hover:border-red-300"
+                      aria-label="Quitar tarifa"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => addTarifa(i)}
+                  className="btn-press inline-flex items-center gap-1.5 text-sm font-semibold text-kora-primary hover:text-kora-primary-dark"
+                >
+                  <Plus size={14} /> Agregar precio por personas
+                </button>
+              </div>
+
+              {/* Fotos de la habitación */}
+              <div>
+                {(h.fotos ?? []).length > 0 && (
+                  <div className="grid grid-cols-4 sm:grid-cols-5 gap-2 mb-2">
+                    {(h.fotos ?? []).map((url) => (
+                      <div key={url} className="relative">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={url}
+                          alt="Foto de la habitación"
+                          className="w-full h-16 object-cover rounded-lg border border-gray-100"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeFotoHab(i, url)}
+                          className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-white/90 border border-gray-200 flex items-center justify-center text-red-600 shadow-sm"
+                          aria-label="Quitar foto"
+                        >
+                          <Trash2 size={11} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <label className="btn-press inline-flex items-center gap-2 px-4 py-2 rounded-full border border-gray-200 text-kora-text font-semibold text-sm hover:border-kora-accent transition-colors cursor-pointer">
+                  {subiendoHab === i ? (
+                    <Loader2 size={15} className="animate-spin" />
+                  ) : (
+                    <ImagePlus size={15} />
+                  )}
+                  {subiendoHab === i ? "Subiendo…" : "Fotos de la habitación"}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    disabled={subiendoHab === i}
+                    onChange={(e) => onSubirFotosHab(i, e.target.files)}
+                  />
+                </label>
+              </div>
+
               <button
                 type="button"
                 onClick={() => removeHab(i)}
                 className="btn-press inline-flex items-center gap-1.5 text-sm font-semibold text-red-600 hover:text-red-700"
               >
-                <Trash2 size={14} /> Quitar
+                <Trash2 size={14} /> Quitar habitación
               </button>
             </div>
           ))}
@@ -422,6 +646,82 @@ export function PanelEditor({ userId }: { userId: string }) {
         >
           <Plus size={16} /> Agregar habitación
         </button>
+      </div>
+
+      {/* Amenidades */}
+      <div className="bg-white rounded-2xl p-6 sm:p-7 border border-gray-100 shadow-sm">
+        <h2 className="text-lg font-bold text-kora-text mb-1">Amenidades</h2>
+        <p className="text-sm text-kora-muted mb-4">
+          Marca los servicios que ofrece tu hotel. Se muestran con iconos en tu
+          página.
+        </p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+          {AMENIDADES.map(({ key, label, Icon }) => {
+            const activa = amenidades.includes(key);
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => toggleAmenidad(key)}
+                aria-pressed={activa}
+                className={`btn-press flex items-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-semibold text-left transition-colors ${
+                  activa
+                    ? "border-kora-accent bg-kora-accent/10 text-kora-primary"
+                    : "border-gray-200 text-kora-muted hover:border-kora-accent"
+                }`}
+              >
+                <Icon size={16} aria-hidden={true} />
+                <span className="min-w-0 truncate">{label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Ubicación y redes */}
+      <div className="bg-white rounded-2xl p-6 sm:p-7 border border-gray-100 shadow-sm space-y-4">
+        <div>
+          <h2 className="text-lg font-bold text-kora-text">Ubicación y redes</h2>
+          <p className="text-sm text-kora-muted mt-0.5">
+            Para que el huésped llegue fácil y te siga en redes.
+          </p>
+        </div>
+        <div>
+          <label className="block text-sm font-semibold text-kora-text mb-1.5">
+            Link de Google Maps (para “Cómo llegar”)
+          </label>
+          <input
+            className={inputCls}
+            value={mapsUrl}
+            onChange={(e) => setMapsUrl(e.target.value)}
+            placeholder="https://maps.app.goo.gl/..."
+            inputMode="url"
+          />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-semibold text-kora-text mb-1.5">
+              Instagram
+            </label>
+            <input
+              className={inputCls}
+              value={instagram}
+              onChange={(e) => setInstagram(e.target.value)}
+              placeholder="@tuhotel o link"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-kora-text mb-1.5">
+              Facebook
+            </label>
+            <input
+              className={inputCls}
+              value={facebook}
+              onChange={(e) => setFacebook(e.target.value)}
+              placeholder="Nombre o link de tu página"
+            />
+          </div>
+        </div>
       </div>
 
       {/* Guía del huésped */}

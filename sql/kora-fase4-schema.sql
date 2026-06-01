@@ -15,10 +15,15 @@ create table if not exists public.hoteles (
   habitaciones jsonb   not null default '[]'::jsonb,   -- [{nombre, precio, descripcion}]
   fotos        text[]  not null default '{}',          -- URLs públicas
   guia         jsonb   not null default '{}'::jsonb,    -- {wifi, checkin, checkout, reglas[], recomendaciones[]}
+  extras       jsonb   not null default '{}'::jsonb,    -- {amenidades[], instagram, facebook, mapsUrl}
   publicado    boolean not null default true,
   created_at   timestamptz not null default now(),
   updated_at   timestamptz not null default now()
 );
+
+-- Si la tabla "hoteles" ya existía sin la columna "extras", córrelo una vez:
+alter table public.hoteles
+  add column if not exists extras jsonb not null default '{}'::jsonb;
 
 -- 2) Seguridad por fila (RLS): cada quien edita SOLO su hotel; lectura pública
 alter table public.hoteles enable row level security;
