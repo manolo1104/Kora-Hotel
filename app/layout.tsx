@@ -11,8 +11,45 @@ const jakarta = Plus_Jakarta_Sans({
   weight: ["400", "500", "600", "700", "800"],
 });
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
+
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com"),
+  metadataBase: new URL(SITE_URL),
+  openGraph: {
+    siteName: "Kora",
+    locale: "es_MX",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+  },
+};
+
+// Entidad global (Organization + WebSite) en todas las páginas, para reconocimiento
+// de entidad en Google y motores de IA. Las páginas referencian #organization por @id.
+const orgJsonLd = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": `${SITE_URL}/#organization`,
+      name: "Kora",
+      url: SITE_URL,
+      logo: { "@type": "ImageObject", url: `${SITE_URL}/opengraph-image` },
+      description:
+        "Sistema hotelero todo-en-uno con IA para hoteles boutique en México.",
+      email: "hola@korahotel.mx",
+      areaServed: { "@type": "Country", name: "México" },
+    },
+    {
+      "@type": "WebSite",
+      "@id": `${SITE_URL}/#website`,
+      url: SITE_URL,
+      name: "Kora",
+      inLanguage: "es-MX",
+      publisher: { "@id": `${SITE_URL}/#organization` },
+    },
+  ],
 };
 
 export default function RootLayout({
@@ -24,6 +61,10 @@ export default function RootLayout({
   return (
     <html lang="es" className={jakarta.variable}>
       <body className="antialiased">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }}
+        />
         {gaId && (
           <>
             <Script

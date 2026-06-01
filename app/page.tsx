@@ -41,23 +41,8 @@ const SITE_URL =
 const jsonLd = {
   "@context": "https://schema.org",
   "@graph": [
-    {
-      "@type": "Organization",
-      "@id": `${SITE_URL}/#organization`,
-      name: "Kora",
-      url: SITE_URL,
-      logo: {
-        "@type": "ImageObject",
-        url: `${SITE_URL}/opengraph-image`,
-      },
-      description:
-        "Sistema hotelero todo-en-uno con IA para hoteles boutique en México.",
-      email: "hola@korahotel.mx",
-      areaServed: {
-        "@type": "Country",
-        name: "México",
-      },
-    },
+    // La Organization vive globalmente en app/layout.tsx (#organization);
+    // aquí solo se referencia por @id desde SoftwareApplication.
     {
       "@type": "SoftwareApplication",
       "@id": `${SITE_URL}/#software`,

@@ -12,6 +12,7 @@ import {
 import { BarraCTA } from "@/components/shared/BarraCTA";
 import { Reveal } from "@/components/shared/Reveal";
 import { TiltCard } from "@/components/shared/TiltCard";
+import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 import {
   ReservaMockup,
   WhatsAppMockup,
@@ -139,6 +140,14 @@ export default function CaracteristicasPage() {
     <main className="pt-16">
       {/* Hero */}
       <section className="py-20 sm:py-28 bg-kora-bg border-b border-gray-100">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
+          <Breadcrumbs
+            items={[
+              { name: "Inicio", href: "/" },
+              { name: "Características", href: "/caracteristicas" },
+            ]}
+          />
+        </div>
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <Reveal>
             <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-kora-text leading-tight">

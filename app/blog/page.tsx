@@ -3,6 +3,7 @@ import Link from "next/link";
 import { articles } from "@/lib/articles";
 import { BarraCTA } from "@/components/shared/BarraCTA";
 import { Reveal } from "@/components/shared/Reveal";
+import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 
 export const metadata: Metadata = {
   title: "Blog Kora: gestión hotelera y reservas directas",
@@ -13,14 +14,39 @@ export const metadata: Metadata = {
   },
 };
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
 const categories = Array.from(new Set(articles.map((a) => a.category)));
+
+const itemListJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "ItemList",
+  name: "Blog de Kora",
+  itemListElement: articles.map((a, i) => ({
+    "@type": "ListItem",
+    position: i + 1,
+    name: a.title,
+    url: `${SITE_URL}/blog/${a.slug}`,
+  })),
+};
 
 export default function BlogPage() {
   return (
     <main className="pt-16">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }}
+      />
       {/* Header */}
       <section className="py-16 sm:py-20 bg-white border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="mb-6">
+            <Breadcrumbs
+              items={[
+                { name: "Inicio", href: "/" },
+                { name: "Blog", href: "/blog" },
+              ]}
+            />
+          </div>
           <Reveal>
             <p className="text-xs font-bold text-kora-accent uppercase tracking-widest mb-3">
               {articles.length} artículos publicados

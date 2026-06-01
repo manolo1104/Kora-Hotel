@@ -4,6 +4,7 @@ import { CalculadoraROI } from "@/components/landing/CalculadoraROI";
 import { PricingSection } from "@/components/landing/PricingSection";
 import { BarraCTA } from "@/components/shared/BarraCTA";
 import { Reveal } from "@/components/shared/Reveal";
+import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 
 export const metadata: Metadata = {
   title: "Precios de Kora: sistema hotelero desde $2,990 MXN",
@@ -80,6 +81,16 @@ export default function PreciosPage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <section className="py-16 sm:py-20 bg-white border-b border-gray-100">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="mb-8">
+            <Breadcrumbs
+              items={[
+                { name: "Inicio", href: "/" },
+                { name: "Precios", href: "/precios" },
+              ]}
+            />
+          </div>
+        </div>
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <Reveal>
             <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-kora-text">

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { glosario } from "@/lib/glosario";
 import { Reveal } from "@/components/shared/Reveal";
 import { BarraCTA } from "@/components/shared/BarraCTA";
+import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 
 export const metadata: Metadata = {
   title: "Glosario hotelero: términos que todo hotelero debe conocer | Kora",
@@ -56,6 +57,14 @@ export default function GlosarioPage() {
 
       <section className="py-14 sm:py-20 bg-kora-bg">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="mb-8">
+            <Breadcrumbs
+              items={[
+                { name: "Inicio", href: "/" },
+                { name: "Glosario", href: "/glosario" },
+              ]}
+            />
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {glosario.map((t, i) => (
               <Reveal key={t.slug} delay={0.04 + i * 0.04}>

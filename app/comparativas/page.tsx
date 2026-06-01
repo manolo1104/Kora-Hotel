@@ -3,6 +3,7 @@ import Link from "next/link";
 import { comparativas } from "@/lib/comparativas";
 import { Reveal } from "@/components/shared/Reveal";
 import { BarraCTA } from "@/components/shared/BarraCTA";
+import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 
 export const metadata: Metadata = {
   title: "Comparativas: OTAs vs reservas directas para tu hotel | Kora",
@@ -11,9 +12,27 @@ export const metadata: Metadata = {
   alternates: { canonical: "/comparativas" },
 };
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
+
+const itemListJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "ItemList",
+  name: "Comparativas: OTAs vs reservas directas",
+  itemListElement: comparativas.map((c, i) => ({
+    "@type": "ListItem",
+    position: i + 1,
+    name: `${c.competidor} vs reservas directas`,
+    url: `${SITE_URL}/comparativas/${c.slug}`,
+  })),
+};
+
 export default function ComparativasPage() {
   return (
     <main className="pt-16">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }}
+      />
       <section className="py-16 sm:py-20 bg-kora-primary text-white">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <Reveal>
@@ -37,6 +56,14 @@ export default function ComparativasPage() {
 
       <section className="py-14 sm:py-20 bg-kora-bg">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="mb-8">
+            <Breadcrumbs
+              items={[
+                { name: "Inicio", href: "/" },
+                { name: "Comparativas", href: "/comparativas" },
+              ]}
+            />
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {comparativas.map((c, i) => (
               <Reveal key={c.slug} delay={0.05 + i * 0.06}>

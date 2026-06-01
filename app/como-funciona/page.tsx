@@ -11,6 +11,7 @@ import {
 import { BarraCTA } from "@/components/shared/BarraCTA";
 import { Reveal } from "@/components/shared/Reveal";
 import { DrawLine } from "@/components/shared/DrawLine";
+import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 
 export const metadata: Metadata = {
   title: "Cómo funciona Kora — Onboarding en 48 horas",
@@ -75,9 +76,28 @@ const steps = [
   },
 ];
 
+const howToJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "HowTo",
+  name: "Cómo implementar Kora en tu hotel en 48 horas",
+  description:
+    "Los 5 pasos para poner en marcha el sistema hotelero Kora, del primer WhatsApp al primer mes operando.",
+  totalTime: "PT48H",
+  step: steps.map((s, i) => ({
+    "@type": "HowToStep",
+    position: i + 1,
+    name: s.title,
+    text: s.description,
+  })),
+};
+
 export default function ComoFuncionaPage() {
   return (
     <main className="pt-16">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(howToJsonLd) }}
+      />
       {/* Hero */}
       <section className="py-20 sm:py-28 bg-kora-primary text-white">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
@@ -105,6 +125,14 @@ export default function ComoFuncionaPage() {
       {/* Steps */}
       <section className="py-16 sm:py-24 bg-kora-bg">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="mb-10">
+            <Breadcrumbs
+              items={[
+                { name: "Inicio", href: "/" },
+                { name: "Cómo funciona", href: "/como-funciona" },
+              ]}
+            />
+          </div>
           <div className="relative">
             {/* Vertical line — se dibuja al hacer scroll */}
             <DrawLine className="absolute left-[22px] top-10 bottom-10 w-px bg-kora-primary/15 hidden sm:block" />
