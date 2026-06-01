@@ -19,43 +19,55 @@ const SITE_URL =
 
 const jsonLd = {
   "@context": "https://schema.org",
-  "@type": "Product",
-  name: "Kora",
-  description:
-    "Sistema hotelero todo-en-uno con IA para hoteles boutique en México: reservas directas sin comisiones, agente de WhatsApp 24/7, PMS, dashboard con CRM, pricing dinámico y CFDI 4.0.",
-  brand: {
-    "@type": "Brand",
-    name: "Kora",
-  },
-  offers: [
+  "@graph": [
     {
-      "@type": "Offer",
-      name: "Kora Esencial",
-      price: "2490",
-      priceCurrency: "MXN",
-      url: `${SITE_URL}/precios`,
-      availability: "https://schema.org/InStock",
-      description: "Funciones básicas: motor de reservas, PMS básico y CFDI.",
+      "@type": "Product",
+      name: "Kora",
+      description:
+        "Sistema hotelero todo-en-uno con IA para hoteles boutique en México: reservas directas sin comisiones, agente de WhatsApp 24/7, PMS, dashboard con CRM, pricing dinámico y CFDI 4.0.",
+      brand: {
+        "@type": "Brand",
+        name: "Kora",
+      },
+      offers: [
+        {
+          "@type": "Offer",
+          name: "Kora Esencial",
+          price: "2490",
+          priceCurrency: "MXN",
+          url: `${SITE_URL}/precios`,
+          availability: "https://schema.org/InStock",
+          description: "Funciones básicas: motor de reservas, PMS básico y CFDI.",
+        },
+        {
+          "@type": "Offer",
+          name: "Kora Completo Fundador",
+          price: "2990",
+          priceCurrency: "MXN",
+          url: `${SITE_URL}/precios`,
+          availability: "https://schema.org/InStock",
+          description:
+            "Todo incluido: IA en WhatsApp, PMS, pricing dinámico, dashboard con CRM, CFDI 4.0 y setup gratis.",
+        },
+      ],
     },
     {
-      "@type": "Offer",
-      name: "Kora Completo Fundador",
-      price: "2990",
-      priceCurrency: "MXN",
-      url: `${SITE_URL}/precios`,
-      availability: "https://schema.org/InStock",
+      "@type": "Service",
+      name: "Página web a la medida para hoteles",
+      serviceType: "Diseño y desarrollo de sitio web con motor de reservas",
+      provider: { "@type": "Organization", name: "Kora", url: SITE_URL },
+      areaServed: { "@type": "Country", name: "México" },
       description:
-        "Todo incluido: IA en WhatsApp, PMS, pricing dinámico, dashboard con CRM, CFDI 4.0 y setup gratis.",
-    },
-    {
-      "@type": "Offer",
-      name: "Página web a la medida",
-      price: "10000",
-      priceCurrency: "MXN",
-      url: `${SITE_URL}/precios`,
-      availability: "https://schema.org/InStock",
-      description:
-        "Servicio hecho a tu medida: sitio 100% personalizado con motor de reservas propio y dashboard completo. Desde $10,000 MXN pago único más $700 MXN/mes de mantenimiento (incluye dominio).",
+        "Servicio hecho a tu medida: sitio 100% personalizado con motor de reservas propio y dashboard completo. Lo diseñamos, publicamos y capacitamos llave en mano.",
+      offers: {
+        "@type": "Offer",
+        price: "10000",
+        priceCurrency: "MXN",
+        url: `${SITE_URL}/precios`,
+        availability: "https://schema.org/InStock",
+        description:
+          "Desde $10,000 MXN pago único más $700 MXN/mes de mantenimiento (incluye dominio).",
+      },
     },
   ],
 };

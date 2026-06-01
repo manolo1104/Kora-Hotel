@@ -9,6 +9,10 @@ const navLinks = [
   { label: "Inicio", href: "/" },
   { label: "Características", href: "/caracteristicas" },
   { label: "Precios", href: "/precios" },
+  { label: "Para hoteles boutique", href: "/para/hoteles-boutique" },
+  { label: "Para hoteles pequeños", href: "/para/hoteles-pequenos" },
+  { label: "Comparativas (OTAs)", href: "/comparativas" },
+  { label: "Glosario hotelero", href: "/glosario" },
   { label: "Blog", href: "/blog" },
   { label: "Demo", href: "/casos/paraiso-encantado" },
 ];

@@ -32,6 +32,10 @@ Kora ayuda a hoteles boutique pequeños e independientes en México a llenar sus
 - Cómo funciona: https://kora-hotel.com/como-funciona
 - Caso de estudio (Hotel Paraíso Encantado): https://kora-hotel.com/casos/paraiso-encantado
 - Blog: https://kora-hotel.com/blog
+- Para hoteles boutique: https://kora-hotel.com/para/hoteles-boutique
+- Para hoteles pequeños e independientes: https://kora-hotel.com/para/hoteles-pequenos
+- Comparativas OTAs vs reservas directas: https://kora-hotel.com/comparativas (Booking, Airbnb)
+- Glosario hotelero (PMS, RevPAR, CFDI 4.0, channel manager, overbooking, pricing dinámico): https://kora-hotel.com/glosario
 
 ## Contacto
 - Email: hola@korahotel.mx
