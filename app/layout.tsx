@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans } from "next/font/google";
+import { Plus_Jakarta_Sans, Playfair_Display, Lora, Poppins } from "next/font/google";
 import Script from "next/script";
 import { SiteFrame } from "@/components/shared/SiteFrame";
 import "./globals.css";
@@ -9,6 +9,31 @@ const jakarta = Plus_Jakarta_Sans({
   variable: "--font-jakarta",
   display: "swap",
   weight: ["400", "500", "600", "700", "800"],
+});
+
+// Tipografías opcionales que el hotelero puede elegir para su mini-página.
+// preload: false para no descargarlas en el resto del sitio (solo se usan si
+// la mini-página las referencia vía CSS variable).
+const playfair = Playfair_Display({
+  subsets: ["latin"],
+  variable: "--font-playfair",
+  display: "swap",
+  weight: ["400", "600", "700"],
+  preload: false,
+});
+const lora = Lora({
+  subsets: ["latin"],
+  variable: "--font-lora",
+  display: "swap",
+  weight: ["400", "500", "600"],
+  preload: false,
+});
+const poppins = Poppins({
+  subsets: ["latin"],
+  variable: "--font-poppins",
+  display: "swap",
+  weight: ["400", "500", "600", "700"],
+  preload: false,
 });
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
@@ -59,7 +84,10 @@ export default function RootLayout({
 }) {
   const gaId = process.env.NEXT_PUBLIC_GA_ID;
   return (
-    <html lang="es" className={jakarta.variable}>
+    <html
+      lang="es"
+      className={`${jakarta.variable} ${playfair.variable} ${lora.variable} ${poppins.variable}`}
+    >
       <body className="antialiased">
         <script
           type="application/ld+json"

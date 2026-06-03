@@ -96,7 +96,7 @@ export const personas: Persona[] = [
       },
       {
         q: "¿Cuánto cuesta para un hotel pequeño?",
-        a: "Hay un plan todo incluido desde $2,990 MXN/mes y puedes empezar gratis creando tu página de reservas por WhatsApp. Sin contrato anual.",
+        a: "Para un hotel pequeño (1 a 8 habitaciones) son $1,990 MXN/mes con el motor de reservas, PMS, dashboard y CRM. Y si eres de los primeros 10 hoteles, te construimos tu sitio web profesional gratis (valor $30,000). El agente de WhatsApp con IA y el pricing dinámico vienen a partir del plan Hotel.",
       },
     ],
   },

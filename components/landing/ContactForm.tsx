@@ -11,8 +11,8 @@ const FORMSPREE_URL = process.env.NEXT_PUBLIC_FORMSPREE_URL ?? "";
 const WA_FALLBACK_URL = `https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "524891251458"}?text=Hola%2C%20quiero%20ser%20hotel%20fundador%20de%20Kora`;
 
 const benefits = [
-  "Implementación gratis (valor $5,000 MXN)",
-  "Precio especial $2,990 MXN/mes de por vida",
+  "Tu sitio web profesional GRATIS (valor $30,000 MXN) — lo construimos nosotros",
+  "Mensualidad fundador desde $1,990 MXN/mes según tu tamaño",
   "Acceso prioritario a nuevas funciones",
   "Soporte directo con el equipo fundador",
 ];

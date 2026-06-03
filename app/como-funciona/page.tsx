@@ -189,7 +189,7 @@ export default function ComoFuncionaPage() {
               },
               {
                 title: "Sin comisiones ocultas",
-                desc: "$2,990 MXN/mes es todo lo que pagas. Sin sorpresas de activación ni de uso.",
+                desc: "Desde $1,990 MXN/mes según tu tamaño, con tu sitio web profesional incluido. Sin sorpresas de activación ni de uso.",
               },
               {
                 title: "Soporte humano en español",

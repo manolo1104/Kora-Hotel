@@ -10,16 +10,17 @@ import { VideoDemoSection } from "@/components/landing/VideoDemoSection";
 import { HerramientasSection } from "@/components/landing/HerramientasSection";
 import { PricingSection } from "@/components/landing/PricingSection";
 import { FAQSection } from "@/components/landing/FAQSection";
+import { FundadorSection } from "@/components/landing/FundadorSection";
 import { ContactForm } from "@/components/landing/ContactForm";
 
 export const metadata: Metadata = {
   title: "Kora — Sistema hotelero con IA para hoteles boutique en México",
   description:
-    "Gestiona tu hotel, responde WhatsApps 24/7 y toma reservas directo. Todo en español. Desde $2,990 MXN/mes.",
+    "Te construimos tu sitio web profesional gratis (para los primeros 10 hoteles), gestionamos tu hotel, respondemos WhatsApps 24/7 y tomas reservas directo. Todo en español. Desde $1,990 MXN/mes.",
   openGraph: {
     title: "Kora — Sistema hotelero con IA para hoteles boutique en México",
     description:
-      "Gestiona tu hotel, responde WhatsApps 24/7 y toma reservas directo. Todo en español. Desde $2,990 MXN/mes.",
+      "Te construimos tu sitio web profesional gratis (para los primeros 10 hoteles), gestionamos tu hotel, respondemos WhatsApps 24/7 y tomas reservas directo. Todo en español. Desde $1,990 MXN/mes.",
     type: "website",
     locale: "es_MX",
     siteName: "Kora",
@@ -28,7 +29,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Kora — Sistema hotelero con IA para hoteles boutique en México",
     description:
-      "Gestiona tu hotel, responde WhatsApps 24/7 y toma reservas directo. Todo en español. Desde $2,990 MXN/mes.",
+      "Te construimos tu sitio web profesional gratis (para los primeros 10 hoteles), gestionamos tu hotel, respondemos WhatsApps 24/7 y tomas reservas directo. Todo en español. Desde $1,990 MXN/mes.",
   },
   alternates: {
     canonical: "/",
@@ -56,9 +57,10 @@ const jsonLd = {
       publisher: { "@id": `${SITE_URL}/#organization` },
       offers: {
         "@type": "Offer",
-        price: "2990",
+        price: "1990",
         priceCurrency: "MXN",
-        description: "Plan Completo Fundador, todo incluido.",
+        description:
+          "Precio fundador desde $1,990 MXN/mes según el tamaño del hotel, con sitio web profesional gratis para los primeros 10 hoteles.",
       },
     },
     {
@@ -93,6 +95,7 @@ export default function HomePage() {
       <HerramientasSection />
       <PricingSection />
       <FAQSection />
+      <FundadorSection />
       <ContactForm />
     </main>
   );

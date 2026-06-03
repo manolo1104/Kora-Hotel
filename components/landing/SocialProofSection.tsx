@@ -4,7 +4,7 @@ import { CountUp } from "@/components/shared/CountUp";
 // ─── Reemplaza con la URL de tu foto cuando la tengas ────────────────────────
 // Ejemplo: "https://tu-dominio.com/fotos/manolo.jpg"
 // O sube la foto a /public/manolo.jpg y pon: "/manolo.jpg"
-const FOTO_MANOLO = "";
+const FOTO_MANOLO = "/manolo.jpg";
 
 // Sitios reales que hemos creado (prueba del servicio de página a la medida).
 // Cuando tengas el link de Refacciones Franco, ponlo en su "url".
@@ -33,7 +33,7 @@ const sitiosCreados = [
 
 // Cifras verificables (no estimaciones): comisión 0% en reservas directas,
 // respuesta del agente de IA en segundos, y el costo real de un stack de apps
-// separadas (~$5,300/mes) frente a Kora ($2,990 todo incluido).
+// separadas (~$5,300/mes) frente a Kora (desde $1,990 todo incluido).
 const metrics = [
   {
     value: "0%",
@@ -47,7 +47,7 @@ const metrics = [
     countTo: 5300,
     prefix: "$",
     suffix: "",
-    label: "MXN/mes en apps separadas (vs $2,990 con Kora)",
+    label: "MXN/mes en apps separadas (vs desde $1,990 con Kora)",
   },
 ] as const;
 
@@ -124,8 +124,12 @@ export function SocialProofSection() {
               Sitios reales que hemos creado
             </p>
             <p className="mt-2 text-center text-kora-muted text-sm max-w-xl mx-auto">
-              Páginas a la medida que diseñamos y publicamos para negocios reales —
-              el mismo cuidado que ponemos en tu hotel.
+              Páginas profesionales que diseñamos y publicamos para negocios reales.
+              Si eres de los primeros 10 hoteles,{" "}
+              <span className="font-semibold text-kora-primary">
+                la tuya va incluida gratis
+              </span>
+              .
             </p>
             <div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-4">
               {sitiosCreados.map((s) => {

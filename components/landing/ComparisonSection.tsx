@@ -13,9 +13,9 @@ const tools = [
 
 const koraFeatures = [
   "Página web + motor de reservas",
-  "Agente WhatsApp con IA 24/7",
+  "Agente WhatsApp con IA 24/7 *",
   "PMS completo (rooms, check-in/out)",
-  "Pricing dinámico con IA",
+  "Pricing dinámico con IA *",
   "Dashboard + métricas en tiempo real",
   "Blog automático con IA",
   "Emails pre y post estancia",
@@ -77,9 +77,10 @@ export function ComparisonSection() {
                 ))}
               </div>
               <div className="mt-5 pt-4 border-t border-kora-primary/20 flex items-center justify-between gap-4">
-                <span className="font-semibold text-kora-primary text-sm">Todo incluido</span>
+                <span className="font-semibold text-kora-primary text-sm">Todo incluido + web gratis</span>
                 <span className="font-bold text-2xl text-kora-primary whitespace-nowrap">
-                  <CountUp to={2990} prefix="$" className="tabular-nums" /> MXN/mes
+                  <span className="text-sm font-semibold align-middle">desde </span>
+                  <CountUp to={1990} prefix="$" className="tabular-nums" /> MXN/mes
                 </span>
               </div>
             </div>
@@ -90,6 +91,10 @@ export function ComparisonSection() {
           <p className="mt-8 text-center text-sm text-white/60 max-w-xl mx-auto leading-relaxed">
             Más el 18% que le pagas a Booking en cada reserva que Kora hubiera
             cerrado directo.
+          </p>
+          <p className="mt-3 text-center text-xs text-white/50 max-w-xl mx-auto leading-relaxed">
+            * El agente de WhatsApp con IA y el pricing dinámico se incluyen a
+            partir del plan Hotel ($2,990 MXN/mes).
           </p>
         </Reveal>
       </div>

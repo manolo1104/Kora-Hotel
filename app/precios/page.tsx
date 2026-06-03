@@ -7,9 +7,9 @@ import { Reveal } from "@/components/shared/Reveal";
 import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 
 export const metadata: Metadata = {
-  title: "Precios de Kora: sistema hotelero desde $2,990 MXN",
+  title: "Precios de Kora: sistema hotelero desde $1,990 MXN + sitio web gratis",
   description:
-    "Plan fundador $2,990 MXN/mes. Todo incluido: motor de reservas, agente WhatsApp, PMS, IA y más. Sin contrato anual.",
+    "Precio fundador desde $1,990 MXN/mes según el tamaño de tu hotel. Te construimos tu sitio web profesional GRATIS (valor $30,000) para los primeros 10 hoteles. Motor de reservas, agente WhatsApp, PMS e IA, todo incluido.",
   alternates: {
     canonical: "/precios",
   },
@@ -33,22 +33,33 @@ const jsonLd = {
       offers: [
         {
           "@type": "Offer",
-          name: "Kora Esencial",
-          price: "2490",
+          name: "Kora Boutique (1 a 8 habitaciones)",
+          price: "1990",
           priceCurrency: "MXN",
           url: `${SITE_URL}/precios`,
           availability: "https://schema.org/InStock",
-          description: "Funciones básicas: motor de reservas, PMS básico y CFDI.",
+          description:
+            "Todo incluido para hoteles de 1 a 8 habitaciones, con sitio web profesional gratis para los primeros 10 hoteles fundadores.",
         },
         {
           "@type": "Offer",
-          name: "Kora Completo Fundador",
+          name: "Kora Hotel (9 a 20 habitaciones)",
           price: "2990",
           priceCurrency: "MXN",
           url: `${SITE_URL}/precios`,
           availability: "https://schema.org/InStock",
           description:
-            "Todo incluido: IA en WhatsApp, PMS, pricing dinámico, dashboard con CRM, CFDI 4.0 y setup gratis.",
+            "Todo incluido para hoteles de 9 a 20 habitaciones: IA en WhatsApp, PMS, pricing dinámico, dashboard con CRM y CFDI 4.0, más sitio web profesional gratis.",
+        },
+        {
+          "@type": "Offer",
+          name: "Kora Hotel grande (21+ habitaciones)",
+          price: "4490",
+          priceCurrency: "MXN",
+          url: `${SITE_URL}/precios`,
+          availability: "https://schema.org/InStock",
+          description:
+            "Todo incluido para hoteles de 21 habitaciones o más, con sitio web profesional gratis para los primeros 10 hoteles fundadores.",
         },
       ],
     },
@@ -59,15 +70,15 @@ const jsonLd = {
       provider: { "@type": "Organization", name: "Kora", url: SITE_URL },
       areaServed: { "@type": "Country", name: "México" },
       description:
-        "Servicio hecho a tu medida: sitio 100% personalizado con motor de reservas propio y dashboard completo. Lo diseñamos, publicamos y capacitamos llave en mano.",
+        "Sitio 100% personalizado con motor de reservas propio, reseñas y señales de urgencia. Lo diseñamos, publicamos y capacitamos llave en mano. Incluido SIN COSTO para los primeros 10 hoteles fundadores de Kora.",
       offers: {
         "@type": "Offer",
-        price: "10000",
+        price: "30000",
         priceCurrency: "MXN",
         url: `${SITE_URL}/precios`,
         availability: "https://schema.org/InStock",
         description:
-          "Desde $10,000 MXN pago único más $700 MXN/mes de mantenimiento (incluye dominio).",
+          "Valor de referencia $30,000 MXN. Incluido sin costo para los hoteles fundadores con suscripción activa a Kora.",
       },
     },
   ],
@@ -99,7 +110,8 @@ export default function PreciosPage() {
           </Reveal>
           <Reveal delay={0.12}>
             <p className="mt-4 text-kora-muted text-lg leading-relaxed">
-              Un solo plan. Todo incluido. Sin sorpresas.
+              Tu precio según el tamaño de tu hotel. Todo incluido, con tu sitio
+              web profesional gratis. Sin sorpresas.
             </p>
           </Reveal>
           <Reveal delay={0.2}>

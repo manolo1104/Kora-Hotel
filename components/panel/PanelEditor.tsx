@@ -11,9 +11,38 @@ import {
   ExternalLink,
   Copy,
   Download,
+  Palette,
+  Star,
+  HelpCircle,
+  FileText,
+  Lock,
+  Eye,
+  ArrowUp,
+  ArrowDown,
+  Globe,
+  MessageCircle,
+  BedDouble,
+  LayoutDashboard,
+  TrendingUp,
+  Users,
+  Receipt,
+  Sparkles,
+  BarChart3,
+  ArrowRight,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { AMENIDADES } from "@/lib/amenidades";
+import {
+  FUENTES,
+  COLOR_PRESETS,
+  COLOR_DEFAULT,
+  FORMAS_PAGO,
+  IDIOMAS,
+  SECCION_LABELS,
+  ordenSecciones,
+  type Resena,
+  type MiniFaq,
+} from "@/lib/mini";
 
 const inputCls =
   "w-full px-4 py-3 rounded-xl border border-gray-200 text-kora-text text-sm placeholder:text-kora-muted focus:outline-none focus:ring-2 focus:ring-kora-accent focus:border-transparent transition-all duration-200";
@@ -43,12 +72,73 @@ function slugify(s: string): string {
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
 
+const TABS = [
+  { key: "contenido", label: "Contenido" },
+  { key: "habitaciones", label: "Habitaciones" },
+  { key: "diseno", label: "Diseño" },
+  { key: "resenas", label: "Reseñas y FAQ" },
+  { key: "avanzado", label: "Avanzado" },
+  { key: "compartir", label: "Compartir" },
+] as const;
+
+// Todo lo que opera Kora Pro (el salto desde la página gratis).
+const KORA_PRO = [
+  {
+    Icon: Globe,
+    t: "Motor de reservas directo",
+    d: "Cobra reservas en tu web sin pagar comisión a Booking ni Airbnb.",
+  },
+  {
+    Icon: MessageCircle,
+    t: "Agente de WhatsApp con IA 24/7",
+    d: "Contesta, cotiza, cobra el anticipo y confirma la reserva solo, a cualquier hora.",
+  },
+  {
+    Icon: BedDouble,
+    t: "PMS completo",
+    d: "Mapa de habitaciones, check-in/out y housekeeping en una sola pantalla.",
+  },
+  {
+    Icon: LayoutDashboard,
+    t: "Dashboard con métricas",
+    d: "Ocupación, ingresos, RevPAR y pronóstico a 30 días en tiempo real.",
+  },
+  {
+    Icon: TrendingUp,
+    t: "Pricing dinámico con IA",
+    d: "Sube tarifas en alta demanda y llena en temporada baja, automático.",
+  },
+  {
+    Icon: Users,
+    t: "CRM + emails automáticos",
+    d: "Mensajes pre y post estancia que convierten huéspedes en recurrentes.",
+  },
+  {
+    Icon: Receipt,
+    t: "Facturación CFDI 4.0",
+    d: "Genera facturas ante el SAT directo desde cada reserva.",
+  },
+  {
+    Icon: Sparkles,
+    t: "Soporte humano en español",
+    d: "Acceso directo por WhatsApp al equipo, no a un bot.",
+  },
+];
+
+// Mejoras específicas de esta página (premium).
+const KORA_PRO_PAGINA = [
+  { Icon: Globe, t: "Dominio propio", d: "tuhotel.com en vez de kora-hotel.com/h/..." },
+  { Icon: Lock, t: "Quitar “Hecho con Kora”", d: "Tu página sin la marca de Kora en el pie." },
+  { Icon: BarChart3, t: "Analítica de visitas", d: "Visitas y clics a WhatsApp que genera tu página." },
+];
+
 export function PanelEditor({ userId }: { userId: string }) {
   const supabase = createClient();
 
   const [cargando, setCargando] = useState(true);
   const [hotelId, setHotelId] = useState<string | null>(null);
   const [slug, setSlug] = useState("");
+  const [tab, setTab] = useState<string>("contenido");
 
   // Mini-página
   const [nombre, setNombre] = useState("");
@@ -57,20 +147,44 @@ export function PanelEditor({ userId }: { userId: string }) {
   const [whatsapp, setWhatsapp] = useState("");
   const [habitaciones, setHabitaciones] = useState<Habitacion[]>([]);
   const [fotos, setFotos] = useState<string[]>([]);
+  const [publicado, setPublicado] = useState(true);
 
   // Extras (nivel hotel)
   const [amenidades, setAmenidades] = useState<string[]>([]);
   const [instagram, setInstagram] = useState("");
   const [facebook, setFacebook] = useState("");
   const [mapsUrl, setMapsUrl] = useState("");
+  const [mapEmbedUrl, setMapEmbedUrl] = useState("");
+
+  // Diseño
+  const [color, setColor] = useState("");
+  const [logoUrl, setLogoUrl] = useState("");
+  const [fuente, setFuente] = useState("jakarta");
+  const [heroEstilo, setHeroEstilo] = useState<"banda" | "completa">("banda");
+  const [orden, setOrden] = useState<string[]>([...ordenSecciones()]);
+  const [subiendoLogo, setSubiendoLogo] = useState(false);
+
+  // Reseñas y FAQ
+  const [resenas, setResenas] = useState<Resena[]>([]);
+  const [faqs, setFaqs] = useState<MiniFaq[]>([]);
+
+  // Políticas / pago / idiomas
+  const [polCancelacion, setPolCancelacion] = useState("");
+  const [polMascotas, setPolMascotas] = useState("");
+  const [polNinos, setPolNinos] = useState("");
+  const [formasPago, setFormasPago] = useState<string[]>([]);
+  const [idiomas, setIdiomas] = useState<string[]>([]);
+
+  // Premium (gancho — controlado por nosotros)
+  const [marcaOculta, setMarcaOculta] = useState(false);
 
   // Guía del huésped
   const [wifi, setWifi] = useState("");
   const [wifiClave, setWifiClave] = useState("");
   const [gCheckin, setGCheckin] = useState("");
   const [gCheckout, setGCheckout] = useState("");
-  const [reglas, setReglas] = useState(""); // una por línea
-  const [recomendaciones, setRecomendaciones] = useState(""); // una por línea
+  const [reglas, setReglas] = useState("");
+  const [recomendaciones, setRecomendaciones] = useState("");
 
   const [subiendo, setSubiendo] = useState(false);
   const [subiendoHab, setSubiendoHab] = useState<number | null>(null);
@@ -98,11 +212,28 @@ export function PanelEditor({ userId }: { userId: string }) {
         setWhatsapp(data.whatsapp ?? "");
         setHabitaciones(Array.isArray(data.habitaciones) ? data.habitaciones : []);
         setFotos(Array.isArray(data.fotos) ? data.fotos : []);
+        setPublicado(data.publicado !== false);
         const ex = data.extras ?? {};
         setAmenidades(Array.isArray(ex.amenidades) ? ex.amenidades : []);
         setInstagram(ex.instagram ?? "");
         setFacebook(ex.facebook ?? "");
         setMapsUrl(ex.mapsUrl ?? "");
+        setMapEmbedUrl(ex.mapEmbedUrl ?? "");
+        const d = ex.diseno ?? {};
+        setColor(d.color ?? "");
+        setLogoUrl(d.logoUrl ?? "");
+        setFuente(d.fuente ?? "jakarta");
+        setHeroEstilo(d.heroEstilo === "completa" ? "completa" : "banda");
+        setOrden(ordenSecciones(d.ordenSecciones));
+        setResenas(Array.isArray(ex.resenas) ? ex.resenas : []);
+        setFaqs(Array.isArray(ex.faqs) ? ex.faqs : []);
+        const p = ex.politicas ?? {};
+        setPolCancelacion(p.cancelacion ?? "");
+        setPolMascotas(p.mascotas ?? "");
+        setPolNinos(p.ninos ?? "");
+        setFormasPago(Array.isArray(ex.formasPago) ? ex.formasPago : []);
+        setIdiomas(Array.isArray(ex.idiomas) ? ex.idiomas : []);
+        setMarcaOculta(ex.premium?.marcaOculta === true);
         const g = data.guia ?? {};
         setWifi(g.wifi ?? "");
         setWifiClave(g.wifiClave ?? "");
@@ -138,7 +269,6 @@ export function PanelEditor({ userId }: { userId: string }) {
     setHabitaciones((h) => h.filter((_, idx) => idx !== i));
   }
 
-  // Tarifas por número de personas (por habitación)
   function addTarifa(i: number) {
     setHabitaciones((h) =>
       h.map((it, idx) =>
@@ -178,8 +308,42 @@ export function PanelEditor({ userId }: { userId: string }) {
     );
   }
 
-  // Sube archivos al bucket "fotos" y devuelve las URLs públicas. Reutilizable
-  // para las fotos del hotel y para las fotos de cada habitación.
+  // Reseñas
+  function addResena() {
+    setResenas((r) => [...r, { autor: "", texto: "", estrellas: 5 }]);
+  }
+  function updateResena(i: number, campo: keyof Resena, valor: string | number) {
+    setResenas((r) => r.map((it, idx) => (idx === i ? { ...it, [campo]: valor } : it)));
+  }
+  function removeResena(i: number) {
+    setResenas((r) => r.filter((_, idx) => idx !== i));
+  }
+
+  // FAQ
+  function addFaq() {
+    setFaqs((f) => [...f, { pregunta: "", respuesta: "" }]);
+  }
+  function updateFaq(i: number, campo: keyof MiniFaq, valor: string) {
+    setFaqs((f) => f.map((it, idx) => (idx === i ? { ...it, [campo]: valor } : it)));
+  }
+  function removeFaq(i: number) {
+    setFaqs((f) => f.filter((_, idx) => idx !== i));
+  }
+
+  function toggleEnLista(valor: string, lista: string[], set: (v: string[]) => void) {
+    set(lista.includes(valor) ? lista.filter((x) => x !== valor) : [...lista, valor]);
+  }
+
+  function moveSeccion(i: number, dir: -1 | 1) {
+    setOrden((o) => {
+      const j = i + dir;
+      if (j < 0 || j >= o.length) return o;
+      const copia = [...o];
+      [copia[i], copia[j]] = [copia[j], copia[i]];
+      return copia;
+    });
+  }
+
   const subirArchivos = useCallback(
     async (files: FileList | null): Promise<string[]> => {
       if (!files || files.length === 0) return [];
@@ -221,6 +385,21 @@ export function PanelEditor({ userId }: { userId: string }) {
   function removeFoto(url: string) {
     setFotos((f) => f.filter((u) => u !== url));
   }
+
+  const onSubirLogo = useCallback(
+    async (files: FileList | null) => {
+      if (!files || files.length === 0) return;
+      setSubiendoLogo(true);
+      setError("");
+      try {
+        const nuevas = await subirArchivos(files);
+        if (nuevas[0]) setLogoUrl(nuevas[0]);
+      } finally {
+        setSubiendoLogo(false);
+      }
+    },
+    [subirArchivos]
+  );
 
   const onSubirFotosHab = useCallback(
     async (i: number, files: FileList | null) => {
@@ -267,6 +446,7 @@ export function PanelEditor({ userId }: { userId: string }) {
     setError("");
     if (!nombre.trim()) {
       setError("Ponle un nombre a tu hotel.");
+      setTab("contenido");
       return;
     }
     setGuardando(true);
@@ -289,6 +469,24 @@ export function PanelEditor({ userId }: { userId: string }) {
       instagram: instagram.trim(),
       facebook: facebook.trim(),
       mapsUrl: mapsUrl.trim(),
+      mapEmbedUrl: mapEmbedUrl.trim(),
+      diseno: {
+        color: color.trim(),
+        logoUrl,
+        fuente,
+        heroEstilo,
+        ordenSecciones: orden,
+      },
+      resenas: resenas.filter((r) => (r.texto ?? "").trim()),
+      faqs: faqs.filter((f) => (f.pregunta ?? "").trim()),
+      politicas: {
+        cancelacion: polCancelacion.trim(),
+        mascotas: polMascotas.trim(),
+        ninos: polNinos.trim(),
+      },
+      formasPago,
+      idiomas,
+      premium: { marcaOculta },
     };
 
     const payloadBase = {
@@ -298,13 +496,11 @@ export function PanelEditor({ userId }: { userId: string }) {
       whatsapp: whatsapp.trim(),
       habitaciones,
       fotos,
+      publicado,
       guia,
     };
     const payload = { ...payloadBase, extras };
 
-    // Si la columna "extras" aún no existe en la base (falta correr el SQL),
-    // guardamos con "payloadBase" (sin ella) para que el resto —incluidas las
-    // fotos/tarifas por habitación, que viven en "habitaciones"— sí se guarde.
     const COL_FALTANTE = "42703";
 
     try {
@@ -336,7 +532,7 @@ export function PanelEditor({ userId }: { userId: string }) {
           if (!insErr && data) {
             creado = data;
           } else if (insErr && insErr.code === COL_FALTANTE && usarExtras) {
-            usarExtras = false; // reintenta sin "extras"
+            usarExtras = false;
             i--;
           } else if (insErr && insErr.code !== "23505") {
             throw insErr;
@@ -365,10 +561,11 @@ export function PanelEditor({ userId }: { userId: string }) {
 
   const urlPagina = `${SITE}/h/${slug}`;
   const urlGuia = `${SITE}/g/${slug}`;
+  const card = "bg-white rounded-2xl p-6 sm:p-7 border border-gray-100 shadow-sm";
 
   return (
     <div className="mt-8 space-y-6">
-      {/* Dirección / enlaces */}
+      {/* Dirección / enlaces (siempre visible) */}
       <div className="bg-white rounded-2xl p-5 sm:p-6 border border-gray-100 shadow-sm">
         <p className="text-[10px] font-bold text-kora-muted uppercase tracking-widest mb-2">
           La dirección de tu mini-página
@@ -387,12 +584,12 @@ export function PanelEditor({ userId }: { userId: string }) {
               <ExternalLink size={14} /> Abrir mi página
             </a>
             <a
-              href={`/g/${slug}`}
+              href={`/h/${slug}?preview=1`}
               target="_blank"
               rel="noopener noreferrer"
               className="btn-press inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-gray-200 text-kora-text font-semibold text-sm hover:border-kora-accent transition-colors"
             >
-              <ExternalLink size={14} /> Ver guía del huésped
+              <Eye size={14} /> Vista previa
             </a>
             <button
               type="button"
@@ -410,415 +607,848 @@ export function PanelEditor({ userId }: { userId: string }) {
         )}
       </div>
 
-      {/* Datos del hotel */}
-      <div className="bg-white rounded-2xl p-6 sm:p-7 border border-gray-100 shadow-sm space-y-4">
-        <h2 className="text-lg font-bold text-kora-text">Datos de tu hotel</h2>
-        <div>
-          <label className="block text-sm font-semibold text-kora-text mb-1.5">
-            Nombre del hotel
-          </label>
-          <input
-            className={inputCls}
-            value={nombre}
-            onChange={(e) => setNombre(e.target.value)}
-            placeholder="Hotel Paraíso Encantado"
-          />
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-semibold text-kora-text mb-1.5">
-              Ubicación
-            </label>
-            <input
-              className={inputCls}
-              value={ubicacion}
-              onChange={(e) => setUbicacion(e.target.value)}
-              placeholder="Xilitla, San Luis Potosí"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-kora-text mb-1.5">
-              WhatsApp (con lada del país)
-            </label>
-            <input
-              className={inputCls}
-              value={whatsapp}
-              onChange={(e) => setWhatsapp(e.target.value)}
-              placeholder="52 489 123 4567"
-            />
-          </div>
-        </div>
-        <div>
-          <label className="block text-sm font-semibold text-kora-text mb-1.5">
-            Descripción
-          </label>
-          <textarea
-            className={inputCls}
-            rows={4}
-            value={descripcion}
-            onChange={(e) => setDescripcion(e.target.value)}
-            placeholder="Cuéntale al huésped por qué tu hotel es especial y qué hay cerca."
-          />
-        </div>
+      {/* Pestañas */}
+      <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
+        {TABS.map((t) => (
+          <button
+            key={t.key}
+            type="button"
+            onClick={() => setTab(t.key)}
+            className={`btn-press whitespace-nowrap px-4 py-2 rounded-full text-sm font-semibold transition-colors ${
+              tab === t.key
+                ? "bg-kora-primary text-white"
+                : "bg-white border border-gray-200 text-kora-muted hover:border-kora-accent"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
       </div>
 
-      {/* Fotos */}
-      <div className="bg-white rounded-2xl p-6 sm:p-7 border border-gray-100 shadow-sm">
-        <h2 className="text-lg font-bold text-kora-text mb-1">Fotos</h2>
-        <p className="text-sm text-kora-muted mb-4">
-          Sube las mejores fotos de tu hotel (la primera será la portada).
-        </p>
-        {fotos.length > 0 && (
-          <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 mb-4">
-            {fotos.map((url) => (
-              <div key={url} className="relative">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={url}
-                  alt="Foto del hotel"
-                  className="w-full h-24 object-cover rounded-xl border border-gray-100"
+      {/* ─── CONTENIDO ─── */}
+      {tab === "contenido" && (
+        <div className="space-y-6">
+          <div className={`${card} space-y-4`}>
+            <h2 className="text-lg font-bold text-kora-text">Datos de tu hotel</h2>
+            <div>
+              <label className="block text-sm font-semibold text-kora-text mb-1.5">
+                Nombre del hotel
+              </label>
+              <input
+                className={inputCls}
+                value={nombre}
+                onChange={(e) => setNombre(e.target.value)}
+                placeholder="Hotel Paraíso Encantado"
+              />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-kora-text mb-1.5">
+                  Ubicación
+                </label>
+                <input
+                  className={inputCls}
+                  value={ubicacion}
+                  onChange={(e) => setUbicacion(e.target.value)}
+                  placeholder="Xilitla, San Luis Potosí"
                 />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-kora-text mb-1.5">
+                  WhatsApp (con lada del país)
+                </label>
+                <input
+                  className={inputCls}
+                  value={whatsapp}
+                  onChange={(e) => setWhatsapp(e.target.value)}
+                  placeholder="52 489 123 4567"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-kora-text mb-1.5">
+                Descripción
+              </label>
+              <textarea
+                className={inputCls}
+                rows={4}
+                value={descripcion}
+                onChange={(e) => setDescripcion(e.target.value)}
+                placeholder="Cuéntale al huésped por qué tu hotel es especial y qué hay cerca."
+              />
+            </div>
+          </div>
+
+          {/* Fotos */}
+          <div className={card}>
+            <h2 className="text-lg font-bold text-kora-text mb-1">Fotos</h2>
+            <p className="text-sm text-kora-muted mb-4">
+              Sube las mejores fotos de tu hotel (la primera será la portada).
+            </p>
+            {fotos.length > 0 && (
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 mb-4">
+                {fotos.map((url) => (
+                  <div key={url} className="relative">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={url}
+                      alt="Foto del hotel"
+                      className="w-full h-24 object-cover rounded-xl border border-gray-100"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeFoto(url)}
+                      className="absolute top-1 right-1 w-6 h-6 rounded-full bg-white/90 border border-gray-200 flex items-center justify-center text-red-600 shadow-sm"
+                      aria-label="Quitar foto"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <label className="btn-press inline-flex items-center gap-2 px-5 py-3 rounded-full border-2 border-kora-primary text-kora-primary font-semibold text-sm hover:bg-kora-primary hover:text-white transition-colors cursor-pointer">
+              {subiendo ? <Loader2 size={16} className="animate-spin" /> : <ImagePlus size={16} />}
+              {subiendo ? "Subiendo…" : "Subir fotos"}
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                disabled={subiendo}
+                onChange={(e) => onSubirFotos(e.target.files)}
+              />
+            </label>
+          </div>
+
+          {/* Amenidades */}
+          <div className={card}>
+            <h2 className="text-lg font-bold text-kora-text mb-1">Amenidades</h2>
+            <p className="text-sm text-kora-muted mb-4">
+              Marca los servicios que ofrece tu hotel. Se muestran con iconos en tu página.
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+              {AMENIDADES.map(({ key, label, Icon }) => {
+                const activa = amenidades.includes(key);
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => toggleAmenidad(key)}
+                    aria-pressed={activa}
+                    className={`btn-press flex items-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-semibold text-left transition-colors ${
+                      activa
+                        ? "border-kora-accent bg-kora-accent/10 text-kora-primary"
+                        : "border-gray-200 text-kora-muted hover:border-kora-accent"
+                    }`}
+                  >
+                    <Icon size={16} aria-hidden={true} />
+                    <span className="min-w-0 truncate">{label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Ubicación y redes */}
+          <div className={`${card} space-y-4`}>
+            <div>
+              <h2 className="text-lg font-bold text-kora-text">Ubicación y redes</h2>
+              <p className="text-sm text-kora-muted mt-0.5">
+                Para que el huésped llegue fácil y te siga en redes.
+              </p>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-kora-text mb-1.5">
+                Link de Google Maps (para “Cómo llegar”)
+              </label>
+              <input
+                className={inputCls}
+                value={mapsUrl}
+                onChange={(e) => setMapsUrl(e.target.value)}
+                placeholder="https://maps.app.goo.gl/..."
+                inputMode="url"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-kora-text mb-1.5">
+                Mapa para mostrar en la página{" "}
+                <span className="font-normal text-kora-muted">(opcional, URL de “insertar mapa”)</span>
+              </label>
+              <input
+                className={inputCls}
+                value={mapEmbedUrl}
+                onChange={(e) => setMapEmbedUrl(e.target.value)}
+                placeholder="https://www.google.com/maps/embed?pb=..."
+                inputMode="url"
+              />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-kora-text mb-1.5">
+                  Instagram
+                </label>
+                <input
+                  className={inputCls}
+                  value={instagram}
+                  onChange={(e) => setInstagram(e.target.value)}
+                  placeholder="@tuhotel o link"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-kora-text mb-1.5">
+                  Facebook
+                </label>
+                <input
+                  className={inputCls}
+                  value={facebook}
+                  onChange={(e) => setFacebook(e.target.value)}
+                  placeholder="Nombre o link de tu página"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── HABITACIONES ─── */}
+      {tab === "habitaciones" && (
+        <div className={card}>
+          <h2 className="text-lg font-bold text-kora-text mb-1">Habitaciones</h2>
+          <p className="text-sm text-kora-muted mb-4">
+            Los tipos de habitación que ofreces y su precio por noche.
+          </p>
+          <div className="space-y-3">
+            {habitaciones.map((h, i) => (
+              <div key={i} className="rounded-xl border border-gray-100 p-4 bg-kora-bg/50 space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <input
+                    className={inputCls}
+                    value={h.nombre}
+                    onChange={(e) => updateHab(i, "nombre", e.target.value)}
+                    placeholder="Habitación doble"
+                  />
+                  <input
+                    className={inputCls}
+                    value={h.precio}
+                    onChange={(e) => updateHab(i, "precio", e.target.value)}
+                    placeholder="Precio base por noche (ej. 1500)"
+                    inputMode="numeric"
+                  />
+                </div>
+                <input
+                  className={inputCls}
+                  value={h.descripcion}
+                  onChange={(e) => updateHab(i, "descripcion", e.target.value)}
+                  placeholder="Breve descripción (opcional)"
+                />
+                <div className="sm:max-w-[50%]">
+                  <input
+                    className={inputCls}
+                    value={h.capacidad ?? ""}
+                    onChange={(e) => updateHab(i, "capacidad", e.target.value)}
+                    placeholder="Capacidad: máx. huéspedes (ej. 4)"
+                    inputMode="numeric"
+                  />
+                </div>
+
+                <div className="rounded-lg bg-white border border-gray-100 p-3">
+                  <p className="text-xs font-semibold text-kora-text mb-2">
+                    Precios por número de personas{" "}
+                    <span className="font-normal text-kora-muted">(opcional)</span>
+                  </p>
+                  {(h.tarifas ?? []).map((t, j) => (
+                    <div key={j} className="flex items-center gap-2 mb-2">
+                      <input
+                        className={`${inputCls} !py-2`}
+                        value={t.personas}
+                        onChange={(e) => updateTarifa(i, j, "personas", e.target.value)}
+                        placeholder="Personas (ej. 2)"
+                        inputMode="numeric"
+                      />
+                      <input
+                        className={`${inputCls} !py-2`}
+                        value={t.precio}
+                        onChange={(e) => updateTarifa(i, j, "precio", e.target.value)}
+                        placeholder="Precio (ej. 1900)"
+                        inputMode="numeric"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeTarifa(i, j)}
+                        className="btn-press flex-shrink-0 w-9 h-9 rounded-lg border border-gray-200 flex items-center justify-center text-red-600 hover:border-red-300"
+                        aria-label="Quitar tarifa"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => addTarifa(i)}
+                    className="btn-press inline-flex items-center gap-1.5 text-sm font-semibold text-kora-primary hover:text-kora-primary-dark"
+                  >
+                    <Plus size={14} /> Agregar precio por personas
+                  </button>
+                </div>
+
+                <div>
+                  {(h.fotos ?? []).length > 0 && (
+                    <div className="grid grid-cols-4 sm:grid-cols-5 gap-2 mb-2">
+                      {(h.fotos ?? []).map((url) => (
+                        <div key={url} className="relative">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={url}
+                            alt="Foto de la habitación"
+                            className="w-full h-16 object-cover rounded-lg border border-gray-100"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeFotoHab(i, url)}
+                            className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-white/90 border border-gray-200 flex items-center justify-center text-red-600 shadow-sm"
+                            aria-label="Quitar foto"
+                          >
+                            <Trash2 size={11} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <label className="btn-press inline-flex items-center gap-2 px-4 py-2 rounded-full border border-gray-200 text-kora-text font-semibold text-sm hover:border-kora-accent transition-colors cursor-pointer">
+                    {subiendoHab === i ? (
+                      <Loader2 size={15} className="animate-spin" />
+                    ) : (
+                      <ImagePlus size={15} />
+                    )}
+                    {subiendoHab === i ? "Subiendo…" : "Fotos de la habitación"}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      disabled={subiendoHab === i}
+                      onChange={(e) => onSubirFotosHab(i, e.target.files)}
+                    />
+                  </label>
+                </div>
+
                 <button
                   type="button"
-                  onClick={() => removeFoto(url)}
-                  className="absolute top-1 right-1 w-6 h-6 rounded-full bg-white/90 border border-gray-200 flex items-center justify-center text-red-600 shadow-sm"
-                  aria-label="Quitar foto"
+                  onClick={() => removeHab(i)}
+                  className="btn-press inline-flex items-center gap-1.5 text-sm font-semibold text-red-600 hover:text-red-700"
                 >
-                  <Trash2 size={13} />
+                  <Trash2 size={14} /> Quitar habitación
                 </button>
               </div>
             ))}
           </div>
-        )}
-        <label className="btn-press inline-flex items-center gap-2 px-5 py-3 rounded-full border-2 border-kora-primary text-kora-primary font-semibold text-sm hover:bg-kora-primary hover:text-white transition-colors cursor-pointer">
-          {subiendo ? <Loader2 size={16} className="animate-spin" /> : <ImagePlus size={16} />}
-          {subiendo ? "Subiendo…" : "Subir fotos"}
-          <input
-            type="file"
-            accept="image/*"
-            multiple
-            className="hidden"
-            disabled={subiendo}
-            onChange={(e) => onSubirFotos(e.target.files)}
-          />
-        </label>
-      </div>
+          <button
+            type="button"
+            onClick={addHab}
+            className="btn-press mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-gray-200 text-kora-text font-semibold text-sm hover:border-kora-accent transition-colors"
+          >
+            <Plus size={16} /> Agregar habitación
+          </button>
+        </div>
+      )}
 
-      {/* Habitaciones */}
-      <div className="bg-white rounded-2xl p-6 sm:p-7 border border-gray-100 shadow-sm">
-        <h2 className="text-lg font-bold text-kora-text mb-1">Habitaciones</h2>
-        <p className="text-sm text-kora-muted mb-4">
-          Los tipos de habitación que ofreces y su precio por noche.
-        </p>
-        <div className="space-y-3">
-          {habitaciones.map((h, i) => (
-            <div key={i} className="rounded-xl border border-gray-100 p-4 bg-kora-bg/50 space-y-3">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <input
-                  className={inputCls}
-                  value={h.nombre}
-                  onChange={(e) => updateHab(i, "nombre", e.target.value)}
-                  placeholder="Habitación doble"
-                />
-                <input
-                  className={inputCls}
-                  value={h.precio}
-                  onChange={(e) => updateHab(i, "precio", e.target.value)}
-                  placeholder="Precio base por noche (ej. 1500)"
-                  inputMode="numeric"
-                />
-              </div>
-              <input
-                className={inputCls}
-                value={h.descripcion}
-                onChange={(e) => updateHab(i, "descripcion", e.target.value)}
-                placeholder="Breve descripción (opcional)"
-              />
+      {/* ─── DISEÑO ─── */}
+      {tab === "diseno" && (
+        <div className="space-y-6">
+          <div className={`${card} space-y-5`}>
+            <div className="flex items-center gap-2">
+              <Palette size={18} className="text-kora-primary" />
+              <h2 className="text-lg font-bold text-kora-text">Diseño de tu página</h2>
+            </div>
 
-              {/* Capacidad */}
-              <div className="sm:max-w-[50%]">
-                <input
-                  className={inputCls}
-                  value={h.capacidad ?? ""}
-                  onChange={(e) => updateHab(i, "capacidad", e.target.value)}
-                  placeholder="Capacidad: máx. huéspedes (ej. 4)"
-                  inputMode="numeric"
-                />
-              </div>
-
-              {/* Precios por número de personas */}
-              <div className="rounded-lg bg-white border border-gray-100 p-3">
-                <p className="text-xs font-semibold text-kora-text mb-2">
-                  Precios por número de personas{" "}
-                  <span className="font-normal text-kora-muted">(opcional)</span>
-                </p>
-                {(h.tarifas ?? []).map((t, j) => (
-                  <div key={j} className="flex items-center gap-2 mb-2">
-                    <input
-                      className={`${inputCls} !py-2`}
-                      value={t.personas}
-                      onChange={(e) => updateTarifa(i, j, "personas", e.target.value)}
-                      placeholder="Personas (ej. 2)"
-                      inputMode="numeric"
-                    />
-                    <input
-                      className={`${inputCls} !py-2`}
-                      value={t.precio}
-                      onChange={(e) => updateTarifa(i, j, "precio", e.target.value)}
-                      placeholder="Precio (ej. 1900)"
-                      inputMode="numeric"
+            {/* Logo */}
+            <div>
+              <label className="block text-sm font-semibold text-kora-text mb-1.5">
+                Logo de tu hotel
+              </label>
+              <div className="flex items-center gap-4">
+                {logoUrl && (
+                  <div className="relative">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={logoUrl}
+                      alt="Logo"
+                      className="h-16 w-16 object-contain rounded-xl border border-gray-100 bg-white p-1"
                     />
                     <button
                       type="button"
-                      onClick={() => removeTarifa(i, j)}
-                      className="btn-press flex-shrink-0 w-9 h-9 rounded-lg border border-gray-200 flex items-center justify-center text-red-600 hover:border-red-300"
-                      aria-label="Quitar tarifa"
+                      onClick={() => setLogoUrl("")}
+                      className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-white border border-gray-200 flex items-center justify-center text-red-600 shadow-sm"
+                      aria-label="Quitar logo"
                     >
-                      <Trash2 size={14} />
+                      <Trash2 size={12} />
                     </button>
                   </div>
-                ))}
-                <button
-                  type="button"
-                  onClick={() => addTarifa(i)}
-                  className="btn-press inline-flex items-center gap-1.5 text-sm font-semibold text-kora-primary hover:text-kora-primary-dark"
-                >
-                  <Plus size={14} /> Agregar precio por personas
-                </button>
-              </div>
-
-              {/* Fotos de la habitación */}
-              <div>
-                {(h.fotos ?? []).length > 0 && (
-                  <div className="grid grid-cols-4 sm:grid-cols-5 gap-2 mb-2">
-                    {(h.fotos ?? []).map((url) => (
-                      <div key={url} className="relative">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={url}
-                          alt="Foto de la habitación"
-                          className="w-full h-16 object-cover rounded-lg border border-gray-100"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => removeFotoHab(i, url)}
-                          className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-white/90 border border-gray-200 flex items-center justify-center text-red-600 shadow-sm"
-                          aria-label="Quitar foto"
-                        >
-                          <Trash2 size={11} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
                 )}
-                <label className="btn-press inline-flex items-center gap-2 px-4 py-2 rounded-full border border-gray-200 text-kora-text font-semibold text-sm hover:border-kora-accent transition-colors cursor-pointer">
-                  {subiendoHab === i ? (
-                    <Loader2 size={15} className="animate-spin" />
-                  ) : (
-                    <ImagePlus size={15} />
-                  )}
-                  {subiendoHab === i ? "Subiendo…" : "Fotos de la habitación"}
+                <label className="btn-press inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-gray-200 text-kora-text font-semibold text-sm hover:border-kora-accent transition-colors cursor-pointer">
+                  {subiendoLogo ? <Loader2 size={15} className="animate-spin" /> : <ImagePlus size={15} />}
+                  {subiendoLogo ? "Subiendo…" : logoUrl ? "Cambiar logo" : "Subir logo"}
                   <input
                     type="file"
                     accept="image/*"
-                    multiple
                     className="hidden"
-                    disabled={subiendoHab === i}
-                    onChange={(e) => onSubirFotosHab(i, e.target.files)}
+                    disabled={subiendoLogo}
+                    onChange={(e) => onSubirLogo(e.target.files)}
                   />
                 </label>
               </div>
-
-              <button
-                type="button"
-                onClick={() => removeHab(i)}
-                className="btn-press inline-flex items-center gap-1.5 text-sm font-semibold text-red-600 hover:text-red-700"
-              >
-                <Trash2 size={14} /> Quitar habitación
-              </button>
             </div>
-          ))}
-        </div>
-        <button
-          type="button"
-          onClick={addHab}
-          className="btn-press mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-gray-200 text-kora-text font-semibold text-sm hover:border-kora-accent transition-colors"
-        >
-          <Plus size={16} /> Agregar habitación
-        </button>
-      </div>
 
-      {/* Amenidades */}
-      <div className="bg-white rounded-2xl p-6 sm:p-7 border border-gray-100 shadow-sm">
-        <h2 className="text-lg font-bold text-kora-text mb-1">Amenidades</h2>
-        <p className="text-sm text-kora-muted mb-4">
-          Marca los servicios que ofrece tu hotel. Se muestran con iconos en tu
-          página.
-        </p>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-          {AMENIDADES.map(({ key, label, Icon }) => {
-            const activa = amenidades.includes(key);
-            return (
-              <button
-                key={key}
-                type="button"
-                onClick={() => toggleAmenidad(key)}
-                aria-pressed={activa}
-                className={`btn-press flex items-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-semibold text-left transition-colors ${
-                  activa
-                    ? "border-kora-accent bg-kora-accent/10 text-kora-primary"
-                    : "border-gray-200 text-kora-muted hover:border-kora-accent"
-                }`}
+            {/* Color de marca */}
+            <div>
+              <label className="block text-sm font-semibold text-kora-text mb-1.5">
+                Color de marca
+              </label>
+              <div className="flex flex-wrap items-center gap-2">
+                {COLOR_PRESETS.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => setColor(c)}
+                    aria-label={`Color ${c}`}
+                    className={`w-9 h-9 rounded-full border-2 transition-transform ${
+                      (color || COLOR_DEFAULT).toLowerCase() === c.toLowerCase()
+                        ? "border-kora-text scale-110"
+                        : "border-white shadow-sm"
+                    }`}
+                    style={{ backgroundColor: c }}
+                  />
+                ))}
+                <label className="inline-flex items-center gap-2 ml-1 text-sm text-kora-muted">
+                  <input
+                    type="color"
+                    value={color || COLOR_DEFAULT}
+                    onChange={(e) => setColor(e.target.value)}
+                    className="w-9 h-9 rounded-lg border border-gray-200 cursor-pointer bg-white"
+                  />
+                  Personalizado
+                </label>
+              </div>
+            </div>
+
+            {/* Tipografía */}
+            <div>
+              <label className="block text-sm font-semibold text-kora-text mb-1.5">
+                Tipografía
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {FUENTES.map((f) => (
+                  <button
+                    key={f.key}
+                    type="button"
+                    onClick={() => setFuente(f.key)}
+                    className={`btn-press px-4 py-2 rounded-full border text-sm font-semibold transition-colors ${
+                      fuente === f.key
+                        ? "border-kora-accent bg-kora-accent/10 text-kora-primary"
+                        : "border-gray-200 text-kora-muted hover:border-kora-accent"
+                    }`}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Estilo de portada */}
+            <div>
+              <label className="block text-sm font-semibold text-kora-text mb-1.5">
+                Estilo de portada
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { k: "banda", label: "Banda con tarjeta" },
+                  { k: "completa", label: "Portada a pantalla completa" },
+                ].map((o) => (
+                  <button
+                    key={o.k}
+                    type="button"
+                    onClick={() => setHeroEstilo(o.k as "banda" | "completa")}
+                    className={`btn-press px-4 py-2 rounded-full border text-sm font-semibold transition-colors ${
+                      heroEstilo === o.k
+                        ? "border-kora-accent bg-kora-accent/10 text-kora-primary"
+                        : "border-gray-200 text-kora-muted hover:border-kora-accent"
+                    }`}
+                  >
+                    {o.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Orden de secciones */}
+          <div className={card}>
+            <h2 className="text-lg font-bold text-kora-text mb-1">Orden de las secciones</h2>
+            <p className="text-sm text-kora-muted mb-4">
+              Acomoda cómo aparecen las secciones en tu página.
+            </p>
+            <div className="space-y-2">
+              {orden.map((s, i) => (
+                <div
+                  key={s}
+                  className="flex items-center justify-between gap-3 rounded-xl border border-gray-100 bg-kora-bg/50 px-4 py-2.5"
+                >
+                  <span className="text-sm font-semibold text-kora-text">
+                    {SECCION_LABELS[s] ?? s}
+                  </span>
+                  <div className="flex gap-1">
+                    <button
+                      type="button"
+                      onClick={() => moveSeccion(i, -1)}
+                      disabled={i === 0}
+                      className="btn-press w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-kora-text disabled:opacity-30 hover:border-kora-accent"
+                      aria-label="Subir"
+                    >
+                      <ArrowUp size={14} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => moveSeccion(i, 1)}
+                      disabled={i === orden.length - 1}
+                      className="btn-press w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-kora-text disabled:opacity-30 hover:border-kora-accent"
+                      aria-label="Bajar"
+                    >
+                      <ArrowDown size={14} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── RESEÑAS Y FAQ ─── */}
+      {tab === "resenas" && (
+        <div className="space-y-6">
+          <div className={card}>
+            <div className="flex items-center gap-2 mb-1">
+              <Star size={18} className="text-kora-primary" />
+              <h2 className="text-lg font-bold text-kora-text">Reseñas de huéspedes</h2>
+            </div>
+            <p className="text-sm text-kora-muted mb-4">
+              Agrega reseñas reales de tus huéspedes. Se muestran con su calificación y
+              suman al rating de tu página.
+            </p>
+            <div className="space-y-3">
+              {resenas.map((r, i) => (
+                <div key={i} className="rounded-xl border border-gray-100 p-4 bg-kora-bg/50 space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <input
+                      className={inputCls}
+                      value={r.autor}
+                      onChange={(e) => updateResena(i, "autor", e.target.value)}
+                      placeholder="Nombre del huésped"
+                    />
+                    <div className="flex items-center gap-1">
+                      {[1, 2, 3, 4, 5].map((n) => (
+                        <button
+                          key={n}
+                          type="button"
+                          onClick={() => updateResena(i, "estrellas", n)}
+                          aria-label={`${n} estrellas`}
+                          className="btn-press p-1"
+                        >
+                          <Star
+                            size={22}
+                            className={n <= r.estrellas ? "fill-kora-accent text-kora-accent" : "text-gray-300"}
+                          />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <textarea
+                    className={inputCls}
+                    rows={2}
+                    value={r.texto}
+                    onChange={(e) => updateResena(i, "texto", e.target.value)}
+                    placeholder="Lo que dijo el huésped…"
+                  />
+                  <div className="flex items-center justify-between gap-3">
+                    <input
+                      className={`${inputCls} !py-2 sm:max-w-[50%]`}
+                      value={r.fecha ?? ""}
+                      onChange={(e) => updateResena(i, "fecha", e.target.value)}
+                      placeholder="Fecha (ej. Mayo 2026)"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeResena(i)}
+                      className="btn-press inline-flex items-center gap-1.5 text-sm font-semibold text-red-600 hover:text-red-700"
+                    >
+                      <Trash2 size={14} /> Quitar
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={addResena}
+              className="btn-press mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-gray-200 text-kora-text font-semibold text-sm hover:border-kora-accent transition-colors"
+            >
+              <Plus size={16} /> Agregar reseña
+            </button>
+          </div>
+
+          {/* FAQ */}
+          <div className={card}>
+            <div className="flex items-center gap-2 mb-1">
+              <HelpCircle size={18} className="text-kora-primary" />
+              <h2 className="text-lg font-bold text-kora-text">Preguntas frecuentes</h2>
+            </div>
+            <p className="text-sm text-kora-muted mb-4">
+              Responde de antemano lo que más te preguntan (mascotas, estacionamiento,
+              llegada tarde…).
+            </p>
+            <div className="space-y-3">
+              {faqs.map((f, i) => (
+                <div key={i} className="rounded-xl border border-gray-100 p-4 bg-kora-bg/50 space-y-3">
+                  <input
+                    className={inputCls}
+                    value={f.pregunta}
+                    onChange={(e) => updateFaq(i, "pregunta", e.target.value)}
+                    placeholder="¿Aceptan mascotas?"
+                  />
+                  <textarea
+                    className={inputCls}
+                    rows={2}
+                    value={f.respuesta}
+                    onChange={(e) => updateFaq(i, "respuesta", e.target.value)}
+                    placeholder="Sí, aceptamos mascotas pequeñas con un cargo adicional…"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeFaq(i)}
+                    className="btn-press inline-flex items-center gap-1.5 text-sm font-semibold text-red-600 hover:text-red-700"
+                  >
+                    <Trash2 size={14} /> Quitar
+                  </button>
+                </div>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={addFaq}
+              className="btn-press mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-gray-200 text-kora-text font-semibold text-sm hover:border-kora-accent transition-colors"
+            >
+              <Plus size={16} /> Agregar pregunta
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ─── AVANZADO ─── */}
+      {tab === "avanzado" && (
+        <div className="space-y-6">
+          {/* Políticas / pago / idiomas */}
+          <div className={`${card} space-y-4`}>
+            <div className="flex items-center gap-2">
+              <FileText size={18} className="text-kora-primary" />
+              <h2 className="text-lg font-bold text-kora-text">Políticas e información</h2>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-kora-text mb-1.5">
+                Política de cancelación
+              </label>
+              <input
+                className={inputCls}
+                value={polCancelacion}
+                onChange={(e) => setPolCancelacion(e.target.value)}
+                placeholder="Ej. Cancelación gratis hasta 48 h antes."
+              />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-kora-text mb-1.5">Mascotas</label>
+                <input
+                  className={inputCls}
+                  value={polMascotas}
+                  onChange={(e) => setPolMascotas(e.target.value)}
+                  placeholder="Ej. Pet-friendly con cargo"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-kora-text mb-1.5">Niños</label>
+                <input
+                  className={inputCls}
+                  value={polNinos}
+                  onChange={(e) => setPolNinos(e.target.value)}
+                  placeholder="Ej. Menores de 5 sin costo"
+                />
+              </div>
+            </div>
+            <div>
+              <p className="block text-sm font-semibold text-kora-text mb-2">Formas de pago</p>
+              <div className="flex flex-wrap gap-2">
+                {FORMAS_PAGO.map((f) => (
+                  <button
+                    key={f}
+                    type="button"
+                    onClick={() => toggleEnLista(f, formasPago, setFormasPago)}
+                    className={`btn-press px-3 py-2 rounded-xl border text-sm font-semibold transition-colors ${
+                      formasPago.includes(f)
+                        ? "border-kora-accent bg-kora-accent/10 text-kora-primary"
+                        : "border-gray-200 text-kora-muted hover:border-kora-accent"
+                    }`}
+                  >
+                    {f}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="block text-sm font-semibold text-kora-text mb-2">Idiomas que hablan</p>
+              <div className="flex flex-wrap gap-2">
+                {IDIOMAS.map((l) => (
+                  <button
+                    key={l}
+                    type="button"
+                    onClick={() => toggleEnLista(l, idiomas, setIdiomas)}
+                    className={`btn-press px-3 py-2 rounded-xl border text-sm font-semibold transition-colors ${
+                      idiomas.includes(l)
+                        ? "border-kora-accent bg-kora-accent/10 text-kora-primary"
+                        : "border-gray-200 text-kora-muted hover:border-kora-accent"
+                    }`}
+                  >
+                    {l}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Guía del huésped */}
+          <div className={`${card} space-y-4`}>
+            <div>
+              <h2 className="text-lg font-bold text-kora-text">Guía del huésped</h2>
+              <p className="text-sm text-kora-muted mt-0.5">
+                La info útil para tus huéspedes (wifi, horarios, reglas, recomendaciones).
+                Aparece en tu página de guía con su propio QR para la habitación.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-kora-text mb-1.5">Red WiFi</label>
+                <input className={inputCls} value={wifi} onChange={(e) => setWifi(e.target.value)} placeholder="Nombre de la red" />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-kora-text mb-1.5">Clave WiFi</label>
+                <input className={inputCls} value={wifiClave} onChange={(e) => setWifiClave(e.target.value)} placeholder="Contraseña" />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-kora-text mb-1.5">Hora de check-in</label>
+                <input className={inputCls} value={gCheckin} onChange={(e) => setGCheckin(e.target.value)} placeholder="3:00 PM" />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-kora-text mb-1.5">Hora de check-out</label>
+                <input className={inputCls} value={gCheckout} onChange={(e) => setGCheckout(e.target.value)} placeholder="12:00 PM" />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-kora-text mb-1.5">
+                Reglas de la casa (una por línea)
+              </label>
+              <textarea
+                className={inputCls}
+                rows={3}
+                value={reglas}
+                onChange={(e) => setReglas(e.target.value)}
+                placeholder={"No fumar dentro de la habitación\nSilencio después de las 10 PM"}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-kora-text mb-1.5">
+                Recomendaciones de la zona (una por línea)
+              </label>
+              <textarea
+                className={inputCls}
+                rows={3}
+                value={recomendaciones}
+                onChange={(e) => setRecomendaciones(e.target.value)}
+                placeholder={"Las Pozas (Jardín de Edward James)\nCafé Conde para desayunar"}
+              />
+            </div>
+          </div>
+
+          {/* Kora Pro — el salto completo */}
+          <div className="rounded-2xl border border-kora-primary/20 bg-kora-primary p-6 sm:p-7 text-white">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-kora-accent text-kora-primary text-xs font-bold mb-3">
+              <Sparkles size={13} aria-hidden="true" /> Kora Pro
+            </span>
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight">
+              De tu página gratis a tu hotel en automático
+            </h2>
+            <p className="mt-2 text-white/70 text-sm leading-relaxed max-w-xl">
+              Esta página gratis capta reservas por WhatsApp. Con Kora Pro no solo se
+              ven mejor: el sistema opera tu hotel completo por ti.
+            </p>
+
+            <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {KORA_PRO.map(({ Icon, t, d }) => (
+                <div key={t} className="flex items-start gap-3 rounded-xl bg-white/5 border border-white/10 p-4">
+                  <div className="flex-shrink-0 w-9 h-9 rounded-full bg-kora-accent/20 flex items-center justify-center">
+                    <Icon size={17} className="text-kora-accent" aria-hidden="true" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-white leading-tight">{t}</p>
+                    <p className="text-xs text-white/60 mt-0.5 leading-snug">{d}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-6 pt-5 border-t border-white/15">
+              <p className="text-[11px] font-bold uppercase tracking-widest text-kora-accent mb-3">
+                Y para esta misma página
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {KORA_PRO_PAGINA.map(({ Icon, t, d }) => (
+                  <div key={t} className="rounded-xl bg-white/5 border border-white/10 p-4">
+                    <Icon size={15} className="text-white/70 mb-2" aria-hidden="true" />
+                    <p className="text-sm font-bold text-white">{t}</p>
+                    <p className="text-xs text-white/60 mt-0.5 leading-snug">{d}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-6 flex flex-wrap gap-3">
+              <a
+                href="/#contacto"
+                className="btn-press btn-arrow inline-flex items-center gap-1.5 px-5 py-3 rounded-full bg-kora-accent text-kora-primary font-bold text-sm hover:bg-kora-accent-dark transition-colors"
               >
-                <Icon size={16} aria-hidden={true} />
-                <span className="min-w-0 truncate">{label}</span>
-              </button>
-            );
-          })}
+                Quiero subir a Kora <ArrowRight size={15} aria-hidden="true" />
+              </a>
+              <a
+                href="/precios"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-press inline-flex items-center gap-1.5 px-5 py-3 rounded-full border border-white/30 text-white font-semibold text-sm hover:bg-white/10 transition-colors"
+              >
+                Ver precios
+              </a>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Ubicación y redes */}
-      <div className="bg-white rounded-2xl p-6 sm:p-7 border border-gray-100 shadow-sm space-y-4">
-        <div>
-          <h2 className="text-lg font-bold text-kora-text">Ubicación y redes</h2>
-          <p className="text-sm text-kora-muted mt-0.5">
-            Para que el huésped llegue fácil y te siga en redes.
-          </p>
-        </div>
-        <div>
-          <label className="block text-sm font-semibold text-kora-text mb-1.5">
-            Link de Google Maps (para “Cómo llegar”)
-          </label>
-          <input
-            className={inputCls}
-            value={mapsUrl}
-            onChange={(e) => setMapsUrl(e.target.value)}
-            placeholder="https://maps.app.goo.gl/..."
-            inputMode="url"
-          />
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-semibold text-kora-text mb-1.5">
-              Instagram
-            </label>
-            <input
-              className={inputCls}
-              value={instagram}
-              onChange={(e) => setInstagram(e.target.value)}
-              placeholder="@tuhotel o link"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-kora-text mb-1.5">
-              Facebook
-            </label>
-            <input
-              className={inputCls}
-              value={facebook}
-              onChange={(e) => setFacebook(e.target.value)}
-              placeholder="Nombre o link de tu página"
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Guía del huésped */}
-      <div className="bg-white rounded-2xl p-6 sm:p-7 border border-gray-100 shadow-sm space-y-4">
-        <div>
-          <h2 className="text-lg font-bold text-kora-text">Guía del huésped</h2>
-          <p className="text-sm text-kora-muted mt-0.5">
-            La info útil para tus huéspedes (wifi, horarios, reglas, recomendaciones).
-            Aparece en tu página de guía con su propio QR para la habitación.
-          </p>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-semibold text-kora-text mb-1.5">
-              Red WiFi
-            </label>
-            <input
-              className={inputCls}
-              value={wifi}
-              onChange={(e) => setWifi(e.target.value)}
-              placeholder="Nombre de la red"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-kora-text mb-1.5">
-              Clave WiFi
-            </label>
-            <input
-              className={inputCls}
-              value={wifiClave}
-              onChange={(e) => setWifiClave(e.target.value)}
-              placeholder="Contraseña"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-kora-text mb-1.5">
-              Hora de check-in
-            </label>
-            <input
-              className={inputCls}
-              value={gCheckin}
-              onChange={(e) => setGCheckin(e.target.value)}
-              placeholder="3:00 PM"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-kora-text mb-1.5">
-              Hora de check-out
-            </label>
-            <input
-              className={inputCls}
-              value={gCheckout}
-              onChange={(e) => setGCheckout(e.target.value)}
-              placeholder="12:00 PM"
-            />
-          </div>
-        </div>
-        <div>
-          <label className="block text-sm font-semibold text-kora-text mb-1.5">
-            Reglas de la casa (una por línea)
-          </label>
-          <textarea
-            className={inputCls}
-            rows={3}
-            value={reglas}
-            onChange={(e) => setReglas(e.target.value)}
-            placeholder={"No fumar dentro de la habitación\nSilencio después de las 10 PM"}
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-semibold text-kora-text mb-1.5">
-            Recomendaciones de la zona (una por línea)
-          </label>
-          <textarea
-            className={inputCls}
-            rows={3}
-            value={recomendaciones}
-            onChange={(e) => setRecomendaciones(e.target.value)}
-            placeholder={"Las Pozas (Jardín de Edward James)\nCafé Conde para desayunar"}
-          />
-        </div>
-      </div>
-
-      {/* Códigos QR */}
-      {hotelId && (
-        <div className="bg-white rounded-2xl p-6 sm:p-7 border border-gray-100 shadow-sm">
+      {/* ─── COMPARTIR ─── */}
+      {tab === "compartir" && hotelId && (
+        <div className={card}>
           <h2 className="text-lg font-bold text-kora-text mb-1">Tus códigos QR</h2>
           <p className="text-sm text-kora-muted mb-5">
-            Imprímelos: el de reservas para recepción y redes; el de la guía para
-            la habitación.
+            Imprímelos: el de reservas para recepción y redes; el de la guía para la habitación.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div className="text-center">
-              <div
-                ref={qrPaginaRef}
-                className="inline-flex p-3 rounded-xl border border-gray-100 bg-white"
-              >
+              <div ref={qrPaginaRef} className="inline-flex p-3 rounded-xl border border-gray-100 bg-white">
                 <QRCodeCanvas value={urlPagina} size={150} fgColor="#1B4332" level="M" marginSize={2} />
               </div>
               <p className="mt-2 text-xs font-semibold text-kora-text">Página de reservas</p>
@@ -831,10 +1461,7 @@ export function PanelEditor({ userId }: { userId: string }) {
               </button>
             </div>
             <div className="text-center">
-              <div
-                ref={qrGuiaRef}
-                className="inline-flex p-3 rounded-xl border border-gray-100 bg-white"
-              >
+              <div ref={qrGuiaRef} className="inline-flex p-3 rounded-xl border border-gray-100 bg-white">
                 <QRCodeCanvas value={urlGuia} size={150} fgColor="#1B4332" level="M" marginSize={2} />
               </div>
               <p className="mt-2 text-xs font-semibold text-kora-text">Guía del huésped</p>
@@ -849,20 +1476,38 @@ export function PanelEditor({ userId }: { userId: string }) {
           </div>
         </div>
       )}
+      {tab === "compartir" && !hotelId && (
+        <div className={card}>
+          <p className="text-sm text-kora-muted">
+            Guarda tu página por primera vez para generar tus códigos QR.
+          </p>
+        </div>
+      )}
 
-      {/* Guardar */}
+      {/* Guardar (sticky) */}
       <div className="sticky bottom-4 z-10">
         <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-4 border border-gray-100 shadow-lg flex items-center justify-between gap-4 flex-wrap">
-          <div className="text-sm">
-            {error ? (
-              <span className="text-red-600">{error}</span>
-            ) : guardado ? (
-              <span className="text-kora-primary font-semibold inline-flex items-center gap-1.5">
-                <Check size={16} /> Guardado
-              </span>
-            ) : (
-              <span className="text-kora-muted">Guarda tus cambios cuando termines.</span>
-            )}
+          <div className="flex items-center gap-4">
+            <label className="inline-flex items-center gap-2 text-sm font-semibold text-kora-text cursor-pointer">
+              <input
+                type="checkbox"
+                checked={publicado}
+                onChange={(e) => setPublicado(e.target.checked)}
+                className="w-4 h-4 accent-kora-primary"
+              />
+              Publicada
+            </label>
+            <div className="text-sm">
+              {error ? (
+                <span className="text-red-600">{error}</span>
+              ) : guardado ? (
+                <span className="text-kora-primary font-semibold inline-flex items-center gap-1.5">
+                  <Check size={16} /> Guardado
+                </span>
+              ) : (
+                <span className="text-kora-muted hidden sm:inline">Guarda cuando termines.</span>
+              )}
+            </div>
           </div>
           <button
             type="button"

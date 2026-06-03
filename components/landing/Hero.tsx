@@ -1,7 +1,8 @@
 "use client";
 
 import { motion, useMotionValue, useMotionTemplate } from "motion/react";
-import { ArrowRight, MessageCircle } from "lucide-react";
+import { ArrowRight, MessageCircle, Gift } from "lucide-react";
+import { LUGARES_DISPONIBLES, TOTAL_LUGARES, LANZAMIENTO } from "@/lib/oferta";
 
 const EASE = [0.23, 1, 0.32, 1] as const;
 
@@ -125,7 +126,22 @@ export function Hero() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 xl:gap-16 items-center">
 
             <div className="space-y-7">
-              <motion.h1 {...item(0)} className="text-4xl sm:text-5xl xl:text-[3.5rem] font-bold tracking-tight text-kora-text leading-tight">
+              <motion.a
+                {...item(0)}
+                href="#precios"
+                className="animate-pulse-ring inline-flex items-start gap-2 max-w-full bg-kora-accent/15 text-kora-primary pl-4 pr-5 py-2.5 rounded-2xl text-xs sm:text-sm font-semibold leading-snug hover:bg-kora-accent/25 transition-colors"
+              >
+                <Gift size={15} className="text-kora-primary flex-shrink-0 mt-0.5" aria-hidden="true" />
+                <span>
+                  Para los primeros {TOTAL_LUGARES} hoteles: tu sitio web
+                  profesional GRATIS{" "}
+                  <span className="whitespace-nowrap font-bold">
+                    · Quedan {LUGARES_DISPONIBLES} de {TOTAL_LUGARES}
+                  </span>
+                </span>
+              </motion.a>
+
+              <motion.h1 {...item(0.06)} className="text-4xl sm:text-5xl xl:text-[3.5rem] font-bold tracking-tight text-kora-text leading-tight">
                 Tu hotel lleno.{" "}
                 <span className="text-shimmer text-kora-primary">
                   Sin depender de Booking.
@@ -133,9 +149,10 @@ export function Hero() {
               </motion.h1>
 
               <motion.p {...item(0.12)} className="text-base sm:text-lg text-kora-muted leading-relaxed max-w-[52ch]">
-                Kora es el sistema todo-en-uno que gestiona tu hotel, responde
-                WhatsApps a las 2 AM, toma reservas directo y te dice
-                exactamente qué está pasando con tu ocupación. Todo en español.
+                Te construimos tu sitio web profesional con motor de reservas
+                propio (sin comisiones) y Kora gestiona todo: responde WhatsApps
+                a las 2 AM, toma reservas directo y te dice qué pasa con tu
+                ocupación. Todo en español.
               </motion.p>
 
               <motion.div {...item(0.22)} className="flex flex-col sm:flex-row gap-3">
@@ -147,10 +164,10 @@ export function Hero() {
                   <ArrowRight size={16} />
                 </a>
                 <a
-                  href="#contacto"
+                  href="/casos/paraiso-encantado"
                   className="btn-press inline-flex items-center justify-center px-6 py-3.5 rounded-full border-2 border-kora-primary text-kora-primary font-semibold text-sm hover:bg-kora-primary hover:text-white transition-colors"
                 >
-                  Solicitar acceso anticipado
+                  Ver un sitio que hicimos
                 </a>
               </motion.div>
 
@@ -161,6 +178,10 @@ export function Hero() {
                     Hotel Paraíso Encantado
                   </span>{" "}
                   · Xilitla, SLP
+                </p>
+                <p className="text-xs text-kora-muted">
+                  Apenas comenzamos: abrimos los primeros {TOTAL_LUGARES}{" "}
+                  lugares fundadores en {LANZAMIENTO}.
                 </p>
                 <div className="animate-pulse-ring inline-flex items-center gap-2 bg-[#1B4332]/8 text-kora-primary px-4 py-2 rounded-full text-sm font-medium">
                   <span className="text-kora-accent font-bold text-base leading-none">★</span>

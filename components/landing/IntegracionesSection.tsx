@@ -1,48 +1,72 @@
 import { Reveal } from "@/components/shared/Reveal";
 
+// Logos reales en /public/integraciones (color de marca oficial).
+// Conekta y SAT no tienen logo en la librería: usan insignia de color (abbr).
 // Duplicated for seamless CSS marquee loop
-const integraciones = [
+type Integracion = {
+  name: string;
+  status: "active" | "soon";
+  logo?: string;
+  color?: string;
+  abbr?: string;
+};
+
+const integraciones: Integracion[] = [
   {
     name: "Booking.com",
     status: "active",
-    color: "#003580",
-    abbr: "BK",
+    logo: "/integraciones/bookingdotcom.svg",
+  },
+  {
+    name: "Expedia",
+    status: "active",
+    logo: "/integraciones/expedia.svg",
   },
   {
     name: "Airbnb",
     status: "active",
-    color: "#FF5A5F",
-    abbr: "AB",
+    logo: "/integraciones/airbnb.svg",
   },
   {
     name: "WhatsApp Business",
     status: "active",
-    color: "#25D366",
-    abbr: "WA",
+    logo: "/integraciones/whatsapp.svg",
   },
   {
     name: "Google Calendar",
     status: "active",
-    color: "#4285F4",
-    abbr: "GC",
+    logo: "/integraciones/googlecalendar.svg",
+  },
+  {
+    name: "Gmail",
+    status: "active",
+    logo: "/integraciones/gmail.svg",
   },
   {
     name: "SAT / CFDI 4.0",
     status: "active",
-    color: "#C0392B",
-    abbr: "SAT",
+    logo: "/integraciones/sat.svg",
   },
   {
     name: "Stripe",
-    status: "soon",
-    color: "#635BFF",
-    abbr: "ST",
+    status: "active",
+    logo: "/integraciones/stripe.svg",
+  },
+  {
+    name: "Mercado Pago",
+    status: "active",
+    logo: "/integraciones/mercadopago.svg",
   },
   {
     name: "Conekta",
-    status: "soon",
+    status: "active",
     color: "#1A1A2E",
     abbr: "CK",
+  },
+  {
+    name: "GitHub",
+    status: "active",
+    logo: "/integraciones/github.svg",
   },
 ];
 
@@ -77,15 +101,27 @@ export function IntegracionesSection() {
                     : "bg-gray-50 border-gray-100 opacity-60"
                 }`}
               >
-                <div
-                  className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{ backgroundColor: int.color }}
-                  aria-hidden="true"
-                >
-                  <span className="text-white text-[10px] font-bold">
-                    {int.abbr}
-                  </span>
-                </div>
+                {int.logo ? (
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 bg-white border border-gray-100">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={int.logo}
+                      alt=""
+                      className="w-5 h-5 object-contain"
+                      aria-hidden="true"
+                    />
+                  </div>
+                ) : (
+                  <div
+                    className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                    style={{ backgroundColor: int.color }}
+                    aria-hidden="true"
+                  >
+                    <span className="text-white text-[10px] font-bold">
+                      {int.abbr}
+                    </span>
+                  </div>
+                )}
                 <div>
                   <p className="text-sm font-semibold text-kora-text leading-none">
                     {int.name}

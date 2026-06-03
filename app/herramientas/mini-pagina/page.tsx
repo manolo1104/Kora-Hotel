@@ -9,7 +9,7 @@ const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
 export const metadata: Metadata = {
   title: "Crea la página de reservas de tu hotel gratis | Kora",
   description:
-    "Crea gratis una página de reservas directas por WhatsApp y una guía digital del huésped con QR para tu hotel. Sin comisiones, sin saber de tecnología. Para México.",
+    "Crea gratis una página de reservas directas por WhatsApp con tu logo y color, reseñas, formulario de fechas y una guía digital del huésped con QR. Sin comisiones, sin saber de tecnología. Para México.",
   alternates: { canonical: "/herramientas/mini-pagina" },
   openGraph: {
     title: "Crea la página de reservas de tu hotel gratis",
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
 
 const pasos = [
   { icon: <Globe size={20} />, t: "Crea tu cuenta gratis", d: "Con tu correo, en un minuto. Sin tarjeta." },
-  { icon: <MessageCircle size={20} />, t: "Llena los datos de tu hotel", d: "Fotos por habitación, precios por personas, amenidades y tu WhatsApp." },
+  { icon: <MessageCircle size={20} />, t: "Personaliza tu página", d: "Tu logo y color, fotos, habitaciones, reseñas y tu WhatsApp." },
   { icon: <QrCode size={20} />, t: "Comparte tu enlace y tu QR", d: "En recepción, redes y habitaciones. Listo para recibir reservas directas." },
 ];
 
@@ -36,6 +36,10 @@ const faqs = [
   {
     q: "¿Necesito saber de tecnología?",
     a: "No. Si sabes usar tu celular, puedes hacerlo: llenas un formulario, subes tus fotos y listo. Tu página y tu QR se generan solos.",
+  },
+  {
+    q: "¿Puedo ponerle mi logo y mi color?",
+    a: "Sí. Subes tu logo, eliges tu color de marca y la tipografía, y hasta el orden de las secciones. Tu página se ve tuya, no una plantilla genérica.",
   },
   {
     q: "¿En qué se diferencia de Kora completo?",
@@ -61,9 +65,9 @@ export default function MiniPaginaLanding() {
           </Reveal>
           <Reveal delay={0.22}>
             <p className="mt-5 text-white/70 text-base sm:text-lg leading-relaxed max-w-xl mx-auto">
-              Crea una página con tus fotos, habitaciones y botón “Reservar por
-              WhatsApp”, más una guía digital del huésped con su QR. Sin comisiones
-              y sin saber de tecnología.
+              Una página con tu logo y color, fotos, habitaciones, reseñas y un
+              formulario de fechas que arma la reserva por WhatsApp — más una guía
+              digital del huésped con su QR. Sin comisiones y sin saber de tecnología.
             </p>
           </Reveal>
           <Reveal delay={0.3}>
@@ -89,9 +93,10 @@ export default function MiniPaginaLanding() {
                   Página de reservas por WhatsApp
                 </h2>
                 <p className="mt-1.5 text-sm text-kora-muted leading-relaxed">
-                  Fotos por habitación, precios por número de personas, amenidades
-                  con iconos, “cómo llegar” y un botón para reservar directo por
-                  WhatsApp. Cada reserva es 100% tuya.
+                  Tu logo y color de marca, fotos por habitación, precios por número
+                  de personas, reseñas con calificación, preguntas frecuentes y un
+                  formulario de fechas que arma la reserva por WhatsApp. Cada reserva
+                  es 100% tuya.
                 </p>
               </div>
             </Reveal>
