@@ -37,17 +37,17 @@ const sitiosCreados = [
 const metrics = [
   {
     value: "0%",
-    label: "Comisión en tus reservas directas",
+    label: "Comisión en reservas directas",
   },
   {
     value: "Segundos",
-    label: "Respuesta en WhatsApp con IA (antes: horas)",
+    label: "Respuesta en WhatsApp con IA",
   },
   {
     countTo: 5300,
     prefix: "$",
     suffix: "",
-    label: "MXN/mes en apps separadas (vs desde $1,990 con Kora)",
+    label: "MXN/mes en apps separadas (Kora: desde $1,990)",
   },
 ] as const;
 

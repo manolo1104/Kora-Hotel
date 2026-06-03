@@ -125,21 +125,13 @@ export function Hero() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full py-16 lg:py-0 relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 xl:gap-16 items-center">
 
-            <div className="space-y-7">
-              <motion.a
+            <div className="space-y-6">
+              <motion.p
                 {...item(0)}
-                href="#precios"
-                className="animate-pulse-ring inline-flex items-start gap-2 max-w-full bg-kora-accent/15 text-kora-primary pl-4 pr-5 py-2.5 rounded-2xl text-xs sm:text-sm font-semibold leading-snug hover:bg-kora-accent/25 transition-colors"
+                className="text-xs sm:text-sm font-bold uppercase tracking-widest text-kora-primary/70"
               >
-                <Gift size={15} className="text-kora-primary flex-shrink-0 mt-0.5" aria-hidden="true" />
-                <span>
-                  Para los primeros {TOTAL_LUGARES} hoteles: tu sitio web
-                  profesional GRATIS{" "}
-                  <span className="whitespace-nowrap font-bold">
-                    · Quedan {LUGARES_DISPONIBLES} de {TOTAL_LUGARES}
-                  </span>
-                </span>
-              </motion.a>
+                El sistema todo-en-uno para tu hotel
+              </motion.p>
 
               <motion.h1 {...item(0.06)} className="text-4xl sm:text-5xl xl:text-[3.5rem] font-bold tracking-tight text-kora-text leading-tight">
                 Tu hotel lleno.{" "}
@@ -148,12 +140,22 @@ export function Hero() {
                 </span>
               </motion.h1>
 
-              <motion.p {...item(0.12)} className="text-base sm:text-lg text-kora-muted leading-relaxed max-w-[52ch]">
-                Te construimos tu sitio web profesional con motor de reservas
-                propio (sin comisiones) y Kora gestiona todo: responde WhatsApps
-                a las 2 AM, toma reservas directo y te dice qué pasa con tu
-                ocupación. Todo en español.
+              <motion.p {...item(0.12)} className="text-base sm:text-lg text-kora-muted leading-relaxed max-w-[48ch]">
+                Tu página web con reservas directas + un asistente que contesta
+                WhatsApp 24/7 y llena tu hotel. Sin comisiones, en español.
               </motion.p>
+
+              <motion.a
+                {...item(0.16)}
+                href="#precios"
+                className="animate-pulse-ring inline-flex items-center gap-2 max-w-full bg-kora-accent/15 text-kora-primary px-4 py-2 rounded-full text-xs sm:text-sm font-semibold hover:bg-kora-accent/25 transition-colors"
+              >
+                <Gift size={15} className="text-kora-primary flex-shrink-0" aria-hidden="true" />
+                <span>
+                  Web profesional gratis para los primeros {TOTAL_LUGARES}
+                  <span className="whitespace-nowrap font-bold"> · Quedan {LUGARES_DISPONIBLES} de {TOTAL_LUGARES}</span>
+                </span>
+              </motion.a>
 
               <motion.div {...item(0.22)} className="flex flex-col sm:flex-row gap-3">
                 <a

@@ -121,10 +121,8 @@ export function PricingSection() {
                   Te construimos tu sitio web profesional, completo
                 </h3>
                 <p className="mt-3 text-white/70 text-sm sm:text-base leading-relaxed">
-                  No es una plantilla: diseñamos y publicamos un sitio 100%
-                  personalizado para tu hotel, con tu propio motor de reservas
-                  (sin comisiones), reseñas, señales de urgencia y todas las
-                  buenas prácticas. Llave en mano, sin costo de construcción.
+                  No es una plantilla: un sitio 100% personalizado con tu motor
+                  de reservas propio, sin comisiones. Llave en mano y sin costo.
                 </p>
 
                 <Link

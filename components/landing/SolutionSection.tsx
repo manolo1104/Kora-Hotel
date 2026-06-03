@@ -44,7 +44,7 @@ const modules = [
     Icon: BarChart2,
     name: "Dashboard, métricas y CRM",
     description:
-      "Calendario con todas tus reservas, alta y edición en segundos, CRM de huéspedes y métricas (ocupación, RevPAR, forecast). Operas y mides todo tu hotel desde una pantalla.",
+      "Calendario, CRM de huéspedes y métricas (ocupación, RevPAR, forecast). Operas todo tu hotel desde una pantalla.",
     style: "dark" as const,
     span: 2,
   },

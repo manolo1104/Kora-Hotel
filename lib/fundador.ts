@@ -10,8 +10,8 @@ export const FUNDADOR = {
 
   // Tu porqué (edítalo a tu voz):
   porque: [
-    "No soy una empresa de software: soy hotelero, como tú. Tengo el Hotel Paraíso Encantado en Xilitla y viví en carne propia lo que duele depender de Booking y Airbnb: comisiones que se comen tu ganancia, huéspedes que nunca son realmente tuyos y herramientas carísimas pensadas para grandes cadenas.",
-    "Busqué un sistema que hablara español, que entendiera al hotel pequeño y que no me cobrara una fortuna. No existía. Así que lo construí para mi propio hotel: una página web profesional con motor de reservas propio y un asistente que responde WhatsApp a cualquier hora.",
+    "No soy una empresa de software: soy hotelero, como tú. Tengo el Hotel Paraíso Encantado y viví lo que duele depender de Booking: comisiones que se comen tu ganancia y huéspedes que nunca son realmente tuyos.",
+    "Busqué un sistema en español, hecho para el hotel pequeño y sin costar una fortuna. No existía, así que lo construí para mi propio hotel.",
   ],
 
   // El problema que resuelves (una frase fuerte):

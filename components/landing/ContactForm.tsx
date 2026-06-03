@@ -104,8 +104,7 @@ export function ContactForm() {
                 Sé uno de los 10 hoteles fundadores
               </h2>
               <p className="mt-4 text-kora-accent text-base leading-relaxed">
-                Implementación gratis + precio especial de por vida + acceso
-                prioritario a nuevas funciones
+                Tu sitio web profesional gratis + precio fundador + soporte directo.
               </p>
 
               <ul className="mt-8 space-y-4" aria-label="Beneficios del programa fundador">
