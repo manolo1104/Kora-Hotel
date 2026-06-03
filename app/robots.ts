@@ -18,10 +18,12 @@ const AI_BOTS = [
 ];
 
 export default function robots(): MetadataRoute.Robots {
+  // Rutas privadas / no indexables (panel del hotelero, login, auth, guía del huésped).
+  const NO_INDEX = ["/api/", "/panel", "/entrar", "/auth/", "/g/"];
   return {
     rules: [
-      { userAgent: "*", allow: "/", disallow: "/api/" },
-      { userAgent: AI_BOTS, allow: "/", disallow: "/api/" },
+      { userAgent: "*", allow: "/", disallow: NO_INDEX },
+      { userAgent: AI_BOTS, allow: "/", disallow: NO_INDEX },
     ],
     sitemap: `${SITE}/sitemap.xml`,
     host: SITE,

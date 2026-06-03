@@ -1,17 +1,44 @@
 import type { MetadataRoute } from "next";
+import { createClient } from "@supabase/supabase-js";
 import { articles } from "@/lib/articles";
 import { herramientasDisponibles } from "@/lib/herramientas";
 import { glosario } from "@/lib/glosario";
 import { comparativas } from "@/lib/comparativas";
 import { personas } from "@/lib/personas";
+import { SUPABASE_URL, SUPABASE_ANON_KEY, supabaseEnvReady } from "@/lib/supabase/env";
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
 
 // Fecha estable de última actualización (no usar new Date() por entrada: cambiaría
 // en cada build y le manda a Google señales falsas de "página modificada").
-const SITE_UPDATED = new Date("2026-06-01");
+const SITE_UPDATED = new Date("2026-06-03");
 
-export default function sitemap(): MetadataRoute.Sitemap {
+// Mini-páginas de hoteles publicadas (/h/slug). Si el env de Supabase no está
+// listo o falla, devuelve [] para no romper el sitemap.
+async function miniPaginas(): Promise<MetadataRoute.Sitemap> {
+  if (!supabaseEnvReady) return [];
+  try {
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const { data } = await supabase
+      .from("hoteles")
+      .select("slug, updated_at")
+      .eq("publicado", true);
+    if (!data) return [];
+    return data
+      .filter((h) => h.slug)
+      .map((h) => ({
+        url: `${BASE_URL}/h/${h.slug}`,
+        lastModified: h.updated_at ? new Date(h.updated_at) : SITE_UPDATED,
+        changeFrequency: "weekly" as const,
+        priority: 0.6,
+      }));
+  } catch {
+    return [];
+  }
+}
+
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const hotelEntries = await miniPaginas();
   const articleEntries: MetadataRoute.Sitemap = articles.map((article) => ({
     url: `${BASE_URL}/blog/${article.slug}`,
     lastModified: new Date(article.updatedIso || article.publishedIso),
@@ -93,6 +120,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.7,
     },
     {
+      url: `${BASE_URL}/herramientas/mini-pagina`,
+      lastModified: SITE_UPDATED,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
       url: `${BASE_URL}/glosario`,
       lastModified: SITE_UPDATED,
       changeFrequency: "monthly",
@@ -109,6 +142,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...comparativaEntries,
     ...personaEntries,
     ...articleEntries,
+    ...hotelEntries,
     {
       url: `${BASE_URL}/privacidad`,
       lastModified: SITE_UPDATED,

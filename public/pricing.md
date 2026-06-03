@@ -1,42 +1,33 @@
 # Precios — Kora
 
 Sistema hotelero todo-en-uno con IA para hoteles boutique en México.
-Moneda: MXN (pesos mexicanos). Facturación mensual. Sin contrato anual; cancela cuando quieras.
+Moneda: MXN (pesos mexicanos). Facturación mensual. Kora arranca en junio de 2026.
 
-## Kora Esencial
-- Precio: $2,490 MXN/mes
-- Para: hoteles que solo necesitan lo básico
-- Incluye:
-  - Motor de reservas directo
-  - PMS básico (habitaciones + check-in/check-out)
-  - Facturación CFDI 4.0
-  - Soporte por email
-- No incluye: agente de WhatsApp con IA, agente de llamadas con IA, pricing dinámico, dashboard y métricas avanzadas
+## Oferta fundador (primeros 10 hoteles)
+- Te construimos tu **sitio web profesional GRATIS** (valor $30,000 MXN): lo diseña y publica Kora, llave en mano, con tu propio motor de reservas sin comisiones, reseñas y señales de urgencia.
+- Sin costo de setup ni de construcción del sitio.
+- Permanencia mínima de 12 meses (para amortizar el sitio web incluido).
+- Solo para los primeros 10 hoteles que se suscriben.
 
-## Kora Completo Fundador
-- Precio: $2,990 MXN/mes (precio normal $4,500 MXN/mes)
-- Disponibilidad: oferta de fundador, solo para los primeros 10 hoteles
-- Incluye todo lo de Esencial, más:
-  - Agente de WhatsApp con IA 24/7
-  - Agente de llamadas con IA en español
+## Planes (todo incluido, según el tamaño del hotel)
+
+### Boutique — 1 a 8 habitaciones
+- Precio: $1,990 MXN/mes
+- Incluye: motor de reservas directo sin comisiones, PMS (habitaciones, check-in/out, housekeeping), dashboard con métricas y forecast, CRM de huéspedes y emails automáticos, facturación CFDI 4.0, soporte en español.
+- No incluye: agente de WhatsApp con IA ni pricing dinámico (disponibles desde el plan Hotel).
+
+### Hotel — 9 a 20 habitaciones (el más elegido)
+- Precio: $2,990 MXN/mes
+- Incluye todo lo de Boutique, más:
+  - Agente de WhatsApp con IA 24/7 (cotiza, cobra el anticipo y confirma la reserva solo)
   - Pricing dinámico con IA
-  - Dashboard + métricas + forecast de 30 días
-  - Blog automático con IA
-  - Emails automáticos pre y post estancia
-  - CRM de huéspedes
-  - API REST para integraciones
-  - Setup gratis + capacitación incluida
 
-## Página web a la medida (servicio hecho para ti)
-- Precio: desde $10,000 MXN (pago único) + $700 MXN/mes de mantenimiento
-- El mantenimiento incluye tu dominio propio
-- Para: hoteles que quieren un sitio 100% personalizado, no una plantilla
-- Incluye:
-  - Diseño 100% personalizado para tu hotel
-  - Motor de reservas directo, sin comisiones
-  - Dashboard completo (calendario, PMS, CRM, métricas y CFDI 4.0)
-  - Dominio propio, hosting, certificado SSL y actualizaciones
-  - Construcción, publicación y capacitación llave en mano
+### Hotel grande — 21 habitaciones o más
+- Precio: $4,490 MXN/mes
+- Incluye todo lo del plan Hotel, dimensionado para operaciones más grandes.
+
+## Herramienta gratis
+- Creador de página de reservas por WhatsApp + guía del huésped con QR: gratis para cualquier hotel, sin saber de tecnología. https://kora-hotel.com/herramientas/mini-pagina
 
 ## Notas
 - Implementación llave en mano en 48 a 72 horas.

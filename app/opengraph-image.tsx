@@ -10,6 +10,6 @@ export default function OpengraphImage() {
   return koraOG({
     title: "Tu hotel lleno. Sin depender de Booking.",
     subtitle:
-      "Sistema hotelero con IA para hoteles boutique en México. Reservas directas, WhatsApp 24/7 y PMS. En español.",
+      "Te construimos tu sitio web profesional gratis · desde $1,990 MXN/mes. Reservas directas, WhatsApp 24/7 y PMS, en español.",
   });
 }

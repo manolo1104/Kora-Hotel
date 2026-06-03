@@ -118,6 +118,7 @@ export async function generateMetadata({
     title: `${hotel.nombre}${hotel.ubicacion ? ` — ${hotel.ubicacion}` : ""}`,
     description:
       hotel.descripcion?.slice(0, 155) || `Reserva directo en ${hotel.nombre}.`,
+    alternates: { canonical: `/h/${slug}` },
     openGraph: {
       title: hotel.nombre,
       description: hotel.descripcion?.slice(0, 155) || "",

@@ -47,9 +47,27 @@ const faqs = [
   },
 ];
 
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: "Creador de página de reservas de Kora",
+  applicationCategory: "BusinessApplication",
+  operatingSystem: "Web",
+  inLanguage: "es-MX",
+  url: `${BASE_URL}/herramientas/mini-pagina`,
+  description:
+    "Crea gratis una página de reservas directas por WhatsApp para tu hotel, con tu logo y color, fotos, habitaciones, reseñas, formulario de fechas y una guía digital del huésped con QR.",
+  offers: { "@type": "Offer", price: "0", priceCurrency: "MXN" },
+  publisher: { "@id": `${BASE_URL}/#organization` },
+};
+
 export default function MiniPaginaLanding() {
   return (
     <main className="pt-16">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       {/* Hero */}
       <section className="py-16 sm:py-24 bg-kora-primary text-white">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
