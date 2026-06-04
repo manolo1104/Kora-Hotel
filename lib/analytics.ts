@@ -26,6 +26,10 @@ export function trackLead(method: "form" | "whatsapp") {
   // send_to "AW-XXXXXXXXXX/etiqueta" en la variable de entorno.
   const adsSendTo = process.env.NEXT_PUBLIC_GOOGLE_ADS_CONVERSION;
   if (adsSendTo) {
-    window.gtag("event", "conversion", { send_to: adsSendTo });
+    window.gtag("event", "conversion", {
+      send_to: adsSendTo,
+      value: 1.0,
+      currency: "MXN",
+    });
   }
 }
