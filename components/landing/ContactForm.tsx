@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Check, Loader2 } from "lucide-react";
 import { Reveal } from "@/components/shared/Reveal";
 import { motion, AnimatePresence } from "motion/react";
+import { trackLead } from "@/lib/analytics";
 
 const FORMSPREE_URL = process.env.NEXT_PUBLIC_FORMSPREE_URL ?? "";
 
@@ -76,6 +77,7 @@ export function ContactForm() {
       });
       if (res.ok) {
         setSent(true);
+        trackLead("form"); // conversión: lead por formulario
       } else {
         setError(true);
       }
@@ -269,6 +271,7 @@ export function ContactForm() {
                           href={WA_FALLBACK_URL}
                           target="_blank"
                           rel="noopener noreferrer"
+                          onClick={() => trackLead("whatsapp")}
                           className="font-bold underline hover:text-red-900"
                         >
                           WhatsApp
