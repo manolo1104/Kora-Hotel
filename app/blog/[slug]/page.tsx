@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getArticle, articles, extractHeadings } from "@/lib/articles";
+import { FUNDADOR } from "@/lib/fundador";
 import { ShareButtons } from "@/components/blog/ShareButtons";
 import { CoverImage } from "@/components/blog/CoverImage";
 
@@ -60,11 +61,14 @@ export default async function BlogArticlePage({ params }: Props) {
         headline: article.title,
         description: article.excerpt,
         image: article.image,
+        inLanguage: "es-MX",
         datePublished: article.publishedIso,
+        dateModified: article.updatedIso || article.publishedIso,
         author: {
-          "@type": "Organization",
-          name: "Kora",
-          url: siteUrl,
+          "@type": "Person",
+          name: article.author,
+          jobTitle: "Fundador de Kora",
+          sameAs: [FUNDADOR.linkedin, FUNDADOR.instagram],
         },
         publisher: {
           "@type": "Organization",

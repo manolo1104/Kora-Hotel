@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Plus_Jakarta_Sans, Playfair_Display, Lora, Poppins } from "next/font/google";
 import Script from "next/script";
 import { SiteFrame } from "@/components/shared/SiteFrame";
+import { FUNDADOR } from "@/lib/fundador";
 import "./globals.css";
 
 const jakarta = Plus_Jakarta_Sans({
@@ -64,7 +65,28 @@ const orgJsonLd = {
       description:
         "Sistema hotelero todo-en-uno con IA para hoteles boutique en México.",
       email: "hola@korahotel.mx",
+      foundingDate: "2026",
       areaServed: { "@type": "Country", name: "México" },
+      knowsAbout: [
+        "Sistema hotelero",
+        "Motor de reservas directas",
+        "PMS para hoteles",
+        "Pricing dinámico",
+        "CFDI 4.0",
+      ],
+      founder: {
+        "@type": "Person",
+        name: "Manolo Covarrubias",
+        jobTitle: "Fundador de Kora",
+        sameAs: [FUNDADOR.linkedin, FUNDADOR.instagram],
+      },
+      contactPoint: {
+        "@type": "ContactPoint",
+        contactType: "customer support",
+        email: "hola@korahotel.mx",
+        availableLanguage: ["Spanish"],
+        areaServed: "MX",
+      },
     },
     {
       "@type": "WebSite",

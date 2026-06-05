@@ -76,28 +76,9 @@ const steps = [
   },
 ];
 
-const howToJsonLd = {
-  "@context": "https://schema.org",
-  "@type": "HowTo",
-  name: "Cómo implementar Kora en tu hotel en 48 horas",
-  description:
-    "Los 5 pasos para poner en marcha el sistema hotelero Kora, del primer WhatsApp al primer mes operando.",
-  totalTime: "PT48H",
-  step: steps.map((s, i) => ({
-    "@type": "HowToStep",
-    position: i + 1,
-    name: s.title,
-    text: s.description,
-  })),
-};
-
 export default function ComoFuncionaPage() {
   return (
     <main className="pt-16">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(howToJsonLd) }}
-      />
       {/* Hero */}
       <section className="py-20 sm:py-28 bg-kora-primary text-white">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
