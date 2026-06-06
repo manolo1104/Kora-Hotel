@@ -146,10 +146,11 @@ export function DashboardMockup() {
                 <p className="text-[10px] font-semibold text-kora-text">Ocupación esta semana</p>
                 <p className="text-[9px] text-kora-accent font-semibold">+12%</p>
               </div>
-              <div className="flex items-end justify-between gap-1.5 h-20">
+              <div className="flex items-end justify-between gap-1.5">
                 {week.map((b, i) => (
-                  <div key={i} className="flex-1 h-full flex flex-col items-center justify-end gap-1">
-                    <div className="w-full flex-1 flex items-end bg-kora-primary/5 rounded-md overflow-hidden">
+                  <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                    {/* Riel de altura FIJA (h-20) para que el % de la barra siempre resuelva */}
+                    <div className="w-full h-20 flex items-end bg-kora-primary/5 rounded-md overflow-hidden">
                       <motion.div
                         className={`w-full rounded-md ${
                           b.h >= 90

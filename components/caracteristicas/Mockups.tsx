@@ -149,13 +149,11 @@ export function PricingMockup() {
           </p>
           <span className="text-xs font-bold text-kora-accent">+18% RevPAR</span>
         </div>
-        <div className="flex items-end gap-1.5 h-28">
+        <div className="flex items-end gap-1.5">
           {days.map((day, i) => (
-            <div
-              key={day}
-              className="flex-1 h-full flex flex-col items-center justify-end gap-1"
-            >
-              <div className="w-full flex-1 flex items-end">
+            <div key={day} className="flex-1 flex flex-col items-center gap-1">
+              {/* Riel de altura FIJA (h-24) para que el % de la barra siempre resuelva */}
+              <div className="w-full h-24 flex items-end">
                 <motion.div
                   {...bar(i, (prices[i] / max) * 100)}
                   className={`w-full rounded-md ${i >= 4 ? "bg-kora-primary" : "bg-kora-accent/40"}`}
