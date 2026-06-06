@@ -17,7 +17,6 @@ const koraFeatures = [
   "PMS completo (rooms, check-in/out)",
   "Pricing dinámico con IA *",
   "Dashboard + métricas en tiempo real",
-  "Blog automático con IA",
   "Emails pre y post estancia",
   "Soporte en español",
   "CFDI 4.0 incluido",

@@ -1,12 +1,15 @@
 import type { Metadata } from "next";
 import { faqs } from "@/lib/faqs";
 import { Hero } from "@/components/landing/Hero";
+import { TrustStrip } from "@/components/landing/TrustStrip";
 import { ProblemSection } from "@/components/landing/ProblemSection";
+import { AgenteSection } from "@/components/landing/AgenteSection";
 import { SolutionSection } from "@/components/landing/SolutionSection";
 import { IntegracionesSection } from "@/components/landing/IntegracionesSection";
 import { ComparisonSection } from "@/components/landing/ComparisonSection";
+import { CalculadoraROI } from "@/components/landing/CalculadoraROI";
 import { SocialProofSection } from "@/components/landing/SocialProofSection";
-import { VideoDemoSection } from "@/components/landing/VideoDemoSection";
+import { DiferenciadoresSection } from "@/components/landing/DiferenciadoresSection";
 import { HerramientasSection } from "@/components/landing/HerramientasSection";
 import { PricingSection } from "@/components/landing/PricingSection";
 import { FAQSection } from "@/components/landing/FAQSection";
@@ -97,14 +100,17 @@ export default function HomePage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <Hero />
+      <TrustStrip />
       <ProblemSection />
+      <AgenteSection />
       <SolutionSection />
+      <DiferenciadoresSection />
+      <SocialProofSection />
       <IntegracionesSection />
       <ComparisonSection />
-      <SocialProofSection />
-      <VideoDemoSection />
-      <HerramientasSection />
+      <CalculadoraROI />
       <PricingSection />
+      <HerramientasSection />
       <FAQSection />
       <FundadorSection />
       <ContactForm />

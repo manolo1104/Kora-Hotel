@@ -95,6 +95,41 @@ body {
   animation-play-state: paused;
 }
 
+/* ─── Hero aurora (gradiente animado sutil, estilo Stripe) ───────────────────── */
+
+@keyframes kora-aurora-1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50%      { transform: translate(7%, 6%) scale(1.15); }
+}
+@keyframes kora-aurora-2 {
+  0%, 100% { transform: translate(0, 0) scale(1.12); }
+  50%      { transform: translate(-9%, -5%) scale(1); }
+}
+.hero-aurora {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.hero-aurora__blob {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(72px);
+  will-change: transform;
+}
+.hero-aurora__blob--1 {
+  width: 50vw; height: 50vw; max-width: 620px; max-height: 620px;
+  top: -12%; right: -8%;
+  background: radial-gradient(circle at center, rgba(82, 183, 136, 0.40), transparent 70%);
+  animation: kora-aurora-1 19s ease-in-out infinite;
+}
+.hero-aurora__blob--2 {
+  width: 46vw; height: 46vw; max-width: 560px; max-height: 560px;
+  bottom: -16%; left: -10%;
+  background: radial-gradient(circle at center, rgba(27, 67, 50, 0.28), transparent 70%);
+  animation: kora-aurora-2 23s ease-in-out infinite;
+}
+
 /* ─── Card glow (recommended pricing card) ───────────────────────────────────── */
 
 .card-glow {
@@ -182,6 +217,8 @@ body {
   .animate-float-delayed,
   .animate-badge-in,
   .animate-pulse-ring,
+  .marquee-track,
+  .hero-aurora__blob,
   .text-shimmer {
     animation: none;
   }

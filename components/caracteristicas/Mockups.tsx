@@ -1,12 +1,17 @@
 "use client";
 
 import { motion, useReducedMotion } from "motion/react";
-import { MessageCircle } from "lucide-react";
 import { CountUp } from "@/components/shared/CountUp";
+import { WindowFrame } from "@/components/landing/ProductMockups";
 
-// Mockups de la página de características que se animan al entrar en pantalla.
-// Cada animación está motivada: "demuestra que el producto funciona / está vivo".
-// Todo respeta prefers-reduced-motion (se muestra estático si el usuario lo pide).
+// Mockups de la página de características. Comparten el mismo marco visual
+// ("ventana de app" con WindowFrame) que los mockups del inicio, para que todo
+// el sitio se sienta cohesivo. Se animan al entrar en pantalla y respetan
+// prefers-reduced-motion.
+
+// El agente de WhatsApp reutiliza EXACTAMENTE el mismo mockup del inicio
+// (misma marca, mismo chat dinámico) para no tener dos diseños distintos.
+export { WhatsAppMockup } from "@/components/landing/ProductMockups";
 
 const VIEWPORT = { once: true, amount: 0.4 } as const;
 const EASE = [0.16, 1, 0.3, 1] as const;
@@ -26,11 +31,8 @@ export function ReservaMockup() {
         };
 
   return (
-    <div className="bg-kora-primary rounded-2xl p-5 shadow-xl">
-      <p className="text-kora-accent text-[10px] font-bold uppercase tracking-widest mb-3">
-        Motor de reservas
-      </p>
-      <div className="bg-white rounded-xl p-4 space-y-3">
+    <WindowFrame title="Motor de reservas">
+      <div className="p-5 space-y-3">
         <motion.div {...row(0)} className="flex justify-between items-center">
           <p className="text-xs font-semibold text-kora-text">Check-in</p>
           <span className="text-xs bg-kora-bg border border-gray-200 rounded-lg px-3 py-1.5 text-kora-text">
@@ -55,62 +57,7 @@ export function ReservaMockup() {
           </div>
         </motion.div>
       </div>
-    </div>
-  );
-}
-
-// ─── Agente WhatsApp ────────────────────────────────────────────────────────────
-
-export function WhatsAppMockup() {
-  const reduce = useReducedMotion();
-  const msg = (delay: number) =>
-    reduce
-      ? {}
-      : {
-          initial: { opacity: 0, y: 10, scale: 0.96 },
-          whileInView: { opacity: 1, y: 0, scale: 1 },
-          viewport: VIEWPORT,
-          transition: { duration: 0.45, delay, ease: EASE },
-        };
-
-  return (
-    <div className="bg-[#111B21] rounded-2xl p-4 shadow-xl max-w-xs mx-auto">
-      <div className="flex items-center gap-2 pb-3 border-b border-white/10 mb-3">
-        <div className="w-7 h-7 rounded-full bg-kora-accent flex items-center justify-center">
-          <MessageCircle size={13} className="text-kora-primary" />
-        </div>
-        <div>
-          <p className="text-white text-xs font-semibold leading-none">
-            Kora · Hotel Paraíso
-          </p>
-          <p className="text-[#00A884] text-[10px] mt-0.5">en línea</p>
-        </div>
-      </div>
-      <div className="space-y-2">
-        <motion.div {...msg(0)} className="flex justify-end">
-          <div className="bg-[#005C4B] text-white text-xs rounded-xl rounded-tr-sm px-3 py-2 max-w-[80%]">
-            Hola, ¿tienen cuarto para este fin de semana?
-          </div>
-        </motion.div>
-        <motion.div {...msg(0.5)} className="flex justify-start">
-          <div className="bg-[#202C33] text-white text-xs rounded-xl rounded-tl-sm px-3 py-2 max-w-[80%]">
-            Hola! Si, tenemos la Suite Jardín y la Cabaña Huasteca disponibles.
-            ¿Cuántas noches?
-          </div>
-        </motion.div>
-        <motion.div {...msg(1)} className="flex justify-end">
-          <div className="bg-[#005C4B] text-white text-xs rounded-xl rounded-tr-sm px-3 py-2 max-w-[80%]">
-            2 noches, viernes y sábado
-          </div>
-        </motion.div>
-        <motion.div {...msg(1.5)} className="flex justify-start">
-          <div className="bg-[#202C33] text-white text-xs rounded-xl rounded-tl-sm px-3 py-2 max-w-[80%]">
-            Perfecto. La Suite Jardín queda en $2,400/noche. Te mando el link de
-            pago directo ahora.
-          </div>
-        </motion.div>
-      </div>
-    </div>
+    </WindowFrame>
   );
 }
 
@@ -142,37 +89,36 @@ export function PMSMockup() {
         };
 
   return (
-    <div className="bg-white rounded-2xl p-5 shadow-xl border border-gray-100">
-      <p className="text-[10px] font-bold text-kora-muted uppercase tracking-widest mb-4">
-        Mapa de habitaciones
-      </p>
-      <div className="grid grid-cols-3 gap-2">
-        {habitaciones.map((h, i) => (
-          <motion.div
-            key={h.num}
-            {...tile(i)}
-            className={`border rounded-xl p-2.5 text-center ${color[h.estado]}`}
-          >
-            <p className="text-base font-bold leading-none">{h.num}</p>
-            <p className="text-[9px] mt-1 leading-tight opacity-80">{h.nombre}</p>
-          </motion.div>
-        ))}
+    <WindowFrame title="Mapa de habitaciones">
+      <div className="p-5">
+        <div className="grid grid-cols-3 gap-2">
+          {habitaciones.map((h, i) => (
+            <motion.div
+              key={h.num}
+              {...tile(i)}
+              className={`border rounded-xl p-2.5 text-center ${color[h.estado]}`}
+            >
+              <p className="text-base font-bold leading-none">{h.num}</p>
+              <p className="text-[9px] mt-1 leading-tight opacity-80">{h.nombre}</p>
+            </motion.div>
+          ))}
+        </div>
+        <div className="mt-4 flex items-center gap-3 text-[10px] text-kora-muted">
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-kora-accent" />
+            Libre
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-kora-primary" />
+            Ocupada
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-amber-400" />
+            Limpieza
+          </span>
+        </div>
       </div>
-      <div className="mt-4 flex items-center gap-3 text-[10px] text-kora-muted">
-        <span className="flex items-center gap-1">
-          <span className="w-2 h-2 rounded-full bg-kora-accent" />
-          Libre
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="w-2 h-2 rounded-full bg-kora-primary" />
-          Ocupada
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="w-2 h-2 rounded-full bg-amber-400" />
-          Limpieza
-        </span>
-      </div>
-    </div>
+    </WindowFrame>
   );
 }
 
@@ -195,33 +141,35 @@ export function PricingMockup() {
         };
 
   return (
-    <div className="bg-white rounded-2xl p-5 shadow-xl border border-gray-100">
-      <div className="flex justify-between items-baseline mb-4">
-        <p className="text-[10px] font-bold text-kora-muted uppercase tracking-widest">
-          Pricing esta semana
-        </p>
-        <span className="text-xs font-bold text-kora-accent">+18% RevPAR</span>
-      </div>
-      <div className="flex items-end gap-1.5 h-28">
-        {days.map((day, i) => (
-          <div
-            key={day}
-            className="flex-1 h-full flex flex-col items-center justify-end gap-1"
-          >
-            <div className="w-full flex-1 flex items-end">
-              <motion.div
-                {...bar(i, (prices[i] / max) * 100)}
-                className={`w-full rounded-md ${i >= 4 ? "bg-kora-primary" : "bg-kora-accent/40"}`}
-              />
+    <WindowFrame title="Pricing dinámico">
+      <div className="p-5">
+        <div className="flex justify-between items-baseline mb-4">
+          <p className="text-[10px] font-bold text-kora-muted uppercase tracking-widest">
+            Pricing esta semana
+          </p>
+          <span className="text-xs font-bold text-kora-accent">+18% RevPAR</span>
+        </div>
+        <div className="flex items-end gap-1.5 h-28">
+          {days.map((day, i) => (
+            <div
+              key={day}
+              className="flex-1 h-full flex flex-col items-center justify-end gap-1"
+            >
+              <div className="w-full flex-1 flex items-end">
+                <motion.div
+                  {...bar(i, (prices[i] / max) * 100)}
+                  className={`w-full rounded-md ${i >= 4 ? "bg-kora-primary" : "bg-kora-accent/40"}`}
+                />
+              </div>
+              <span className="text-[9px] text-kora-muted font-medium">{day}</span>
             </div>
-            <span className="text-[9px] text-kora-muted font-medium">{day}</span>
-          </div>
-        ))}
+          ))}
+        </div>
+        <p className="mt-3 text-[10px] text-kora-muted leading-tight">
+          Finde detectado · precios ajustados automáticamente
+        </p>
       </div>
-      <p className="mt-3 text-[10px] text-kora-muted leading-tight">
-        Finde detectado · precios ajustados automáticamente
-      </p>
-    </div>
+    </WindowFrame>
   );
 }
 
@@ -236,34 +184,33 @@ export function DashboardMockup() {
   ];
 
   return (
-    <div className="bg-white rounded-2xl p-5 shadow-xl border border-gray-100">
-      <p className="text-[10px] font-bold text-kora-muted uppercase tracking-widest mb-4">
-        Dashboard · Mayo 2026
-      </p>
-      <div className="grid grid-cols-2 gap-2 mb-4">
-        {metrics.map((m) => (
-          <div key={m.label} className="bg-kora-bg rounded-xl p-3">
-            <p className="text-[9px] text-kora-muted uppercase tracking-wide">
-              {m.label}
-            </p>
-            <CountUp
-              to={m.to}
-              prefix={m.prefix}
-              suffix={m.suffix}
-              duration={1.2}
-              className={`text-lg font-bold tabular-nums mt-0.5 block ${m.color}`}
-            />
-          </div>
-        ))}
+    <WindowFrame title="Panel y métricas">
+      <div className="p-5">
+        <div className="grid grid-cols-2 gap-2 mb-4">
+          {metrics.map((m) => (
+            <div key={m.label} className="bg-kora-bg rounded-xl p-3">
+              <p className="text-[9px] text-kora-muted uppercase tracking-wide">
+                {m.label}
+              </p>
+              <CountUp
+                to={m.to}
+                prefix={m.prefix}
+                suffix={m.suffix}
+                duration={1.2}
+                className={`text-lg font-bold tabular-nums mt-0.5 block ${m.color}`}
+              />
+            </div>
+          ))}
+        </div>
+        <div className="bg-kora-accent/10 rounded-xl p-3">
+          <p className="text-[10px] font-semibold text-kora-primary">
+            Forecast 30 días
+          </p>
+          <p className="text-xs text-kora-muted mt-0.5">
+            Ocupación proyectada: 79% · Ingresos: $312,400 MXN
+          </p>
+        </div>
       </div>
-      <div className="bg-kora-accent/10 rounded-xl p-3">
-        <p className="text-[10px] font-semibold text-kora-primary">
-          Forecast 30 días
-        </p>
-        <p className="text-xs text-kora-muted mt-0.5">
-          Ocupación proyectada: 79% · Ingresos: $312,400 MXN
-        </p>
-      </div>
-    </div>
+    </WindowFrame>
   );
 }

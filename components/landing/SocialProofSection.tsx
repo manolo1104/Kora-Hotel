@@ -1,124 +1,66 @@
 import { Reveal } from "@/components/shared/Reveal";
-import { CountUp } from "@/components/shared/CountUp";
 
-// ─── Reemplaza con la URL de tu foto cuando la tengas ────────────────────────
-// Ejemplo: "https://tu-dominio.com/fotos/manolo.jpg"
-// O sube la foto a /public/manolo.jpg y pon: "/manolo.jpg"
-const FOTO_MANOLO = "/manolo.jpg";
+// Video demo (embed). YouTube: Compartir → Insertar → copia la URL del src.
+const VIDEO_EMBED_URL = "https://www.youtube.com/embed/IE5NTgS74rY";
 
-// Sitios reales que hemos creado (prueba del servicio de página a la medida).
-// Cuando tengas el link de Refacciones Franco, ponlo en su "url".
-const sitiosCreados = [
-  {
-    logo: "/portfolio/paraiso-encantado.png",
-    nombre: "Hotel Paraíso Encantado",
-    url: "https://paraisoencantado.com",
-  },
-  {
-    logo: "/portfolio/huasteca-tours.png",
-    nombre: "Huasteca Potosina Tours",
-    url: "https://www.huasteca-potosina.com",
-  },
-  {
-    logo: "/portfolio/papan-huasteco.png",
-    nombre: "El Papán Huasteco",
-    url: "https://papan-huasteco.vercel.app",
-  },
-  {
-    logo: "/portfolio/refacciones-franco.png",
-    nombre: "Refacciones Franco",
-    url: "https://refacciones-franco.vercel.app",
-  },
+// Cifras verificables (no estimaciones). El costo de apps separadas ($5,300) vive
+// en la comparativa pegada al pricing, así que aquí no se duplica.
+const stats = [
+  { value: "0%", label: "Comisión en reservas directas" },
+  { value: "Segundos", label: "Respuesta en WhatsApp con IA" },
 ];
 
-// Cifras verificables (no estimaciones): comisión 0% en reservas directas,
-// respuesta del agente de IA en segundos, y el costo real de un stack de apps
-// separadas (~$5,300/mes) frente a Kora (desde $1,990 todo incluido).
-const metrics = [
-  {
-    value: "0%",
-    label: "Comisión en reservas directas",
-  },
-  {
-    value: "Segundos",
-    label: "Respuesta en WhatsApp con IA",
-  },
-  {
-    countTo: 5300,
-    prefix: "$",
-    suffix: "",
-    label: "MXN/mes en apps separadas (Kora: desde $1,990)",
-  },
-] as const;
+// Sitios reales que hemos creado (prueba del servicio de página).
+const sitiosCreados = [
+  { logo: "/portfolio/paraiso-encantado.png", nombre: "Hotel Paraíso Encantado", url: "https://paraisoencantado.com" },
+  { logo: "/portfolio/huasteca-tours.png", nombre: "Huasteca Potosina Tours", url: "https://www.huasteca-potosina.com" },
+];
 
 export function SocialProofSection() {
   return (
-    <section className="py-20 sm:py-24 bg-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section id="demo" className="py-20 sm:py-24 bg-white scroll-mt-20">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <Reveal>
-          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-kora-text mb-12">
-            Funcionando en producción
-          </h2>
+          <div className="text-center mb-8">
+            <p className="text-xs font-bold text-kora-muted uppercase tracking-widest mb-2">
+              Demo en vivo
+            </p>
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-kora-text">
+              Míralo funcionando en 90 segundos
+            </h2>
+            <p className="mt-3 text-kora-muted text-sm max-w-lg mx-auto">
+              Del mensaje de WhatsApp del huésped a la reserva confirmada en el PMS.
+            </p>
+          </div>
         </Reveal>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-          <Reveal delay={0.08} className="lg:col-span-2">
-            <div className="bg-kora-bg rounded-2xl p-8 border border-gray-100 h-full">
-              <blockquote>
-                <p className="text-lg sm:text-xl text-kora-text leading-relaxed">
-                  &ldquo;Diseñé Kora para mi propio hotel porque no encontré nada
-                  que realmente funcionara para hoteles como el nuestro.&rdquo;
-                </p>
-                <footer className="mt-7 flex items-center gap-4">
-                  {FOTO_MANOLO ? (
-                    <img
-                      src={FOTO_MANOLO}
-                      alt="Manolo Covarrubias"
-                      className="w-12 h-12 rounded-full object-cover flex-shrink-0"
-                    />
-                  ) : (
-                    <div
-                      className="w-12 h-12 rounded-full bg-kora-primary flex items-center justify-center flex-shrink-0"
-                      aria-hidden="true"
-                    >
-                      <span className="text-white font-bold text-base">MC</span>
-                    </div>
-                  )}
-                  <div>
-                    <p className="font-semibold text-kora-text">Manolo Covarrubias</p>
-                    <p className="text-sm text-kora-muted">
-                      Fundador de Kora · Propietario del Hotel Paraíso Encantado
-                    </p>
-                    <p className="text-sm text-kora-muted">Xilitla, San Luis Potosí</p>
-                  </div>
-                </footer>
-              </blockquote>
-            </div>
-          </Reveal>
-
-          <div className="space-y-4">
-            {metrics.map((metric, i) => (
-              <Reveal key={i} delay={0.12 + i * 0.08}>
-                <div className="bg-kora-bg rounded-2xl p-5 border border-gray-100">
-                  {"countTo" in metric ? (
-                    <CountUp
-                      to={metric.countTo}
-                      prefix={metric.prefix}
-                      suffix={metric.suffix}
-                      className="text-3xl font-bold text-kora-primary block"
-                    />
-                  ) : (
-                    <p className="text-3xl font-bold text-kora-primary">{metric.value}</p>
-                  )}
-                  <p className="text-sm text-kora-muted mt-1 leading-snug">{metric.label}</p>
-                </div>
-              </Reveal>
-            ))}
+        {/* Video */}
+        <Reveal delay={0.1}>
+          <div className="rounded-2xl overflow-hidden shadow-xl shadow-kora-primary/10 aspect-video bg-kora-primary">
+            <iframe
+              src={VIDEO_EMBED_URL}
+              title="Demo de Kora"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              className="w-full h-full border-0"
+            />
           </div>
+        </Reveal>
+
+        {/* Stats verificables */}
+        <div className="mt-6 grid grid-cols-2 gap-4">
+          {stats.map((s, i) => (
+            <Reveal key={s.label} delay={0.16 + i * 0.08}>
+              <div className="bg-kora-bg rounded-2xl p-5 border border-gray-100 text-center">
+                <p className="text-3xl font-bold text-kora-primary">{s.value}</p>
+                <p className="text-sm text-kora-muted mt-1 leading-snug">{s.label}</p>
+              </div>
+            </Reveal>
+          ))}
         </div>
 
-        {/* Sitios que hemos creado — prueba del servicio de página a la medida */}
-        <Reveal delay={0.1}>
+        {/* Sitios reales que hemos creado */}
+        <Reveal delay={0.2}>
           <div className="mt-14 pt-12 border-t border-gray-100">
             <p className="text-center text-sm font-semibold text-kora-muted uppercase tracking-widest">
               Sitios reales que hemos creado
@@ -126,14 +68,18 @@ export function SocialProofSection() {
             <p className="mt-2 text-center text-kora-muted text-sm max-w-xl mx-auto">
               Páginas profesionales que diseñamos y publicamos para negocios reales.
               Si eres de los primeros 10 hoteles,{" "}
-              <span className="font-semibold text-kora-primary">
-                la tuya va incluida gratis
-              </span>
-              .
+              <span className="font-semibold text-kora-primary">la tuya va incluida gratis</span>.
             </p>
-            <div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-4">
-              {sitiosCreados.map((s) => {
-                const inner = (
+            <div className="mt-8 grid grid-cols-2 gap-4 max-w-md mx-auto">
+              {sitiosCreados.map((s) => (
+                <a
+                  key={s.nombre}
+                  href={s.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`Ver el sitio de ${s.nombre}`}
+                  className="group block"
+                >
                   <div className="bg-white rounded-2xl border border-gray-100 shadow-sm h-28 flex items-center justify-center p-5 transition-all duration-300 group-hover:shadow-md group-hover:-translate-y-0.5">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
@@ -142,30 +88,11 @@ export function SocialProofSection() {
                       className="max-h-16 max-w-full w-auto object-contain"
                     />
                   </div>
-                );
-                return s.url ? (
-                  <a
-                    key={s.nombre}
-                    href={s.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label={`Ver el sitio de ${s.nombre}`}
-                    className="group block"
-                  >
-                    {inner}
-                    <p className="mt-2 text-center text-xs text-kora-muted group-hover:text-kora-primary transition-colors">
-                      {s.nombre}
-                    </p>
-                  </a>
-                ) : (
-                  <div key={s.nombre} className="group block">
-                    {inner}
-                    <p className="mt-2 text-center text-xs text-kora-muted">
-                      {s.nombre}
-                    </p>
-                  </div>
-                );
-              })}
+                  <p className="mt-2 text-center text-xs text-kora-muted group-hover:text-kora-primary transition-colors">
+                    {s.nombre}
+                  </p>
+                </a>
+              ))}
             </div>
           </div>
         </Reveal>

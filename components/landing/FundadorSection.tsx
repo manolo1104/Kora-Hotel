@@ -97,6 +97,11 @@ export function FundadorSection() {
                 aria-hidden="true"
               />
 
+              <p className="text-xl sm:text-2xl font-semibold text-kora-text leading-snug mb-5">
+                &ldquo;Diseñé Kora para mi propio hotel porque no encontré nada
+                que realmente funcionara para hoteles como el nuestro.&rdquo;
+              </p>
+
               <div className="space-y-4">
                 {FUNDADOR.porque.map((parrafo, i) => (
                   <p

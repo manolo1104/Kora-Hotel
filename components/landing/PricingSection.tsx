@@ -219,20 +219,22 @@ export function PricingSection() {
                     </li>
                   ))}
                   {plan.noIncluye.map((f) => (
-                    <li key={f} className="flex items-start gap-2.5">
-                      <X
-                        size={16}
-                        className="flex-shrink-0 text-gray-300 mt-0.5"
-                        aria-hidden="true"
-                      />
-                      <span className="text-sm text-gray-400 line-through">{f}</span>
+                    <li key={f} className="flex items-center justify-between gap-2">
+                      <span className="flex items-start gap-2.5 text-sm text-kora-muted">
+                        <X size={16} className="flex-shrink-0 text-gray-300 mt-0.5" aria-hidden="true" />
+                        {f}
+                      </span>
+                      <span className="flex-shrink-0 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">
+                        Plan Hotel
+                      </span>
                     </li>
                   ))}
                 </ul>
 
                 {plan.noIncluye.length > 0 && (
-                  <p className="mt-3 text-xs text-kora-muted">
-                    Disponible a partir del plan Hotel.
+                  <p className="mt-3 text-xs font-medium text-amber-800 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 leading-snug">
+                    El agente de WhatsApp con IA y el pricing dinámico se incluyen
+                    desde el plan Hotel.
                   </p>
                 )}
 
@@ -273,8 +275,22 @@ export function PricingSection() {
           </div>
         </Reveal>
 
-        <Reveal delay={0.4}>
-          <p className="mt-8 text-center text-xs text-kora-muted">
+        {/* Sello de pagos seguros (Stripe) — confianza honesta en el cobro */}
+        <Reveal delay={0.38}>
+          <div className="mt-8 flex items-center justify-center gap-2.5 text-kora-muted">
+            <Lock size={14} className="text-kora-primary" aria-hidden="true" />
+            <span className="text-xs font-medium">Pagos de tus huéspedes protegidos con</span>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/integraciones/stripe.svg"
+              alt="Stripe"
+              className="h-5 w-auto opacity-80"
+            />
+          </div>
+        </Reveal>
+
+        <Reveal delay={0.44}>
+          <p className="mt-6 text-center text-xs text-kora-muted">
             Sin costo de setup ni de construcción del sitio. Permanencia mínima
             de 12 meses (así amortizamos tu sitio web sin costo). ¿No sabes tu
             tamaño? Te ayudamos a elegir.

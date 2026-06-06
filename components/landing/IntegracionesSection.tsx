@@ -13,14 +13,14 @@ type Integracion = {
 
 const integraciones: Integracion[] = [
   {
+    name: "WhatsApp Business",
+    status: "active",
+    logo: "/integraciones/whatsapp.svg",
+  },
+  {
     name: "Booking.com",
     status: "active",
     logo: "/integraciones/bookingdotcom.svg",
-  },
-  {
-    name: "Expedia",
-    status: "active",
-    logo: "/integraciones/expedia.svg",
   },
   {
     name: "Airbnb",
@@ -28,19 +28,9 @@ const integraciones: Integracion[] = [
     logo: "/integraciones/airbnb.svg",
   },
   {
-    name: "WhatsApp Business",
+    name: "Expedia",
     status: "active",
-    logo: "/integraciones/whatsapp.svg",
-  },
-  {
-    name: "Google Calendar",
-    status: "active",
-    logo: "/integraciones/googlecalendar.svg",
-  },
-  {
-    name: "Gmail",
-    status: "active",
-    logo: "/integraciones/gmail.svg",
+    logo: "/integraciones/expedia.svg",
   },
   {
     name: "SAT / CFDI 4.0",
@@ -64,9 +54,14 @@ const integraciones: Integracion[] = [
     abbr: "CK",
   },
   {
-    name: "GitHub",
+    name: "Google Calendar",
     status: "active",
-    logo: "/integraciones/github.svg",
+    logo: "/integraciones/googlecalendar.svg",
+  },
+  {
+    name: "Gmail",
+    status: "active",
+    logo: "/integraciones/gmail.svg",
   },
 ];
 

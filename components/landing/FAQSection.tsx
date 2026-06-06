@@ -18,7 +18,7 @@ export function FAQSection() {
         </h2>
 
         <div className="space-y-2" role="list">
-          {faqs.map((faq, i) => (
+          {faqs.slice(0, 8).map((faq, i) => (
             <div
               key={i}
               className={`border rounded-2xl overflow-hidden transition-colors duration-200 ${
