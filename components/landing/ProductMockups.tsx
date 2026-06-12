@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { motion, AnimatePresence } from "motion/react";
+import { motion, AnimatePresence, useInView, useReducedMotion } from "motion/react";
 import {
   MessageCircle,
   LayoutGrid,
@@ -209,9 +209,10 @@ export function DashboardMockup() {
         </div>
       </WindowFrame>
 
-      {/* Tarjeta flotante: notificación de WhatsApp (sigue a la última reserva) */}
+      {/* Tarjeta flotante: notificación de WhatsApp (sigue a la última reserva).
+          Oculta en pantallas chicas: desborda el ancho del teléfono. */}
       <div
-        className="animate-float absolute -top-5 -right-3 xl:-right-6 bg-white rounded-2xl shadow-xl shadow-kora-primary/10 border border-gray-100 px-3 py-2.5 flex items-center gap-2.5 w-48"
+        className="animate-float absolute -top-5 -right-3 xl:-right-6 bg-white rounded-2xl shadow-xl shadow-kora-primary/10 border border-gray-100 px-3 py-2.5 hidden sm:flex items-center gap-2.5 w-48"
         aria-hidden="true"
       >
         <div className="w-8 h-8 rounded-full bg-[#25D366] flex items-center justify-center flex-shrink-0">
@@ -223,9 +224,9 @@ export function DashboardMockup() {
         </div>
       </div>
 
-      {/* Tarjeta flotante: métrica de reservas directas */}
+      {/* Tarjeta flotante: métrica de reservas directas (oculta en pantallas chicas) */}
       <div
-        className="animate-float-delayed absolute -bottom-6 -left-3 xl:-left-6 bg-kora-primary rounded-2xl shadow-xl shadow-kora-primary/20 px-4 py-3 text-white"
+        className="animate-float-delayed absolute -bottom-6 -left-3 xl:-left-6 bg-kora-primary rounded-2xl shadow-xl shadow-kora-primary/20 px-4 py-3 text-white hidden sm:block"
         aria-hidden="true"
       >
         <p className="text-[10px] font-semibold text-kora-accent uppercase tracking-widest flex items-center gap-1">
@@ -252,48 +253,57 @@ const CHAT: Msg[] = [
 ];
 
 export function WhatsAppMockup() {
-  const [shown, setShown] = useState(1);
+  const reduce = useReducedMotion();
+  const contRef = useRef<HTMLDivElement>(null);
+  // La conversación arranca hasta que el chat está en pantalla, para que el
+  // usuario la vea desde el primer mensaje (y se pausa si sale de pantalla).
+  const enVista = useInView(contRef, { amount: 0.35 });
+
+  const [shown, setShown] = useState(0);
   const [typing, setTyping] = useState(false);
+  const [saliendo, setSaliendo] = useState(false); // fade-out antes de reiniciar
 
   useEffect(() => {
-    const reduce =
-      typeof window !== "undefined" &&
-      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
     if (reduce) {
       setShown(CHAT.length);
       return;
     }
+    if (!enVista || saliendo) return;
 
     let t: ReturnType<typeof setTimeout>;
-    const tick = () => {
-      setShown((n) => {
-        if (n >= CHAT.length) {
-          // Pausa y reinicia el bucle.
-          t = setTimeout(() => {
-            setShown(1);
-            setTyping(false);
-          }, 3200);
-          return n;
-        }
-        // Si el siguiente es del bot, mostramos "escribiendo…" antes.
-        if (CHAT[n].from === "bot") {
-          setTyping(true);
-          t = setTimeout(() => {
-            setTyping(false);
-            setShown((m) => m + 1);
-          }, 1100);
-          return n;
-        }
-        t = setTimeout(tick, 900);
-        return n + 1;
-      });
-    };
-    t = setTimeout(tick, 1200);
+
+    if (shown >= CHAT.length) {
+      // Conversación completa: pausa para leerla y reinicio con fundido suave.
+      t = setTimeout(() => {
+        setSaliendo(true);
+        setTimeout(() => {
+          setShown(0);
+          setTyping(false);
+          setSaliendo(false);
+        }, 600);
+      }, 4200);
+      return () => clearTimeout(t);
+    }
+
+    const siguiente = CHAT[shown];
+    if (siguiente.from === "bot") {
+      // El bot "escribe" antes de responder.
+      t = setTimeout(() => {
+        setTyping(true);
+        t = setTimeout(() => {
+          setTyping(false);
+          setShown((n) => n + 1);
+        }, 1300);
+      }, 500);
+    } else {
+      // El huésped contesta tras una pausa natural de lectura.
+      t = setTimeout(() => setShown((n) => n + 1), shown === 0 ? 700 : 1400);
+    }
     return () => clearTimeout(t);
-  }, [shown]);
+  }, [shown, enVista, saliendo, reduce]);
 
   return (
-    <div className="relative select-none">
+    <div ref={contRef} className="relative select-none">
       <WindowFrame title="WhatsApp del hotel">
         {/* Cabecera del chat */}
         <div className="flex items-center gap-3 px-4 py-2.5 bg-kora-primary">
@@ -306,15 +316,23 @@ export function WhatsAppMockup() {
           </div>
         </div>
 
-        {/* Conversación */}
-        <div className="p-4 space-y-2.5 bg-[#F3F1EC] min-h-[280px]">
+        {/* Conversación (se desvanece completa al reiniciar el bucle) */}
+        <motion.div
+          className="p-4 space-y-2.5 bg-[#F3F1EC] min-h-[280px]"
+          animate={{ opacity: saliendo ? 0 : 1 }}
+          transition={{ duration: 0.5, ease: EASE }}
+        >
           <AnimatePresence initial={false}>
             {CHAT.slice(0, shown).map((m, i) => (
               <motion.div
                 key={i}
-                initial={{ opacity: 0, y: 8, scale: 0.98 }}
+                layout
+                initial={{ opacity: 0, y: 14, scale: 0.86 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
-                transition={{ duration: 0.3, ease: EASE }}
+                transition={{ type: "spring", stiffness: 360, damping: 26, mass: 0.7 }}
+                style={{
+                  transformOrigin: m.from === "guest" ? "bottom right" : "bottom left",
+                }}
                 className={`flex ${m.from === "guest" ? "justify-end" : "justify-start"}`}
               >
                 <div
@@ -328,15 +346,17 @@ export function WhatsAppMockup() {
                 </div>
               </motion.div>
             ))}
-          </AnimatePresence>
 
-          {/* Indicador de "escribiendo…" */}
-          <AnimatePresence>
+            {/* Indicador de "escribiendo…" (empuja el stack con layout, sin saltos) */}
             {typing && (
               <motion.div
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0 }}
+                key="typing"
+                layout
+                initial={{ opacity: 0, y: 10, scale: 0.9 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.15 } }}
+                transition={{ type: "spring", stiffness: 360, damping: 26, mass: 0.7 }}
+                style={{ transformOrigin: "bottom left" }}
                 className="flex justify-start"
               >
                 <div className="bg-kora-primary/90 rounded-2xl rounded-bl-sm px-3 py-2.5 flex items-center gap-1">
@@ -350,15 +370,16 @@ export function WhatsAppMockup() {
                 </div>
               </motion.div>
             )}
-          </AnimatePresence>
 
-          {/* Tarjeta de reserva confirmada (al cerrar el chat) */}
-          <AnimatePresence>
+            {/* Tarjeta de reserva confirmada (cierre de la secuencia) */}
             {shown >= CHAT.length && (
               <motion.div
-                initial={{ opacity: 0, y: 10, scale: 0.96 }}
+                key="confirmada"
+                layout
+                initial={{ opacity: 0, y: 14, scale: 0.92 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
-                transition={{ duration: 0.4, ease: EASE }}
+                transition={{ type: "spring", stiffness: 300, damping: 24, delay: 0.5 }}
+                style={{ transformOrigin: "bottom left" }}
                 className="flex justify-start"
               >
                 <div className="bg-white rounded-2xl border border-kora-accent/30 px-3 py-2.5 shadow-sm flex items-center gap-2.5">
@@ -373,7 +394,7 @@ export function WhatsAppMockup() {
               </motion.div>
             )}
           </AnimatePresence>
-        </div>
+        </motion.div>
       </WindowFrame>
     </div>
   );

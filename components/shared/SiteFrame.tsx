@@ -6,6 +6,7 @@ import { Footer } from "@/components/landing/Footer";
 import { BotonWhatsApp } from "@/components/shared/BotonWhatsApp";
 import { ScrollProgressBar } from "@/components/shared/ScrollProgressBar";
 import { PageTransition } from "@/components/shared/PageTransition";
+import { ChatWidget } from "@/components/soporte/ChatWidget";
 
 // Marco del sitio: aplica el chrome correcto según la sección.
 // - Páginas públicas del hotel (/h, /g): sin chrome de Kora (son del hotelero).
@@ -37,6 +38,7 @@ export function SiteFrame({ children }: { children: React.ReactNode }) {
           </div>
         </header>
         {children}
+        <ChatWidget />
       </>
     );
   }
@@ -48,6 +50,8 @@ export function SiteFrame({ children }: { children: React.ReactNode }) {
       <PageTransition>{children}</PageTransition>
       <Footer />
       <BotonWhatsApp />
+      {/* El chat de soporte va arriba del botón de WhatsApp */}
+      <ChatWidget elevado />
     </>
   );
 }

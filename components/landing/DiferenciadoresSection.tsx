@@ -78,7 +78,7 @@ const styleMap = {
 
 export function DiferenciadoresSection() {
   return (
-    <section id="por-que-kora" className="py-20 sm:py-24 bg-kora-bg scroll-mt-16">
+    <section id="por-que-kora" className="section-divider py-20 sm:py-24 bg-white scroll-mt-16">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <Reveal>
           <div className="max-w-2xl mb-12">

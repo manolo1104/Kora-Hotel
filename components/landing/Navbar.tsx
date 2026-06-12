@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import { Menu, X } from "lucide-react";
+import { LUGARES_DISPONIBLES } from "@/lib/oferta";
 
 const EASE = [0.23, 1, 0.32, 1] as const;
 
@@ -17,6 +19,7 @@ const navLinks = [
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const pathname = usePathname() ?? "";
 
   useEffect(() => {
     const sentinel = document.getElementById("hero-sentinel");
@@ -36,7 +39,7 @@ export function Navbar() {
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         scrolled
-          ? "bg-white/95 backdrop-blur-sm shadow-sm border-b border-gray-100"
+          ? "nav-glass shadow-sm border-b border-black/[0.06]"
           : "bg-transparent"
       }`}
     >
@@ -53,15 +56,28 @@ export function Navbar() {
         </a>
 
         <div className="hidden md:flex items-center gap-8">
-          {navLinks.map((link) => (
-            <a
-              key={link.href}
-              href={link.href}
-              className="nav-link text-sm font-medium text-kora-text hover:text-kora-primary transition-colors"
-            >
-              {link.label}
-            </a>
-          ))}
+          {navLinks.map((link) => {
+            const activo = pathname === link.href || pathname.startsWith(link.href + "/");
+            return (
+              <a
+                key={link.href}
+                href={link.href}
+                aria-current={activo ? "page" : undefined}
+                className={`nav-link text-sm transition-colors ${
+                  activo
+                    ? "font-semibold text-kora-primary"
+                    : "font-medium text-kora-text hover:text-kora-primary"
+                }`}
+              >
+                {link.label}
+              </a>
+            );
+          })}
+          {/* Escasez honesta de la oferta fundador (fuente única: lib/oferta.ts) */}
+          <span className="hidden lg:inline-flex items-center gap-1.5 text-[11px] font-semibold text-kora-primary">
+            <span className="w-1.5 h-1.5 rounded-full bg-kora-accent animate-pulse" aria-hidden="true" />
+            Quedan {LUGARES_DISPONIBLES} lugares
+          </span>
           <a
             href="/#contacto"
             className="btn-press btn-arrow btn-fill inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-kora-primary text-white text-sm font-semibold hover:bg-kora-primary-dark transition-colors"

@@ -35,7 +35,7 @@ export function FundadorSection() {
   const [imgError, setImgError] = useState(false);
 
   return (
-    <section id="fundador" className="py-20 sm:py-24 bg-white">
+    <section id="fundador" className="py-20 sm:py-24 bg-kora-bg">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-[260px_1fr] gap-10 md:gap-12 items-center">
           {/* Foto + redes */}
@@ -61,6 +61,10 @@ export function FundadorSection() {
                 {FUNDADOR.nombre}
               </p>
               <p className="text-sm text-kora-muted">{FUNDADOR.rol}</p>
+              <span className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-kora-accent/15 text-kora-primary text-[11px] font-bold">
+                <span className="w-1.5 h-1.5 rounded-full bg-kora-accent" aria-hidden="true" />
+                Hotelero en activo · Hotel Paraíso Encantado, Xilitla SLP
+              </span>
 
               <div className="mt-4 flex items-center gap-3">
                 <a

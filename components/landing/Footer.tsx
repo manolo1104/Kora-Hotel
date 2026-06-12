@@ -147,6 +147,23 @@ export function Footer() {
           </Reveal>
         </div>
 
+        {/* Micro-sellos de confianza */}
+        <Reveal delay={0.22}>
+          <div className="mt-10 pt-6 border-t border-white/10 flex flex-wrap items-center gap-x-6 gap-y-2 text-[11px] text-white/40">
+            <span className="inline-flex items-center gap-2">
+              Pagos seguros con
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/integraciones/stripe.svg"
+                alt="Stripe"
+                className="h-4 w-auto opacity-60 brightness-0 invert"
+              />
+            </span>
+            <span>CFDI 4.0 · SAT</span>
+            <span>Tus datos son tuyos, exportables cuando quieras</span>
+          </div>
+        </Reveal>
+
         {/* Bottom */}
         <Reveal delay={0.25}>
           <div className="mt-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">

@@ -1,12 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Check, Loader2 } from "lucide-react";
+import { Check, Loader2, Lock } from "lucide-react";
 import { Reveal } from "@/components/shared/Reveal";
 import { motion, AnimatePresence } from "motion/react";
 import { trackLead } from "@/lib/analytics";
-
-const FORMSPREE_URL = process.env.NEXT_PUBLIC_FORMSPREE_URL ?? "";
 
 // Respaldo: si el envío falla, ofrecemos WhatsApp para no perder el lead.
 const WA_FALLBACK_URL = `https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "524891251458"}?text=Hola%2C%20quiero%20ser%20hotel%20fundador%20de%20Kora`;
@@ -50,15 +48,6 @@ export function ContactForm() {
     e.preventDefault();
     setError(false);
 
-    // Si falta configurar Formspree, no fingimos éxito: avisamos del error.
-    if (!FORMSPREE_URL) {
-      console.error(
-        "NEXT_PUBLIC_FORMSPREE_URL no está configurado: el formulario no puede enviar leads."
-      );
-      setError(true);
-      return;
-    }
-
     const data = new FormData(e.currentTarget);
 
     // Honeypot: si este campo oculto trae texto, es un bot. Fingimos éxito
@@ -70,10 +59,11 @@ export function ContactForm() {
 
     setLoading(true);
     try {
-      const res = await fetch(FORMSPREE_URL, {
+      // El lead cae directo al CRM de Kora (y de ahí se avisa al fundador).
+      const res = await fetch("/api/leads", {
         method: "POST",
-        body: data,
-        headers: { Accept: "application/json" },
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(Object.fromEntries(data.entries())),
       });
       if (res.ok) {
         setSent(true);
@@ -299,11 +289,17 @@ export function ContactForm() {
               </AnimatePresence>
 
               {!sent && (
-                <p className="mt-5 text-xs text-kora-muted text-center leading-relaxed">
-                  Te contactamos por WhatsApp en menos de 24 horas.
-                  <br />
-                  Sin llamadas en frío. Sin vendedores.
-                </p>
+                <>
+                  <p className="mt-5 text-xs text-kora-muted text-center leading-relaxed">
+                    Te contactamos por WhatsApp en menos de 24 horas.
+                    <br />
+                    Sin llamadas en frío. Sin vendedores.
+                  </p>
+                  <p className="mt-3 inline-flex w-full items-center justify-center gap-1.5 text-[11px] text-kora-muted">
+                    <Lock size={11} className="text-kora-primary" aria-hidden="true" />
+                    Tus datos están seguros. Solo los usamos para contactarte.
+                  </p>
+                </>
               )}
             </div>
           </Reveal>

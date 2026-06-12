@@ -132,13 +132,21 @@ const KORA_PRO_PAGINA = [
   { Icon: BarChart3, t: "Analítica de visitas", d: "Visitas y clics a WhatsApp que genera tu página." },
 ];
 
-export function PanelEditor({ userId }: { userId: string }) {
+export function PanelEditor({
+  userId,
+  planActivo = false,
+}: {
+  userId: string;
+  planActivo?: boolean;
+}) {
   const supabase = createClient();
 
   const [cargando, setCargando] = useState(true);
   const [hotelId, setHotelId] = useState<string | null>(null);
   const [slug, setSlug] = useState("");
   const [tab, setTab] = useState<string>("contenido");
+  // Wizard de bienvenida (solo cuando aún no existe el hotel)
+  const [paso, setPaso] = useState(0);
 
   // Mini-página
   const [nombre, setNombre] = useState("");
@@ -563,6 +571,224 @@ export function PanelEditor({ userId }: { userId: string }) {
   const urlGuia = `${SITE}/g/${slug}`;
   const card = "bg-white rounded-2xl p-6 sm:p-7 border border-gray-100 shadow-sm";
 
+  // ─── Wizard de bienvenida: 4 pasos y tu página queda publicada ─────────────
+  if (!hotelId) {
+    const pasos = [
+      { titulo: "Tu hotel", desc: "Empecemos por lo básico." },
+      { titulo: "Contacto", desc: "Para que el huésped te escriba directo." },
+      { titulo: "Fotos", desc: "La primera será tu portada." },
+      { titulo: "Habitaciones", desc: "Al menos una para mostrar precios." },
+    ];
+    const puedeAvanzar =
+      paso === 0 ? nombre.trim().length > 1 : paso === 1 ? whatsapp.trim().length >= 8 : true;
+
+    return (
+      <div className="mt-8 max-w-xl mx-auto">
+        <div className={card}>
+          {/* Progreso */}
+          <div className="flex items-center gap-1.5 mb-5">
+            {pasos.map((_, i) => (
+              <div
+                key={i}
+                className={`h-1.5 flex-1 rounded-full transition-colors ${
+                  i <= paso ? "bg-kora-primary" : "bg-gray-200"
+                }`}
+              />
+            ))}
+          </div>
+          <p className="text-[10px] font-bold text-kora-muted uppercase tracking-widest">
+            Paso {paso + 1} de {pasos.length}
+          </p>
+          <h2 className="mt-1 text-xl font-bold text-kora-text">{pasos[paso].titulo}</h2>
+          <p className="mt-1 text-sm text-kora-muted">{pasos[paso].desc}</p>
+
+          <div className="mt-5 space-y-4">
+            {paso === 0 && (
+              <>
+                <div>
+                  <label className="block text-sm font-semibold text-kora-text mb-1.5">
+                    Nombre del hotel
+                  </label>
+                  <input
+                    className={inputCls}
+                    value={nombre}
+                    onChange={(e) => setNombre(e.target.value)}
+                    placeholder="Hotel Paraíso Encantado"
+                    autoFocus
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-kora-text mb-1.5">
+                    ¿Dónde está?
+                  </label>
+                  <input
+                    className={inputCls}
+                    value={ubicacion}
+                    onChange={(e) => setUbicacion(e.target.value)}
+                    placeholder="Xilitla, San Luis Potosí"
+                  />
+                </div>
+              </>
+            )}
+
+            {paso === 1 && (
+              <>
+                <div>
+                  <label className="block text-sm font-semibold text-kora-text mb-1.5">
+                    WhatsApp del hotel (con lada del país)
+                  </label>
+                  <input
+                    className={inputCls}
+                    value={whatsapp}
+                    onChange={(e) => setWhatsapp(e.target.value)}
+                    placeholder="52 489 123 4567"
+                    inputMode="tel"
+                    autoFocus
+                  />
+                  <p className="mt-1.5 text-xs text-kora-muted">
+                    Aquí llegan las reservas de tu página.
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-kora-text mb-1.5">
+                    Describe tu hotel en 2 o 3 líneas
+                  </label>
+                  <textarea
+                    className={inputCls}
+                    rows={3}
+                    value={descripcion}
+                    onChange={(e) => setDescripcion(e.target.value)}
+                    placeholder="¿Por qué es especial y qué hay cerca?"
+                  />
+                </div>
+              </>
+            )}
+
+            {paso === 2 && (
+              <div>
+                {fotos.length > 0 && (
+                  <div className="grid grid-cols-3 gap-3 mb-4">
+                    {fotos.map((url) => (
+                      <div key={url} className="relative">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={url}
+                          alt="Foto del hotel"
+                          className="w-full h-20 object-cover rounded-xl border border-gray-100"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeFoto(url)}
+                          className="absolute top-1 right-1 w-6 h-6 rounded-full bg-white/90 border border-gray-200 flex items-center justify-center text-red-600 shadow-sm"
+                          aria-label="Quitar foto"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <label className="btn-press inline-flex items-center gap-2 px-5 py-3 rounded-full border-2 border-kora-primary text-kora-primary font-semibold text-sm hover:bg-kora-primary hover:text-white transition-colors cursor-pointer">
+                  {subiendo ? <Loader2 size={16} className="animate-spin" /> : <ImagePlus size={16} />}
+                  {subiendo ? "Subiendo…" : "Subir fotos"}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    disabled={subiendo}
+                    onChange={(e) => onSubirFotos(e.target.files)}
+                  />
+                </label>
+                <p className="mt-2 text-xs text-kora-muted">
+                  Puedes saltarte este paso y subirlas después.
+                </p>
+              </div>
+            )}
+
+            {paso === 3 && (
+              <div className="space-y-3">
+                {habitaciones.map((h, i) => (
+                  <div key={i} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <input
+                      className={inputCls}
+                      value={h.nombre}
+                      onChange={(e) => updateHab(i, "nombre", e.target.value)}
+                      placeholder="Habitación doble"
+                    />
+                    <input
+                      className={inputCls}
+                      value={h.precio}
+                      onChange={(e) => updateHab(i, "precio", e.target.value)}
+                      placeholder="Precio por noche (ej. 1500)"
+                      inputMode="numeric"
+                    />
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={addHab}
+                  className="btn-press inline-flex items-center gap-2 px-4 py-2 rounded-full border border-gray-200 text-kora-text font-semibold text-sm hover:border-kora-accent transition-colors"
+                >
+                  <Plus size={15} /> {habitaciones.length === 0 ? "Agregar mi primera habitación" : "Otra habitación"}
+                </button>
+                <p className="text-xs text-kora-muted">
+                  También puedes saltarte este paso. En el editor podrás agregar fotos,
+                  tarifas por personas y más.
+                </p>
+              </div>
+            )}
+          </div>
+
+          {error && (
+            <div role="alert" className="mt-4 rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-800">
+              {error}
+            </div>
+          )}
+
+          <div className="mt-6 flex items-center justify-between gap-3">
+            <button
+              type="button"
+              onClick={() => setPaso((p) => Math.max(0, p - 1))}
+              disabled={paso === 0}
+              className="btn-press px-5 py-3 rounded-full border border-gray-200 text-kora-text font-semibold text-sm disabled:opacity-40 hover:border-kora-accent transition-colors"
+            >
+              Atrás
+            </button>
+            {paso < pasos.length - 1 ? (
+              <button
+                type="button"
+                onClick={() => setPaso((p) => p + 1)}
+                disabled={!puedeAvanzar}
+                className="btn-press btn-fill inline-flex items-center gap-2 px-7 py-3 rounded-full bg-kora-accent text-kora-primary font-bold text-sm hover:bg-kora-accent-dark transition-colors disabled:opacity-50"
+              >
+                Siguiente <ArrowRight size={15} />
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={guardar}
+                disabled={guardando}
+                className="btn-press btn-fill inline-flex items-center gap-2 px-7 py-3 rounded-full bg-kora-accent text-kora-primary font-bold text-sm hover:bg-kora-accent-dark transition-colors disabled:opacity-60"
+              >
+                {guardando ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" /> Publicando…
+                  </>
+                ) : (
+                  "Publicar mi página"
+                )}
+              </button>
+            )}
+          </div>
+        </div>
+        <p className="mt-4 text-center text-xs text-kora-muted">
+          Tu página queda en {SITE}/h/<span className="font-semibold">{slugPreview}</span>
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="mt-8 space-y-6">
       {/* Dirección / enlaces (siempre visible) */}
@@ -606,6 +832,54 @@ export function PanelEditor({ userId }: { userId: string }) {
           </p>
         )}
       </div>
+
+      {/* Checklist de activación (se oculta al completarse) */}
+      {(() => {
+        const items = [
+          { ok: whatsapp.trim().length >= 8, label: "Pon tu WhatsApp", tab: "contenido" },
+          { ok: fotos.length > 0, label: "Sube al menos 1 foto", tab: "contenido" },
+          { ok: descripcion.trim().length > 20, label: "Describe tu hotel", tab: "contenido" },
+          { ok: habitaciones.length > 0, label: "Agrega una habitación", tab: "habitaciones" },
+          { ok: publicado, label: "Publica tu página", tab: "contenido" },
+        ];
+        const hechos = items.filter((i) => i.ok).length;
+        if (hechos === items.length) return null;
+        return (
+          <div className="bg-white rounded-2xl p-5 sm:p-6 border border-kora-primary/15 shadow-sm">
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <p className="text-sm font-bold text-kora-text">
+                Deja tu página lista para recibir reservas
+              </p>
+              <span className="text-xs font-bold text-kora-primary tabular-nums">
+                {hechos}/{items.length}
+              </span>
+            </div>
+            <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden mb-4">
+              <div
+                className="h-full rounded-full bg-kora-primary transition-all"
+                style={{ width: `${(hechos / items.length) * 100}%` }}
+              />
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {items.map((i) => (
+                <button
+                  key={i.label}
+                  type="button"
+                  onClick={() => setTab(i.tab)}
+                  className={`btn-press inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-semibold transition-colors ${
+                    i.ok
+                      ? "border-kora-accent bg-kora-accent/10 text-kora-primary"
+                      : "border-gray-200 text-kora-muted hover:border-kora-accent"
+                  }`}
+                >
+                  {i.ok ? <Check size={12} /> : <Plus size={12} />}
+                  {i.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Pestañas */}
       <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
@@ -1375,6 +1649,43 @@ export function PanelEditor({ userId }: { userId: string }) {
                 placeholder={"Las Pozas (Jardín de Edward James)\nCafé Conde para desayunar"}
               />
             </div>
+          </div>
+
+          {/* Marca de Kora (premium: solo con plan activo) */}
+          <div className={`${card} space-y-3`}>
+            <div className="flex items-center gap-2">
+              <Lock size={18} className="text-kora-primary" />
+              <h2 className="text-lg font-bold text-kora-text">Marca de Kora en tu página</h2>
+            </div>
+            {planActivo ? (
+              <>
+                <label className="inline-flex items-center gap-2.5 text-sm font-semibold text-kora-text cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={marcaOculta}
+                    onChange={(e) => setMarcaOculta(e.target.checked)}
+                    className="w-4 h-4 accent-kora-primary"
+                  />
+                  Ocultar “Hecho con Kora” en el pie de mi página
+                </label>
+                <p className="text-xs text-kora-muted">
+                  Incluido en tu plan. Guarda para aplicar el cambio.
+                </p>
+              </>
+            ) : (
+              <div className="flex items-center justify-between gap-4 flex-wrap">
+                <p className="text-sm text-kora-muted leading-relaxed">
+                  Tu página gratis muestra “Hecho con Kora” en el pie. Con
+                  cualquier plan de Kora puedes quitarla.
+                </p>
+                <a
+                  href="/precios"
+                  className="btn-press inline-flex items-center px-4 py-2 rounded-full bg-kora-accent text-kora-primary font-bold text-sm hover:bg-kora-accent-dark transition-colors"
+                >
+                  Ver planes
+                </a>
+              </div>
+            )}
           </div>
 
           {/* Kora Pro — el salto completo */}

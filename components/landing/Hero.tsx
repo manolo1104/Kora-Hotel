@@ -1,7 +1,14 @@
 "use client";
 
-import { motion, useMotionValue, useMotionTemplate } from "motion/react";
-import { ArrowRight, Gift } from "lucide-react";
+import {
+  motion,
+  useMotionValue,
+  useMotionTemplate,
+  useScroll,
+  useTransform,
+  useReducedMotion,
+} from "motion/react";
+import { ArrowRight, Gift, Lock, FileCheck, Database } from "lucide-react";
 import { DashboardMockup } from "@/components/landing/ProductMockups";
 import { LUGARES_DISPONIBLES, TOTAL_LUGARES, LANZAMIENTO } from "@/lib/oferta";
 
@@ -20,6 +27,11 @@ export function Hero() {
   const mouseY = useMotionValue(300);
   const background = useMotionTemplate`radial-gradient(600px at ${mouseX}px ${mouseY}px, rgba(82,183,136,0.07), transparent 65%)`;
 
+  // Parallax sutil del mockup al hacer scroll (solo si el usuario acepta movimiento).
+  const reduceMotion = useReducedMotion();
+  const { scrollY } = useScroll();
+  const mockupY = useTransform(scrollY, [0, 600], [0, reduceMotion ? 0 : -40]);
+
   return (
     <>
       <div id="hero-sentinel" className="absolute top-32 pointer-events-none" aria-hidden="true" />
@@ -37,6 +49,10 @@ export function Hero() {
           <div className="hero-aurora__blob hero-aurora__blob--1" />
           <div className="hero-aurora__blob hero-aurora__blob--2" />
         </div>
+
+        {/* Textura: grid de líneas con máscara radial + grano (cero JS) */}
+        <div className="hero-grid" aria-hidden="true" />
+        <div className="hero-noise" aria-hidden="true" />
 
         {/* Ambient cursor glow — off main thread via MotionValue */}
         <motion.div
@@ -85,6 +101,26 @@ export function Hero() {
                 </a>
               </motion.div>
 
+              {/* Señales de confianza honestas (tipo Stripe) */}
+              <motion.ul
+                {...item(0.24)}
+                className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] text-kora-muted"
+                aria-label="Señales de confianza"
+              >
+                <li className="inline-flex items-center gap-1.5">
+                  <Lock size={12} className="text-kora-primary" aria-hidden="true" />
+                  Pagos seguros con Stripe
+                </li>
+                <li className="inline-flex items-center gap-1.5">
+                  <FileCheck size={12} className="text-kora-primary" aria-hidden="true" />
+                  CFDI 4.0 con el SAT
+                </li>
+                <li className="inline-flex items-center gap-1.5">
+                  <Database size={12} className="text-kora-primary" aria-hidden="true" />
+                  Tus datos son tuyos, exportables
+                </li>
+              </motion.ul>
+
               {/* Oferta secundaria: web gratis (degradada, debajo de los CTAs) */}
               <motion.a
                 {...item(0.26)}
@@ -117,8 +153,11 @@ export function Hero() {
               </motion.div>
             </div>
 
+            {/* Mockup del producto: visible también en móvil (es el "wow" del sitio).
+                En desktop hace un parallax sutil al scrollear. */}
             <motion.div
-              className="hidden lg:block lg:pr-6 xl:pr-2"
+              className="pt-2 lg:pt-0 lg:pr-6 xl:pr-2"
+              style={{ y: mockupY }}
               initial={{ opacity: 0, scale: 0.96 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.8, delay: 0.1, ease: "easeOut" }}

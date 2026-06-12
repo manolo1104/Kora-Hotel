@@ -22,12 +22,17 @@ const pains = [
 
 export function ProblemSection() {
   return (
-    <section className="py-20 sm:py-24 bg-white">
+    <section className="section-divider py-20 sm:py-24 bg-kora-bg">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <Reveal>
-          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-kora-text mb-12 text-center">
-            ¿Te suena familiar?
-          </h2>
+          <div className="text-center mb-12">
+            <p className="text-xs font-bold uppercase tracking-widest text-kora-primary/70 mb-3">
+              El problema
+            </p>
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-kora-text">
+              ¿Te suena familiar?
+            </h2>
+          </div>
         </Reveal>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5 max-w-3xl mx-auto lg:max-w-none">

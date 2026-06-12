@@ -27,9 +27,14 @@ export function ComparisonSection() {
     <section className="py-20 sm:py-24 bg-kora-primary">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <Reveal>
-          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-white mb-3 text-center">
-            ¿Cuánto pagas hoy por hacer todo esto por separado?
-          </h2>
+          <div className="text-center mb-3">
+            <p className="text-xs font-bold uppercase tracking-widest text-kora-accent mb-3">
+              La cuenta clara
+            </p>
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-white">
+              ¿Cuánto pagas hoy por hacer todo esto por separado?
+            </h2>
+          </div>
         </Reveal>
 
         <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-5">

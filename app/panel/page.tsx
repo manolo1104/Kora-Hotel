@@ -3,8 +3,10 @@ import { redirect } from "next/navigation";
 import { Reveal } from "@/components/shared/Reveal";
 import { LogoutButton } from "@/components/panel/LogoutButton";
 import { PanelEditor } from "@/components/panel/PanelEditor";
+import { SuscripcionCard } from "@/components/panel/SuscripcionCard";
 import { createClient } from "@/lib/supabase/server";
 import { supabaseEnvReady } from "@/lib/supabase/env";
+import { getSuscripcion, tienePlanActivo } from "@/lib/suscripcion";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +38,9 @@ export default async function PanelPage() {
 
   if (!user) redirect("/entrar");
 
+  const suscripcion = await getSuscripcion(user.id);
+  const planActivo = tienePlanActivo(suscripcion);
+
   return (
     <main className="pt-16">
       <section className="py-16 sm:py-20 bg-kora-bg min-h-[60vh]">
@@ -52,7 +57,13 @@ export default async function PanelPage() {
             </div>
           </Reveal>
 
-          <PanelEditor userId={user.id} />
+          <SuscripcionCard
+            plan={suscripcion?.plan ?? null}
+            estado={suscripcion?.estado ?? null}
+            esStripe={Boolean(suscripcion?.stripe_customer_id)}
+          />
+
+          <PanelEditor userId={user.id} planActivo={planActivo} />
         </div>
       </section>
     </main>

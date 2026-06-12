@@ -105,6 +105,9 @@ export default function HomePage() {
       <AgenteSection />
       <SolutionSection />
       <DiferenciadoresSection />
+      {/* Clúster de confianza: quién soy → el producto en video → sitios reales,
+          ANTES de la comparativa y el pricing. */}
+      <FundadorSection />
       <SocialProofSection />
       <IntegracionesSection />
       <ComparisonSection />
@@ -112,7 +115,6 @@ export default function HomePage() {
       <PricingSection />
       <HerramientasSection />
       <FAQSection />
-      <FundadorSection />
       <ContactForm />
     </main>
   );

@@ -1,4 +1,5 @@
 import { Reveal } from "@/components/shared/Reveal";
+import { TiltCard } from "@/components/shared/TiltCard";
 
 // Video demo (embed). YouTube: Compartir → Insertar → copia la URL del src.
 const VIDEO_EMBED_URL = "https://www.youtube.com/embed/IE5NTgS74rY";
@@ -80,14 +81,16 @@ export function SocialProofSection() {
                   aria-label={`Ver el sitio de ${s.nombre}`}
                   className="group block"
                 >
-                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm h-28 flex items-center justify-center p-5 transition-all duration-300 group-hover:shadow-md group-hover:-translate-y-0.5">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={s.logo}
-                      alt={s.nombre}
-                      className="max-h-16 max-w-full w-auto object-contain"
-                    />
-                  </div>
+                  <TiltCard max={6} className="rounded-2xl">
+                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm h-28 flex items-center justify-center p-5 transition-shadow duration-300 group-hover:shadow-md">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={s.logo}
+                        alt={s.nombre}
+                        className="max-h-16 max-w-full w-auto object-contain"
+                      />
+                    </div>
+                  </TiltCard>
                   <p className="mt-2 text-center text-xs text-kora-muted group-hover:text-kora-primary transition-colors">
                     {s.nombre}
                   </p>

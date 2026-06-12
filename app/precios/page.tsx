@@ -5,6 +5,7 @@ import { PricingSection } from "@/components/landing/PricingSection";
 import { BarraCTA } from "@/components/shared/BarraCTA";
 import { Reveal } from "@/components/shared/Reveal";
 import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
+import { PLANES } from "@/lib/oferta";
 
 export const metadata: Metadata = {
   title: "Precios de Kora: sistema hotelero desde $1,990 MXN + sitio web gratis",
@@ -30,38 +31,15 @@ const jsonLd = {
         "@type": "Brand",
         name: "Kora",
       },
-      offers: [
-        {
-          "@type": "Offer",
-          name: "Kora Boutique (1 a 8 habitaciones)",
-          price: "1990",
-          priceCurrency: "MXN",
-          url: `${SITE_URL}/precios`,
-          availability: "https://schema.org/InStock",
-          description:
-            "Todo incluido para hoteles de 1 a 8 habitaciones, con sitio web profesional gratis para los primeros 10 hoteles fundadores.",
-        },
-        {
-          "@type": "Offer",
-          name: "Kora Hotel (9 a 20 habitaciones)",
-          price: "2990",
-          priceCurrency: "MXN",
-          url: `${SITE_URL}/precios`,
-          availability: "https://schema.org/InStock",
-          description:
-            "Todo incluido para hoteles de 9 a 20 habitaciones: IA en WhatsApp, PMS, pricing dinámico, dashboard con CRM y CFDI 4.0, más sitio web profesional gratis.",
-        },
-        {
-          "@type": "Offer",
-          name: "Kora Hotel grande (21+ habitaciones)",
-          price: "4490",
-          priceCurrency: "MXN",
-          url: `${SITE_URL}/precios`,
-          availability: "https://schema.org/InStock",
-          description:
-            "Todo incluido para hoteles de 21 habitaciones o más, con sitio web profesional gratis para los primeros 10 hoteles fundadores.",
-        },
-      ],
+      offers: PLANES.map((p) => ({
+        "@type": "Offer",
+        name: `Kora ${p.nombre} (${p.rango})`,
+        price: String(p.precio),
+        priceCurrency: "MXN",
+        url: `${SITE_URL}/precios`,
+        availability: "https://schema.org/InStock",
+        description: `Todo incluido para hoteles de ${p.rango.toLowerCase()}, con sitio web profesional gratis para los primeros 10 hoteles fundadores.`,
+      })),
     },
     {
       "@type": "Service",

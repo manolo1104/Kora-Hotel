@@ -23,6 +23,7 @@ import {
   type MiniExtras,
 } from "@/lib/mini";
 import { SUPABASE_URL, SUPABASE_ANON_KEY, supabaseEnvReady } from "@/lib/supabase/env";
+import { ownerTienePlanActivo } from "@/lib/suscripcion";
 
 export const dynamic = "force-dynamic";
 
@@ -40,6 +41,7 @@ interface Habitacion {
 }
 interface Hotel {
   slug: string;
+  owner_id: string;
   nombre: string;
   ubicacion: string | null;
   descripcion: string | null;
@@ -52,7 +54,7 @@ interface Hotel {
 async function getHotel(slug: string, preview: boolean): Promise<Hotel | null> {
   if (!supabaseEnvReady) return null;
   const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  const base = "slug, nombre, ubicacion, descripcion, whatsapp, habitaciones, fotos";
+  const base = "slug, owner_id, nombre, ubicacion, descripcion, whatsapp, habitaciones, fotos";
   const run = (cols: string) => {
     let q = supabase.from("hoteles").select(cols).eq("slug", slug);
     if (!preview) q = q.eq("publicado", true);
@@ -173,7 +175,10 @@ export default async function MiniPagina({
   const formasPago = extras.formasPago ?? [];
   const idiomas = extras.idiomas ?? [];
 
-  const marcaOculta = extras.premium?.marcaOculta === true;
+  // Quitar la marca es premium: solo se respeta si el dueño tiene plan activo
+  // (la decisión se toma aquí, en el render público, no en lo que guarda el panel).
+  const marcaOculta =
+    extras.premium?.marcaOculta === true && (await ownerTienePlanActivo(hotel.owner_id));
 
   const portada = hotel.fotos?.[0];
   const resto = hotel.fotos?.slice(1) ?? [];

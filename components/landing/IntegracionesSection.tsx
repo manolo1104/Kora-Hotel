@@ -67,7 +67,7 @@ const integraciones: Integracion[] = [
 
 export function IntegracionesSection() {
   return (
-    <section className="py-14 sm:py-16 bg-white border-t border-gray-100">
+    <section className="section-divider py-14 sm:py-16 bg-white">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <Reveal>
           <div className="text-center mb-10">

@@ -130,6 +130,90 @@ body {
   animation: kora-aurora-2 23s ease-in-out infinite;
 }
 
+/* ─── Hero grid + noise (textura tipo Stripe, cero JS) ──────────────────────── */
+
+.hero-grid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(to right, rgba(27, 67, 50, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(27, 67, 50, 0.05) 1px, transparent 1px);
+  background-size: 64px 64px;
+  -webkit-mask-image: radial-gradient(ellipse 90% 65% at 50% 0%, black 30%, transparent 100%);
+  mask-image: radial-gradient(ellipse 90% 65% at 50% 0%, black 30%, transparent 100%);
+}
+.hero-noise {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ─── Navbar glass (saturación + blur tipo Apple/Stripe) ────────────────────── */
+
+.nav-glass {
+  background-color: rgba(255, 255, 255, 0.95);
+}
+@supports (backdrop-filter: blur(12px)) or (-webkit-backdrop-filter: blur(12px)) {
+  .nav-glass {
+    background-color: rgba(255, 255, 255, 0.72);
+    -webkit-backdrop-filter: saturate(1.5) blur(12px);
+    backdrop-filter: saturate(1.5) blur(12px);
+  }
+}
+
+/* ─── Section divider (hairline con glow central, tipo Linear) ──────────────── */
+
+.section-divider {
+  position: relative;
+}
+.section-divider::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(72rem, 92%);
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(27, 67, 50, 0.14) 30%,
+    rgba(82, 183, 136, 0.45) 50%,
+    rgba(27, 67, 50, 0.14) 70%,
+    transparent
+  );
+}
+
+/* Respiro al entrar a una sección oscura (corte suave, no en seco) */
+.section-fade-dark {
+  position: relative;
+}
+.section-fade-dark::before {
+  content: "";
+  position: absolute;
+  top: -80px;
+  left: 0;
+  right: 0;
+  height: 80px;
+  pointer-events: none;
+  background: linear-gradient(to bottom, transparent, rgba(27, 67, 50, 0.06));
+}
+
+/* ─── Focus rings globales (accesibilidad + confianza) ──────────────────────── */
+
+a:focus-visible,
+button:focus-visible,
+[role="button"]:focus-visible,
+input:focus-visible[type="checkbox"],
+summary:focus-visible {
+  outline: 2px solid #52b788;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
 /* ─── Card glow (recommended pricing card) ───────────────────────────────────── */
 
 .card-glow {
@@ -217,6 +301,7 @@ body {
   .animate-float-delayed,
   .animate-badge-in,
   .animate-pulse-ring,
+  .animate-pulse,
   .marquee-track,
   .hero-aurora__blob,
   .text-shimmer {

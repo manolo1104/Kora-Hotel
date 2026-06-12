@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { useInView } from "motion/react";
 import { ArrowRight } from "lucide-react";
 import { Reveal } from "@/components/shared/Reveal";
+import { AhorroStickyPill } from "@/components/landing/AhorroStickyPill";
 
 const WA_CALC_URL = `https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "524891251458"}?text=Hola%2C%20us%C3%A9%20la%20calculadora%20de%20Kora%20y%20quiero%20saber%20m%C3%A1s`;
 
@@ -190,6 +192,17 @@ export function CalculadoraROI() {
   const [porcentajeOTA, setPorcentajeOTA] = useState<number>(70);
   const [comisionOTA, setComisionOTA] = useState<number>(18);
 
+  // Para el pill pegajoso: el usuario ya movió un slider y la calculadora ya
+  // no está en pantalla → su cifra lo acompaña durante el scroll.
+  const [interactuo, setInteractuo] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const enVista = useInView(cardRef, { amount: 0.1 });
+
+  const marcar = <T,>(set: (v: T) => void) => (v: T) => {
+    setInteractuo(true);
+    set(v);
+  };
+
   const { comisionMensual, comisionAnual, ahorroNetoAnual, roi } = calcular(
     habitaciones,
     precioPorNoche,
@@ -199,7 +212,7 @@ export function CalculadoraROI() {
   );
 
   return (
-    <section className="py-14 sm:py-20 bg-kora-bg">
+    <section id="calculadora" className="py-14 sm:py-20 bg-kora-bg">
       {/* Component-scoped slider + animation styles */}
       <style>{`
         .kora-slider {
@@ -258,7 +271,7 @@ export function CalculadoraROI() {
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* ── Card ── */}
         <Reveal>
-        <div className="rounded-2xl border border-kora-primary overflow-hidden shadow-lg shadow-kora-primary/10">
+        <div ref={cardRef} className="rounded-2xl border border-kora-primary overflow-hidden shadow-lg shadow-kora-primary/10">
           {/* Header */}
           <div className="bg-kora-primary px-6 py-5 sm:px-8 sm:py-6">
             <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
@@ -284,7 +297,7 @@ export function CalculadoraROI() {
                   step={1}
                   value={habitaciones}
                   display={String(habitaciones)}
-                  onChange={setHabitaciones}
+                  onChange={marcar(setHabitaciones)}
                 />
                 <SliderField
                   id="precio"
@@ -294,7 +307,7 @@ export function CalculadoraROI() {
                   step={100}
                   value={precioPorNoche}
                   display={fmtMXN(precioPorNoche)}
-                  onChange={setPrecioPorNoche}
+                  onChange={marcar(setPrecioPorNoche)}
                 />
                 <SliderField
                   id="ocup"
@@ -304,7 +317,7 @@ export function CalculadoraROI() {
                   step={5}
                   value={ocupacion}
                   display={`${ocupacion}%`}
-                  onChange={setOcupacion}
+                  onChange={marcar(setOcupacion)}
                 />
                 <SliderField
                   id="ota"
@@ -314,7 +327,7 @@ export function CalculadoraROI() {
                   step={5}
                   value={porcentajeOTA}
                   display={`${porcentajeOTA}%`}
-                  onChange={setPorcentajeOTA}
+                  onChange={marcar(setPorcentajeOTA)}
                 />
                 <SliderField
                   id="com"
@@ -324,7 +337,7 @@ export function CalculadoraROI() {
                   step={1}
                   value={comisionOTA}
                   display={`${comisionOTA}%`}
-                  onChange={setComisionOTA}
+                  onChange={marcar(setComisionOTA)}
                 />
               </fieldset>
 
@@ -384,6 +397,9 @@ export function CalculadoraROI() {
           </a>
         </div>
       </div>
+
+      {/* Tu cifra te acompaña durante el resto del scroll */}
+      <AhorroStickyPill comisionAnual={comisionAnual} visible={interactuo && !enVista} />
     </section>
   );
 }

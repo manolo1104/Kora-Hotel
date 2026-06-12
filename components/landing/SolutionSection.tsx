@@ -1,5 +1,5 @@
 import { Reveal } from "@/components/shared/Reveal";
-import { FeaturesTabs } from "@/components/landing/FeaturesTabs";
+import { ProductTour } from "@/components/landing/ProductTour";
 
 export function SolutionSection() {
   return (
@@ -14,15 +14,13 @@ export function SolutionSection() {
               Todo tu hotel en una sola pantalla
             </h2>
             <p className="mt-4 text-kora-muted text-base sm:text-lg leading-relaxed">
-              Reemplaza tu mezcla de herramientas sueltas. Elige una función y mírala
-              funcionando.
+              Reemplaza tu mezcla de herramientas sueltas. Sigue bajando y mira
+              cada pieza funcionando.
             </p>
           </div>
         </Reveal>
 
-        <Reveal delay={0.1}>
-          <FeaturesTabs />
-        </Reveal>
+        <ProductTour />
 
         <Reveal delay={0.2}>
           <p className="mt-10 text-xs text-kora-muted">

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { CheckCircle2, Gift, ArrowRight, ShieldCheck, BadgeCheck, Lock, X } from "lucide-react";
 import { Reveal } from "@/components/shared/Reveal";
 import { CountUp } from "@/components/shared/CountUp";
-import { LUGARES_DISPONIBLES, TOTAL_LUGARES, VALOR_WEB, LANZAMIENTO } from "@/lib/oferta";
+import { LUGARES_DISPONIBLES, TOTAL_LUGARES, VALOR_WEB, LANZAMIENTO, PLANES } from "@/lib/oferta";
 
 // Lo que incluye el sitio web profesional que construimos (el gancho gratis).
 const incluyeWeb = [
@@ -51,39 +51,19 @@ const garantias = [
   },
 ];
 
-// Tarifas escalonadas por número de habitaciones. La web profesional va incluida
-// gratis en los tres (valor $30,000) para los hoteles fundadores. El plan
-// Boutique NO incluye el agente de WhatsApp ni el pricing dinámico (premium).
-const planes = [
-  {
-    nombre: "Boutique",
-    rango: "1 a 8 habitaciones",
-    precio: 1990,
-    destacado: false,
-    features: featuresBase,
-    noIncluye: featuresPremium,
-  },
-  {
-    nombre: "Hotel",
-    rango: "9 a 20 habitaciones",
-    precio: 2990,
-    destacado: true,
-    features: featuresCompleto,
-    noIncluye: [],
-  },
-  {
-    nombre: "Hotel grande",
-    rango: "21 habitaciones o más",
-    precio: 4490,
-    destacado: false,
-    features: featuresCompleto,
-    noIncluye: [],
-  },
-];
+// Tarifas escalonadas por número de habitaciones (fuente única: lib/oferta.ts).
+// La web profesional va incluida gratis en los tres (valor $30,000) para los
+// hoteles fundadores. El plan Boutique NO incluye el agente de WhatsApp ni el
+// pricing dinámico (premium).
+const planes = PLANES.map((p) => ({
+  ...p,
+  features: p.clave === "boutique" ? featuresBase : featuresCompleto,
+  noIncluye: p.clave === "boutique" ? featuresPremium : [],
+}));
 
 export function PricingSection() {
   return (
-    <section id="precios" className="py-20 sm:py-24 bg-kora-bg">
+    <section id="precios" className="section-divider py-20 sm:py-24 bg-kora-bg">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <Reveal>
           <div className="text-center mb-12">
@@ -156,11 +136,15 @@ export function PricingSection() {
         {/* Tarifas escalonadas por tamaño del hotel */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
           {planes.map((plan, i) => (
-            <Reveal key={plan.nombre} delay={0.15 + i * 0.08}>
+            <Reveal
+              key={plan.nombre}
+              delay={0.15 + i * 0.08}
+              className={plan.destacado ? "order-first md:order-none" : undefined}
+            >
               <div
                 className={`relative h-full rounded-3xl p-8 bg-white ${
                   plan.destacado
-                    ? "card-glow border-2 border-kora-primary"
+                    ? "card-glow border-2 border-kora-primary lg:scale-[1.04] shadow-xl shadow-kora-primary/15"
                     : "card-hover border border-gray-200"
                 }`}
               >
@@ -192,6 +176,19 @@ export function PricingSection() {
                   />
                   <span className="text-kora-muted">MXN/mes</span>
                 </div>
+                {/* Transparencia tipo Stripe: la cuenta anual sin letras chiquitas */}
+                <p className="mt-1 text-[11px] text-kora-muted tabular-nums">
+                  ${plan.precio.toLocaleString("es-MX")} × 12 = $
+                  {(plan.precio * 12).toLocaleString("es-MX")} al año
+                </p>
+                {plan.destacado && (
+                  <a
+                    href="#calculadora"
+                    className="mt-2 inline-block text-xs font-semibold text-kora-primary underline decoration-kora-accent underline-offset-2 hover:text-kora-primary-dark transition-colors"
+                  >
+                    ↑ Calcula cuánto recuperas con tu hotel
+                  </a>
+                )}
 
                 <div className="mt-5 flex items-start gap-2.5 rounded-xl bg-kora-accent/10 px-3 py-2.5">
                   <Gift
@@ -238,20 +235,36 @@ export function PricingSection() {
                   </p>
                 )}
 
-                <a
-                  href="#contacto"
+                <Link
+                  href={`/pago/iniciar?plan=${plan.clave}`}
                   className={`btn-press btn-arrow mt-8 flex items-center justify-center gap-2 w-full py-3.5 rounded-full font-bold text-sm transition-colors text-center ${
                     plan.destacado
                       ? "btn-fill bg-kora-accent text-kora-primary hover:bg-kora-accent-dark"
                       : "border-2 border-kora-primary text-kora-primary hover:bg-kora-primary hover:text-white"
                   }`}
                 >
-                  Quiero ser hotel fundador
+                  Suscribirme ahora
+                </Link>
+                <a
+                  href="/#contacto"
+                  className="mt-3 block text-center text-xs font-semibold text-kora-muted underline hover:text-kora-primary transition-colors"
+                >
+                  o solicita tu lugar fundador y te contactamos
                 </a>
               </div>
             </Reveal>
           ))}
         </div>
+
+        {/* Sello de pagos seguros (Stripe) — visible junto a los CTAs, también en móvil */}
+        <Reveal delay={0.3}>
+          <div className="mt-8 flex items-center justify-center gap-2.5 text-kora-muted">
+            <Lock size={14} className="text-kora-primary" aria-hidden="true" />
+            <span className="text-xs font-medium">Cobro mensual seguro con</span>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/integraciones/stripe.svg" alt="Stripe" className="h-5 w-auto opacity-80" />
+          </div>
+        </Reveal>
 
         {/* Badges de garantía */}
         <Reveal delay={0.35}>
@@ -272,20 +285,6 @@ export function PricingSection() {
                 </div>
               </div>
             ))}
-          </div>
-        </Reveal>
-
-        {/* Sello de pagos seguros (Stripe) — confianza honesta en el cobro */}
-        <Reveal delay={0.38}>
-          <div className="mt-8 flex items-center justify-center gap-2.5 text-kora-muted">
-            <Lock size={14} className="text-kora-primary" aria-hidden="true" />
-            <span className="text-xs font-medium">Pagos de tus huéspedes protegidos con</span>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/integraciones/stripe.svg"
-              alt="Stripe"
-              className="h-5 w-auto opacity-80"
-            />
           </div>
         </Reveal>
 

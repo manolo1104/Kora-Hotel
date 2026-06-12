@@ -4,6 +4,10 @@
   "devCommand": "npm run dev",
   "installCommand": "npm install",
   "regions": ["iad1"],
+  "crons": [
+    { "path": "/api/cron/digest", "schedule": "0 14 * * *" },
+    { "path": "/api/cron/dunning", "schedule": "30 14 * * *" }
+  ],
   "headers": [
     {
       "source": "/(.*)",

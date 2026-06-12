@@ -4,7 +4,6 @@ import { useState } from "react";
 import { Check, Loader2, ArrowRight } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
-const FORMSPREE_URL = process.env.NEXT_PUBLIC_FORMSPREE_URL ?? "";
 const WA_FALLBACK_URL = `https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "524891251458"}?text=Hola%2C%20us%C3%A9%20una%20calculadora%20de%20Kora%20y%20quiero%20mi%20reporte`;
 
 interface LeadCaptureToolProps {
@@ -43,14 +42,6 @@ export function LeadCaptureTool({
     e.preventDefault();
     setError(false);
 
-    if (!FORMSPREE_URL) {
-      console.error(
-        "NEXT_PUBLIC_FORMSPREE_URL no está configurado: el formulario no puede enviar leads."
-      );
-      setError(true);
-      return;
-    }
-
     const data = new FormData(e.currentTarget);
 
     // Honeypot: si trae texto, es un bot. Fingimos éxito sin enviar nada.
@@ -61,10 +52,11 @@ export function LeadCaptureTool({
 
     setLoading(true);
     try {
-      const res = await fetch(FORMSPREE_URL, {
+      // El lead cae directo al CRM de Kora (y de ahí se avisa al fundador).
+      const res = await fetch("/api/leads", {
         method: "POST",
-        body: data,
-        headers: { Accept: "application/json" },
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(Object.fromEntries(data.entries())),
       });
       if (res.ok) {
         setSent(true);

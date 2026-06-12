@@ -11,7 +11,7 @@ const inputCls =
 
 type Modo = "password" | "magico";
 
-export function AuthForm() {
+export function AuthForm({ next = "/panel" }: { next?: string }) {
   const router = useRouter();
   const [modo, setModo] = useState<Modo>("password");
   const [registro, setRegistro] = useState(false); // en modo password: entrar vs crear cuenta
@@ -38,7 +38,8 @@ export function AuthForm() {
     setError("");
     setLoading(true);
     const supabase = createClient();
-    const redirectTo = `${window.location.origin}/auth/callback`;
+    // El callback conserva el destino (ej. /pago/iniciar?plan=hotel).
+    const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
 
     try {
       if (modo === "magico") {
@@ -62,7 +63,7 @@ export function AuthForm() {
           password,
         });
         if (error) setError(traducir(error.message));
-        else router.push("/panel");
+        else router.push(next);
       }
     } catch {
       setError("Ocurrió un problema. Inténtalo de nuevo.");

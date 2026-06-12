@@ -33,3 +33,9 @@ export function trackLead(method: "form" | "whatsapp") {
     });
   }
 }
+
+// Clic en un CTA secundario (no es conversión, solo medición de interacción).
+export function trackCta(name: string) {
+  if (typeof window === "undefined" || typeof window.gtag !== "function") return;
+  window.gtag("event", "cta_click", { cta_name: name });
+}
