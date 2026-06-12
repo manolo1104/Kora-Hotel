@@ -202,6 +202,39 @@ body {
   background: linear-gradient(to bottom, transparent, rgba(27, 67, 50, 0.06));
 }
 
+/* ─── Borde luminoso que sigue al cursor (Vercel/Linear) ────────────────────── */
+/* El anillo se dibuja con la técnica de máscara doble (solo queda el borde),
+   centrado en --glow-x/--glow-y que GlowCard.tsx actualiza al mover el mouse. */
+
+.glow-border {
+  position: relative;
+}
+@media (hover: hover) and (pointer: fine) {
+  .glow-border::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1.5px;
+    background: radial-gradient(
+      240px circle at var(--glow-x, 50%) var(--glow-y, 50%),
+      rgba(82, 183, 136, 0.95),
+      rgba(82, 183, 136, 0.25) 45%,
+      transparent 70%
+    );
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+    opacity: 0;
+    transition: opacity 320ms ease;
+    pointer-events: none;
+  }
+  .glow-border:hover::after {
+    opacity: 1;
+  }
+}
+
 /* ─── Focus rings globales (accesibilidad + confianza) ──────────────────────── */
 
 a:focus-visible,

@@ -79,7 +79,25 @@ export async function POST(req: Request) {
   ].filter(Boolean);
   const notas = notasPartes.join("\n") || null;
 
+  // Sin base de datos configurada (ej. falta la env en Vercel): el lead NO se
+  // pierde — se reenvía a Formspree como antes y se responde éxito.
   if (!adminEnvReady) {
+    if (FORMSPREE_URL) {
+      const fd = new FormData();
+      for (const [k, v] of Object.entries(body)) {
+        if (typeof v === "string" && k !== "_gotcha") fd.append(k, v);
+      }
+      try {
+        const res = await fetch(FORMSPREE_URL, {
+          method: "POST",
+          body: fd,
+          headers: { Accept: "application/json" },
+        });
+        if (res.ok) return NextResponse.json({ ok: true });
+      } catch {
+        // cae al error de abajo
+      }
+    }
     return NextResponse.json(
       { error: "No pudimos registrar tu solicitud. Escríbenos por WhatsApp." },
       { status: 503 }

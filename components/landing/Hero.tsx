@@ -72,12 +72,37 @@ export function Hero() {
                 Reservas directas + WhatsApp con IA
               </motion.p>
 
-              <motion.h1 {...item(0.06)} className="text-4xl sm:text-5xl xl:text-[3.5rem] font-bold tracking-tight text-kora-text leading-tight">
-                Tu hotel lleno.{" "}
-                <span className="text-shimmer text-kora-primary">
-                  Sin depender de Booking.
-                </span>
-              </motion.h1>
+              {/* Headline palabra por palabra con blur que se enfoca (Linear/Apple).
+                  La frase shimmer entra como una sola unidad para no romper su gradiente. */}
+              <h1 className="text-4xl sm:text-5xl xl:text-[3.5rem] font-bold tracking-tight text-kora-text leading-tight">
+                {["Tu", "hotel", "lleno."].map((palabra, i) => (
+                  <motion.span
+                    key={palabra}
+                    className="inline-block whitespace-pre"
+                    initial={
+                      reduceMotion
+                        ? false
+                        : { opacity: 0, y: 16, filter: "blur(8px)" }
+                    }
+                    animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                    transition={{ duration: 0.55, delay: 0.08 + i * 0.09, ease: EASE }}
+                  >
+                    {palabra}{" "}
+                  </motion.span>
+                ))}
+                <motion.span
+                  className="inline-block"
+                  initial={
+                    reduceMotion ? false : { opacity: 0, y: 16, filter: "blur(10px)" }
+                  }
+                  animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                  transition={{ duration: 0.65, delay: 0.4, ease: EASE }}
+                >
+                  <span className="text-shimmer text-kora-primary">
+                    Sin depender de Booking.
+                  </span>
+                </motion.span>
+              </h1>
 
               <motion.p {...item(0.12)} className="text-base sm:text-lg text-kora-muted leading-relaxed max-w-[52ch]">
                 Página web con reservas directas, un agente de WhatsApp con IA que

@@ -1,5 +1,6 @@
 import { UserCheck, Languages, Receipt, LifeBuoy, Percent } from "lucide-react";
 import { Reveal } from "@/components/shared/Reveal";
+import { GlowCard } from "@/components/shared/GlowCard";
 import { FUNDADOR } from "@/lib/fundador";
 
 type Tile = {
@@ -100,7 +101,7 @@ export function DiferenciadoresSection() {
             const s = styleMap[style];
             return (
               <Reveal key={titulo} delay={0.05 + i * 0.06} className={`${span} h-full`}>
-                <div
+                <GlowCard
                   className={`group ${s.wrapper} rounded-2xl p-6 h-full flex flex-col transition-transform duration-300 hover:-translate-y-1 ${
                     style === "dark"
                       ? "justify-between min-h-[240px] lg:min-h-[300px]"
@@ -134,7 +135,7 @@ export function DiferenciadoresSection() {
                       </p>
                     )}
                   </div>
-                </div>
+                </GlowCard>
               </Reveal>
             );
           })}

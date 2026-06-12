@@ -2,6 +2,7 @@ import Link from "next/link";
 import { CheckCircle2, Gift, ArrowRight, ShieldCheck, BadgeCheck, Lock, X } from "lucide-react";
 import { Reveal } from "@/components/shared/Reveal";
 import { CountUp } from "@/components/shared/CountUp";
+import { GlowCard } from "@/components/shared/GlowCard";
 import { LUGARES_DISPONIBLES, TOTAL_LUGARES, VALOR_WEB, LANZAMIENTO, PLANES } from "@/lib/oferta";
 
 // Lo que incluye el sitio web profesional que construimos (el gancho gratis).
@@ -141,7 +142,7 @@ export function PricingSection() {
               delay={0.15 + i * 0.08}
               className={plan.destacado ? "order-first md:order-none" : undefined}
             >
-              <div
+              <GlowCard
                 className={`relative h-full rounded-3xl p-8 bg-white ${
                   plan.destacado
                     ? "card-glow border-2 border-kora-primary lg:scale-[1.04] shadow-xl shadow-kora-primary/15"
@@ -251,7 +252,7 @@ export function PricingSection() {
                 >
                   o solicita tu lugar fundador y te contactamos
                 </a>
-              </div>
+              </GlowCard>
             </Reveal>
           ))}
         </div>
