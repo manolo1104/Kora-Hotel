@@ -135,9 +135,14 @@ const KORA_PRO_PAGINA = [
 export function PanelEditor({
   userId,
   planActivo = false,
+  hotelSlug,
 }: {
   userId: string;
   planActivo?: boolean;
+  // Multi-tenant: si se pasa, el editor carga ESE hotel por slug (un usuario
+  // puede tener varios). Sin él, carga el único hotel del usuario por owner_id
+  // (comportamiento original, conservado para no romper usos previos).
+  hotelSlug?: string;
 }) {
   const supabase = createClient();
 
@@ -206,11 +211,12 @@ export function PanelEditor({
   useEffect(() => {
     let activo = true;
     (async () => {
-      const { data } = await supabase
-        .from("hoteles")
-        .select("*")
-        .eq("owner_id", userId)
-        .maybeSingle();
+      // Por slug (multi-tenant) si viene; si no, el hotel del usuario por owner_id.
+      const query = supabase.from("hoteles").select("*");
+      const { data } = await (hotelSlug
+        ? query.eq("slug", hotelSlug)
+        : query.eq("owner_id", userId)
+      ).maybeSingle();
       if (activo && data) {
         setHotelId(data.id);
         setSlug(data.slug);
@@ -257,7 +263,7 @@ export function PanelEditor({
     return () => {
       activo = false;
     };
-  }, [supabase, userId]);
+  }, [supabase, userId, hotelSlug]);
 
   const slugPreview = slug || slugify(nombre) || "tu-hotel";
 

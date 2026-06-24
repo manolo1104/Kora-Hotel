@@ -1,18 +1,36 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
+import {
+  LayoutDashboard,
+  Globe,
+  CalendarCheck,
+  Pencil,
+  Plus,
+  Building2,
+  ArrowRight,
+} from "lucide-react";
 import { Reveal } from "@/components/shared/Reveal";
 import { LogoutButton } from "@/components/panel/LogoutButton";
-import { PanelEditor } from "@/components/panel/PanelEditor";
 import { SuscripcionCard } from "@/components/panel/SuscripcionCard";
 import { createClient } from "@/lib/supabase/server";
 import { supabaseEnvReady } from "@/lib/supabase/env";
-import { getSuscripcion, tienePlanActivo } from "@/lib/suscripcion";
+import { getSuscripcion } from "@/lib/suscripcion";
+import { getHotelesDelUsuario, type RolHotel } from "@/lib/tenant";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Mi panel | Kora",
   robots: { index: false },
+};
+
+const ROL_LABEL: Record<RolHotel, string> = {
+  dueno: "Dueño",
+  encargada: "Encargada",
+  recepcion: "Recepción",
+  limpieza: "Limpieza",
+  cocina: "Cocina",
 };
 
 export default async function PanelPage() {
@@ -38,8 +56,12 @@ export default async function PanelPage() {
 
   if (!user) redirect("/entrar");
 
-  const suscripcion = await getSuscripcion(user.id);
-  const planActivo = tienePlanActivo(suscripcion);
+  const [suscripcion, hoteles] = await Promise.all([
+    getSuscripcion(user.id),
+    getHotelesDelUsuario(),
+  ]);
+
+  const card = "bg-white rounded-2xl p-6 sm:p-7 border border-gray-100 shadow-sm";
 
   return (
     <main className="pt-16">
@@ -49,7 +71,7 @@ export default async function PanelPage() {
             <div className="flex items-center justify-between gap-4 flex-wrap">
               <div>
                 <h1 className="text-2xl sm:text-3xl font-bold text-kora-text tracking-tight">
-                  Tu panel
+                  Mis hoteles
                 </h1>
                 <p className="mt-1 text-sm text-kora-muted">{user.email}</p>
               </div>
@@ -63,7 +85,95 @@ export default async function PanelPage() {
             esStripe={Boolean(suscripcion?.stripe_customer_id)}
           />
 
-          <PanelEditor userId={user.id} planActivo={planActivo} />
+          {/* Sin hoteles → bienvenida */}
+          {hoteles.length === 0 ? (
+            <Reveal delay={0.1}>
+              <div className={`${card} mt-6 text-center`}>
+                <div className="w-14 h-14 rounded-full bg-kora-accent/15 flex items-center justify-center mx-auto mb-4">
+                  <Building2 size={28} className="text-kora-primary" aria-hidden="true" />
+                </div>
+                <h2 className="text-xl font-bold text-kora-text">
+                  Da de alta tu primer hotel
+                </h2>
+                <p className="mt-2 text-sm text-kora-muted leading-relaxed max-w-md mx-auto">
+                  En un par de minutos tendrás tu página de reservas directas, lista para
+                  recibir huéspedes sin comisiones de Booking ni Airbnb.
+                </p>
+                <Link
+                  href="/panel/onboarding"
+                  className="btn-press btn-fill mt-6 inline-flex items-center gap-2 px-7 py-3.5 rounded-full bg-kora-accent text-kora-primary font-bold text-sm hover:bg-kora-accent-dark transition-colors"
+                >
+                  <Plus size={16} /> Crear mi hotel
+                </Link>
+              </div>
+            </Reveal>
+          ) : (
+            <div className="mt-6 space-y-4">
+              {hoteles.map(({ hotel, rol }, i) => (
+                <Reveal key={hotel.id} delay={0.05 * i}>
+                  <div className={card}>
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0">
+                        <h2 className="text-lg font-bold text-kora-text truncate">
+                          {hotel.nombre}
+                        </h2>
+                        <p className="mt-0.5 text-xs text-kora-muted break-all">
+                          kora-hotel.com/h/{hotel.slug}
+                        </p>
+                      </div>
+                      <span className="flex-shrink-0 px-2.5 py-1 rounded-full bg-kora-bg text-[11px] font-bold text-kora-muted">
+                        {ROL_LABEL[rol] ?? rol}
+                      </span>
+                    </div>
+
+                    <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      <Link
+                        href={`/panel/${hotel.slug}/reservas`}
+                        className="btn-press inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-kora-primary text-white font-semibold text-xs sm:text-sm hover:bg-kora-primary-dark transition-colors"
+                      >
+                        <LayoutDashboard size={15} aria-hidden="true" /> Panel
+                      </Link>
+                      <Link
+                        href={`/h/${hotel.slug}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn-press inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border border-gray-200 text-kora-text font-semibold text-xs sm:text-sm hover:border-kora-accent transition-colors"
+                      >
+                        <Globe size={15} aria-hidden="true" /> Ver sitio
+                      </Link>
+                      <Link
+                        href={`/h/${hotel.slug}/reservar`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn-press inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border border-gray-200 text-kora-text font-semibold text-xs sm:text-sm hover:border-kora-accent transition-colors"
+                      >
+                        <CalendarCheck size={15} aria-hidden="true" /> Reservas
+                      </Link>
+                      <Link
+                        href={`/panel/${hotel.slug}/sitio`}
+                        className="btn-press inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border border-gray-200 text-kora-text font-semibold text-xs sm:text-sm hover:border-kora-accent transition-colors"
+                      >
+                        <Pencil size={15} aria-hidden="true" /> Editar sitio
+                      </Link>
+                    </div>
+                  </div>
+                </Reveal>
+              ))}
+
+              <Reveal delay={0.05 * hoteles.length}>
+                <Link
+                  href="/panel/onboarding"
+                  className="btn-press group flex items-center justify-center gap-2 w-full px-5 py-4 rounded-2xl border-2 border-dashed border-gray-200 text-kora-muted font-semibold text-sm hover:border-kora-accent hover:text-kora-primary transition-colors"
+                >
+                  <Plus size={16} /> Agregar otro hotel
+                  <ArrowRight
+                    size={15}
+                    className="opacity-0 -ml-1 group-hover:opacity-100 group-hover:ml-0 transition-all"
+                  />
+                </Link>
+              </Reveal>
+            </div>
+          )}
         </div>
       </section>
     </main>

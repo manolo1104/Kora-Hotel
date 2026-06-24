@@ -26,6 +26,21 @@ export async function proxy(request: NextRequest) {
   });
 
   await supabase.auth.getUser();
+
+  // Multi-tenant: al navegar el panel operativo /panel/[slug]/..., recordar el
+  // slug del hotel activo en una cookie. Las rutas /api/admin/* la leen para
+  // saber sobre qué hotel operar (y SIEMPRE verifican membresía). Así los
+  // componentes del panel no necesitan reescribir sus fetch.
+  const m = request.nextUrl.pathname.match(/^\/panel\/([^/]+)(?:\/|$)/);
+  if (m && m[1]) {
+    response.cookies.set("kora_active_slug", m[1], {
+      httpOnly: true,
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 12,
+    });
+  }
+
   return response;
 }
 
