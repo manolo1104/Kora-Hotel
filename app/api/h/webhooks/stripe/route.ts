@@ -14,11 +14,14 @@ export const runtime = "nodejs";
 
 // Webhook del motor público: cuando Stripe confirma el pago, crea la reserva de
 // forma atómica (anti-overbooking) e idempotente. Verifica la firma con
-// STRIPE_WEBHOOK_SECRET. El hotel_id viaja en la metadata (nunca del body abierto).
+// Usa STRIPE_WEBHOOK_SECRET_RESERVAS (DISTINTO del de suscripciones en
+// /api/stripe/webhook): Stripe firma cada endpoint registrado con su PROPIO
+// secreto, así que reservas y suscripciones necesitan secretos separados. El
+// hotel_id viaja en la metadata (nunca del body abierto).
 export async function POST(req: NextRequest) {
-  const secret = process.env.STRIPE_WEBHOOK_SECRET;
+  const secret = process.env.STRIPE_WEBHOOK_SECRET_RESERVAS;
   if (!secret) {
-    console.error("STRIPE_WEBHOOK_SECRET no configurado — webhook inactivo");
+    console.error("STRIPE_WEBHOOK_SECRET_RESERVAS no configurado — webhook de reservas inactivo");
     return NextResponse.json({ error: "webhook-no-configurado" }, { status: 500 });
   }
 

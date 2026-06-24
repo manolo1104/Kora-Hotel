@@ -1,12 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getActiveHotel } from '@/lib/panel/active-hotel';
-import {
-  getAllBookings,
-  updateBooking,
-  cancelBooking,
-  blockRooms,
-  unblockRooms,
-} from '@/lib/db/admin';
+import { getAllBookings, updateBooking, cancelBooking } from '@/lib/db/admin';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,24 +21,16 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const booking = bookings.find(b => b.confirmacion === id);
   if (!booking) return NextResponse.json({ error: 'No encontrada' }, { status: 404 });
 
-  // Detectar si cambiaron habitaciones o fechas → reasignar bloqueos.
-  const oldRooms    = booking.habitaciones || '';
-  const oldCheckin  = booking.checkin || '';
-  const oldCheckout = booking.checkout || '';
-  const newRooms    = raw.habitaciones ?? oldRooms;
-  const newCheckin  = raw.checkin  ?? oldCheckin;
-  const newCheckout = raw.checkout ?? oldCheckout;
-
-  const roomsChanged = newRooms !== oldRooms;
-  const datesChanged = newCheckin !== oldCheckin || newCheckout !== oldCheckout;
-
-  if ((roomsChanged || datesChanged) && oldRooms && oldCheckin && oldCheckout) {
-    await unblockRooms(ctx.hotelId, oldRooms, oldCheckin, oldCheckout);
-    if (newRooms && newCheckin && newCheckout) {
-      await blockRooms(ctx.hotelId, newRooms, newCheckin, newCheckout);
-    }
+  // Validación de fechas: si se editan, la salida debe ser posterior a la llegada.
+  const newCheckin  = raw.checkin  ?? booking.checkin;
+  const newCheckout = raw.checkout ?? booking.checkout;
+  if ((raw.checkin || raw.checkout) && newCheckin && newCheckout && newCheckout <= newCheckin) {
+    return NextResponse.json({ error: 'La salida debe ser posterior a la llegada.' }, { status: 400 });
   }
 
+  // updateBooking re-sincroniza los bloqueos RESERVADO (por booking_id) cuando
+  // cambian fechas/cuartos; por eso NO usamos block/unblockRooms aquí (evita
+  // mezclar estados RESERVADO/BLOQUEADO y dejar fechas viejas ocupadas).
   await updateBooking(ctx.hotelId, booking.id, raw);
   return NextResponse.json({ ok: true });
 }

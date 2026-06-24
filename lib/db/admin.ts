@@ -358,7 +358,47 @@ export async function updateBooking(
     .update(patch)
     .eq("hotel_id", hotelId)
     .eq("id", id);
-  if (error) console.error("updateBooking error:", error.message);
+  if (error) {
+    console.error("updateBooking error:", error.message);
+    return;
+  }
+
+  // Si cambiaron fechas o cuartos, re-sincronizar los bloqueos RESERVADO (ligados
+  // por booking_id) para que la disponibilidad refleje los nuevos datos. Sin esto,
+  // las fechas viejas quedan ocupadas y las nuevas libres (riesgo de overbooking).
+  if (patch.checkin !== undefined || patch.checkout !== undefined || patch.habitaciones !== undefined) {
+    const { data: b } = await supabase
+      .from("bookings")
+      .select("checkin, checkout, habitaciones, estado")
+      .eq("hotel_id", hotelId)
+      .eq("id", id)
+      .maybeSingle();
+    await supabase.from("blocks").delete().eq("hotel_id", hotelId).eq("booking_id", id);
+    const row = b as {
+      checkin: string | null;
+      checkout: string | null;
+      habitaciones: string | null;
+      estado: string | null;
+    } | null;
+    if (row && row.estado !== "CANCELADA" && row.checkin && row.checkout) {
+      const rooms = String(row.habitaciones || "")
+        .split(",")
+        .map((r) => r.replace(/\s*\([^)]*\)/g, "").trim())
+        .filter(Boolean);
+      if (rooms.length) {
+        await supabase.from("blocks").insert(
+          rooms.map((habitacion) => ({
+            hotel_id: hotelId,
+            habitacion,
+            checkin: row.checkin,
+            checkout: row.checkout,
+            status: "RESERVADO",
+            booking_id: id,
+          })),
+        );
+      }
+    }
+  }
 }
 
 /**

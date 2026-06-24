@@ -103,14 +103,24 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     holdSession: sessionId,
   };
 
-  // Stripe Connect: si el hotel conectó su cuenta, el pago se enruta a SU cuenta
-  // (destination charge). Kora puede tomar una comisión opcional (config.application_fee_pct,
-  // apagada por defecto). Sin cuenta conectada, el pago va a la cuenta plataforma (degradado).
+  // Stripe Connect: si el hotel conectó su cuenta y puede cobrar (charges_enabled),
+  // el pago se enruta a SU cuenta (destination charge). Comisión opcional con TOPE
+  // [0,90]% (un fee > monto haría que Stripe rechace la sesión). Si la cuenta no
+  // puede cobrar o la consulta falla, el pago va a la cuenta plataforma (degradado,
+  // reconciliable) en vez de tronar el checkout.
   const piData: Stripe.Checkout.SessionCreateParams.PaymentIntentData = { metadata: md };
   if (hotel.stripe_account_id) {
-    piData.transfer_data = { destination: hotel.stripe_account_id };
-    const feePct = Number((hotel.config?.application_fee_pct as number) ?? 0);
-    if (feePct > 0) piData.application_fee_amount = Math.round(amountCents * (feePct / 100));
+    try {
+      const acct = await stripe.accounts.retrieve(hotel.stripe_account_id);
+      if (acct.charges_enabled) {
+        piData.transfer_data = { destination: hotel.stripe_account_id };
+        const raw = hotel.config?.application_fee_pct;
+        const feePct = typeof raw === "number" && isFinite(raw) ? Math.max(0, Math.min(raw, 90)) : 0;
+        if (feePct > 0) piData.application_fee_amount = Math.round(amountCents * (feePct / 100));
+      }
+    } catch (e) {
+      console.error("connect account retrieve error:", e);
+    }
   }
 
   try {
