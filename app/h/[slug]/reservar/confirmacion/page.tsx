@@ -4,6 +4,7 @@ import { resolveHotel } from "@/lib/tenant";
 import { getStripe, stripeEnvReady } from "@/lib/stripe/server";
 import { formatMXN } from "@/lib/booking";
 import { COLOR_DEFAULT, inkFor, fontStack, type MiniExtras } from "@/lib/mini";
+import { ownerTienePlanActivo } from "@/lib/suscripcion";
 
 export const dynamic = "force-dynamic";
 
@@ -59,6 +60,9 @@ export default async function ConfirmacionPage({
   const color = diseno.color || COLOR_DEFAULT;
   const ink = inkFor(color);
   const font = fontStack(diseno.fuente);
+  const logoUrl = diseno.logoUrl || null;
+  const marcaOculta =
+    !!hotel && extras.premium?.marcaOculta === true && (await ownerTienePlanActivo(hotel.owner_id));
 
   // Recuperar la sesión de Stripe (best-effort; nunca rompe la página).
   let resumen: Resumen | null = null;
@@ -113,6 +117,14 @@ export default async function ConfirmacionPage({
     >
       <div className="mx-auto w-full max-w-xl px-4 py-10 sm:px-6">
         <div className="rounded-2xl border border-gray-100 bg-white p-6 text-center shadow-sm sm:p-8">
+          {logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={logoUrl}
+              alt={hotelNombre}
+              className="mx-auto mb-4 h-10 w-auto max-w-[180px] object-contain"
+            />
+          ) : null}
           <div
             className="mx-auto grid h-16 w-16 place-items-center rounded-full"
             style={{ background: "color-mix(in srgb, var(--brand) 14%, white)" }}
@@ -237,16 +249,18 @@ export default async function ConfirmacionPage({
           </div>
         </div>
 
-        <footer className="mt-6 text-center">
-          <a
-            href="https://kora-hotel.com/?utm_source=motor-reservas"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-[11px] text-kora-muted transition-colors hover:text-kora-primary"
-          >
-            Reservas con <span className="font-bold text-kora-primary">Kora</span>
-          </a>
-        </footer>
+        {!marcaOculta && (
+          <footer className="mt-6 text-center">
+            <a
+              href="https://kora-hotel.com/?utm_source=motor-reservas"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[11px] text-kora-muted transition-colors hover:text-kora-primary"
+            >
+              Reservas con <span className="font-bold text-kora-primary">Kora</span>
+            </a>
+          </footer>
+        )}
       </div>
     </div>
   );

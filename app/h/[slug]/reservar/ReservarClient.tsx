@@ -35,6 +35,8 @@ interface Props {
   brandColor: string;
   brandInk: string;
   fontStack: string;
+  logoUrl: string | null;
+  marcaOculta: boolean;
 }
 
 // Placeholder visual cuando un cuarto no trae imagen.
@@ -64,6 +66,8 @@ export default function ReservarClient({
   brandColor,
   brandInk,
   fontStack,
+  logoUrl,
+  marcaOculta,
 }: Props) {
   // ── Fechas + huéspedes ──────────────────────────────────
   const today = new Date().toISOString().split("T")[0];
@@ -316,6 +320,14 @@ export default function ReservarClient({
       <div className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6">
         {/* Encabezado */}
         <header className="mb-5">
+          {logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={logoUrl}
+              alt={hotelNombre}
+              className="mb-3 h-10 w-auto max-w-[180px] object-contain"
+            />
+          ) : null}
           <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--brand)" }}>
             Reserva directa · Sin comisiones
           </p>
@@ -764,17 +776,19 @@ export default function ReservarClient({
           </section>
         )}
 
-        {/* Pie discreto */}
-        <footer className="mt-8 text-center">
-          <a
-            href="https://kora-hotel.com/?utm_source=motor-reservas"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-[11px] text-kora-muted transition-colors hover:text-kora-primary"
-          >
-            Reservas con <span className="font-bold text-kora-primary">Kora</span>
-          </a>
-        </footer>
+        {/* Pie discreto (se oculta con el premium "Quitar marca Kora") */}
+        {!marcaOculta && (
+          <footer className="mt-8 text-center">
+            <a
+              href="https://kora-hotel.com/?utm_source=motor-reservas"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[11px] text-kora-muted transition-colors hover:text-kora-primary"
+            >
+              Reservas con <span className="font-bold text-kora-primary">Kora</span>
+            </a>
+          </footer>
+        )}
       </div>
     </div>
   );

@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { resolveHotel } from "@/lib/tenant";
 import { hotelRooms } from "@/lib/booking";
 import { COLOR_DEFAULT, inkFor, fontStack, type MiniExtras } from "@/lib/mini";
+import { ownerTienePlanActivo } from "@/lib/suscripcion";
 import ReservarClient from "./ReservarClient";
 
 export const dynamic = "force-dynamic";
@@ -24,6 +25,10 @@ export default async function ReservarPage({
   const diseno = extras.diseno ?? {};
   const color = diseno.color || COLOR_DEFAULT;
 
+  // Quitar la marca de Kora es premium: solo se respeta con plan activo del dueño.
+  const marcaOculta =
+    extras.premium?.marcaOculta === true && (await ownerTienePlanActivo(hotel.owner_id));
+
   return (
     <ReservarClient
       slug={slug}
@@ -33,6 +38,8 @@ export default async function ReservarPage({
       brandColor={color}
       brandInk={inkFor(color)}
       fontStack={fontStack(diseno.fuente)}
+      logoUrl={diseno.logoUrl || null}
+      marcaOculta={marcaOculta}
     />
   );
 }

@@ -79,10 +79,10 @@ export function Navbar() {
             Cupos limitados este mes
           </span>
           <a
-            href="/#contacto"
+            href="/#motor-reservas"
             className="btn-press btn-arrow btn-fill inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-kora-primary text-white text-sm font-semibold hover:bg-kora-primary-dark transition-colors"
           >
-            Solicitar mi lugar
+            Ver el motor
           </a>
         </div>
 
@@ -144,14 +144,14 @@ export function Navbar() {
                 </motion.a>
               ))}
               <motion.a
-                href="/#contacto"
+                href="/#motor-reservas"
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.22, delay: 0.05 + navLinks.length * 0.06, ease: EASE }}
                 className="btn-press mt-3 block w-full text-center px-5 py-3 rounded-full bg-kora-primary text-white text-sm font-semibold"
                 onClick={() => setMenuOpen(false)}
               >
-                Solicitar mi lugar
+                Ver el motor
               </motion.a>
             </div>
           </motion.div>
