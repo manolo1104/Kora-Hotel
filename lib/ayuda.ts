@@ -29,19 +29,19 @@ export const AYUDA: ArticuloAyuda[] = [
     contenido: [
       "Tu precio depende del tamaño de tu hotel: Boutique (1 a 8 habitaciones) $1,990 MXN/mes, Hotel (9 a 20 habitaciones) $2,990 MXN/mes y Hotel grande (21 o más) $4,490 MXN/mes.",
       "Todos los planes incluyen el PMS completo, dashboard con métricas, CRM de huéspedes con emails automáticos, facturación CFDI 4.0 y soporte directo con el equipo fundador.",
-      "El agente de WhatsApp con IA 24/7 y el pricing dinámico se incluyen a partir del plan Hotel.",
+      "Camila Lite (asistente de WhatsApp con IA, con límite mensual) viene en Boutique; la versión completa 24/7 y el pricing dinámico, desde el plan Hotel.",
       "La mini-página de reservas es gratis para siempre, con o sin plan.",
       "Pagas con tarjeta desde la página de precios; el cobro es mensual y automático. Puedes cambiar de tarjeta, descargar recibos o cancelar tú mismo desde tu panel, en “Administrar mi pago”.",
     ],
   },
   {
-    slug: "oferta-fundador",
-    titulo: "La oferta de hoteles fundadores",
-    resumen: "Sitio web profesional gratis para los primeros 10 hoteles.",
+    slug: "sitio-web",
+    titulo: "El servicio de sitio web profesional",
+    resumen: "Te creamos tu sitio web con motor de reservas, como servicio aparte.",
     contenido: [
-      "Para los primeros 10 hoteles que se suscriben a Kora, construimos su sitio web profesional completo sin costo (valor de $30,000 MXN): diseño 100% personalizado, motor de reservas propio sin comisiones, dominio, hosting y certificado de seguridad.",
-      "A cambio pedimos permanencia mínima de 12 meses, que es como amortizamos el sitio sin cobrártelo.",
-      "Cuando se acaben los lugares, la página web pasa a ser un servicio de pago. Puedes ver cuántos lugares quedan en kora-hotel.com/precios.",
+      "Te diseñamos y construimos tu sitio web profesional completo: diseño 100% personalizado, motor de reservas propio sin comisiones, tu dominio, hosting y certificado de seguridad.",
+      "Es un servicio aparte de tu mensualidad: lo cotizamos según tu hotel. Tu plan de Kora es siempre mes a mes, sin permanencia.",
+      "Si ya tienes página, también podemos conectar tu motor de reservas a la que usas. Más detalles en kora-hotel.com/precios.",
     ],
   },
   {

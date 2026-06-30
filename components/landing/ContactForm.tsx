@@ -7,12 +7,12 @@ import { motion, AnimatePresence } from "motion/react";
 import { trackLead } from "@/lib/analytics";
 
 // Respaldo: si el envío falla, ofrecemos WhatsApp para no perder el lead.
-const WA_FALLBACK_URL = `https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "524891251458"}?text=Hola%2C%20quiero%20ser%20hotel%20fundador%20de%20Kora`;
+const WA_FALLBACK_URL = `https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "524891251458"}?text=Hola%2C%20quiero%20m%C3%A1s%20informaci%C3%B3n%20de%20Kora`;
 
 const benefits = [
-  "Tu sitio web profesional GRATIS (valor $30,000 MXN) — lo construimos nosotros",
-  "Mensualidad fundador desde $1,990 MXN/mes según tu tamaño",
-  "Acceso prioritario a nuevas funciones",
+  "Plan mes a mes desde $1,990 MXN/mes — sin permanencia",
+  "Te montamos todo y capacitamos a tu equipo en 48 a 72 horas",
+  "Opcional: tu sitio web profesional con motor de reservas (servicio aparte)",
   "Soporte directo con el equipo fundador",
 ];
 
@@ -93,13 +93,13 @@ export function ContactForm() {
                 </div>
               )}
               <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-white leading-tight">
-                Sé uno de los 10 hoteles fundadores
+                Lleva tu hotel a las reservas directas
               </h2>
               <p className="mt-4 text-kora-accent text-base leading-relaxed">
-                Tu sitio web profesional gratis + precio fundador + soporte directo.
+                Plan mes a mes, sin permanencia, con soporte directo del equipo fundador.
               </p>
 
-              <ul className="mt-8 space-y-4" aria-label="Beneficios del programa fundador">
+              <ul className="mt-8 space-y-4" aria-label="Beneficios de Kora">
                 {benefits.map((benefit, i) => (
                   <Reveal key={benefit} delay={0.15 + i * 0.08}>
                     <li className="flex items-start gap-3">

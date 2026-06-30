@@ -4,12 +4,20 @@ import { TiltCard } from "@/components/shared/TiltCard";
 // Video demo (embed). YouTube: Compartir → Insertar → copia la URL del src.
 const VIDEO_EMBED_URL = "https://www.youtube.com/embed/IE5NTgS74rY";
 
-// Cifras verificables (no estimaciones). El costo de apps separadas ($5,300) vive
-// en la comparativa pegada al pricing, así que aquí no se duplica.
-const stats = [
-  { value: "0%", label: "Comisión en reservas directas" },
-  { value: "Segundos", label: "Respuesta en WhatsApp con IA" },
-];
+// Caso real verificable: el hotel del fundador operando con Kora (no estimaciones).
+// El costo de apps separadas ($5,300) vive en la comparativa pegada al pricing.
+const caso = {
+  hotel: "Hotel Paraíso Encantado",
+  contexto: "El hotel del fundador, operando con Kora desde hace 3 meses.",
+  metricas: [
+    { value: "$120,000", label: "en reservas directas en sus primeros 3 meses" },
+    { value: "~25%", label: "menos en comisiones de OTAs (≈$30,000 que se queda en el hotel)" },
+    { value: "24/7", label: "Camila contesta al instante y reúne lo necesario para cerrar la reserva" },
+  ],
+  quote:
+    "En 3 meses, Kora nos trajo $120,000 en reservas directas. Camila contesta al instante y nos deja todo listo para cerrar — ya no perdemos al huésped que escribe de noche.",
+  autor: "Manolo Covarrubias · dueño del Hotel Paraíso Encantado",
+};
 
 // Sitios reales que hemos creado (prueba del servicio de página).
 const sitiosCreados = [
@@ -30,7 +38,7 @@ export function SocialProofSection() {
               Míralo funcionando en 90 segundos
             </h2>
             <p className="mt-3 text-kora-muted text-sm max-w-lg mx-auto">
-              Del mensaje de WhatsApp del huésped a la reserva confirmada en el PMS.
+              Del primer WhatsApp del huésped a la reserva capturada en tu PMS.
             </p>
           </div>
         </Reveal>
@@ -48,17 +56,29 @@ export function SocialProofSection() {
           </div>
         </Reveal>
 
-        {/* Stats verificables */}
-        <div className="mt-6 grid grid-cols-2 gap-4">
-          {stats.map((s, i) => (
-            <Reveal key={s.label} delay={0.16 + i * 0.08}>
-              <div className="bg-kora-bg rounded-2xl p-5 border border-gray-100 text-center">
-                <p className="text-3xl font-bold text-kora-primary">{s.value}</p>
-                <p className="text-sm text-kora-muted mt-1 leading-snug">{s.label}</p>
-              </div>
-            </Reveal>
-          ))}
-        </div>
+        {/* Caso real: el hotel del fundador, operando con Kora */}
+        <Reveal delay={0.16}>
+          <div className="mt-6 rounded-2xl border border-kora-primary/15 bg-kora-bg p-6 sm:p-8">
+            <p className="text-xs font-bold text-kora-muted uppercase tracking-widest">
+              Caso real · {caso.hotel}
+            </p>
+            <p className="mt-1 text-sm text-kora-muted">{caso.contexto}</p>
+            <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-5">
+              {caso.metricas.map((m) => (
+                <div key={m.label}>
+                  <p className="text-2xl sm:text-3xl font-bold text-kora-primary tabular-nums">
+                    {m.value}
+                  </p>
+                  <p className="text-xs text-kora-muted mt-1 leading-snug">{m.label}</p>
+                </div>
+              ))}
+            </div>
+            <blockquote className="mt-6 border-l-2 border-kora-accent pl-4">
+              <p className="text-sm text-kora-text italic leading-relaxed">"{caso.quote}"</p>
+              <footer className="mt-2 text-xs text-kora-muted not-italic">— {caso.autor}</footer>
+            </blockquote>
+          </div>
+        </Reveal>
 
         {/* Sitios reales que hemos creado */}
         <Reveal delay={0.2}>
@@ -67,9 +87,8 @@ export function SocialProofSection() {
               Sitios reales que hemos creado
             </p>
             <p className="mt-2 text-center text-kora-muted text-sm max-w-xl mx-auto">
-              Páginas profesionales que diseñamos y publicamos para negocios reales.
-              Si eres de los primeros 10 hoteles,{" "}
-              <span className="font-semibold text-kora-primary">la tuya va incluida gratis</span>.
+              Páginas profesionales que diseñamos y publicamos para negocios reales.{" "}
+              <span className="font-semibold text-kora-primary">También creamos la de tu hotel</span>, como servicio aparte.
             </p>
             <div className="mt-8 grid grid-cols-2 gap-4 max-w-md mx-auto">
               {sitiosCreados.map((s) => (

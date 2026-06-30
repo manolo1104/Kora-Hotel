@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { CheckCircle2, Gift, ArrowRight, ShieldCheck, BadgeCheck, Lock, X } from "lucide-react";
+import { CheckCircle2, ArrowRight, ShieldCheck, BadgeCheck, Lock, X } from "lucide-react";
 import { Reveal } from "@/components/shared/Reveal";
 import { CountUp } from "@/components/shared/CountUp";
 import { GlowCard } from "@/components/shared/GlowCard";
-import { LUGARES_DISPONIBLES, TOTAL_LUGARES, VALOR_WEB, LANZAMIENTO, PLANES } from "@/lib/oferta";
+import { PLANES } from "@/lib/oferta";
 
 // Lo que incluye el sitio web profesional que construimos (el gancho gratis).
 const incluyeWeb = [
@@ -24,26 +24,27 @@ const featuresBase = [
   "Soporte directo con el equipo fundador",
 ];
 
-// Funciones premium (a partir del plan Hotel): IA en WhatsApp y pricing dinámico.
-const featuresPremium = [
-  "Agente WhatsApp con IA (24/7)",
-  "Pricing dinámico con IA",
-];
+// Camila viene en TODOS los planes: versión Lite (con límite mensual) en
+// Boutique, y completa 24/7 sin límite desde el plan Hotel. El pricing dinámico
+// es exclusivo de Hotel en adelante.
+const CAMILA_LITE = "Camila Lite: asistente de WhatsApp con IA (con límite mensual)";
+const CAMILA_FULL = "Agente WhatsApp con IA (24/7, sin límite)";
+const PRICING_IA = "Pricing dinámico con IA";
 
-// Plan completo = base + premium.
-const featuresCompleto = [...featuresPremium, ...featuresBase];
+const featuresBoutique = [CAMILA_LITE, ...featuresBase];
+const featuresCompleto = [CAMILA_FULL, PRICING_IA, ...featuresBase];
 
 // Garantías de la oferta (badges de confianza).
 const garantias = [
   {
     icon: ShieldCheck,
-    titulo: "Calidad garantizada",
-    texto: "No te entregamos tu página hasta que te guste.",
+    titulo: "Garantía de 30 días",
+    texto: "Si no te convence, te devolvemos tu primera mensualidad.",
   },
   {
     icon: BadgeCheck,
-    titulo: "Llave en mano",
-    texto: "La construimos, publicamos y capacitamos a tu equipo.",
+    titulo: "Mes a mes, sin permanencia",
+    texto: "Cancelas cuando quieras, sin penalización.",
   },
   {
     icon: Lock,
@@ -53,13 +54,12 @@ const garantias = [
 ];
 
 // Tarifas escalonadas por número de habitaciones (fuente única: lib/oferta.ts).
-// La web profesional va incluida gratis en los tres (valor $30,000) para los
-// hoteles fundadores. El plan Boutique NO incluye el agente de WhatsApp ni el
-// pricing dinámico (premium).
+// Boutique trae Camila Lite; la Camila completa 24/7 y el pricing dinámico
+// vienen desde el plan Hotel.
 const planes = PLANES.map((p) => ({
   ...p,
-  features: p.clave === "boutique" ? featuresBase : featuresCompleto,
-  noIncluye: p.clave === "boutique" ? featuresPremium : [],
+  features: p.clave === "boutique" ? featuresBoutique : featuresCompleto,
+  noIncluye: p.clave === "boutique" ? [PRICING_IA] : [],
 }));
 
 export function PricingSection() {
@@ -69,19 +69,17 @@ export function PricingSection() {
         <Reveal>
           <div className="text-center mb-12">
             <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-kora-text mb-2">
-              Precio de fundador
+              Precios
             </h2>
             <p className="text-kora-muted">
-              Tu sitio web profesional gratis + Kora completo. Solo para los
-              primeros {TOTAL_LUGARES} hoteles. Quedan{" "}
+              Tu precio según el tamaño de tu hotel.{" "}
               <span className="font-bold text-kora-primary">
-                {LUGARES_DISPONIBLES} de {TOTAL_LUGARES} lugares
+                Plan mes a mes, sin permanencia.
               </span>
-              .
             </p>
             <p className="mt-2 text-sm text-kora-muted">
-              Estamos arrancando en {LANZAMIENTO} y solo abrimos {TOTAL_LUGARES}{" "}
-              lugares fundadores.
+              Solo damos de alta a unos pocos hoteles al mes para montar bien
+              cada sistema.
             </p>
           </div>
         </Reveal>
@@ -95,15 +93,15 @@ export function PricingSection() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
               <div>
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-kora-accent text-kora-primary text-xs font-bold mb-4">
-                  <Gift size={13} aria-hidden="true" />
-                  Incluido gratis · valor ${VALOR_WEB.toLocaleString("es-MX")}
+                  Servicio opcional · cotización a tu medida
                 </span>
                 <h3 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
-                  Te construimos tu sitio web profesional, completo
+                  Te creamos tu sitio web profesional, completo
                 </h3>
                 <p className="mt-3 text-white/70 text-sm sm:text-base leading-relaxed">
                   No es una plantilla: un sitio 100% personalizado con tu motor
-                  de reservas propio, sin comisiones. Llave en mano y sin costo.
+                  de reservas propio, sin comisiones. Llave en mano; lo cotizamos
+                  según tu hotel, aparte de tu mensualidad.
                 </p>
 
                 <Link
@@ -192,15 +190,15 @@ export function PricingSection() {
                 )}
 
                 <div className="mt-5 flex items-start gap-2.5 rounded-xl bg-kora-accent/10 px-3 py-2.5">
-                  <Gift
+                  <CheckCircle2
                     size={16}
                     className="flex-shrink-0 text-kora-primary mt-0.5"
                     aria-hidden="true"
                   />
                   <span className="text-sm font-semibold text-kora-text">
-                    Sitio web profesional GRATIS
+                    Mes a mes, sin permanencia
                     <span className="block text-xs font-normal text-kora-muted">
-                      valor ${VALOR_WEB.toLocaleString("es-MX")}
+                      cancelas cuando quieras
                     </span>
                   </span>
                 </div>
@@ -231,27 +229,27 @@ export function PricingSection() {
 
                 {plan.noIncluye.length > 0 && (
                   <p className="mt-3 text-xs font-medium text-amber-800 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 leading-snug">
-                    El agente de WhatsApp con IA y el pricing dinámico se incluyen
-                    desde el plan Hotel.
+                    El pricing dinámico con IA y la versión completa de Camila
+                    (24/7, sin límite) se incluyen desde el plan Hotel.
                   </p>
                 )}
 
-                <Link
-                  href={`/pago/iniciar?plan=${plan.clave}`}
+                <a
+                  href="/#contacto"
                   className={`btn-press btn-arrow mt-8 flex items-center justify-center gap-2 w-full py-3.5 rounded-full font-bold text-sm transition-colors text-center ${
                     plan.destacado
                       ? "btn-fill bg-kora-accent text-kora-primary hover:bg-kora-accent-dark"
                       : "border-2 border-kora-primary text-kora-primary hover:bg-kora-primary hover:text-white"
                   }`}
                 >
-                  Suscribirme ahora
-                </Link>
-                <a
-                  href="/#contacto"
+                  Solicitar mi lugar
+                </a>
+                <Link
+                  href={`/pago/iniciar?plan=${plan.clave}`}
                   className="mt-3 block text-center text-xs font-semibold text-kora-muted underline hover:text-kora-primary transition-colors"
                 >
-                  o solicita tu lugar fundador y te contactamos
-                </a>
+                  o suscríbete ya con tarjeta
+                </Link>
               </GlowCard>
             </Reveal>
           ))}
@@ -291,9 +289,9 @@ export function PricingSection() {
 
         <Reveal delay={0.44}>
           <p className="mt-6 text-center text-xs text-kora-muted">
-            Sin costo de setup ni de construcción del sitio. Permanencia mínima
-            de 12 meses (así amortizamos tu sitio web sin costo). ¿No sabes tu
-            tamaño? Te ayudamos a elegir.
+            Plan mes a mes, sin permanencia: cancelas cuando quieras y exportas
+            tus datos. El sitio web es un servicio aparte (cotización
+            personalizada). ¿No sabes tu tamaño? Te ayudamos a elegir.
           </p>
         </Reveal>
       </div>

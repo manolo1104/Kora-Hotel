@@ -19,7 +19,7 @@ const integraciones: Integracion[] = [
   },
   {
     name: "Booking.com",
-    status: "active",
+    status: "soon",
     logo: "/integraciones/bookingdotcom.svg",
   },
   {
@@ -34,7 +34,7 @@ const integraciones: Integracion[] = [
   },
   {
     name: "SAT / CFDI 4.0",
-    status: "active",
+    status: "soon",
     logo: "/integraciones/sat.svg",
   },
   {
@@ -44,23 +44,23 @@ const integraciones: Integracion[] = [
   },
   {
     name: "Mercado Pago",
-    status: "active",
+    status: "soon",
     logo: "/integraciones/mercadopago.svg",
   },
   {
     name: "Conekta",
-    status: "active",
+    status: "soon",
     color: "#1A1A2E",
     abbr: "CK",
   },
   {
     name: "Google Calendar",
-    status: "active",
+    status: "soon",
     logo: "/integraciones/googlecalendar.svg",
   },
   {
     name: "Gmail",
-    status: "active",
+    status: "soon",
     logo: "/integraciones/gmail.svg",
   },
 ];

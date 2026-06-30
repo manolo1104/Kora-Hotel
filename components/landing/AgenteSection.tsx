@@ -13,8 +13,8 @@ const puntos = [
   },
   {
     Icon: MessageSquare,
-    title: "Cotiza y cierra la reserva sola",
-    desc: "Da precios, manda el link de pago y confirma la reserva sin que muevas un dedo.",
+    title: "Reúne todo para cerrar la reserva",
+    desc: "Da disponibilidad y precios, contesta dudas y te pasa los datos del huésped listos para que confirmes la reserva y el pago.",
   },
   {
     Icon: Languages,
@@ -39,8 +39,8 @@ export function AgenteSection() {
               </h2>
               <p className="mt-4 text-white/70 text-base sm:text-lg leading-relaxed max-w-lg">
                 Muchos huéspedes escriben de noche o en fin de semana, cuando nadie
-                contesta. Camila responde por ti —a cualquier hora— y convierte esos
-                mensajes en reservas pagadas.
+                contesta. Camila responde al instante —a cualquier hora—, contesta
+                dudas y reúne lo necesario para que cierres la reserva sin perder al huésped.
               </p>
 
               <ul className="mt-8 space-y-5">
@@ -62,10 +62,10 @@ export function AgenteSection() {
                   href="#contacto"
                   className="btn-press btn-arrow btn-fill inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-kora-accent text-kora-primary font-semibold text-sm hover:bg-kora-accent-dark transition-colors"
                 >
-                  Solicitar mi demo
+                  Solicitar mi lugar
                   <ArrowRight size={16} />
                 </a>
-                <span className="text-xs text-white/50">Disponible desde el plan Hotel</span>
+                <span className="text-xs text-white/50">Camila Lite en Boutique · completa (24/7, sin límite) desde el plan Hotel</span>
               </div>
             </div>
           </Reveal>

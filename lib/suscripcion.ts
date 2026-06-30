@@ -34,7 +34,7 @@ export async function getSuscripcion(userId: string): Promise<Suscripcion | null
 }
 
 /**
- * Un plan cuenta como activo si está pagado, es cortesía (fundadores dados de
+ * Un plan cuenta como activo si está pagado, es cortesía (cuentas dadas de
  * alta a mano), o tiene un pago vencido reciente (gracia mientras Stripe
  * reintenta el cobro; si agota los reintentos, pasa a cancelada por webhook).
  */
