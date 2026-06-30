@@ -3,7 +3,7 @@ import type Stripe from "stripe";
 import { resolveHotel } from "@/lib/tenant";
 import {
   hotelRooms,
-  nightOpts,
+  bookingRules,
   calcCartSubtotal,
   calcNights,
   calcDepositAmount,
@@ -44,6 +44,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   const nights = calcNights(checkin, checkout);
   if (nights <= 0) return NextResponse.json({ error: "Fechas inválidas" }, { status: 400 });
 
+  // Reglas del hotel (anticipo, mínimo de noches) — fuente autoritativa server-side.
+  const rules = bookingRules(hotel);
+  if (nights < rules.minNoches) {
+    return NextResponse.json(
+      { error: "min-noches", minNoches: rules.minNoches },
+      { status: 400 },
+    );
+  }
+
   const roomNames = cleanCart.map((c) => rooms.find((r) => r.id === c.roomId)!.name);
 
   // Disponibilidad real antes de cobrar.
@@ -55,12 +64,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     );
   }
 
-  const opts = nightOpts(hotel);
+  const opts = rules.nightOpts;
   const subtotal = calcCartSubtotal(rooms, cleanCart, checkin, checkout, opts);
   const stayTotal = Math.max(0, subtotal);
-  const deposit = calcDepositAmount(stayTotal, nights);
+  const deposit = calcDepositAmount(stayTotal, nights, {
+    pct: rules.anticipoPct,
+    minNights: rules.anticipoMinNoches,
+  });
   const pending = stayTotal - deposit;
-  const isDeposit = nights >= 2;
+  const isDeposit = deposit < stayTotal;
 
   // Sin Stripe → flujo WhatsApp (degradación elegante).
   if (!stripeEnvReady) {

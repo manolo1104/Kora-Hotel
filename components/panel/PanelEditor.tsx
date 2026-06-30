@@ -190,6 +190,10 @@ export function PanelEditor({
   const [formasPago, setFormasPago] = useState<string[]>([]);
   const [idiomas, setIdiomas] = useState<string[]>([]);
 
+  // Reglas de reserva (anticipo, mínimo de noches) — viven en extras.reglas
+  const [anticipoPct, setAnticipoPct] = useState(50);
+  const [minNoches, setMinNoches] = useState(1);
+
   // Premium (gancho — controlado por nosotros)
   const [marcaOculta, setMarcaOculta] = useState(false);
 
@@ -251,6 +255,9 @@ export function PanelEditor({
         setPolNinos(p.ninos ?? "");
         setFormasPago(Array.isArray(ex.formasPago) ? ex.formasPago : []);
         setIdiomas(Array.isArray(ex.idiomas) ? ex.idiomas : []);
+        const rg = ex.reglas ?? {};
+        setAnticipoPct(typeof rg.anticipoPct === "number" ? rg.anticipoPct : 50);
+        setMinNoches(typeof rg.minNoches === "number" ? rg.minNoches : 1);
         setMarcaOculta(ex.premium?.marcaOculta === true);
         const g = data.guia ?? {};
         setWifi(g.wifi ?? "");
@@ -503,6 +510,10 @@ export function PanelEditor({
         cancelacion: polCancelacion.trim(),
         mascotas: polMascotas.trim(),
         ninos: polNinos.trim(),
+      },
+      reglas: {
+        anticipoPct,
+        minNoches,
       },
       formasPago,
       idiomas,
@@ -1587,6 +1598,59 @@ export function PanelEditor({
       {/* ─── AVANZADO ─── */}
       {tab === "avanzado" && (
         <div className="space-y-6">
+          {/* Reglas de reserva (anticipo + mínimo de noches) */}
+          <div className={`${card} space-y-4`}>
+            <div className="flex items-center gap-2">
+              <FileText size={18} className="text-kora-primary" />
+              <h2 className="text-lg font-bold text-kora-text">Reglas de reserva</h2>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              <div>
+                <label className="block text-sm font-semibold text-kora-text mb-1.5">
+                  ¿Cuánto cobras al reservar?
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {[30, 50, 100].map((p) => (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => setAnticipoPct(p)}
+                      className={`btn-press px-4 py-2 rounded-full border text-sm font-semibold transition-colors ${
+                        anticipoPct === p
+                          ? "border-kora-accent bg-kora-accent/10 text-kora-primary"
+                          : "border-gray-200 text-kora-muted hover:border-kora-accent"
+                      }`}
+                    >
+                      {p === 100 ? "Total (100%)" : `${p}% de anticipo`}
+                    </button>
+                  ))}
+                </div>
+                <p className="mt-1.5 text-xs text-kora-muted">
+                  El huésped paga este % al reservar y el resto al llegar. Las
+                  reservas de 1 noche se cobran completas.
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-kora-text mb-1.5">
+                  Mínimo de noches por reserva
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  max={30}
+                  value={minNoches}
+                  onChange={(e) =>
+                    setMinNoches(Math.max(1, Math.min(30, Number(e.target.value) || 1)))
+                  }
+                  className={inputCls}
+                />
+                <p className="mt-1.5 text-xs text-kora-muted">
+                  Estancia mínima que aceptas (1 = sin mínimo).
+                </p>
+              </div>
+            </div>
+          </div>
+
           {/* Políticas / pago / idiomas */}
           <div className={`${card} space-y-4`}>
             <div className="flex items-center gap-2">

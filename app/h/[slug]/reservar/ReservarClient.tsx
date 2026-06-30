@@ -40,6 +40,13 @@ interface Props {
   logoUrl: string | null;
   coverUrl: string | null;
   marcaOculta: boolean;
+  reglas: {
+    anticipoPct: number;
+    anticipoMinNoches: number;
+    minNoches: number;
+    weekdayDiscount: number;
+    weekdayDiscountUntil?: string;
+  };
 }
 
 // Placeholder visual cuando un cuarto no trae imagen.
@@ -74,6 +81,7 @@ export default function ReservarClient({
   logoUrl,
   coverUrl,
   marcaOculta,
+  reglas,
 }: Props) {
   // ── Fechas + huéspedes ──────────────────────────────────
   const today = new Date().toISOString().split("T")[0];
@@ -104,7 +112,9 @@ export default function ReservarClient({
 
   const nights = useMemo(() => calcNights(checkin, checkout), [checkin, checkout]);
   const minCheckout = checkin
-    ? new Date(new Date(`${checkin}T12:00:00`).getTime() + 86400000).toISOString().split("T")[0]
+    ? new Date(new Date(`${checkin}T12:00:00`).getTime() + 86400000 * reglas.minNoches)
+        .toISOString()
+        .split("T")[0]
     : tomorrow;
 
   // ── Helpers de cuarto ──────────────────────────────────
@@ -127,8 +137,12 @@ export default function ReservarClient({
   function handleCheckinChange(v: string) {
     if (v && v < today) return;
     setCheckin(v);
-    if (checkout && v >= checkout) {
-      setCheckout(new Date(new Date(`${v}T12:00:00`).getTime() + 86400000).toISOString().split("T")[0]);
+    if (v) {
+      // Garantiza al menos `minNoches` noches entre llegada y salida.
+      const minOut = new Date(new Date(`${v}T12:00:00`).getTime() + 86400000 * reglas.minNoches)
+        .toISOString()
+        .split("T")[0];
+      if (!checkout || checkout < minOut) setCheckout(minOut);
     }
     resetSearch();
   }
@@ -184,12 +198,26 @@ export default function ReservarClient({
   }
 
   // ── Totales (estimación cliente; el servidor revalida) ─
-  const subtotal = useMemo(
-    () => calcCartSubtotal(rooms, cart, checkin, checkout),
-    [rooms, cart, checkin, checkout],
+  const priceOpts = useMemo(
+    () => ({
+      weekdayDiscount: reglas.weekdayDiscount,
+      weekdayDiscountUntil: reglas.weekdayDiscountUntil,
+    }),
+    [reglas.weekdayDiscount, reglas.weekdayDiscountUntil],
   );
-  const deposit = useMemo(() => calcDepositAmount(subtotal, nights), [subtotal, nights]);
-  const isDeposit = nights >= 2;
+  const subtotal = useMemo(
+    () => calcCartSubtotal(rooms, cart, checkin, checkout, priceOpts),
+    [rooms, cart, checkin, checkout, priceOpts],
+  );
+  const deposit = useMemo(
+    () =>
+      calcDepositAmount(subtotal, nights, {
+        pct: reglas.anticipoPct,
+        minNights: reglas.anticipoMinNoches,
+      }),
+    [subtotal, nights, reglas.anticipoPct, reglas.anticipoMinNoches],
+  );
+  const isDeposit = deposit < subtotal;
 
   const cartHasUnavailable = cart.some((item) => {
     const room = findRoom(item.roomId);
@@ -274,7 +302,7 @@ export default function ReservarClient({
           roomLines,
           "",
           `*Total estadía:* ${formatMXN(stay)}`,
-          isDeposit ? `*Anticipo (50%):* ${formatMXN(dep)}` : "",
+          isDeposit ? `*Anticipo (${reglas.anticipoPct}%):* ${formatMXN(dep)}` : "",
         ]
           .filter(Boolean)
           .join("\n");
@@ -654,7 +682,7 @@ export default function ReservarClient({
                   {isDeposit && (
                     <p className="flex items-start gap-1.5 pt-1 text-[12px] text-kora-muted">
                       <ShieldCheck size={13} className="mt-0.5 shrink-0" style={{ color: "var(--brand)" }} />
-                      Pagas ahora el 50% ({formatMXN(deposit)}). El resto al llegar.
+                      Pagas ahora el {reglas.anticipoPct}% ({formatMXN(deposit)}). El resto al llegar.
                     </p>
                   )}
                 </div>
@@ -767,7 +795,7 @@ export default function ReservarClient({
               </div>
               {isDeposit && (
                 <div className="mt-1 flex justify-between text-sm">
-                  <span className="text-kora-muted">Pagas ahora (50%)</span>
+                  <span className="text-kora-muted">Pagas ahora ({reglas.anticipoPct}%)</span>
                   <span className="font-semibold tabular-nums">{formatMXN(deposit)}</span>
                 </div>
               )}
@@ -793,7 +821,7 @@ export default function ReservarClient({
                 <>
                   <Lock size={15} />
                   {isDeposit
-                    ? `Pagar ${formatMXN(deposit)} — Anticipo 50%`
+                    ? `Pagar ${formatMXN(deposit)} — Anticipo ${reglas.anticipoPct}%`
                     : `Pagar ${formatMXN(subtotal)} — Confirmar`}
                 </>
               )}

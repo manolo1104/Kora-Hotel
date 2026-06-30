@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { resolveHotel } from "@/lib/tenant";
-import { hotelRooms } from "@/lib/booking";
+import { hotelRooms, bookingRules } from "@/lib/booking";
 import { COLOR_DEFAULT, inkFor, fontStack, type MiniExtras } from "@/lib/mini";
 import { ownerTienePlanActivo } from "@/lib/suscripcion";
 import ReservarClient from "./ReservarClient";
@@ -33,6 +33,9 @@ export default async function ReservarPage({
   // Portada: la 1ª foto del hotel como banner (a menos que el dueño lo desactive).
   const coverUrl = diseno.portada !== false && hotel.fotos?.[0] ? hotel.fotos[0] : null;
 
+  // Reglas de reserva (anticipo, mínimo de noches, descuento entre semana).
+  const rules = bookingRules(hotel);
+
   return (
     <ReservarClient
       slug={slug}
@@ -47,6 +50,13 @@ export default async function ReservarPage({
       logoUrl={diseno.logoUrl || null}
       coverUrl={coverUrl}
       marcaOculta={marcaOculta}
+      reglas={{
+        anticipoPct: rules.anticipoPct,
+        anticipoMinNoches: rules.anticipoMinNoches,
+        minNoches: rules.minNoches,
+        weekdayDiscount: rules.nightOpts.weekdayDiscount ?? 0,
+        weekdayDiscountUntil: rules.nightOpts.weekdayDiscountUntil,
+      }}
     />
   );
 }

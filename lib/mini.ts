@@ -30,6 +30,12 @@ export interface Diseno {
   ordenSecciones?: string[]; // claves de SECCIONES
 }
 
+export interface Reglas {
+  anticipoPct?: number; // % a cobrar como anticipo (0..100); default 50
+  anticipoMinNoches?: number; // mín. noches para aplicar anticipo; menos = cobra 100%; default 2
+  minNoches?: number; // mín. de noches por reserva; default 1
+}
+
 export interface MiniExtras {
   amenidades?: string[];
   instagram?: string;
@@ -40,6 +46,7 @@ export interface MiniExtras {
   resenas?: Resena[];
   faqs?: MiniFaq[];
   politicas?: Politicas;
+  reglas?: Reglas;
   formasPago?: string[];
   idiomas?: string[];
   premium?: { marcaOculta?: boolean; dominio?: string };

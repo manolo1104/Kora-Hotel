@@ -25,6 +25,7 @@ interface HabitacionRaw {
 interface HotelLike {
   habitaciones?: unknown;
   config?: Record<string, unknown> | null;
+  extras?: Record<string, unknown> | null;
 }
 
 function toNum(v: unknown, fallback = 0): number {
@@ -87,5 +88,32 @@ export function nightOpts(hotel: HotelLike): NightPriceOpts {
     weekdayDiscount: toNum(cfg.weekdayDiscount, 0),
     weekdayDiscountUntil:
       typeof cfg.weekdayDiscountUntil === "string" ? cfg.weekdayDiscountUntil : undefined,
+  };
+}
+
+// ── Reglas de reserva configurables por hotel (extras.reglas) ─────────────────
+export interface BookingRules {
+  anticipoPct: number; // % a cobrar como anticipo (10..100)
+  anticipoMinNoches: number; // mín. noches para anticipo parcial; menos = cobra 100%
+  minNoches: number; // mín. de noches por reserva
+  nightOpts: NightPriceOpts;
+}
+
+function clampNum(v: unknown, def: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, toNum(v, def)));
+}
+
+/**
+ * Reglas de reserva del hotel. El anticipo y el mínimo de noches viven en
+ * extras.reglas (editables por el hotelero); el descuento entre semana sigue en
+ * config (vía nightOpts). Valores por defecto = comportamiento previo (50% / 2 noches).
+ */
+export function bookingRules(hotel: HotelLike): BookingRules {
+  const reglas = ((hotel.extras as Record<string, unknown>)?.reglas ?? {}) as Record<string, unknown>;
+  return {
+    anticipoPct: clampNum(reglas.anticipoPct, 50, 10, 100),
+    anticipoMinNoches: clampNum(reglas.anticipoMinNoches, 2, 1, 30),
+    minNoches: clampNum(reglas.minNoches, 1, 1, 30),
+    nightOpts: nightOpts(hotel),
   };
 }

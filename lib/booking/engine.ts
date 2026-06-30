@@ -109,9 +109,18 @@ export function calcCartSubtotal(
   }, 0);
 }
 
-/** Cuánto cobrar ahora: 50% para 2+ noches, 100% para 1 noche. */
-export function calcDepositAmount(total: number, nights: number): number {
-  return nights >= 2 ? Math.round(total * 0.5) : Math.round(total);
+/**
+ * Cuánto cobrar ahora. Por defecto 50% para 2+ noches y 100% para 1 noche
+ * (comportamiento previo). El hotel puede configurar el % y el umbral de noches.
+ */
+export function calcDepositAmount(
+  total: number,
+  nights: number,
+  opts: { pct?: number; minNights?: number } = {},
+): number {
+  const pct = opts.pct ?? 50;
+  const minNights = opts.minNights ?? 2;
+  return nights >= minNights ? Math.round(total * (pct / 100)) : Math.round(total);
 }
 
 // ── Estado de reserva (se persiste en sessionStorage) ────────
