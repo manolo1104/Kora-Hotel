@@ -61,6 +61,8 @@ export default async function ConfirmacionPage({
   const ink = inkFor(color);
   const font = fontStack(diseno.fuente);
   const logoUrl = diseno.logoUrl || null;
+  const acento = diseno.acento || color;
+  const acentoInk = inkFor(acento);
   const marcaOculta =
     !!hotel && extras.premium?.marcaOculta === true && (await ownerTienePlanActivo(hotel.owner_id));
 
@@ -111,6 +113,8 @@ export default async function ConfirmacionPage({
         {
           "--brand": color,
           "--brand-ink": ink,
+          "--accent": acento,
+          "--accent-ink": acentoInk,
           fontFamily: font,
         } as React.CSSProperties
       }
@@ -235,7 +239,7 @@ export default async function ConfirmacionPage({
                 target="_blank"
                 rel="noopener noreferrer"
                 className="btn-press inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-bold"
-                style={{ background: "var(--brand)", color: "var(--brand-ink)" }}
+                style={{ background: "var(--accent)", color: "var(--accent-ink)" }}
               >
                 <MessageCircle size={16} /> Coordinar llegada por WhatsApp
               </a>

@@ -24,10 +24,14 @@ export default async function ReservarPage({
   const extras = (hotel.extras ?? {}) as MiniExtras;
   const diseno = extras.diseno ?? {};
   const color = diseno.color || COLOR_DEFAULT;
+  const acento = diseno.acento || color; // si no hay acento, usa el color de marca
 
   // Quitar la marca de Kora es premium: solo se respeta con plan activo del dueño.
   const marcaOculta =
     extras.premium?.marcaOculta === true && (await ownerTienePlanActivo(hotel.owner_id));
+
+  // Portada: la 1ª foto del hotel como banner (a menos que el dueño lo desactive).
+  const coverUrl = diseno.portada !== false && hotel.fotos?.[0] ? hotel.fotos[0] : null;
 
   return (
     <ReservarClient
@@ -37,8 +41,11 @@ export default async function ReservarPage({
       rooms={rooms}
       brandColor={color}
       brandInk={inkFor(color)}
+      accentColor={acento}
+      accentInk={inkFor(acento)}
       fontStack={fontStack(diseno.fuente)}
       logoUrl={diseno.logoUrl || null}
+      coverUrl={coverUrl}
       marcaOculta={marcaOculta}
     />
   );

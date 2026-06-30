@@ -34,8 +34,11 @@ interface Props {
   rooms: BookingRoom[];
   brandColor: string;
   brandInk: string;
+  accentColor: string;
+  accentInk: string;
   fontStack: string;
   logoUrl: string | null;
+  coverUrl: string | null;
   marcaOculta: boolean;
 }
 
@@ -65,8 +68,11 @@ export default function ReservarClient({
   rooms,
   brandColor,
   brandInk,
+  accentColor,
+  accentInk,
   fontStack,
   logoUrl,
+  coverUrl,
   marcaOculta,
 }: Props) {
   // ── Fechas + huéspedes ──────────────────────────────────
@@ -313,29 +319,52 @@ export default function ReservarClient({
         {
           "--brand": brandColor,
           "--brand-ink": brandInk,
+          "--accent": accentColor,
+          "--accent-ink": accentInk,
           fontFamily: fontStack,
         } as React.CSSProperties
       }
     >
       <div className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6">
-        {/* Encabezado */}
-        <header className="mb-5">
-          {logoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={logoUrl}
-              alt={hotelNombre}
-              className="mb-3 h-10 w-auto max-w-[180px] object-contain"
-            />
-          ) : null}
-          <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--brand)" }}>
-            Reserva directa · Sin comisiones
-          </p>
-          <h1 className="mt-1 text-2xl font-extrabold tracking-tight sm:text-3xl">{hotelNombre}</h1>
-          <p className="mt-1 text-sm text-kora-muted">
-            Confirmación inmediata · Pago seguro · Mejor precio garantizado
-          </p>
-        </header>
+        {/* Encabezado: portada con foto del hotel, o cabecera de texto */}
+        {coverUrl ? (
+          <header className="mb-5 overflow-hidden rounded-2xl">
+            <div className="relative">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={coverUrl} alt={hotelNombre} className="h-44 w-full object-cover sm:h-52" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-transparent" />
+              <div className="absolute inset-x-0 bottom-0 p-4 sm:p-5">
+                <p className="text-xs font-semibold uppercase tracking-wide text-white/90">
+                  Reserva directa · Sin comisiones
+                </p>
+                <h1 className="mt-0.5 text-2xl font-extrabold tracking-tight text-white sm:text-3xl">
+                  {hotelNombre}
+                </h1>
+                <p className="mt-0.5 text-sm text-white/85">
+                  Confirmación inmediata · Pago seguro · Mejor precio garantizado
+                </p>
+              </div>
+            </div>
+          </header>
+        ) : (
+          <header className="mb-5">
+            {logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={logoUrl}
+                alt={hotelNombre}
+                className="mb-3 h-10 w-auto max-w-[180px] object-contain"
+              />
+            ) : null}
+            <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--brand)" }}>
+              Reserva directa · Sin comisiones
+            </p>
+            <h1 className="mt-1 text-2xl font-extrabold tracking-tight sm:text-3xl">{hotelNombre}</h1>
+            <p className="mt-1 text-sm text-kora-muted">
+              Confirmación inmediata · Pago seguro · Mejor precio garantizado
+            </p>
+          </header>
+        )}
 
         {step === "buscar" ? (
           <>
@@ -392,7 +421,7 @@ export default function ReservarClient({
                 onClick={handleSearch}
                 disabled={!checkin || !checkout || nights <= 0 || searching}
                 className="btn-press mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-60"
-                style={{ background: "var(--brand)", color: "var(--brand-ink)" }}
+                style={{ background: "var(--accent)", color: "var(--accent-ink)" }}
               >
                 {searching ? (
                   <>
@@ -474,7 +503,7 @@ export default function ReservarClient({
                         {added && !unavail && (
                           <div
                             className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold"
-                            style={{ background: "var(--brand)", color: "var(--brand-ink)" }}
+                            style={{ background: "var(--accent)", color: "var(--accent-ink)" }}
                           >
                             <Check size={12} /> Agregada
                           </div>
@@ -526,7 +555,7 @@ export default function ReservarClient({
                               style={
                                 added
                                   ? { border: "1px solid var(--brand)", color: "var(--brand)", background: "white" }
-                                  : { background: "var(--brand)", color: "var(--brand-ink)" }
+                                  : { background: "var(--accent)", color: "var(--accent-ink)" }
                               }
                             >
                               {added ? (
@@ -639,7 +668,7 @@ export default function ReservarClient({
                   }}
                   disabled={!canContinue}
                   className="btn-press mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-60"
-                  style={{ background: "var(--brand)", color: "var(--brand-ink)" }}
+                  style={{ background: "var(--accent)", color: "var(--accent-ink)" }}
                 >
                   Continuar <ChevronRight size={16} />
                 </button>
@@ -754,7 +783,7 @@ export default function ReservarClient({
               onClick={handlePay}
               disabled={paying}
               className="btn-press mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full px-6 py-3.5 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-60"
-              style={{ background: "var(--brand)", color: "var(--brand-ink)" }}
+              style={{ background: "var(--accent)", color: "var(--accent-ink)" }}
             >
               {paying ? (
                 <>

@@ -171,9 +171,11 @@ export function PanelEditor({
 
   // Diseño
   const [color, setColor] = useState("");
+  const [acento, setAcento] = useState("");
   const [logoUrl, setLogoUrl] = useState("");
   const [fuente, setFuente] = useState("jakarta");
   const [heroEstilo, setHeroEstilo] = useState<"banda" | "completa">("banda");
+  const [portada, setPortada] = useState(true);
   const [orden, setOrden] = useState<string[]>([...ordenSecciones()]);
   const [subiendoLogo, setSubiendoLogo] = useState(false);
 
@@ -235,9 +237,11 @@ export function PanelEditor({
         setMapEmbedUrl(ex.mapEmbedUrl ?? "");
         const d = ex.diseno ?? {};
         setColor(d.color ?? "");
+        setAcento(d.acento ?? "");
         setLogoUrl(d.logoUrl ?? "");
         setFuente(d.fuente ?? "jakarta");
         setHeroEstilo(d.heroEstilo === "completa" ? "completa" : "banda");
+        setPortada(d.portada !== false);
         setOrden(ordenSecciones(d.ordenSecciones));
         setResenas(Array.isArray(ex.resenas) ? ex.resenas : []);
         setFaqs(Array.isArray(ex.faqs) ? ex.faqs : []);
@@ -486,9 +490,11 @@ export function PanelEditor({
       mapEmbedUrl: mapEmbedUrl.trim(),
       diseno: {
         color: color.trim(),
+        acento: acento.trim(),
         logoUrl,
         fuente,
         heroEstilo,
+        portada,
         ordenSecciones: orden,
       },
       resenas: resenas.filter((r) => (r.texto ?? "").trim()),
@@ -1310,6 +1316,60 @@ export function PanelEditor({
                   Personalizado
                 </label>
               </div>
+            </div>
+
+            {/* Color de acento (botones del motor) */}
+            <div>
+              <label className="block text-sm font-semibold text-kora-text mb-1.5">
+                Color de acento <span className="font-normal text-kora-muted">(botones del motor)</span>
+              </label>
+              <div className="flex flex-wrap items-center gap-2">
+                {COLOR_PRESETS.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => setAcento(c)}
+                    aria-label={`Acento ${c}`}
+                    className={`w-9 h-9 rounded-full border-2 transition-transform ${
+                      (acento || color || COLOR_DEFAULT).toLowerCase() === c.toLowerCase()
+                        ? "border-kora-text scale-110"
+                        : "border-white shadow-sm"
+                    }`}
+                    style={{ backgroundColor: c }}
+                  />
+                ))}
+                <label className="inline-flex items-center gap-2 ml-1 text-sm text-kora-muted">
+                  <input
+                    type="color"
+                    value={acento || color || COLOR_DEFAULT}
+                    onChange={(e) => setAcento(e.target.value)}
+                    className="w-9 h-9 rounded-lg border border-gray-200 cursor-pointer bg-white"
+                  />
+                  Personalizado
+                </label>
+              </div>
+              <p className="mt-1.5 text-xs text-kora-muted">
+                Déjalo igual al color de marca para usar un solo color en todo.
+              </p>
+            </div>
+
+            {/* Foto de portada en el motor */}
+            <div>
+              <label className="flex items-center justify-between gap-4 cursor-pointer rounded-xl border border-gray-100 bg-kora-bg/40 px-4 py-3">
+                <span className="text-sm font-semibold text-kora-text">
+                  Foto de portada en el motor
+                  <span className="block text-xs font-normal text-kora-muted">
+                    Usa tu primera foto como banner arriba del motor de reservas.
+                  </span>
+                </span>
+                <input
+                  type="checkbox"
+                  checked={portada}
+                  onChange={(e) => setPortada(e.target.checked)}
+                  className="h-5 w-5 flex-shrink-0 rounded border-gray-300 cursor-pointer"
+                  style={{ accentColor: "#1B4332" }}
+                />
+              </label>
             </div>
 
             {/* Tipografía */}

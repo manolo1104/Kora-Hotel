@@ -22,9 +22,11 @@ export interface Politicas {
 
 export interface Diseno {
   color?: string; // hex del color de marca
+  acento?: string; // hex del color de acento (botones del motor); default = color
   logoUrl?: string;
   fuente?: string; // clave de FUENTES
   heroEstilo?: "banda" | "completa";
+  portada?: boolean; // mostrar la 1ª foto del hotel como portada en el motor (default: sí)
   ordenSecciones?: string[]; // claves de SECCIONES
 }
 
