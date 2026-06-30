@@ -42,6 +42,7 @@ import {
   ordenSecciones,
   type Resena,
   type MiniFaq,
+  type Addon,
 } from "@/lib/mini";
 
 const inputCls =
@@ -194,6 +195,18 @@ export function PanelEditor({
   const [anticipoPct, setAnticipoPct] = useState(50);
   const [minNoches, setMinNoches] = useState(1);
 
+  // Extras vendibles (add-ons) — viven en extras.addons
+  const [addons, setAddons] = useState<Addon[]>([]);
+  function addAddon() {
+    setAddons((a) => [...a, { nombre: "", precio: 0, tipo: "estancia" }]);
+  }
+  function updateAddon(i: number, campo: keyof Addon, valor: string | number) {
+    setAddons((a) => a.map((it, idx) => (idx === i ? { ...it, [campo]: valor } : it)));
+  }
+  function removeAddon(i: number) {
+    setAddons((a) => a.filter((_, idx) => idx !== i));
+  }
+
   // Premium (gancho — controlado por nosotros)
   const [marcaOculta, setMarcaOculta] = useState(false);
 
@@ -258,6 +271,7 @@ export function PanelEditor({
         const rg = ex.reglas ?? {};
         setAnticipoPct(typeof rg.anticipoPct === "number" ? rg.anticipoPct : 50);
         setMinNoches(typeof rg.minNoches === "number" ? rg.minNoches : 1);
+        setAddons(Array.isArray(ex.addons) ? ex.addons : []);
         setMarcaOculta(ex.premium?.marcaOculta === true);
         const g = data.guia ?? {};
         setWifi(g.wifi ?? "");
@@ -515,6 +529,9 @@ export function PanelEditor({
         anticipoPct,
         minNoches,
       },
+      addons: addons
+        .filter((a) => (a.nombre ?? "").trim())
+        .map((a) => ({ nombre: a.nombre.trim(), precio: Number(a.precio) || 0, tipo: a.tipo })),
       formasPago,
       idiomas,
       premium: { marcaOculta },
@@ -1649,6 +1666,79 @@ export function PanelEditor({
                 </p>
               </div>
             </div>
+          </div>
+
+          {/* Extras vendibles (add-ons) */}
+          <div className={`${card} space-y-4`}>
+            <div className="flex items-center gap-2">
+              <FileText size={18} className="text-kora-primary" />
+              <h2 className="text-lg font-bold text-kora-text">Extras vendibles</h2>
+            </div>
+            <p className="text-sm text-kora-muted">
+              Cosas que el huésped puede agregar a su reserva (desayuno, transporte,
+              late checkout…). Se cobran junto con la reserva.
+            </p>
+            <div className="space-y-3">
+              {addons.map((a, i) => (
+                <div
+                  key={i}
+                  className="flex flex-wrap items-end gap-2 rounded-xl border border-gray-100 bg-kora-bg/40 p-3"
+                >
+                  <div className="flex-1 min-w-[140px]">
+                    <label className="block text-[11px] font-semibold text-kora-muted mb-1">
+                      Nombre
+                    </label>
+                    <input
+                      className={inputCls}
+                      value={a.nombre}
+                      onChange={(e) => updateAddon(i, "nombre", e.target.value)}
+                      placeholder="Ej. Desayuno"
+                    />
+                  </div>
+                  <div className="w-28">
+                    <label className="block text-[11px] font-semibold text-kora-muted mb-1">
+                      Precio
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      className={inputCls}
+                      value={a.precio}
+                      onChange={(e) => updateAddon(i, "precio", Number(e.target.value) || 0)}
+                    />
+                  </div>
+                  <div className="w-36">
+                    <label className="block text-[11px] font-semibold text-kora-muted mb-1">
+                      Cobro
+                    </label>
+                    <select
+                      className={inputCls}
+                      value={a.tipo}
+                      onChange={(e) => updateAddon(i, "tipo", e.target.value)}
+                    >
+                      <option value="estancia">Por reserva</option>
+                      <option value="noche">Por noche</option>
+                      <option value="persona">Por persona</option>
+                    </select>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removeAddon(i)}
+                    className="btn-press w-9 h-9 rounded-lg border border-gray-200 flex items-center justify-center text-red-600 hover:border-red-300"
+                    aria-label="Quitar extra"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={addAddon}
+              className="btn-press inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-gray-200 text-kora-text font-semibold text-sm hover:border-kora-accent transition-colors"
+            >
+              <Plus size={15} /> Agregar extra
+            </button>
           </div>
 
           {/* Políticas / pago / idiomas */}

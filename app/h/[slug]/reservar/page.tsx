@@ -36,8 +36,12 @@ export default async function ReservarPage({
   // Reglas de reserva (anticipo, mínimo de noches, descuento entre semana).
   const rules = bookingRules(hotel);
 
+  // Extras vendibles (add-ons) definidos por el hotel.
+  const addons = Array.isArray(extras.addons) ? extras.addons : [];
+
   return (
     <ReservarClient
+      addons={addons}
       slug={slug}
       hotelNombre={hotel.nombre}
       whatsapp={hotel.whatsapp}

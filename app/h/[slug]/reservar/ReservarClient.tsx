@@ -19,10 +19,12 @@ import {
 import {
   type BookingRoom,
   type CartItem,
+  type AddonRule,
   calcRoomStayTotal,
   calcNights,
   calcCartSubtotal,
   calcDepositAmount,
+  calcAddonsTotal,
   formatMXN,
 } from "@/lib/booking";
 
@@ -40,6 +42,7 @@ interface Props {
   logoUrl: string | null;
   coverUrl: string | null;
   marcaOculta: boolean;
+  addons: AddonRule[];
   reglas: {
     anticipoPct: number;
     anticipoMinNoches: number;
@@ -81,6 +84,7 @@ export default function ReservarClient({
   logoUrl,
   coverUrl,
   marcaOculta,
+  addons,
   reglas,
 }: Props) {
   // ── Fechas + huéspedes ──────────────────────────────────
@@ -99,6 +103,11 @@ export default function ReservarClient({
 
   // ── Carrito ─────────────────────────────────────────────
   const [cart, setCart] = useState<CartItem[]>([]);
+  // Extras vendibles seleccionados (por índice en la lista del hotel).
+  const [selectedAddons, setSelectedAddons] = useState<number[]>([]);
+  function toggleAddon(i: number) {
+    setSelectedAddons((s) => (s.includes(i) ? s.filter((x) => x !== i) : [...s, i]));
+  }
 
   // ── Flujo de datos del huésped / pago ───────────────────
   const [step, setStep] = useState<"buscar" | "datos">("buscar");
@@ -209,15 +218,20 @@ export default function ReservarClient({
     () => calcCartSubtotal(rooms, cart, checkin, checkout, priceOpts),
     [rooms, cart, checkin, checkout, priceOpts],
   );
+  const addonsTotal = useMemo(
+    () => calcAddonsTotal(addons, selectedAddons, nights, adults),
+    [addons, selectedAddons, nights, adults],
+  );
+  const total = subtotal + addonsTotal;
   const deposit = useMemo(
     () =>
-      calcDepositAmount(subtotal, nights, {
+      calcDepositAmount(total, nights, {
         pct: reglas.anticipoPct,
         minNights: reglas.anticipoMinNoches,
       }),
-    [subtotal, nights, reglas.anticipoPct, reglas.anticipoMinNoches],
+    [total, nights, reglas.anticipoPct, reglas.anticipoMinNoches],
   );
-  const isDeposit = deposit < subtotal;
+  const isDeposit = deposit < total;
 
   const cartHasUnavailable = cart.some((item) => {
     const room = findRoom(item.roomId);
@@ -243,6 +257,7 @@ export default function ReservarClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           cart,
+          addons: selectedAddons,
           checkin,
           checkout,
           customerName: name.trim(),
@@ -668,15 +683,70 @@ export default function ReservarClient({
                   </p>
                 )}
 
+                {addons.length > 0 && (
+                  <div className="mt-4 border-t border-gray-100 pt-4">
+                    <p className="text-sm font-bold">¿Quieres agregar algo?</p>
+                    <div className="mt-2 space-y-2">
+                      {addons.map((a, i) => {
+                        const on = selectedAddons.includes(i);
+                        const unit =
+                          a.tipo === "noche"
+                            ? `${formatMXN(a.precio)} / noche`
+                            : a.tipo === "persona"
+                              ? `${formatMXN(a.precio)} / persona`
+                              : formatMXN(a.precio);
+                        return (
+                          <button
+                            key={i}
+                            type="button"
+                            onClick={() => toggleAddon(i)}
+                            aria-pressed={on}
+                            className="flex w-full items-center justify-between gap-3 rounded-xl border p-3 text-left transition-colors"
+                            style={
+                              on
+                                ? {
+                                    borderColor: "var(--brand)",
+                                    background: "color-mix(in srgb, var(--brand) 7%, white)",
+                                  }
+                                : { borderColor: "#e5e7eb" }
+                            }
+                          >
+                            <span className="flex items-center gap-2.5">
+                              <span
+                                className="grid h-5 w-5 place-items-center rounded-md border"
+                                style={
+                                  on
+                                    ? { background: "var(--brand)", borderColor: "var(--brand)" }
+                                    : { borderColor: "#d1d5db" }
+                                }
+                              >
+                                {on && <Check size={13} style={{ color: "var(--brand-ink)" }} />}
+                              </span>
+                              <span className="text-sm font-semibold">{a.nombre}</span>
+                            </span>
+                            <span className="text-sm tabular-nums text-kora-muted">{unit}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 <div className="mt-4 space-y-1.5 border-t border-gray-100 pt-4 text-sm">
                   <div className="flex justify-between">
                     <span className="text-kora-muted">Subtotal</span>
                     <span className="tabular-nums">{formatMXN(subtotal)}</span>
                   </div>
+                  {addonsTotal > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-kora-muted">Extras</span>
+                      <span className="tabular-nums">{formatMXN(addonsTotal)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-base font-bold">
                     <span>Total estadía</span>
                     <span className="tabular-nums" style={{ color: "var(--brand)" }}>
-                      {formatMXN(subtotal)}
+                      {formatMXN(total)}
                     </span>
                   </div>
                   {isDeposit && (
@@ -786,11 +856,27 @@ export default function ReservarClient({
                     </div>
                   );
                 })}
+                {selectedAddons.map((i) => {
+                  const a = addons[i];
+                  if (!a) return null;
+                  const t =
+                    a.tipo === "noche"
+                      ? a.precio * Math.max(1, nights)
+                      : a.tipo === "persona"
+                        ? a.precio * Math.max(1, adults)
+                        : a.precio;
+                  return (
+                    <div key={`a-${i}`} className="flex justify-between text-sm text-kora-muted">
+                      <span>+ {a.nombre}</span>
+                      <span className="tabular-nums">{formatMXN(t)}</span>
+                    </div>
+                  );
+                })}
               </div>
               <div className="mt-3 flex justify-between border-t border-gray-100 pt-3 text-base font-bold">
                 <span>Total estadía</span>
                 <span className="tabular-nums" style={{ color: "var(--brand)" }}>
-                  {formatMXN(subtotal)}
+                  {formatMXN(total)}
                 </span>
               </div>
               {isDeposit && (
@@ -822,7 +908,7 @@ export default function ReservarClient({
                   <Lock size={15} />
                   {isDeposit
                     ? `Pagar ${formatMXN(deposit)} — Anticipo ${reglas.anticipoPct}%`
-                    : `Pagar ${formatMXN(subtotal)} — Confirmar`}
+                    : `Pagar ${formatMXN(total)} — Confirmar`}
                 </>
               )}
             </button>

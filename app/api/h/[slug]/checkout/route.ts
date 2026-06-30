@@ -7,7 +7,9 @@ import {
   calcCartSubtotal,
   calcNights,
   calcDepositAmount,
+  calcAddonsTotal,
   type CartItem,
+  type AddonRule,
 } from "@/lib/booking";
 import { checkAvailability, createTemporaryHold } from "@/lib/db/availability";
 import { getStripe, stripeEnvReady } from "@/lib/stripe/server";
@@ -26,7 +28,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   if (!hotel) return NextResponse.json({ error: "hotel-no-encontrado" }, { status: 404 });
 
   const body = await req.json();
-  const { cart, checkin, checkout, customerName, customerEmail, customerPhone, adults, children } = body;
+  const { cart, addons, checkin, checkout, customerName, customerEmail, customerPhone, adults, children } = body;
 
   const rooms = hotelRooms(hotel);
   const cleanCart: CartItem[] = [];
@@ -66,7 +68,21 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
 
   const opts = rules.nightOpts;
   const subtotal = calcCartSubtotal(rooms, cleanCart, checkin, checkout, opts);
-  const stayTotal = Math.max(0, subtotal);
+
+  // Extras vendibles: se recalculan SIEMPRE desde la lista del hotel (no se
+  // confía en montos del cliente; solo en los índices seleccionados).
+  const hotelAddons = (
+    Array.isArray((hotel.extras as Record<string, unknown>)?.addons)
+      ? (hotel.extras as Record<string, unknown>).addons
+      : []
+  ) as AddonRule[];
+  const selectedAddons: number[] = (Array.isArray(addons) ? addons : [])
+    .map((n: unknown) => Number(n))
+    .filter((n: number) => Number.isInteger(n) && n >= 0 && n < hotelAddons.length);
+  const addonNames = selectedAddons.map((i) => hotelAddons[i]?.nombre).filter(Boolean) as string[];
+  const addonsTotal = calcAddonsTotal(hotelAddons, selectedAddons, nights, Number(adults) || 1);
+
+  const stayTotal = Math.max(0, subtotal + addonsTotal);
   const deposit = calcDepositAmount(stayTotal, nights, {
     pct: rules.anticipoPct,
     minNights: rules.anticipoMinNoches,
@@ -100,6 +116,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     hotel_id: hotel.id,
     slug,
     rooms: roomsMeta,
+    addons: addonNames.join("|").slice(0, 200),
     checkin: String(checkin),
     checkout: String(checkout),
     nights: String(nights),
@@ -145,7 +162,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
             unit_amount: amountCents,
             product_data: {
               name: `Reserva · ${hotel.nombre}`,
-              description: `${checkin} a ${checkout} · ${nights} noche(s) · ${roomNames.join(", ")}`,
+              description: `${checkin} a ${checkout} · ${nights} noche(s) · ${roomNames.join(", ")}${
+                addonNames.length ? ` · Extras: ${addonNames.join(", ")}` : ""
+              }`,
             },
           },
           quantity: 1,

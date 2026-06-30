@@ -123,6 +123,30 @@ export function calcDepositAmount(
   return nights >= minNights ? Math.round(total * (pct / 100)) : Math.round(total);
 }
 
+// ── Extras vendibles (add-ons) ────────────────────────────────
+export interface AddonRule {
+  nombre: string;
+  precio: number;
+  tipo: "estancia" | "noche" | "persona";
+}
+
+/** Total de los extras seleccionados (por índice en la lista del hotel). */
+export function calcAddonsTotal(
+  addons: AddonRule[],
+  selected: number[],
+  nights: number,
+  guests: number,
+): number {
+  return selected.reduce((sum, i) => {
+    const a = addons[i];
+    if (!a) return sum;
+    const p = Math.max(0, Number(a.precio) || 0);
+    const mult =
+      a.tipo === "noche" ? Math.max(1, nights) : a.tipo === "persona" ? Math.max(1, guests) : 1;
+    return sum + p * mult;
+  }, 0);
+}
+
 // ── Estado de reserva (se persiste en sessionStorage) ────────
 export interface BookingState {
   checkin: string;

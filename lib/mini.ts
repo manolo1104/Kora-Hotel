@@ -36,6 +36,13 @@ export interface Reglas {
   minNoches?: number; // mín. de noches por reserva; default 1
 }
 
+// Extras vendibles (add-ons): desayuno, transporte, late checkout, etc.
+export interface Addon {
+  nombre: string;
+  precio: number;
+  tipo: "estancia" | "noche" | "persona"; // cobro: por reserva / por noche / por persona
+}
+
 export interface MiniExtras {
   amenidades?: string[];
   instagram?: string;
@@ -47,6 +54,7 @@ export interface MiniExtras {
   faqs?: MiniFaq[];
   politicas?: Politicas;
   reglas?: Reglas;
+  addons?: Addon[];
   formasPago?: string[];
   idiomas?: string[];
   premium?: { marcaOculta?: boolean; dominio?: string };
