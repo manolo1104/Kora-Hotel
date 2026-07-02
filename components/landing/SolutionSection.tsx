@@ -24,8 +24,8 @@ export function SolutionSection() {
 
         <Reveal delay={0.2}>
           <p className="mt-10 text-xs text-kora-muted">
-            El agente de WhatsApp con IA y el pricing dinámico están disponibles desde
-            el plan Hotel (9 a 20 habitaciones).
+            Camila Lite viene en Boutique; la versión completa (24/7, sin límite)
+            y el pricing dinámico, desde el plan Hotel (9 a 20 habitaciones).
           </p>
         </Reveal>
       </div>

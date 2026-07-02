@@ -66,24 +66,25 @@ export default function TerminosPage() {
                 3. Pagos y cancelación
               </h2>
               <p>
-                El servicio se factura mensualmente. El precio para hoteles
-                fundadores depende del tamaño del hotel (número de habitaciones):
-                $1,990 MXN/mes de 1 a 8 habitaciones, $2,990 MXN/mes de 9 a 20
-                habitaciones y $4,490 MXN/mes de 21 habitaciones o más (más IVA),
-                y se mantiene vigente mientras la suscripción esté activa.
+                El servicio se factura mensualmente. El precio depende del
+                tamaño del hotel (número de habitaciones): $1,990 MXN/mes de 1 a
+                8 habitaciones, $2,990 MXN/mes de 9 a 20 habitaciones y $4,490
+                MXN/mes de 21 habitaciones o más (más IVA), y se mantiene vigente
+                mientras la suscripción esté activa.
               </p>
               <ul className="mt-3 space-y-1.5 list-disc list-inside text-kora-muted">
                 <li>
-                  Oferta de fundador (primeros 10 hoteles): incluye el diseño y
-                  desarrollo del sitio web profesional sin costo (valor de
-                  referencia $30,000 MXN). A cambio, aplica una permanencia
-                  mínima de 12 meses que permite amortizar dicho desarrollo. Si
-                  se cancela antes del año, se cobra el costo proporcional del
-                  sitio entregado.
+                  El plan es mes a mes: no se requiere contrato anual ni
+                  permanencia mínima
                 </li>
                 <li>
-                  Fuera de la oferta de fundador no se requiere contrato anual y
-                  el sitio web a la medida es un servicio de pago independiente
+                  Garantía de 30 días: si cancelas dentro de los primeros 30
+                  días posteriores a tu primer pago, te reembolsamos el importe
+                  de esa primera mensualidad
+                </li>
+                <li>
+                  El sitio web profesional a la medida es un servicio de pago
+                  independiente, cotizado según cada hotel
                 </li>
                 <li>
                   El usuario puede cancelar en cualquier momento desde su panel

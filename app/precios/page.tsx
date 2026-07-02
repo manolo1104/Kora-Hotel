@@ -8,9 +8,9 @@ import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 import { PLANES } from "@/lib/oferta";
 
 export const metadata: Metadata = {
-  title: "Precios de Kora: sistema hotelero desde $1,990 MXN + sitio web gratis",
+  title: "Precios de Kora: sistema hotelero para hoteles boutique desde $1,990 MXN/mes",
   description:
-    "Precio fundador desde $1,990 MXN/mes según el tamaño de tu hotel. Te construimos tu sitio web profesional GRATIS (valor $30,000) para los primeros 10 hoteles. Motor de reservas, agente WhatsApp, PMS e IA, todo incluido.",
+    "Plan mes a mes desde $1,990 MXN/mes según el tamaño de tu hotel, sin permanencia. Motor de reservas, agente de WhatsApp, PMS, CRM e IA, todo incluido. Sitio web profesional opcional, como servicio aparte.",
   alternates: {
     canonical: "/precios",
   },
@@ -38,7 +38,7 @@ const jsonLd = {
         priceCurrency: "MXN",
         url: `${SITE_URL}/precios`,
         availability: "https://schema.org/InStock",
-        description: `Todo incluido para hoteles de ${p.rango.toLowerCase()}, con sitio web profesional gratis para los primeros 10 hoteles fundadores.`,
+        description: `Todo incluido para hoteles de ${p.rango.toLowerCase()}, plan mes a mes sin permanencia.`,
       })),
     },
     {
@@ -48,16 +48,7 @@ const jsonLd = {
       provider: { "@type": "Organization", name: "Kora", url: SITE_URL },
       areaServed: { "@type": "Country", name: "México" },
       description:
-        "Sitio 100% personalizado con motor de reservas propio, reseñas y señales de urgencia. Lo diseñamos, publicamos y capacitamos llave en mano. Incluido SIN COSTO para los primeros 10 hoteles fundadores de Kora.",
-      offers: {
-        "@type": "Offer",
-        price: "30000",
-        priceCurrency: "MXN",
-        url: `${SITE_URL}/precios`,
-        availability: "https://schema.org/InStock",
-        description:
-          "Valor de referencia $30,000 MXN. Incluido sin costo para los hoteles fundadores con suscripción activa a Kora.",
-      },
+        "Sitio 100% personalizado con motor de reservas propio. Lo diseñamos, publicamos y capacitamos llave en mano. Servicio aparte, cotizado según cada hotel, además de tu suscripción a Kora.",
     },
   ],
 };
@@ -88,8 +79,8 @@ export default function PreciosPage() {
           </Reveal>
           <Reveal delay={0.12}>
             <p className="mt-4 text-kora-muted text-lg leading-relaxed">
-              Tu precio según el tamaño de tu hotel. Todo incluido, con tu sitio
-              web profesional gratis. Sin sorpresas.
+              Tu precio según el tamaño de tu hotel. Plan mes a mes, sin
+              permanencia. Sin sorpresas.
             </p>
           </Reveal>
           <Reveal delay={0.2}>

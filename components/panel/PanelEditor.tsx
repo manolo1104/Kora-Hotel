@@ -42,6 +42,7 @@ import {
   ordenSecciones,
   type Resena,
   type MiniFaq,
+  type Addon,
 } from "@/lib/mini";
 
 const inputCls =
@@ -135,9 +136,14 @@ const KORA_PRO_PAGINA = [
 export function PanelEditor({
   userId,
   planActivo = false,
+  hotelSlug,
 }: {
   userId: string;
   planActivo?: boolean;
+  // Multi-tenant: si se pasa, el editor carga ESE hotel por slug (un usuario
+  // puede tener varios). Sin él, carga el único hotel del usuario por owner_id
+  // (comportamiento original, conservado para no romper usos previos).
+  hotelSlug?: string;
 }) {
   const supabase = createClient();
 
@@ -166,9 +172,11 @@ export function PanelEditor({
 
   // Diseño
   const [color, setColor] = useState("");
+  const [acento, setAcento] = useState("");
   const [logoUrl, setLogoUrl] = useState("");
   const [fuente, setFuente] = useState("jakarta");
   const [heroEstilo, setHeroEstilo] = useState<"banda" | "completa">("banda");
+  const [portada, setPortada] = useState(true);
   const [orden, setOrden] = useState<string[]>([...ordenSecciones()]);
   const [subiendoLogo, setSubiendoLogo] = useState(false);
 
@@ -182,6 +190,35 @@ export function PanelEditor({
   const [polNinos, setPolNinos] = useState("");
   const [formasPago, setFormasPago] = useState<string[]>([]);
   const [idiomas, setIdiomas] = useState<string[]>([]);
+
+  // Reglas de reserva (anticipo, mínimo de noches) — viven en extras.reglas
+  const [anticipoPct, setAnticipoPct] = useState(50);
+  const [minNoches, setMinNoches] = useState(1);
+  // Tarifa no reembolsable + plazo de cancelación gratis (extras.reglas)
+  const [nrfActiva, setNrfActiva] = useState(false);
+  const [nrfPct, setNrfPct] = useState(10);
+  const [cancelacionDias, setCancelacionDias] = useState(2);
+  const [pagoEnHotel, setPagoEnHotel] = useState(false);
+  // Impuestos para el desglose del motor (extras.impuestos)
+  const [ishPct, setIshPct] = useState(0);
+  // Medición propia del hotel en su motor (extras.medicion)
+  const [medGa4, setMedGa4] = useState("");
+  const [medPixel, setMedPixel] = useState("");
+  // Avisos por correo + recuperación de abandono (extras.notificaciones)
+  const [notifEmail, setNotifEmail] = useState("");
+  const [abandonoActivo, setAbandonoActivo] = useState(true);
+
+  // Extras vendibles (add-ons) — viven en extras.addons
+  const [addons, setAddons] = useState<Addon[]>([]);
+  function addAddon() {
+    setAddons((a) => [...a, { nombre: "", precio: 0, tipo: "estancia" }]);
+  }
+  function updateAddon(i: number, campo: keyof Addon, valor: string | number) {
+    setAddons((a) => a.map((it, idx) => (idx === i ? { ...it, [campo]: valor } : it)));
+  }
+  function removeAddon(i: number) {
+    setAddons((a) => a.filter((_, idx) => idx !== i));
+  }
 
   // Premium (gancho — controlado por nosotros)
   const [marcaOculta, setMarcaOculta] = useState(false);
@@ -200,17 +237,22 @@ export function PanelEditor({
   const [guardado, setGuardado] = useState(false);
   const [error, setError] = useState("");
 
+  // Extras crudo tal como vino de la BD: guardar() lo usa de base para NO
+  // borrar claves que este editor no maneja (ej. extras.onboarding).
+  const extrasBase = useRef<Record<string, unknown>>({});
+
   const qrPaginaRef = useRef<HTMLDivElement>(null);
   const qrGuiaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let activo = true;
     (async () => {
-      const { data } = await supabase
-        .from("hoteles")
-        .select("*")
-        .eq("owner_id", userId)
-        .maybeSingle();
+      // Por slug (multi-tenant) si viene; si no, el hotel del usuario por owner_id.
+      const query = supabase.from("hoteles").select("*");
+      const { data } = await (hotelSlug
+        ? query.eq("slug", hotelSlug)
+        : query.eq("owner_id", userId)
+      ).maybeSingle();
       if (activo && data) {
         setHotelId(data.id);
         setSlug(data.slug);
@@ -222,6 +264,7 @@ export function PanelEditor({
         setFotos(Array.isArray(data.fotos) ? data.fotos : []);
         setPublicado(data.publicado !== false);
         const ex = data.extras ?? {};
+        extrasBase.current = ex;
         setAmenidades(Array.isArray(ex.amenidades) ? ex.amenidades : []);
         setInstagram(ex.instagram ?? "");
         setFacebook(ex.facebook ?? "");
@@ -229,9 +272,11 @@ export function PanelEditor({
         setMapEmbedUrl(ex.mapEmbedUrl ?? "");
         const d = ex.diseno ?? {};
         setColor(d.color ?? "");
+        setAcento(d.acento ?? "");
         setLogoUrl(d.logoUrl ?? "");
         setFuente(d.fuente ?? "jakarta");
         setHeroEstilo(d.heroEstilo === "completa" ? "completa" : "banda");
+        setPortada(d.portada !== false);
         setOrden(ordenSecciones(d.ordenSecciones));
         setResenas(Array.isArray(ex.resenas) ? ex.resenas : []);
         setFaqs(Array.isArray(ex.faqs) ? ex.faqs : []);
@@ -241,6 +286,19 @@ export function PanelEditor({
         setPolNinos(p.ninos ?? "");
         setFormasPago(Array.isArray(ex.formasPago) ? ex.formasPago : []);
         setIdiomas(Array.isArray(ex.idiomas) ? ex.idiomas : []);
+        const rg = ex.reglas ?? {};
+        setAnticipoPct(typeof rg.anticipoPct === "number" ? rg.anticipoPct : 50);
+        setMinNoches(typeof rg.minNoches === "number" ? rg.minNoches : 1);
+        setNrfActiva(rg.nrfActiva === true);
+        setNrfPct(typeof rg.nrfPct === "number" ? rg.nrfPct : 10);
+        setCancelacionDias(typeof rg.cancelacionDias === "number" ? rg.cancelacionDias : 2);
+        setPagoEnHotel(rg.pagoEnHotel === true);
+        setIshPct(typeof ex.impuestos?.ishPct === "number" ? ex.impuestos.ishPct : 0);
+        setMedGa4(ex.medicion?.ga4Id ?? "");
+        setMedPixel(ex.medicion?.metaPixelId ?? "");
+        setNotifEmail(ex.notificaciones?.email ?? "");
+        setAbandonoActivo(ex.notificaciones?.abandono !== false);
+        setAddons(Array.isArray(ex.addons) ? ex.addons : []);
         setMarcaOculta(ex.premium?.marcaOculta === true);
         const g = data.guia ?? {};
         setWifi(g.wifi ?? "");
@@ -257,7 +315,7 @@ export function PanelEditor({
     return () => {
       activo = false;
     };
-  }, [supabase, userId]);
+  }, [supabase, userId, hotelSlug]);
 
   const slugPreview = slug || slugify(nombre) || "tu-hotel";
 
@@ -473,6 +531,8 @@ export function PanelEditor({
     };
 
     const extras = {
+      // Base: claves que este editor no maneja (onboarding, futuras) se conservan.
+      ...extrasBase.current,
       amenidades,
       instagram: instagram.trim(),
       facebook: facebook.trim(),
@@ -480,9 +540,11 @@ export function PanelEditor({
       mapEmbedUrl: mapEmbedUrl.trim(),
       diseno: {
         color: color.trim(),
+        acento: acento.trim(),
         logoUrl,
         fuente,
         heroEstilo,
+        portada,
         ordenSecciones: orden,
       },
       resenas: resenas.filter((r) => (r.texto ?? "").trim()),
@@ -492,6 +554,26 @@ export function PanelEditor({
         mascotas: polMascotas.trim(),
         ninos: polNinos.trim(),
       },
+      reglas: {
+        anticipoPct,
+        minNoches,
+        nrfActiva,
+        nrfPct,
+        cancelacionDias,
+        pagoEnHotel,
+      },
+      impuestos: { ishPct },
+      medicion: {
+        ga4Id: medGa4.trim(),
+        metaPixelId: medPixel.trim(),
+      },
+      notificaciones: {
+        email: notifEmail.trim(),
+        abandono: abandonoActivo,
+      },
+      addons: addons
+        .filter((a) => (a.nombre ?? "").trim())
+        .map((a) => ({ nombre: a.nombre.trim(), precio: Number(a.precio) || 0, tipo: a.tipo })),
       formasPago,
       idiomas,
       premium: { marcaOculta },
@@ -550,6 +632,8 @@ export function PanelEditor({
         setHotelId(creado.id);
         setSlug(creado.slug);
       }
+      // La nueva base es lo recién guardado (para el siguiente guardar()).
+      extrasBase.current = extras;
       setGuardado(true);
       setTimeout(() => setGuardado(false), 2500);
     } catch (e) {
@@ -1306,6 +1390,60 @@ export function PanelEditor({
               </div>
             </div>
 
+            {/* Color de acento (botones del motor) */}
+            <div>
+              <label className="block text-sm font-semibold text-kora-text mb-1.5">
+                Color de acento <span className="font-normal text-kora-muted">(botones del motor)</span>
+              </label>
+              <div className="flex flex-wrap items-center gap-2">
+                {COLOR_PRESETS.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => setAcento(c)}
+                    aria-label={`Acento ${c}`}
+                    className={`w-9 h-9 rounded-full border-2 transition-transform ${
+                      (acento || color || COLOR_DEFAULT).toLowerCase() === c.toLowerCase()
+                        ? "border-kora-text scale-110"
+                        : "border-white shadow-sm"
+                    }`}
+                    style={{ backgroundColor: c }}
+                  />
+                ))}
+                <label className="inline-flex items-center gap-2 ml-1 text-sm text-kora-muted">
+                  <input
+                    type="color"
+                    value={acento || color || COLOR_DEFAULT}
+                    onChange={(e) => setAcento(e.target.value)}
+                    className="w-9 h-9 rounded-lg border border-gray-200 cursor-pointer bg-white"
+                  />
+                  Personalizado
+                </label>
+              </div>
+              <p className="mt-1.5 text-xs text-kora-muted">
+                Déjalo igual al color de marca para usar un solo color en todo.
+              </p>
+            </div>
+
+            {/* Foto de portada en el motor */}
+            <div>
+              <label className="flex items-center justify-between gap-4 cursor-pointer rounded-xl border border-gray-100 bg-kora-bg/40 px-4 py-3">
+                <span className="text-sm font-semibold text-kora-text">
+                  Foto de portada en el motor
+                  <span className="block text-xs font-normal text-kora-muted">
+                    Usa tu primera foto como banner arriba del motor de reservas.
+                  </span>
+                </span>
+                <input
+                  type="checkbox"
+                  checked={portada}
+                  onChange={(e) => setPortada(e.target.checked)}
+                  className="h-5 w-5 flex-shrink-0 rounded border-gray-300 cursor-pointer"
+                  style={{ accentColor: "#1B4332" }}
+                />
+              </label>
+            </div>
+
             {/* Tipografía */}
             <div>
               <label className="block text-sm font-semibold text-kora-text mb-1.5">
@@ -1521,6 +1659,297 @@ export function PanelEditor({
       {/* ─── AVANZADO ─── */}
       {tab === "avanzado" && (
         <div className="space-y-6">
+          {/* Reglas de reserva (anticipo + mínimo de noches) */}
+          <div className={`${card} space-y-4`}>
+            <div className="flex items-center gap-2">
+              <FileText size={18} className="text-kora-primary" />
+              <h2 className="text-lg font-bold text-kora-text">Reglas de reserva</h2>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              <div>
+                <label className="block text-sm font-semibold text-kora-text mb-1.5">
+                  ¿Cuánto cobras al reservar?
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {[30, 50, 100].map((p) => (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => setAnticipoPct(p)}
+                      className={`btn-press px-4 py-2 rounded-full border text-sm font-semibold transition-colors ${
+                        anticipoPct === p
+                          ? "border-kora-accent bg-kora-accent/10 text-kora-primary"
+                          : "border-gray-200 text-kora-muted hover:border-kora-accent"
+                      }`}
+                    >
+                      {p === 100 ? "Total (100%)" : `${p}% de anticipo`}
+                    </button>
+                  ))}
+                </div>
+                <p className="mt-1.5 text-xs text-kora-muted">
+                  El huésped paga este % al reservar y el resto al llegar. Las
+                  reservas de 1 noche se cobran completas.
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-kora-text mb-1.5">
+                  Mínimo de noches por reserva
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  max={30}
+                  value={minNoches}
+                  onChange={(e) =>
+                    setMinNoches(Math.max(1, Math.min(30, Number(e.target.value) || 1)))
+                  }
+                  className={inputCls}
+                />
+                <p className="mt-1.5 text-xs text-kora-muted">
+                  Estancia mínima que aceptas (1 = sin mínimo).
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-kora-text mb-1.5">
+                  Cancelación gratis hasta… (días antes de la llegada)
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  max={30}
+                  value={cancelacionDias}
+                  onChange={(e) =>
+                    setCancelacionDias(Math.max(0, Math.min(30, Number(e.target.value) || 0)))
+                  }
+                  className={inputCls}
+                />
+                <p className="mt-1.5 text-xs text-kora-muted">
+                  Ej. 2 = el huésped puede cancelar gratis hasta 2 días antes.
+                  Con 0, puede cancelar hasta el día de su llegada.
+                </p>
+              </div>
+              <div>
+                <label className="flex items-center gap-2.5 text-sm font-semibold text-kora-text mb-1.5">
+                  <input
+                    type="checkbox"
+                    checked={nrfActiva}
+                    onChange={(e) => setNrfActiva(e.target.checked)}
+                    className="h-4 w-4 accent-kora-primary"
+                  />
+                  Ofrecer tarifa &quot;No reembolsable&quot; con descuento
+                </label>
+                {nrfActiva && (
+                  <div className="mt-2 flex items-center gap-2">
+                    <input
+                      type="number"
+                      min={5}
+                      max={50}
+                      value={nrfPct}
+                      onChange={(e) =>
+                        setNrfPct(Math.max(5, Math.min(50, Number(e.target.value) || 10)))
+                      }
+                      className={`${inputCls} w-24`}
+                    />
+                    <span className="text-sm text-kora-muted">% de descuento</span>
+                  </div>
+                )}
+                <p className="mt-1.5 text-xs text-kora-muted">
+                  El huésped paga menos a cambio de no poder cancelar. Llena más
+                  noches con anticipación.
+                </p>
+              </div>
+              <div>
+                <label className="flex items-center gap-2.5 text-sm font-semibold text-kora-text mb-1.5">
+                  <input
+                    type="checkbox"
+                    checked={pagoEnHotel}
+                    onChange={(e) => setPagoEnHotel(e.target.checked)}
+                    className="h-4 w-4 accent-kora-primary"
+                  />
+                  Permitir &quot;pagar al llegar al hotel&quot;
+                </label>
+                <p className="mt-1.5 text-xs text-kora-muted">
+                  El huésped no paga nada al reservar: deja su tarjeta como
+                  garantía (guardada en TU cuenta de Stripe) y paga en
+                  recepción. Requiere tener Pagos conectados.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Impuestos y medición del motor */}
+          <div className={`${card} space-y-4`}>
+            <div className="flex items-center gap-2">
+              <FileText size={18} className="text-kora-primary" />
+              <h2 className="text-lg font-bold text-kora-text">Impuestos y medición</h2>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              <div>
+                <label className="block text-sm font-semibold text-kora-text mb-1.5">
+                  Impuesto al hospedaje de tu estado (ISH %)
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  max={10}
+                  step={0.5}
+                  value={ishPct}
+                  onChange={(e) =>
+                    setIshPct(Math.max(0, Math.min(10, Number(e.target.value) || 0)))
+                  }
+                  className={inputCls}
+                />
+                <p className="mt-1.5 text-xs text-kora-muted">
+                  Solo transparenta el desglose (tarifa + IVA 16% + ISH) en el
+                  motor; tus precios NO cambian. En San Luis Potosí es 3%.
+                </p>
+              </div>
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-sm font-semibold text-kora-text mb-1.5">
+                    Tu Google Analytics (GA4)
+                  </label>
+                  <input
+                    className={inputCls}
+                    value={medGa4}
+                    onChange={(e) => setMedGa4(e.target.value)}
+                    placeholder="G-XXXXXXXXXX"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-kora-text mb-1.5">
+                    Tu Meta Pixel (Facebook/Instagram)
+                  </label>
+                  <input
+                    className={inputCls}
+                    value={medPixel}
+                    onChange={(e) => setMedPixel(e.target.value)}
+                    placeholder="1234567890"
+                  />
+                </div>
+                <p className="text-xs text-kora-muted">
+                  Opcional. Si los llenas, tu motor registra vistas, checkouts y
+                  reservas pagadas en TUS cuentas (para tus campañas).
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Avisos por correo + recuperación de abandono */}
+          <div className={`${card} space-y-4`}>
+            <div className="flex items-center gap-2">
+              <FileText size={18} className="text-kora-primary" />
+              <h2 className="text-lg font-bold text-kora-text">Avisos por correo</h2>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              <div>
+                <label className="block text-sm font-semibold text-kora-text mb-1.5">
+                  ¿A qué correo te avisamos?
+                </label>
+                <input
+                  type="email"
+                  className={inputCls}
+                  value={notifEmail}
+                  onChange={(e) => setNotifEmail(e.target.value)}
+                  placeholder="recepcion@tuhotel.com"
+                />
+                <p className="mt-1.5 text-xs text-kora-muted">
+                  Recibes un correo al instante con cada reserva nueva y cada
+                  cancelación. Si lo dejas vacío, usamos el correo de tu cuenta.
+                </p>
+              </div>
+              <div>
+                <label className="flex items-center gap-2.5 text-sm font-semibold text-kora-text mb-1.5">
+                  <input
+                    type="checkbox"
+                    checked={abandonoActivo}
+                    onChange={(e) => setAbandonoActivo(e.target.checked)}
+                    className="h-4 w-4 accent-kora-primary"
+                  />
+                  Recuperar reservas incompletas
+                </label>
+                <p className="mt-1.5 text-xs text-kora-muted">
+                  Si un huésped deja su correo pero no termina de reservar, le
+                  mandamos un recordatorio (una sola vez) con un link para
+                  retomar su búsqueda.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Extras vendibles (add-ons) */}
+          <div className={`${card} space-y-4`}>
+            <div className="flex items-center gap-2">
+              <FileText size={18} className="text-kora-primary" />
+              <h2 className="text-lg font-bold text-kora-text">Extras vendibles</h2>
+            </div>
+            <p className="text-sm text-kora-muted">
+              Cosas que el huésped puede agregar a su reserva (desayuno, transporte,
+              late checkout…). Se cobran junto con la reserva.
+            </p>
+            <div className="space-y-3">
+              {addons.map((a, i) => (
+                <div
+                  key={i}
+                  className="flex flex-wrap items-end gap-2 rounded-xl border border-gray-100 bg-kora-bg/40 p-3"
+                >
+                  <div className="flex-1 min-w-[140px]">
+                    <label className="block text-[11px] font-semibold text-kora-muted mb-1">
+                      Nombre
+                    </label>
+                    <input
+                      className={inputCls}
+                      value={a.nombre}
+                      onChange={(e) => updateAddon(i, "nombre", e.target.value)}
+                      placeholder="Ej. Desayuno"
+                    />
+                  </div>
+                  <div className="w-28">
+                    <label className="block text-[11px] font-semibold text-kora-muted mb-1">
+                      Precio
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      className={inputCls}
+                      value={a.precio}
+                      onChange={(e) => updateAddon(i, "precio", Number(e.target.value) || 0)}
+                    />
+                  </div>
+                  <div className="w-36">
+                    <label className="block text-[11px] font-semibold text-kora-muted mb-1">
+                      Cobro
+                    </label>
+                    <select
+                      className={inputCls}
+                      value={a.tipo}
+                      onChange={(e) => updateAddon(i, "tipo", e.target.value)}
+                    >
+                      <option value="estancia">Por reserva</option>
+                      <option value="noche">Por noche</option>
+                      <option value="persona">Por persona</option>
+                    </select>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removeAddon(i)}
+                    className="btn-press w-9 h-9 rounded-lg border border-gray-200 flex items-center justify-center text-red-600 hover:border-red-300"
+                    aria-label="Quitar extra"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={addAddon}
+              className="btn-press inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-gray-200 text-kora-text font-semibold text-sm hover:border-kora-accent transition-colors"
+            >
+              <Plus size={15} /> Agregar extra
+            </button>
+          </div>
+
           {/* Políticas / pago / idiomas */}
           <div className={`${card} space-y-4`}>
             <div className="flex items-center gap-2">

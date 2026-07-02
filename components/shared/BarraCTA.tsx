@@ -10,8 +10,8 @@ export function BarraCTA() {
             ¿Listo para transformar tu hotel?
           </h2>
           <p className="mt-3 text-kora-accent text-base leading-relaxed">
-            Sé uno de los 10 hoteles fundadores. Setup gratis + precio especial de
-            por vida.
+            Plan mes a mes desde $1,990, sin permanencia. Te montamos todo y
+            capacitamos a tu equipo.
           </p>
           <a
             href="/#contacto"

@@ -10,6 +10,8 @@ import {
   Users,
   Sparkles,
   Check,
+  Lock,
+  ShieldCheck,
 } from "lucide-react";
 
 const EASE = [0.23, 1, 0.32, 1] as const;
@@ -119,12 +121,12 @@ export function DashboardMockup() {
             {/* Encabezado */}
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-[10px] text-kora-muted">Hoy · martes</p>
+                <p className="text-[10px] text-kora-muted">Hoy · martes · datos de ejemplo</p>
                 <p className="text-sm font-bold text-kora-text">Resumen del hotel</p>
               </div>
               <div className="inline-flex items-center gap-1.5 bg-kora-accent/15 text-kora-primary text-[10px] font-semibold px-2 py-1 rounded-full">
                 <span className="w-1.5 h-1.5 rounded-full bg-kora-accent animate-pulse" />
-                En vivo
+                Demo
               </div>
             </div>
 
@@ -232,8 +234,8 @@ export function DashboardMockup() {
         <p className="text-[10px] font-semibold text-kora-accent uppercase tracking-widest flex items-center gap-1">
           <Sparkles size={10} /> Reservas directas
         </p>
-        <p className="text-2xl font-bold text-white leading-none mt-0.5">+40%</p>
-        <p className="text-[10px] text-kora-accent mt-0.5">vs OTAs este mes</p>
+        <p className="text-2xl font-bold text-white leading-none mt-0.5">0%</p>
+        <p className="text-[10px] text-kora-accent mt-0.5">de comisión</p>
       </div>
     </div>
   );
@@ -247,9 +249,9 @@ type Msg = { from: "guest" | "bot"; text: string };
 
 const CHAT: Msg[] = [
   { from: "guest", text: "Hola, ¿tienen habitación para este fin de semana? 🙏" },
-  { from: "bot", text: "¡Claro! Para 2 noches tengo la Suite Jardín en $2,400. ¿Te la aparto?" },
+  { from: "bot", text: "¡Hola! Sí, para 2 noches tenemos la Suite Jardín en $2,400. ¿Te gustaría apartarla?" },
   { from: "guest", text: "Sí, porfa 🙌" },
-  { from: "bot", text: "Listo ✅ Reserva confirmada. Te envié el comprobante por aquí." },
+  { from: "bot", text: "¡Perfecto! Tomo tus datos y el hotel te confirma el pago en un momento. 🙌" },
 ];
 
 export function WhatsAppMockup() {
@@ -387,7 +389,7 @@ export function WhatsAppMockup() {
                     <Check size={14} className="text-kora-primary" />
                   </div>
                   <div>
-                    <p className="text-[11px] font-bold text-kora-text leading-tight">Reserva confirmada</p>
+                    <p className="text-[11px] font-bold text-kora-text leading-tight">Datos listos para el hotel</p>
                     <p className="text-[10px] text-kora-muted leading-tight">Suite Jardín · 2 noches · $2,400</p>
                   </div>
                 </div>
@@ -396,6 +398,181 @@ export function WhatsAppMockup() {
           </AnimatePresence>
         </motion.div>
       </WindowFrame>
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Motor de reservas dinámico — el huésped reserva y paga directo, 0% comisión */
+/*  Refleja el flujo real de /h/[slug]/reservar (fechas → cuarto → pago).       */
+/* -------------------------------------------------------------------------- */
+
+export function BookingEngineMockup() {
+  const reduce = useReducedMotion();
+  const ref = useRef<HTMLDivElement>(null);
+  const enVista = useInView(ref, { amount: 0.35 });
+
+  // Alterna entre "explorando" (elige cuarto) y "reservado" (carrito + pago).
+  const [booked, setBooked] = useState(false);
+  useEffect(() => {
+    if (reduce) {
+      setBooked(true);
+      return;
+    }
+    if (!enVista) return;
+    const t = setTimeout(() => setBooked((b) => !b), booked ? 3400 : 2400);
+    return () => clearTimeout(t);
+  }, [booked, enVista, reduce]);
+
+  const fechas = [
+    { l: "Llegada", v: "Vie 6 jun" },
+    { l: "Salida", v: "Dom 8 jun" },
+    { l: "Huéspedes", v: "2 adultos" },
+  ];
+
+  return (
+    <div ref={ref} className="relative select-none">
+      <WindowFrame title="Motor de reservas">
+        <div className="p-4 sm:p-5 space-y-3.5 bg-white">
+          {/* Encabezado del motor (copy real del producto) */}
+          <div>
+            <p className="text-[10px] font-semibold text-kora-accent uppercase tracking-widest">
+              Reserva directa · Sin comisiones
+            </p>
+            <p className="text-sm font-bold text-kora-text mt-0.5">Hotel Paraíso Encantado</p>
+            <p className="text-[10px] text-kora-muted">Confirmación inmediata · Pago seguro</p>
+          </div>
+
+          {/* Barra de fechas y huéspedes */}
+          <div className="grid grid-cols-3 gap-2">
+            {fechas.map((f) => (
+              <div key={f.l} className="rounded-xl border border-gray-100 bg-kora-bg/40 px-2.5 py-2">
+                <p className="text-[8px] text-kora-muted uppercase tracking-wide flex items-center gap-1">
+                  {f.l === "Huéspedes" ? <Users size={9} /> : <Calendar size={9} />} {f.l}
+                </p>
+                <p className="text-[11px] font-bold text-kora-text mt-0.5 truncate tabular-nums">{f.v}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Tarjeta de cuarto */}
+          <div className="rounded-xl border border-gray-100 overflow-hidden">
+            <div className="flex">
+              <div className="w-20 sm:w-24 bg-gradient-to-br from-kora-primary/80 to-kora-accent flex-shrink-0" />
+              <div className="flex-1 p-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="text-[12px] font-bold text-kora-text leading-tight">Suite Jardín</p>
+                    <p className="text-[9px] text-kora-muted">Hasta 2 personas</p>
+                  </div>
+                  <AnimatePresence>
+                    {booked && (
+                      <motion.span
+                        key="agregada"
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.8 }}
+                        className="inline-flex items-center gap-1 text-[8px] font-bold text-kora-primary bg-kora-accent/20 px-1.5 py-0.5 rounded-full flex-shrink-0"
+                      >
+                        <Check size={9} /> Agregada
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                </div>
+                <div className="flex items-end justify-between mt-2">
+                  <div>
+                    <p className="text-sm font-bold text-kora-text tabular-nums">$2,400 MXN</p>
+                    <p className="text-[8px] text-kora-muted">total · 2 noches</p>
+                  </div>
+                  <span
+                    className={`text-[10px] font-bold px-3 py-1.5 rounded-full transition-colors ${
+                      booked ? "bg-kora-bg text-kora-muted" : "bg-kora-accent text-kora-primary"
+                    }`}
+                  >
+                    {booked ? "Quitar" : "Seleccionar"}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Carrito "Tu reserva" (aparece al agregar) */}
+          <AnimatePresence initial={false}>
+            {booked && (
+              <motion.div
+                key="carrito"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.35, ease: EASE }}
+                className="overflow-hidden"
+              >
+                <div className="rounded-xl bg-kora-bg/60 border border-gray-100 p-3 space-y-1">
+                  <p className="text-[10px] font-semibold text-kora-text">Tu reserva</p>
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="text-kora-muted">Total estadía</span>
+                    <span className="font-bold text-kora-text tabular-nums">$2,400 MXN</span>
+                  </div>
+                  <p className="text-[9px] text-kora-muted">
+                    Pagas ahora el 50% ($1,200). El resto al llegar.
+                  </p>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Botón de pago (se activa al reservar) */}
+          <div
+            className={`w-full py-2.5 rounded-full text-xs font-bold inline-flex items-center justify-center gap-1.5 transition-colors ${
+              booked ? "bg-kora-primary text-white" : "bg-kora-primary/25 text-white/70"
+            }`}
+          >
+            <Lock size={12} /> Pagar $1,200 — Anticipo 50%
+          </div>
+
+          {/* Trust badges reales del motor */}
+          <div className="flex items-center justify-center gap-3 text-[9px] text-kora-muted">
+            <span className="inline-flex items-center gap-1">
+              <ShieldCheck size={10} className="text-kora-primary" /> Pago seguro
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <Check size={10} className="text-kora-primary" /> Confirmación inmediata
+            </span>
+          </div>
+        </div>
+      </WindowFrame>
+
+      {/* Toast de confirmación (al completar la reserva) */}
+      <AnimatePresence>
+        {booked && (
+          <motion.div
+            key="confirmada"
+            initial={{ opacity: 0, y: 10, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            transition={{ type: "spring", stiffness: 320, damping: 24, delay: 0.4 }}
+            className="absolute -top-4 right-3 xl:-right-4 bg-white rounded-2xl shadow-xl shadow-kora-primary/15 border border-kora-accent/30 px-3 py-2 flex items-center gap-2"
+            aria-hidden="true"
+          >
+            <div className="w-6 h-6 rounded-full bg-kora-accent/20 flex items-center justify-center flex-shrink-0">
+              <Check size={13} className="text-kora-primary" />
+            </div>
+            <p className="text-[11px] font-bold text-kora-text">¡Reserva confirmada!</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Tarjeta flotante: 0% comisión, 100% tuyo */}
+      <div
+        className="animate-float-delayed absolute -bottom-5 -left-3 xl:-left-6 bg-kora-primary rounded-2xl shadow-xl shadow-kora-primary/20 px-4 py-3 text-white hidden sm:block"
+        aria-hidden="true"
+      >
+        <p className="text-[10px] font-semibold text-kora-accent uppercase tracking-widest flex items-center gap-1">
+          <Sparkles size={10} /> Reservas directas
+        </p>
+        <p className="text-2xl font-bold text-white leading-none mt-0.5">0%</p>
+        <p className="text-[10px] text-kora-accent mt-0.5">de comisión · 100% tuyo</p>
+      </div>
     </div>
   );
 }

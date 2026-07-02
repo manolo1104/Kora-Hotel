@@ -31,8 +31,9 @@ const PASOS = [
     label: "Reservas",
     Icon: Globe,
     title: "Reservas directas, sin comisiones",
-    desc: "Tu propio motor de reservas conectado a tu web. El huésped reserva y paga sin pasar por Booking ni Airbnb. Te quedas con el 100%.",
+    desc: "Tu propio motor en tu web: el huésped elige fechas en un calendario con disponibilidad real, paga con tarjeta u OXXO —o deja garantía y paga al llegar— y la reserva cae confirmada en tu panel. Te quedas con el 100% del dinero y con los datos de tu huésped.",
     Mockup: ReservaMockup,
+    demoHref: "#demo-motor",
   },
   {
     id: "pms",
@@ -42,6 +43,7 @@ const PASOS = [
     title: "Tu hotel en una sola pantalla",
     desc: "Mapa de habitaciones en tiempo real, check-in y check-out digital, y housekeeping coordinado. Se acabaron el cuaderno y el Excel.",
     Mockup: PMSMockup,
+    demoHref: null,
   },
   {
     id: "pricing-dinamico",
@@ -51,6 +53,7 @@ const PASOS = [
     title: "Precios que se ajustan solos",
     desc: "Kora sube y baja tus tarifas según la demanda, los puentes y los eventos locales. Sin contratar un revenue manager.",
     Mockup: PricingMockup,
+    demoHref: null,
   },
   {
     id: "dashboard",
@@ -60,6 +63,7 @@ const PASOS = [
     title: "Las métricas que de verdad importan",
     desc: "Ocupación, RevPAR y forecast a 30 días, más el CRM con el historial de cada huésped. Todo en una pantalla.",
     Mockup: DashboardMockup,
+    demoHref: null,
   },
 ];
 
@@ -105,13 +109,24 @@ function Paso({
           {paso.title}
         </h3>
         <p className="mt-4 text-kora-muted text-base leading-relaxed max-w-lg">{paso.desc}</p>
-        <Link
-          href={`/caracteristicas#${paso.id}`}
-          className="btn-arrow mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-kora-primary hover:text-kora-primary-dark transition-colors"
-        >
-          Ver cómo funciona
-          <ArrowRight size={15} aria-hidden="true" />
-        </Link>
+        <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2">
+          {paso.demoHref && (
+            <a
+              href={paso.demoHref}
+              className="btn-arrow inline-flex items-center gap-1.5 text-sm font-bold text-kora-primary hover:text-kora-primary-dark transition-colors"
+            >
+              Probar el motor en vivo
+              <ArrowRight size={15} aria-hidden="true" />
+            </a>
+          )}
+          <Link
+            href={`/caracteristicas#${paso.id}`}
+            className="btn-arrow inline-flex items-center gap-1.5 text-sm font-semibold text-kora-primary hover:text-kora-primary-dark transition-colors"
+          >
+            Ver cómo funciona
+            <ArrowRight size={15} aria-hidden="true" />
+          </Link>
+        </div>
       </div>
     </div>
   );
@@ -220,13 +235,24 @@ function PasoMovilTexto({
           {paso.title}
         </h3>
         <p className="mt-3 text-kora-muted text-base leading-relaxed">{paso.desc}</p>
-        <Link
-          href={`/caracteristicas#${paso.id}`}
-          className="btn-arrow mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-kora-primary"
-        >
-          Ver cómo funciona
-          <ArrowRight size={15} aria-hidden="true" />
-        </Link>
+        <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2">
+          {paso.demoHref && (
+            <a
+              href={paso.demoHref}
+              className="btn-arrow inline-flex items-center gap-1.5 text-sm font-bold text-kora-primary"
+            >
+              Probar el motor en vivo
+              <ArrowRight size={15} aria-hidden="true" />
+            </a>
+          )}
+          <Link
+            href={`/caracteristicas#${paso.id}`}
+            className="btn-arrow inline-flex items-center gap-1.5 text-sm font-semibold text-kora-primary"
+          >
+            Ver cómo funciona
+            <ArrowRight size={15} aria-hidden="true" />
+          </Link>
+        </div>
       </div>
     </div>
   );

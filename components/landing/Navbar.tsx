@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import { Menu, X } from "lucide-react";
-import { LUGARES_DISPONIBLES } from "@/lib/oferta";
+// La urgencia del sitio se basa en cupos de implementación al mes (capacidad real).
 
 const EASE = [0.23, 1, 0.32, 1] as const;
 
@@ -73,16 +73,16 @@ export function Navbar() {
               </a>
             );
           })}
-          {/* Escasez honesta de la oferta fundador (fuente única: lib/oferta.ts) */}
+          {/* Escasez honesta: cupos de implementación al mes (capacidad real de onboarding) */}
           <span className="hidden lg:inline-flex items-center gap-1.5 text-[11px] font-semibold text-kora-primary">
             <span className="w-1.5 h-1.5 rounded-full bg-kora-accent animate-pulse" aria-hidden="true" />
-            Quedan {LUGARES_DISPONIBLES} lugares
+            Cupos limitados este mes
           </span>
           <a
-            href="/#contacto"
+            href="/#motor-reservas"
             className="btn-press btn-arrow btn-fill inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-kora-primary text-white text-sm font-semibold hover:bg-kora-primary-dark transition-colors"
           >
-            Solicitar demo
+            Ver el motor
           </a>
         </div>
 
@@ -144,14 +144,14 @@ export function Navbar() {
                 </motion.a>
               ))}
               <motion.a
-                href="/#contacto"
+                href="/#motor-reservas"
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.22, delay: 0.05 + navLinks.length * 0.06, ease: EASE }}
                 className="btn-press mt-3 block w-full text-center px-5 py-3 rounded-full bg-kora-primary text-white text-sm font-semibold"
                 onClick={() => setMenuOpen(false)}
               >
-                Solicitar demo
+                Ver el motor
               </motion.a>
             </div>
           </motion.div>

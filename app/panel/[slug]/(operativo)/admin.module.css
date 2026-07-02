@@ -1,0 +1,47 @@
+/* ============================================
+   TEMA DASHBOARD — paleta Kora (solo admin)
+   Redefine las variables de marca SOLO dentro del
+   shell admin para que el panel se vea como el video,
+   sin afectar el sitio público.
+   ============================================ */
+.shell {
+  /* Verdes Kora */
+  --forest: #1B4332;   /* verde oscuro primario (sidebar, títulos) */
+  --moss:   #2D5A45;
+  --jade:   #40916C;
+  --sage:   #52B788;   /* verde acento Kora (labels, subtítulos) */
+  --accent: #52B788;
+
+  /* Acentos (antes dorados) → verde */
+  --sand:   #74C69D;
+  --gold:   #52B788;
+
+  /* Fondos limpios */
+  --parch:  #FAFAF8;   /* fondo de página */
+  --cream:  #FFFFFF;   /* tarjetas */
+
+  /* Texto neutro */
+  --ink:    #1A1A1A;   /* texto primario */
+  --bark:   #374151;
+  --clay:   #4B5563;   /* texto secundario */
+
+  /* Tipografía: el dashboard usa sans en todo (sin serif) */
+  --font-cormorant: var(--font-jost), 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  display: flex;
+  min-height: 100vh;
+  background: var(--parch);
+}
+
+.content {
+  flex: 1;
+  min-width: 0;
+  overflow-x: hidden;
+  padding: 32px;
+}
+
+@media (max-width: 768px) {
+  .shell { flex-direction: column; }
+  /* padding-top deja espacio al botón hamburguesa fijo (top:12px, height:40px) */
+  .content { padding: 64px 16px 20px; }
+}

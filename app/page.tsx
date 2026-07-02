@@ -9,6 +9,8 @@ import { IntegracionesSection } from "@/components/landing/IntegracionesSection"
 import { ComparisonSection } from "@/components/landing/ComparisonSection";
 import { CalculadoraROI } from "@/components/landing/CalculadoraROI";
 import { SocialProofSection } from "@/components/landing/SocialProofSection";
+import { MotorReservasSection } from "@/components/landing/MotorReservasSection";
+import { DemoMotorSection } from "@/components/landing/DemoMotorSection";
 import { DiferenciadoresSection } from "@/components/landing/DiferenciadoresSection";
 import { HerramientasSection } from "@/components/landing/HerramientasSection";
 import { PricingSection } from "@/components/landing/PricingSection";
@@ -19,11 +21,11 @@ import { ContactForm } from "@/components/landing/ContactForm";
 export const metadata: Metadata = {
   title: "Kora — Sistema hotelero con IA para hoteles boutique en México",
   description:
-    "Te construimos tu sitio web profesional gratis (para los primeros 10 hoteles), gestionamos tu hotel, respondemos WhatsApps 24/7 y tomas reservas directo. Todo en español. Desde $1,990 MXN/mes.",
+    "Reservas directas sin comisión, agente de WhatsApp 24/7 y todo tu hotel en una sola pantalla — en español, con CFDI. Plan mes a mes desde $1,990 MXN/mes, sin permanencia.",
   openGraph: {
     title: "Kora — Sistema hotelero con IA para hoteles boutique en México",
     description:
-      "Te construimos tu sitio web profesional gratis (para los primeros 10 hoteles), gestionamos tu hotel, respondemos WhatsApps 24/7 y tomas reservas directo. Todo en español. Desde $1,990 MXN/mes.",
+      "Reservas directas sin comisión, agente de WhatsApp 24/7 y todo tu hotel en una sola pantalla — en español, con CFDI. Plan mes a mes desde $1,990 MXN/mes, sin permanencia.",
     type: "website",
     locale: "es_MX",
     siteName: "Kora",
@@ -32,7 +34,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Kora — Sistema hotelero con IA para hoteles boutique en México",
     description:
-      "Te construimos tu sitio web profesional gratis (para los primeros 10 hoteles), gestionamos tu hotel, respondemos WhatsApps 24/7 y tomas reservas directo. Todo en español. Desde $1,990 MXN/mes.",
+      "Reservas directas sin comisión, agente de WhatsApp 24/7 y todo tu hotel en una sola pantalla — en español, con CFDI. Plan mes a mes desde $1,990 MXN/mes, sin permanencia.",
   },
   alternates: {
     canonical: "/",
@@ -74,7 +76,7 @@ const jsonLd = {
         highPrice: "4490",
         offerCount: 3,
         description:
-          "Precio fundador desde $1,990 MXN/mes según el tamaño del hotel (3 planes: 1–8, 9–20 y 21+ habitaciones), con sitio web profesional gratis para los primeros 10 hoteles.",
+          "Plan mes a mes desde $1,990 MXN/mes según el tamaño del hotel (3 planes: 1–8, 9–20 y 21+ habitaciones), sin permanencia. Sitio web profesional opcional, como servicio aparte.",
       },
     },
     {
@@ -102,20 +104,27 @@ export default function HomePage() {
       <Hero />
       <TrustStrip />
       <ProblemSection />
+      {/* Demo + prueba real arriba: el "ajá" en 90 seg y el caso de Paraíso
+          mientras hay atención, justo después del dolor. */}
+      <SocialProofSection />
+      {/* Producto ancla en profundidad: el motor de reservas directas,
+          seguido del demo INTERACTIVO (el motor real, hotel de demostración). */}
+      <MotorReservasSection />
+      <DemoMotorSection />
       <AgenteSection />
       <SolutionSection />
       <DiferenciadoresSection />
-      {/* Clúster de confianza: quién soy → el producto en video → sitios reales,
-          ANTES de la comparativa y el pricing. */}
       <FundadorSection />
-      <SocialProofSection />
       <IntegracionesSection />
-      <ComparisonSection />
+      {/* Secuencia de valor → precio: el ROI de las OTAs, luego el stack de
+          herramientas que reemplazas, y pegado a eso el precio. */}
       <CalculadoraROI />
+      <ComparisonSection />
       <PricingSection />
-      <HerramientasSection />
       <FAQSection />
       <ContactForm />
+      {/* Herramientas gratis: fuera del flujo de cierre, al final de la página. */}
+      <HerramientasSection />
     </main>
   );
 }

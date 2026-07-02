@@ -81,7 +81,7 @@ export function ComparisonSection() {
                 ))}
               </div>
               <div className="mt-5 pt-4 border-t border-kora-primary/20 flex items-center justify-between gap-4">
-                <span className="font-semibold text-kora-primary text-sm">Todo incluido + web gratis</span>
+                <span className="font-semibold text-kora-primary text-sm">Todo incluido, en una sola cuenta</span>
                 <span className="font-bold text-2xl text-kora-primary whitespace-nowrap">
                   <span className="text-sm font-semibold align-middle">desde </span>
                   <CountUp to={1990} prefix="$" className="tabular-nums" /> MXN/mes
@@ -97,8 +97,8 @@ export function ComparisonSection() {
             cerrado directo.
           </p>
           <p className="mt-3 text-center text-xs text-white/50 max-w-xl mx-auto leading-relaxed">
-            * El agente de WhatsApp con IA y el pricing dinámico se incluyen a
-            partir del plan Hotel ($2,990 MXN/mes).
+            * Camila Lite viene en Boutique; la versión completa (24/7, sin
+            límite) y el pricing dinámico, desde el plan Hotel ($2,990 MXN/mes).
           </p>
         </Reveal>
       </div>

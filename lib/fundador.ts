@@ -20,5 +20,5 @@ export const FUNDADOR = {
 
   // Nota de transparencia sobre el momento del proyecto (edítala a tu voz):
   lanzamiento:
-    "Kora ya opera en mi propio hotel. En junio de 2026 lo estamos abriendo a los primeros 10 hoteles fundadores — por eso busco gente que quiera construir esto conmigo desde el principio.",
+    "Kora ya opera en mi propio hotel, el Paraíso Encantado. Ahora lo estamos abriendo a otros hoteles como el tuyo — damos de alta a pocos al mes para acompañar bien a cada uno desde el arranque.",
 };

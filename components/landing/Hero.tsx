@@ -9,8 +9,7 @@ import {
   useReducedMotion,
 } from "motion/react";
 import { ArrowRight, Gift, Lock, FileCheck, Database } from "lucide-react";
-import { DashboardMockup } from "@/components/landing/ProductMockups";
-import { LUGARES_DISPONIBLES, TOTAL_LUGARES, LANZAMIENTO } from "@/lib/oferta";
+import { BookingEngineMockup } from "@/components/landing/ProductMockups";
 
 const EASE = [0.23, 1, 0.32, 1] as const;
 
@@ -69,13 +68,13 @@ export function Hero() {
                 {...item(0)}
                 className="text-xs sm:text-sm font-bold uppercase tracking-widest text-kora-primary/70"
               >
-                Reservas directas + WhatsApp con IA
+                Reservas directas, sin comisión
               </motion.p>
 
               {/* Headline palabra por palabra con blur que se enfoca (Linear/Apple).
                   La frase shimmer entra como una sola unidad para no romper su gradiente. */}
               <h1 className="text-4xl sm:text-5xl xl:text-[3.5rem] font-bold tracking-tight text-kora-text leading-tight">
-                {["Tu", "hotel", "lleno."].map((palabra, i) => (
+                {["Llena", "tu", "hotel", "con", "reservas", "directas."].map((palabra, i) => (
                   <motion.span
                     key={palabra}
                     className="inline-block whitespace-pre"
@@ -105,9 +104,9 @@ export function Hero() {
               </h1>
 
               <motion.p {...item(0.12)} className="text-base sm:text-lg text-kora-muted leading-relaxed max-w-[52ch]">
-                Página web con reservas directas, un agente de WhatsApp con IA que
-                cotiza y cierra reservas 24/7, y todo tu hotel en una sola pantalla.
-                En español, con CFDI, sin comisiones.
+                Tu propia página de reservas con 0% de comisión, y cuando entra la
+                reserva, Kora opera el resto: todo tu hotel en una sola pantalla.
+                En español, con CFDI.
               </motion.p>
 
               <motion.div {...item(0.2)} className="flex flex-col sm:flex-row gap-3">
@@ -115,14 +114,14 @@ export function Hero() {
                   href="#contacto"
                   className="btn-press btn-arrow btn-fill inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-kora-accent text-kora-primary font-semibold text-sm hover:bg-kora-accent-dark transition-colors"
                 >
-                  Solicitar mi demo
+                  Solicitar mi lugar
                   <ArrowRight size={16} />
                 </a>
                 <a
-                  href="#demo"
+                  href="#demo-motor"
                   className="btn-press inline-flex items-center justify-center px-6 py-3.5 rounded-full border-2 border-kora-primary text-kora-primary font-semibold text-sm hover:bg-kora-primary hover:text-white transition-colors"
                 >
-                  Ver demo en vivo (90 seg)
+                  Probar el motor en vivo
                 </a>
               </motion.div>
 
@@ -146,7 +145,7 @@ export function Hero() {
                 </li>
               </motion.ul>
 
-              {/* Oferta secundaria: web gratis (degradada, debajo de los CTAs) */}
+              {/* Oferta secundaria: servicio de sitio web (degradada, debajo de los CTAs) */}
               <motion.a
                 {...item(0.26)}
                 href="#precios"
@@ -154,8 +153,8 @@ export function Hero() {
               >
                 <Gift size={13} className="text-kora-accent flex-shrink-0" aria-hidden="true" />
                 <span>
-                  Bonus: sitio web profesional gratis para los primeros {TOTAL_LUGARES} hoteles
-                  <span className="font-semibold"> · quedan {LUGARES_DISPONIBLES} de {TOTAL_LUGARES}</span>
+                  ¿Sin página web? Te creamos una con tu motor de reservas
+                  <span className="font-semibold"> · servicio aparte</span>
                 </span>
               </motion.a>
 
@@ -168,8 +167,8 @@ export function Hero() {
                   · Xilitla, SLP
                 </p>
                 <p className="text-xs text-kora-muted">
-                  Apenas comenzamos: abrimos los primeros {TOTAL_LUGARES}{" "}
-                  lugares fundadores en {LANZAMIENTO}.
+                  Solo damos de alta a unos pocos hoteles al mes, para montar
+                  bien cada sistema (y tu web, si la quieres).
                 </p>
                 <div className="animate-pulse-ring inline-flex items-center gap-2 bg-[#1B4332]/8 text-kora-primary px-4 py-2 rounded-full text-sm font-medium">
                   <span className="text-kora-accent font-bold text-base leading-none">★</span>
@@ -187,7 +186,7 @@ export function Hero() {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.8, delay: 0.1, ease: "easeOut" }}
             >
-              <DashboardMockup />
+              <BookingEngineMockup />
             </motion.div>
           </div>
         </div>

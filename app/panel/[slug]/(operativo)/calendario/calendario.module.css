@@ -1,0 +1,220 @@
+/* El viejo .header queda como referencia; la nueva estructura usa headerRow1 + headerRow2 */
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.headerRow1 {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.headerRow2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.title {
+  font-family: var(--font-cormorant), Georgia, serif;
+  font-size: 1.8rem;
+  font-weight: 400;
+  color: var(--forest);
+  margin: 0 0 4px;
+}
+
+.sub { font-size: 0.83rem; color: var(--sage); margin: 0; }
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.monthLabel {
+  font-family: var(--font-cormorant), Georgia, serif;
+  font-size: 1.2rem;
+  color: var(--forest);
+  min-width: 160px;
+  text-align: center;
+}
+
+/* View toggle */
+.viewToggle {
+  display: flex;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.viewBtn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: #fff;
+  border: none;
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  font-family: var(--font-jost), sans-serif;
+  cursor: pointer;
+  color: var(--clay);
+  transition: background 0.15s, color 0.15s;
+  border-right: 1px solid #e5e7eb;
+}
+.viewBtn:last-child { border-right: none; }
+.viewBtn:hover { background: var(--parch); }
+.viewBtnActive { background: var(--forest) !important; color: var(--cream) !important; }
+
+.iconBtn {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  padding: 6px 8px;
+  cursor: pointer;
+  color: var(--clay);
+  display: flex;
+  align-items: center;
+  transition: border-color 0.15s;
+}
+.iconBtn:hover { border-color: var(--forest); }
+
+.primaryBtn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--forest);
+  color: var(--cream);
+  border: none;
+  border-radius: 4px;
+  padding: 7px 14px;
+  font-size: 0.875rem;
+  font-family: var(--font-jost), sans-serif;
+  font-weight: 600;
+  cursor: pointer;
+}
+.primaryBtn:hover { background: var(--moss); }
+
+.calWrap {
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+}
+
+.weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  background: var(--forest);
+}
+
+.weekday {
+  padding: 10px;
+  text-align: center;
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(250,248,245,0.7);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+}
+
+.dayEmpty {
+  border-right: 1px solid #f4f4f2;
+  border-bottom: 1px solid #f4f4f2;
+  min-height: 100px;
+  background: #ffffff;
+}
+
+.day {
+  border-right: 1px solid #f4f4f2;
+  border-bottom: 1px solid #f4f4f2;
+  min-height: 100px;
+  padding: 8px;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.day:hover { background: var(--parch); }
+.day:nth-child(7n) { border-right: none; }
+
+.today { background: #f0f7f0; }
+.today .dayNum { background: var(--forest); color: #fff; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; }
+
+.dayNum {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--clay);
+  margin-bottom: 4px;
+  display: block;
+}
+
+.dayEvents {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.event {
+  font-size: 0.68rem;
+  color: #fff;
+  border-radius: 3px;
+  padding: 2px 5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  font-weight: 500;
+}
+.event:hover { opacity: 0.85; }
+
+.more {
+  font-size: 0.65rem;
+  color: var(--sage);
+  padding-left: 4px;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72rem;
+  color: var(--clay);
+}
+
+.legendDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+@media (max-width: 640px) {
+  .day { min-height: 60px; padding: 4px; }
+  .event { display: none; }
+  .day:has(.dayEvents > .event) .dayNum::after { content: '●'; color: var(--sand); font-size: 0.5rem; }
+}
+
+/* Keyframe global para los spinners inline (style={{ animation: 'spin ...' }})
+   de AvailabilityCalendar. En Kora no había @keyframes spin global; se declara
+   aquí con :global para no tocar archivos fuera de la sección Calendario. */
+@keyframes spin { to { transform: rotate(360deg); } }

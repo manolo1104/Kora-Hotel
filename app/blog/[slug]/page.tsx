@@ -244,7 +244,7 @@ export default async function BlogArticlePage({ params }: Props) {
                   href="/#contacto"
                   className="btn-press btn-arrow btn-fill inline-flex items-center gap-2 px-7 py-3.5 rounded-full bg-kora-accent text-kora-primary font-bold text-sm hover:bg-kora-accent-dark transition-colors"
                 >
-                  Solicitar mi lugar como hotel fundador →
+                  Solicitar mi lugar →
                 </Link>
               </div>
 

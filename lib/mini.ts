@@ -22,13 +22,60 @@ export interface Politicas {
 
 export interface Diseno {
   color?: string; // hex del color de marca
+  acento?: string; // hex del color de acento (botones del motor); default = color
   logoUrl?: string;
   fuente?: string; // clave de FUENTES
   heroEstilo?: "banda" | "completa";
+  portada?: boolean; // mostrar la 1ª foto del hotel como portada en el motor (default: sí)
   ordenSecciones?: string[]; // claves de SECCIONES
 }
 
+export interface Reglas {
+  anticipoPct?: number; // % a cobrar como anticipo (0..100); default 50
+  anticipoMinNoches?: number; // mín. noches para aplicar anticipo; menos = cobra 100%; default 2
+  minNoches?: number; // mín. de noches por reserva; default 1
+  nrfActiva?: boolean; // ofrecer tarifa No Reembolsable con descuento; default no
+  nrfPct?: number; // % de descuento de la tarifa no reembolsable (5..50); default 10
+  cancelacionDias?: number; // días antes del check-in con cancelación gratis (tarifa flexible); default 2
+  pagoEnHotel?: boolean; // permitir "pagar al llegar" con tarjeta como garantía; default no
+}
+
+// Impuestos del hotel para el desglose del motor. Los precios cargados por el
+// hotel se tratan como precio FINAL (impuestos incluidos, como exige Profeco);
+// el desglose solo transparenta cuánto es base, IVA e ISH.
+export interface Impuestos {
+  ishPct?: number; // Impuesto Sobre Hospedaje del estado (0..10, ej. SLP = 3); default 0
+}
+
+// Medición del propio hotel en su motor (IDs suyos, no de Kora).
+export interface Medicion {
+  ga4Id?: string; // p.ej. G-XXXXXXX
+  metaPixelId?: string; // p.ej. 1234567890
+}
+
+// Avisos por correo al hotel (nueva reserva, cancelación) y recuperación de
+// reservas incompletas hacia el huésped.
+export interface Notificaciones {
+  email?: string; // destinatario de avisos; vacío = correo de la cuenta del dueño
+  abandono?: boolean; // recordatorio de reserva incompleta al huésped (default: sí)
+}
+
+// Progreso del asistente de configuración (6 pasos: 1-2 crean el hotel en
+// /panel/onboarding; 3-6 viven en /panel/[slug]/onboarding y son resumables).
+export interface OnboardingProgreso {
+  paso?: number; // último paso alcanzado (3..6)
+  completado?: boolean; // el dueño llegó al final y publicó
+}
+
+// Extras vendibles (add-ons): desayuno, transporte, late checkout, etc.
+export interface Addon {
+  nombre: string;
+  precio: number;
+  tipo: "estancia" | "noche" | "persona"; // cobro: por reserva / por noche / por persona
+}
+
 export interface MiniExtras {
+  demo?: boolean; // hotel de demostración: el motor simula el pago (nada se cobra)
   amenidades?: string[];
   instagram?: string;
   facebook?: string;
@@ -38,6 +85,12 @@ export interface MiniExtras {
   resenas?: Resena[];
   faqs?: MiniFaq[];
   politicas?: Politicas;
+  reglas?: Reglas;
+  impuestos?: Impuestos;
+  medicion?: Medicion;
+  notificaciones?: Notificaciones;
+  onboarding?: OnboardingProgreso;
+  addons?: Addon[];
   formasPago?: string[];
   idiomas?: string[];
   premium?: { marcaOculta?: boolean; dominio?: string };

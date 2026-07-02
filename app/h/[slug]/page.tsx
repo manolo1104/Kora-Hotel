@@ -201,10 +201,10 @@ export default async function MiniPagina({
     .filter((n) => n > 0);
   const minPrecio = preciosNum.length ? Math.min(...preciosNum) : null;
 
-  // JSON-LD LodgingBusiness
+  // JSON-LD Hotel (subtipo de LodgingBusiness) + Offer por habitación
   const jsonLd: Record<string, unknown> = {
     "@context": "https://schema.org",
-    "@type": "LodgingBusiness",
+    "@type": "Hotel",
     name: hotel.nombre,
     ...(hotel.descripcion ? { description: hotel.descripcion.slice(0, 300) } : {}),
     ...(hotel.fotos?.length ? { image: hotel.fotos } : {}),
@@ -212,6 +212,33 @@ export default async function MiniPagina({
       ? { address: { "@type": "PostalAddress", addressLocality: hotel.ubicacion, addressCountry: "MX" } }
       : {}),
     ...(minPrecio ? { priceRange: `Desde $${minPrecio.toLocaleString("es-MX")} MXN` } : {}),
+    ...((hotel.habitaciones ?? []).length
+      ? {
+          makesOffer: (hotel.habitaciones ?? [])
+            .filter((h) => (h.nombre ?? "").trim() && aNumero(h.precio) > 0)
+            .map((h) => ({
+              "@type": "Offer",
+              price: aNumero(h.precio),
+              priceCurrency: "MXN",
+              availability: "https://schema.org/InStock",
+              url: `https://kora-hotel.com/h/${hotel.slug}/reservar`,
+              itemOffered: {
+                "@type": "HotelRoom",
+                name: h.nombre,
+                ...(h.descripcion ? { description: String(h.descripcion).slice(0, 200) } : {}),
+                ...(aNumero(h.capacidad) > 0
+                  ? {
+                      occupancy: {
+                        "@type": "QuantitativeValue",
+                        maxValue: aNumero(h.capacidad),
+                        unitText: "personas",
+                      },
+                    }
+                  : {}),
+              },
+            })),
+        }
+      : {}),
     ...(amenidades.length
       ? {
           amenityFeature: amenidades.map((a) => ({

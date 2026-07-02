@@ -1,0 +1,19 @@
+/* Estilos del panel de Canales OTA. El origen (mi-hotel) usaba estilos inline;
+   aquí solo añadimos el contenedor y el scroll horizontal de la tabla para que
+   funcione bien en móvil dentro del panel operativo de Kora. */
+
+.wrap {
+  padding: 24px 32px;
+  max-width: 1000px;
+}
+
+.tableScroll {
+  width: 100%;
+  overflow-x: auto;
+}
+
+@media (max-width: 640px) {
+  .wrap {
+    padding: 16px;
+  }
+}

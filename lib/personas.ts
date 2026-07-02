@@ -96,7 +96,7 @@ export const personas: Persona[] = [
       },
       {
         q: "¿Cuánto cuesta para un hotel pequeño?",
-        a: "Para un hotel pequeño (1 a 8 habitaciones) son $1,990 MXN/mes con el motor de reservas, PMS, dashboard y CRM. Y si eres de los primeros 10 hoteles, te construimos tu sitio web profesional gratis (valor $30,000). El agente de WhatsApp con IA y el pricing dinámico vienen a partir del plan Hotel.",
+        a: "Para un hotel pequeño (1 a 8 habitaciones) son $1,990 MXN/mes con el motor de reservas, PMS, dashboard y CRM, mes a mes y sin permanencia. Si quieres, te creamos tu sitio web profesional con motor de reservas como servicio aparte (lo cotizamos según tu hotel). En Boutique viene Camila Lite (asistente de WhatsApp con IA, con límite mensual); la versión completa de Camila 24/7 y el pricing dinámico, desde el plan Hotel.",
       },
     ],
   },
