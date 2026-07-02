@@ -10,6 +10,7 @@ import { ComparisonSection } from "@/components/landing/ComparisonSection";
 import { CalculadoraROI } from "@/components/landing/CalculadoraROI";
 import { SocialProofSection } from "@/components/landing/SocialProofSection";
 import { MotorReservasSection } from "@/components/landing/MotorReservasSection";
+import { DemoMotorSection } from "@/components/landing/DemoMotorSection";
 import { DiferenciadoresSection } from "@/components/landing/DiferenciadoresSection";
 import { HerramientasSection } from "@/components/landing/HerramientasSection";
 import { PricingSection } from "@/components/landing/PricingSection";
@@ -106,8 +107,10 @@ export default function HomePage() {
       {/* Demo + prueba real arriba: el "ajá" en 90 seg y el caso de Paraíso
           mientras hay atención, justo después del dolor. */}
       <SocialProofSection />
-      {/* Producto ancla en profundidad: el motor de reservas directas. */}
+      {/* Producto ancla en profundidad: el motor de reservas directas,
+          seguido del demo INTERACTIVO (el motor real, hotel de demostración). */}
       <MotorReservasSection />
+      <DemoMotorSection />
       <AgenteSection />
       <SolutionSection />
       <DiferenciadoresSection />

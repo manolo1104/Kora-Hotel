@@ -57,13 +57,19 @@ export function MotorReservasSection() {
                 ))}
               </ul>
 
-              <div className="mt-8">
+              <div className="mt-8 flex flex-col sm:flex-row gap-3">
                 <a
                   href="#contacto"
                   className="btn-press btn-arrow btn-fill inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-kora-accent text-kora-primary font-semibold text-sm hover:bg-kora-accent-dark transition-colors"
                 >
                   Solicitar mi lugar
                   <ArrowRight size={16} />
+                </a>
+                <a
+                  href="#demo-motor"
+                  className="btn-press inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full border-2 border-kora-primary text-kora-primary font-semibold text-sm hover:bg-kora-primary hover:text-white transition-colors"
+                >
+                  Probarlo en vivo
                 </a>
               </div>
             </div>

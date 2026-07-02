@@ -1,24 +1,25 @@
 import Link from "next/link";
-import { CheckCircle, Calendar, Users, BedDouble, MessageCircle } from "lucide-react";
+import {
+  CheckCircle,
+  Calendar,
+  Users,
+  BedDouble,
+  MessageCircle,
+  CalendarPlus,
+  MapPin,
+  Search,
+} from "lucide-react";
 import { resolveHotel } from "@/lib/tenant";
 import { getStripe, stripeEnvReady } from "@/lib/stripe/server";
+import { findBookingByPaymentIntent } from "@/lib/db/bookings";
 import { formatMXN } from "@/lib/booking";
 import { COLOR_DEFAULT, inkFor, fontStack, type MiniExtras } from "@/lib/mini";
 import { ownerTienePlanActivo } from "@/lib/suscripcion";
+import { t, localeOf, normalizeLang } from "@/lib/booking/i18n";
+import { HotelAnalytics } from "@/components/booking/HotelAnalytics";
+import { PurchaseTracker } from "@/components/booking/PurchaseTracker";
 
 export const dynamic = "force-dynamic";
-
-function fmtFechaLarga(d?: string): string {
-  if (!d) return "";
-  const date = new Date(`${d}T12:00:00`);
-  if (isNaN(date.getTime())) return d;
-  return date.toLocaleDateString("es-MX", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-}
 
 function soloDigitos(s: string): string {
   return (s || "").replace(/\D/g, "");
@@ -36,8 +37,24 @@ interface Resumen {
   depositPaid?: string;
   pending?: string;
   isDeposit?: string;
+  anticipoPct?: string;
+  ratePlan?: string;
+  payMode?: string; // "hotel" = tarjeta como garantía, se paga al llegar
   amountPaid?: number; // de la sesión, en MXN
   customerName?: string;
+}
+
+// Link "Agregar a Google Calendar" (evento de día completo, checkout exclusivo).
+function googleCalendarUrl(hotelNombre: string, folio: string, checkin: string, checkout: string, ubicacion: string) {
+  const d = (s: string) => s.replaceAll("-", "");
+  const params = new URLSearchParams({
+    action: "TEMPLATE",
+    text: `Reserva · ${hotelNombre}`,
+    dates: `${d(checkin)}/${d(checkout)}`,
+    details: `Folio: ${folio}`,
+    location: ubicacion,
+  });
+  return `https://calendar.google.com/calendar/render?${params.toString()}`;
 }
 
 export default async function ConfirmacionPage({
@@ -45,10 +62,11 @@ export default async function ConfirmacionPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ session_id?: string }>;
+  searchParams: Promise<{ session_id?: string; lang?: string }>;
 }) {
   const { slug } = await params;
-  const { session_id } = await searchParams;
+  const { session_id, lang: langParam } = await searchParams;
+  const lang = normalizeLang(langParam);
 
   const hotel = await resolveHotel(slug);
   const hotelNombre = hotel?.nombre ?? "tu hotel";
@@ -66,14 +84,51 @@ export default async function ConfirmacionPage({
   const marcaOculta =
     !!hotel && extras.premium?.marcaOculta === true && (await ownerTienePlanActivo(hotel.owner_id));
 
+  const fmtFechaLarga = (d?: string): string => {
+    if (!d) return "";
+    const date = new Date(`${d}T12:00:00`);
+    if (isNaN(date.getTime())) return d;
+    return date.toLocaleDateString(localeOf(lang), {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  };
+
   // Recuperar la sesión de Stripe (best-effort; nunca rompe la página).
   let resumen: Resumen | null = null;
   if (session_id && stripeEnvReady) {
     try {
-      const session = await getStripe().checkout.sessions.retrieve(session_id);
+      // Direct charges: la sesión vive en la cuenta conectada del hotel. Se
+      // intenta ahí primero y se cae a la cuenta plataforma (sesiones legadas).
+      const stripe = getStripe();
+      let session;
+      if (hotel?.stripe_account_id) {
+        session = await stripe.checkout.sessions
+          .retrieve(session_id, {}, { stripeAccount: hotel.stripe_account_id })
+          .catch(() => null);
+      }
+      if (!session) session = await stripe.checkout.sessions.retrieve(session_id);
       const md = (session.metadata ?? {}) as Record<string, string>;
+      // El folio lo genera el webhook al confirmar el pago: se busca la reserva
+      // real por payment_intent (si el webhook aún no corre, se muestra sin folio).
+      let folioReal: string | undefined;
+      if (hotel) {
+        // En modo setup (pago en hotel) la referencia es el setup_intent.
+        const pi =
+          (typeof session.payment_intent === "string"
+            ? session.payment_intent
+            : session.payment_intent?.id) ||
+          (typeof session.setup_intent === "string" ? session.setup_intent : session.setup_intent?.id) ||
+          "";
+        if (pi) {
+          const booking = await findBookingByPaymentIntent(hotel.id, pi).catch(() => null);
+          folioReal = booking?.confirmacion;
+        }
+      }
       resumen = {
-        folio: md.folio || md.confirmationNumber || undefined,
+        folio: folioReal || md.folio || undefined,
         checkin: md.checkin,
         checkout: md.checkout,
         nights: md.nights,
@@ -84,6 +139,9 @@ export default async function ConfirmacionPage({
         depositPaid: md.depositPaid,
         pending: md.pending,
         isDeposit: md.isDeposit,
+        anticipoPct: md.anticipoPct,
+        ratePlan: md.ratePlan,
+        payMode: md.payMode,
         amountPaid:
           typeof session.amount_total === "number" ? session.amount_total / 100 : undefined,
         customerName: md.customerName || session.customer_details?.name || undefined,
@@ -103,8 +161,16 @@ export default async function ConfirmacionPage({
       .filter((r) => r.name) ?? [];
 
   const isDeposit = resumen?.isDeposit === "true";
+  const anticipoPct = Number(resumen?.anticipoPct) || null;
   const pagado =
     resumen?.amountPaid ?? (resumen?.depositPaid ? Number(resumen.depositPaid) : undefined);
+
+  // Ubicación para el mapa y el evento de calendario.
+  const ubicacion = (hotel?.ubicacion as string | null) ?? "";
+  const mapEmbedUrl = extras.mapEmbedUrl || null;
+  const mapsUrl =
+    extras.mapsUrl ||
+    (ubicacion ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${hotelNombre} ${ubicacion}`)}` : null);
 
   return (
     <div
@@ -119,6 +185,19 @@ export default async function ConfirmacionPage({
         } as React.CSSProperties
       }
     >
+      {/* Medición del hotel + evento purchase (deduplicado por sesión) */}
+      <HotelAnalytics
+        ga4Id={extras.medicion?.ga4Id || null}
+        metaPixelId={extras.medicion?.metaPixelId || null}
+      />
+      {resumen && resumen.payMode !== "hotel" && (
+        <PurchaseTracker
+          txId={resumen.folio || session_id || ""}
+          value={pagado ?? 0}
+          itemNames={habitaciones.map((h) => h.name)}
+        />
+      )}
+
       <div className="mx-auto w-full max-w-xl px-4 py-10 sm:px-6">
         <div className="rounded-2xl border border-gray-100 bg-white p-6 text-center shadow-sm sm:p-8">
           {logoUrl ? (
@@ -138,19 +217,19 @@ export default async function ConfirmacionPage({
           </div>
 
           <p className="mt-4 text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--brand)" }}>
-            ¡Reserva confirmada!
+            {t(lang, "confTitulo")}
           </p>
-          <h1 className="mt-1 text-2xl font-extrabold tracking-tight">Nos vemos en {hotelNombre}</h1>
+          <h1 className="mt-1 text-2xl font-extrabold tracking-tight">
+            {t(lang, "confNosVemos", { hotel: hotelNombre })}
+          </h1>
           <p className="mt-2 text-sm text-kora-muted">
-            {resumen
-              ? "Recibirás un correo de confirmación en los próximos minutos."
-              : "¡Gracias! Tu solicitud quedó registrada. Te contactaremos para confirmar los detalles."}
+            {resumen ? t(lang, "confCorreo") : t(lang, "confRegistrada")}
           </p>
 
           {resumen?.folio && (
             <div className="mx-auto mt-5 inline-flex flex-col items-center rounded-xl border border-gray-100 bg-kora-bg px-6 py-3">
               <span className="text-[11px] uppercase tracking-wide text-kora-muted">
-                Número de confirmación
+                {t(lang, "confFolio")}
               </span>
               <strong className="text-lg tracking-wide" style={{ color: "var(--brand)" }}>
                 {resumen.folio}
@@ -163,30 +242,38 @@ export default async function ConfirmacionPage({
             <div className="mt-6 space-y-3 text-left">
               {resumen.checkin && (
                 <div className="flex items-start gap-3">
-                  <Calendar size={16} className="mt-0.5 shrink-0" style={{ color: "var(--brand)" }} />
+                  <Calendar size={16} className="mt-0.5 shrink-0" style={{ color: "var(--brand)" }} aria-hidden="true" />
                   <div>
-                    <span className="block text-[11px] uppercase tracking-wide text-kora-muted">Check-in</span>
+                    <span className="block text-[11px] uppercase tracking-wide text-kora-muted">
+                      {t(lang, "confCheckin")}
+                    </span>
                     <span className="block text-sm font-medium">{fmtFechaLarga(resumen.checkin)}</span>
                   </div>
                 </div>
               )}
               {resumen.checkout && (
                 <div className="flex items-start gap-3">
-                  <Calendar size={16} className="mt-0.5 shrink-0" style={{ color: "var(--brand)" }} />
+                  <Calendar size={16} className="mt-0.5 shrink-0" style={{ color: "var(--brand)" }} aria-hidden="true" />
                   <div>
-                    <span className="block text-[11px] uppercase tracking-wide text-kora-muted">Check-out</span>
+                    <span className="block text-[11px] uppercase tracking-wide text-kora-muted">
+                      {t(lang, "confCheckout")}
+                    </span>
                     <span className="block text-sm font-medium">{fmtFechaLarga(resumen.checkout)}</span>
                   </div>
                 </div>
               )}
               {resumen.adults && (
                 <div className="flex items-start gap-3">
-                  <Users size={16} className="mt-0.5 shrink-0" style={{ color: "var(--brand)" }} />
+                  <Users size={16} className="mt-0.5 shrink-0" style={{ color: "var(--brand)" }} aria-hidden="true" />
                   <div>
-                    <span className="block text-[11px] uppercase tracking-wide text-kora-muted">Huéspedes</span>
+                    <span className="block text-[11px] uppercase tracking-wide text-kora-muted">
+                      {t(lang, "confHuespedes")}
+                    </span>
                     <span className="block text-sm font-medium">
-                      {resumen.adults} adulto{resumen.adults !== "1" ? "s" : ""}
-                      {resumen.children && resumen.children !== "0" ? ` · ${resumen.children} menores` : ""}
+                      {resumen.adults} {resumen.adults === "1" ? t(lang, "adulto") : t(lang, "adultos_pl")}
+                      {resumen.children && resumen.children !== "0"
+                        ? ` · ${resumen.children} ${t(lang, "menores").toLowerCase()}`
+                        : ""}
                     </span>
                   </div>
                 </div>
@@ -196,7 +283,7 @@ export default async function ConfirmacionPage({
                 <div className="rounded-xl border border-gray-100 bg-kora-bg p-4">
                   {habitaciones.map((r, i) => (
                     <div key={i} className="flex items-center gap-2 py-0.5 text-sm">
-                      <BedDouble size={14} style={{ color: "var(--brand)" }} />
+                      <BedDouble size={14} style={{ color: "var(--brand)" }} aria-hidden="true" />
                       <span>
                         {r.name}
                         {r.guests ? ` · ${r.guests}p` : ""}
@@ -204,33 +291,88 @@ export default async function ConfirmacionPage({
                     </div>
                   ))}
 
+                  {resumen.ratePlan === "nrf" && (
+                    <p className="mt-2 text-xs font-semibold text-kora-muted">
+                      {t(lang, "portalTarifa")}: {t(lang, "portalTarifaNrf")}
+                    </p>
+                  )}
+
                   {resumen.stayTotal && (
                     <div className="mt-3 flex justify-between border-t border-gray-200 pt-3 text-sm font-bold">
-                      <span>Total estadía</span>
+                      <span>{t(lang, "totalEstadia")}</span>
                       <span className="tabular-nums">{formatMXN(Number(resumen.stayTotal))}</span>
                     </div>
                   )}
-                  {pagado != null && (
+                  {resumen.payMode === "hotel" ? (
                     <div className="mt-1 flex justify-between text-sm">
-                      <span className="text-kora-muted">{isDeposit ? "Pagado (50%)" : "Pagado"}</span>
-                      <span className="font-semibold tabular-nums" style={{ color: "var(--brand)" }}>
-                        {formatMXN(pagado)}
+                      <span className="text-kora-muted">{t(lang, "confPagoHotel")}</span>
+                      <span className="font-semibold tabular-nums">
+                        {formatMXN(Number(resumen.pending ?? resumen.stayTotal ?? 0))}
                       </span>
                     </div>
-                  )}
-                  {isDeposit && resumen.pending && (
-                    <div className="mt-1 flex justify-between text-sm">
-                      <span className="text-kora-muted">Pendiente al check-in</span>
-                      <span className="tabular-nums">{formatMXN(Number(resumen.pending))}</span>
-                    </div>
+                  ) : (
+                    <>
+                      {pagado != null && (
+                        <div className="mt-1 flex justify-between text-sm">
+                          <span className="text-kora-muted">
+                            {isDeposit && anticipoPct
+                              ? t(lang, "confPagadoAnticipo", { pct: anticipoPct })
+                              : t(lang, "confPagado")}
+                          </span>
+                          <span className="font-semibold tabular-nums" style={{ color: "var(--brand)" }}>
+                            {formatMXN(pagado)}
+                          </span>
+                        </div>
+                      )}
+                      {isDeposit && resumen.pending && (
+                        <div className="mt-1 flex justify-between text-sm">
+                          <span className="text-kora-muted">{t(lang, "confPendiente")}</span>
+                          <span className="tabular-nums">{formatMXN(Number(resumen.pending))}</span>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               )}
             </div>
           )}
 
+          {/* Mapa del hotel (si configuró embed o hay dirección) */}
+          {mapEmbedUrl ? (
+            <div className="mt-6 overflow-hidden rounded-xl border border-gray-100">
+              <iframe
+                src={mapEmbedUrl}
+                title={`${t(lang, "confUbicacion")} — ${hotelNombre}`}
+                className="h-44 w-full"
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+              />
+            </div>
+          ) : mapsUrl ? (
+            <a
+              href={mapsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold"
+              style={{ color: "var(--brand)" }}
+            >
+              <MapPin size={15} aria-hidden="true" /> {t(lang, "confUbicacion")}
+            </a>
+          ) : null}
+
           {/* Acciones */}
           <div className="mt-6 flex flex-col gap-2">
+            {resumen?.folio && resumen.checkin && resumen.checkout && (
+              <a
+                href={googleCalendarUrl(hotelNombre, resumen.folio, resumen.checkin, resumen.checkout, ubicacion)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-press inline-flex items-center justify-center gap-2 rounded-full border-2 px-6 py-3 text-sm font-bold"
+                style={{ borderColor: "var(--brand)", color: "var(--brand)" }}
+              >
+                <CalendarPlus size={16} aria-hidden="true" /> {t(lang, "confCalendario")}
+              </a>
+            )}
             {whatsappNum && (
               <a
                 href={`https://wa.me/${whatsappNum}?text=${encodeURIComponent(
@@ -241,14 +383,20 @@ export default async function ConfirmacionPage({
                 className="btn-press inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-bold"
                 style={{ background: "var(--accent)", color: "var(--accent-ink)" }}
               >
-                <MessageCircle size={16} /> Coordinar llegada por WhatsApp
+                <MessageCircle size={16} aria-hidden="true" /> {t(lang, "confWhatsApp")}
               </a>
             )}
+            <Link
+              href={`/reserva/consultar${resumen?.folio ? `?folio=${encodeURIComponent(resumen.folio)}` : ""}${lang === "en" ? `${resumen?.folio ? "&" : "?"}lang=en` : ""}`}
+              className="inline-flex items-center justify-center gap-1.5 text-xs font-semibold text-kora-muted transition-colors hover:text-kora-text"
+            >
+              <Search size={13} aria-hidden="true" /> {t(lang, "confPortal")}
+            </Link>
             <Link
               href={`/h/${slug}`}
               className="text-xs text-kora-muted transition-colors hover:text-kora-text"
             >
-              ← Volver a la página del hotel
+              {t(lang, "confVolver")}
             </Link>
           </div>
         </div>

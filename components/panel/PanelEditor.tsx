@@ -194,6 +194,19 @@ export function PanelEditor({
   // Reglas de reserva (anticipo, mínimo de noches) — viven en extras.reglas
   const [anticipoPct, setAnticipoPct] = useState(50);
   const [minNoches, setMinNoches] = useState(1);
+  // Tarifa no reembolsable + plazo de cancelación gratis (extras.reglas)
+  const [nrfActiva, setNrfActiva] = useState(false);
+  const [nrfPct, setNrfPct] = useState(10);
+  const [cancelacionDias, setCancelacionDias] = useState(2);
+  const [pagoEnHotel, setPagoEnHotel] = useState(false);
+  // Impuestos para el desglose del motor (extras.impuestos)
+  const [ishPct, setIshPct] = useState(0);
+  // Medición propia del hotel en su motor (extras.medicion)
+  const [medGa4, setMedGa4] = useState("");
+  const [medPixel, setMedPixel] = useState("");
+  // Avisos por correo + recuperación de abandono (extras.notificaciones)
+  const [notifEmail, setNotifEmail] = useState("");
+  const [abandonoActivo, setAbandonoActivo] = useState(true);
 
   // Extras vendibles (add-ons) — viven en extras.addons
   const [addons, setAddons] = useState<Addon[]>([]);
@@ -224,6 +237,10 @@ export function PanelEditor({
   const [guardado, setGuardado] = useState(false);
   const [error, setError] = useState("");
 
+  // Extras crudo tal como vino de la BD: guardar() lo usa de base para NO
+  // borrar claves que este editor no maneja (ej. extras.onboarding).
+  const extrasBase = useRef<Record<string, unknown>>({});
+
   const qrPaginaRef = useRef<HTMLDivElement>(null);
   const qrGuiaRef = useRef<HTMLDivElement>(null);
 
@@ -247,6 +264,7 @@ export function PanelEditor({
         setFotos(Array.isArray(data.fotos) ? data.fotos : []);
         setPublicado(data.publicado !== false);
         const ex = data.extras ?? {};
+        extrasBase.current = ex;
         setAmenidades(Array.isArray(ex.amenidades) ? ex.amenidades : []);
         setInstagram(ex.instagram ?? "");
         setFacebook(ex.facebook ?? "");
@@ -271,6 +289,15 @@ export function PanelEditor({
         const rg = ex.reglas ?? {};
         setAnticipoPct(typeof rg.anticipoPct === "number" ? rg.anticipoPct : 50);
         setMinNoches(typeof rg.minNoches === "number" ? rg.minNoches : 1);
+        setNrfActiva(rg.nrfActiva === true);
+        setNrfPct(typeof rg.nrfPct === "number" ? rg.nrfPct : 10);
+        setCancelacionDias(typeof rg.cancelacionDias === "number" ? rg.cancelacionDias : 2);
+        setPagoEnHotel(rg.pagoEnHotel === true);
+        setIshPct(typeof ex.impuestos?.ishPct === "number" ? ex.impuestos.ishPct : 0);
+        setMedGa4(ex.medicion?.ga4Id ?? "");
+        setMedPixel(ex.medicion?.metaPixelId ?? "");
+        setNotifEmail(ex.notificaciones?.email ?? "");
+        setAbandonoActivo(ex.notificaciones?.abandono !== false);
         setAddons(Array.isArray(ex.addons) ? ex.addons : []);
         setMarcaOculta(ex.premium?.marcaOculta === true);
         const g = data.guia ?? {};
@@ -504,6 +531,8 @@ export function PanelEditor({
     };
 
     const extras = {
+      // Base: claves que este editor no maneja (onboarding, futuras) se conservan.
+      ...extrasBase.current,
       amenidades,
       instagram: instagram.trim(),
       facebook: facebook.trim(),
@@ -528,6 +557,19 @@ export function PanelEditor({
       reglas: {
         anticipoPct,
         minNoches,
+        nrfActiva,
+        nrfPct,
+        cancelacionDias,
+        pagoEnHotel,
+      },
+      impuestos: { ishPct },
+      medicion: {
+        ga4Id: medGa4.trim(),
+        metaPixelId: medPixel.trim(),
+      },
+      notificaciones: {
+        email: notifEmail.trim(),
+        abandono: abandonoActivo,
       },
       addons: addons
         .filter((a) => (a.nombre ?? "").trim())
@@ -590,6 +632,8 @@ export function PanelEditor({
         setHotelId(creado.id);
         setSlug(creado.slug);
       }
+      // La nueva base es lo recién guardado (para el siguiente guardar()).
+      extrasBase.current = extras;
       setGuardado(true);
       setTimeout(() => setGuardado(false), 2500);
     } catch (e) {
@@ -1663,6 +1707,171 @@ export function PanelEditor({
                 />
                 <p className="mt-1.5 text-xs text-kora-muted">
                   Estancia mínima que aceptas (1 = sin mínimo).
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-kora-text mb-1.5">
+                  Cancelación gratis hasta… (días antes de la llegada)
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  max={30}
+                  value={cancelacionDias}
+                  onChange={(e) =>
+                    setCancelacionDias(Math.max(0, Math.min(30, Number(e.target.value) || 0)))
+                  }
+                  className={inputCls}
+                />
+                <p className="mt-1.5 text-xs text-kora-muted">
+                  Ej. 2 = el huésped puede cancelar gratis hasta 2 días antes.
+                  Con 0, puede cancelar hasta el día de su llegada.
+                </p>
+              </div>
+              <div>
+                <label className="flex items-center gap-2.5 text-sm font-semibold text-kora-text mb-1.5">
+                  <input
+                    type="checkbox"
+                    checked={nrfActiva}
+                    onChange={(e) => setNrfActiva(e.target.checked)}
+                    className="h-4 w-4 accent-kora-primary"
+                  />
+                  Ofrecer tarifa &quot;No reembolsable&quot; con descuento
+                </label>
+                {nrfActiva && (
+                  <div className="mt-2 flex items-center gap-2">
+                    <input
+                      type="number"
+                      min={5}
+                      max={50}
+                      value={nrfPct}
+                      onChange={(e) =>
+                        setNrfPct(Math.max(5, Math.min(50, Number(e.target.value) || 10)))
+                      }
+                      className={`${inputCls} w-24`}
+                    />
+                    <span className="text-sm text-kora-muted">% de descuento</span>
+                  </div>
+                )}
+                <p className="mt-1.5 text-xs text-kora-muted">
+                  El huésped paga menos a cambio de no poder cancelar. Llena más
+                  noches con anticipación.
+                </p>
+              </div>
+              <div>
+                <label className="flex items-center gap-2.5 text-sm font-semibold text-kora-text mb-1.5">
+                  <input
+                    type="checkbox"
+                    checked={pagoEnHotel}
+                    onChange={(e) => setPagoEnHotel(e.target.checked)}
+                    className="h-4 w-4 accent-kora-primary"
+                  />
+                  Permitir &quot;pagar al llegar al hotel&quot;
+                </label>
+                <p className="mt-1.5 text-xs text-kora-muted">
+                  El huésped no paga nada al reservar: deja su tarjeta como
+                  garantía (guardada en TU cuenta de Stripe) y paga en
+                  recepción. Requiere tener Pagos conectados.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Impuestos y medición del motor */}
+          <div className={`${card} space-y-4`}>
+            <div className="flex items-center gap-2">
+              <FileText size={18} className="text-kora-primary" />
+              <h2 className="text-lg font-bold text-kora-text">Impuestos y medición</h2>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              <div>
+                <label className="block text-sm font-semibold text-kora-text mb-1.5">
+                  Impuesto al hospedaje de tu estado (ISH %)
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  max={10}
+                  step={0.5}
+                  value={ishPct}
+                  onChange={(e) =>
+                    setIshPct(Math.max(0, Math.min(10, Number(e.target.value) || 0)))
+                  }
+                  className={inputCls}
+                />
+                <p className="mt-1.5 text-xs text-kora-muted">
+                  Solo transparenta el desglose (tarifa + IVA 16% + ISH) en el
+                  motor; tus precios NO cambian. En San Luis Potosí es 3%.
+                </p>
+              </div>
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-sm font-semibold text-kora-text mb-1.5">
+                    Tu Google Analytics (GA4)
+                  </label>
+                  <input
+                    className={inputCls}
+                    value={medGa4}
+                    onChange={(e) => setMedGa4(e.target.value)}
+                    placeholder="G-XXXXXXXXXX"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-kora-text mb-1.5">
+                    Tu Meta Pixel (Facebook/Instagram)
+                  </label>
+                  <input
+                    className={inputCls}
+                    value={medPixel}
+                    onChange={(e) => setMedPixel(e.target.value)}
+                    placeholder="1234567890"
+                  />
+                </div>
+                <p className="text-xs text-kora-muted">
+                  Opcional. Si los llenas, tu motor registra vistas, checkouts y
+                  reservas pagadas en TUS cuentas (para tus campañas).
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Avisos por correo + recuperación de abandono */}
+          <div className={`${card} space-y-4`}>
+            <div className="flex items-center gap-2">
+              <FileText size={18} className="text-kora-primary" />
+              <h2 className="text-lg font-bold text-kora-text">Avisos por correo</h2>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              <div>
+                <label className="block text-sm font-semibold text-kora-text mb-1.5">
+                  ¿A qué correo te avisamos?
+                </label>
+                <input
+                  type="email"
+                  className={inputCls}
+                  value={notifEmail}
+                  onChange={(e) => setNotifEmail(e.target.value)}
+                  placeholder="recepcion@tuhotel.com"
+                />
+                <p className="mt-1.5 text-xs text-kora-muted">
+                  Recibes un correo al instante con cada reserva nueva y cada
+                  cancelación. Si lo dejas vacío, usamos el correo de tu cuenta.
+                </p>
+              </div>
+              <div>
+                <label className="flex items-center gap-2.5 text-sm font-semibold text-kora-text mb-1.5">
+                  <input
+                    type="checkbox"
+                    checked={abandonoActivo}
+                    onChange={(e) => setAbandonoActivo(e.target.checked)}
+                    className="h-4 w-4 accent-kora-primary"
+                  />
+                  Recuperar reservas incompletas
+                </label>
+                <p className="mt-1.5 text-xs text-kora-muted">
+                  Si un huésped deja su correo pero no termina de reservar, le
+                  mandamos un recordatorio (una sola vez) con un link para
+                  retomar su búsqueda.
                 </p>
               </div>
             </div>

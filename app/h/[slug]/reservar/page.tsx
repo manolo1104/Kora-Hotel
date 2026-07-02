@@ -3,6 +3,8 @@ import { resolveHotel } from "@/lib/tenant";
 import { hotelRooms, bookingRules } from "@/lib/booking";
 import { COLOR_DEFAULT, inkFor, fontStack, type MiniExtras } from "@/lib/mini";
 import { ownerTienePlanActivo } from "@/lib/suscripcion";
+import { getConnectState } from "@/lib/stripe/connect";
+import { HotelAnalytics } from "@/components/booking/HotelAnalytics";
 import ReservarClient from "./ReservarClient";
 
 export const dynamic = "force-dynamic";
@@ -33,34 +35,53 @@ export default async function ReservarPage({
   // Portada: la 1ª foto del hotel como banner (a menos que el dueño lo desactive).
   const coverUrl = diseno.portada !== false && hotel.fotos?.[0] ? hotel.fotos[0] : null;
 
-  // Reglas de reserva (anticipo, mínimo de noches, descuento entre semana).
+  // Reglas de reserva (anticipo, mínimo de noches, rate plan, impuestos, descuentos).
   const rules = bookingRules(hotel);
 
   // Extras vendibles (add-ons) definidos por el hotel.
   const addons = Array.isArray(extras.addons) ? extras.addons : [];
 
+  // Estado Stripe Connect del hotel (cache en BD): decide si se ofrece OXXO y
+  // "pagar en hotel" (ambos requieren su cuenta activa).
+  const connect = await getConnectState(hotel.id, hotel.stripe_account_id);
+
   return (
-    <ReservarClient
-      addons={addons}
-      slug={slug}
-      hotelNombre={hotel.nombre}
-      whatsapp={hotel.whatsapp}
-      rooms={rooms}
-      brandColor={color}
-      brandInk={inkFor(color)}
-      accentColor={acento}
-      accentInk={inkFor(acento)}
-      fontStack={fontStack(diseno.fuente)}
-      logoUrl={diseno.logoUrl || null}
-      coverUrl={coverUrl}
-      marcaOculta={marcaOculta}
-      reglas={{
-        anticipoPct: rules.anticipoPct,
-        anticipoMinNoches: rules.anticipoMinNoches,
-        minNoches: rules.minNoches,
-        weekdayDiscount: rules.nightOpts.weekdayDiscount ?? 0,
-        weekdayDiscountUntil: rules.nightOpts.weekdayDiscountUntil,
-      }}
-    />
+    <>
+      {/* Medición DEL HOTEL (GA4/Pixel propios), si los configuró en su panel */}
+      <HotelAnalytics
+        ga4Id={extras.medicion?.ga4Id || null}
+        metaPixelId={extras.medicion?.metaPixelId || null}
+      />
+      <ReservarClient
+        addons={addons}
+        slug={slug}
+        hotelNombre={hotel.nombre}
+        whatsapp={hotel.whatsapp}
+        rooms={rooms}
+        brandColor={color}
+        brandInk={inkFor(color)}
+        accentColor={acento}
+        accentInk={inkFor(acento)}
+        fontStack={fontStack(diseno.fuente)}
+        logoUrl={diseno.logoUrl || null}
+        coverUrl={coverUrl}
+        marcaOculta={marcaOculta}
+        demo={extras.demo === true}
+        politicaCancelacion={extras.politicas?.cancelacion || null}
+        pagoEnHotel={rules.pagoEnHotel && connect.chargesEnabled}
+        oxxoDisponible={connect.chargesEnabled && connect.oxxoEnabled}
+        reglas={{
+          anticipoPct: rules.anticipoPct,
+          anticipoMinNoches: rules.anticipoMinNoches,
+          minNoches: rules.minNoches,
+          nrfActiva: rules.nrfActiva,
+          nrfPct: rules.nrfPct,
+          cancelacionDias: rules.cancelacionDias,
+          ishPct: rules.ishPct,
+          weekdayDiscount: rules.nightOpts.weekdayDiscount ?? 0,
+          weekdayDiscountUntil: rules.nightOpts.weekdayDiscountUntil,
+        }}
+      />
+    </>
   );
 }

@@ -118,10 +118,10 @@ export function Hero() {
                   <ArrowRight size={16} />
                 </a>
                 <a
-                  href="#demo"
+                  href="#demo-motor"
                   className="btn-press inline-flex items-center justify-center px-6 py-3.5 rounded-full border-2 border-kora-primary text-kora-primary font-semibold text-sm hover:bg-kora-primary hover:text-white transition-colors"
                 >
-                  Ver demo en vivo (90 seg)
+                  Probar el motor en vivo
                 </a>
               </motion.div>
 

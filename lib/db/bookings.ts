@@ -21,6 +21,7 @@ export interface CrearReservaInput {
   origen?: string;
   comoNosConocio?: string | null;
   notas?: string | null;
+  ratePlan?: "flex" | "nrf" | null;
 }
 
 export interface CrearReservaResult {
@@ -41,7 +42,7 @@ export async function createBookingAtomic(
   input: CrearReservaInput,
 ): Promise<CrearReservaResult> {
   const supabase = createAdminClient();
-  const { data, error } = await supabase.rpc("crear_reserva_atomica", {
+  const base = {
     p_hotel_id: hotelId,
     p_habitaciones: input.habitaciones,
     p_checkin: input.checkin,
@@ -58,7 +59,19 @@ export async function createBookingAtomic(
     p_origen: input.origen ?? "web",
     p_como_nos_conocio: input.comoNosConocio ?? null,
     p_notas: input.notas ?? null,
+  };
+
+  let { data, error } = await supabase.rpc("crear_reserva_atomica", {
+    ...base,
+    p_rate_plan: input.ratePlan ?? null,
   });
+
+  // Compatibilidad: si la BD aún no tiene el RPC con p_rate_plan (SQL de la
+  // fase 2 sin aplicar), se reintenta con la firma anterior. Crear la reserva
+  // (el pago ya ocurrió) importa más que registrar el rate plan.
+  if (error && /p_rate_plan|PGRST202|schema cache/i.test(error.message)) {
+    ({ data, error } = await supabase.rpc("crear_reserva_atomica", base));
+  }
 
   if (error) {
     const unavailable = /CUARTO_NO_DISPONIBLE/.test(error.message);
@@ -96,11 +109,16 @@ export async function getBooking(hotelId: string, id: string) {
   return data;
 }
 
-/** Genera un folio tipo "PE-3F9KZ2" con el prefijo del hotel. */
+/**
+ * Genera un folio tipo "PE-2026-3F9K" con el prefijo del hotel y el año.
+ * Alfabeto sin caracteres ambiguos (sin 0/O ni 1/I). La unicidad real la
+ * garantiza el índice único (hotel_id, confirmacion).
+ */
 export function generarConfirmacion(prefijo: string | null | undefined): string {
   const p = (prefijo || "KO").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 4) || "KO";
+  const year = new Date().getFullYear();
   let s = "";
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  for (let i = 0; i < 6; i++) s += chars[Math.floor(Math.random() * chars.length)];
-  return `${p}-${s}`;
+  for (let i = 0; i < 4; i++) s += chars[Math.floor(Math.random() * chars.length)];
+  return `${p}-${year}-${s}`;
 }

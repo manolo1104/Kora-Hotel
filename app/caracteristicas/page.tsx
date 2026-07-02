@@ -20,6 +20,7 @@ import {
   PricingMockup,
   DashboardMockup,
 } from "@/components/caracteristicas/Mockups";
+import { VsBooking } from "@/components/caracteristicas/VsBooking";
 
 export const metadata: Metadata = {
   title: "Características de Kora: PMS, IA y reservas directas",
@@ -201,6 +202,9 @@ export default function CaracteristicasPage() {
           href: "/herramientas/calculadora-comisiones",
         }}
       />
+
+      {/* Comparativa: la misma reserva directa vs por Booking */}
+      <VsBooking />
 
       {/* Module 2 */}
       <ModuleSection

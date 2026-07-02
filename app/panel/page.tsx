@@ -9,6 +9,7 @@ import {
   Plus,
   Building2,
   ArrowRight,
+  CircleDashed,
 } from "lucide-react";
 import { Reveal } from "@/components/shared/Reveal";
 import { LogoutButton } from "@/components/panel/LogoutButton";
@@ -16,7 +17,7 @@ import { SuscripcionCard } from "@/components/panel/SuscripcionCard";
 import { createClient } from "@/lib/supabase/server";
 import { supabaseEnvReady } from "@/lib/supabase/env";
 import { getSuscripcion } from "@/lib/suscripcion";
-import { getHotelesDelUsuario, type RolHotel } from "@/lib/tenant";
+import { getHotelesDelUsuario, type HotelRow, type RolHotel } from "@/lib/tenant";
 
 export const dynamic = "force-dynamic";
 
@@ -32,6 +33,18 @@ const ROL_LABEL: Record<RolHotel, string> = {
   limpieza: "Limpieza",
   cocina: "Cocina",
 };
+
+// ¿Le falta configuración al hotel? Solo con datos de la fila (sin llamadas a
+// Stripe: el hub debe cargar rápido). Un wizard empezado y no terminado siempre
+// cuenta; hoteles previos al asistente solo si les falta lo esencial.
+function setupPendiente(hotel: HotelRow): boolean {
+  const ob = (hotel.extras as { onboarding?: { completado?: boolean } } | null)?.onboarding;
+  if (ob?.completado === true) return false;
+  if (ob && typeof ob === "object") return true;
+  const sinHabitaciones = !Array.isArray(hotel.habitaciones) || hotel.habitaciones.length === 0;
+  const sinFotos = !Array.isArray(hotel.fotos) || hotel.fotos.length === 0;
+  return sinHabitaciones || sinFotos || hotel.publicado === false;
+}
 
 export default async function PanelPage() {
   if (!supabaseEnvReady) {
@@ -125,6 +138,22 @@ export default async function PanelPage() {
                         {ROL_LABEL[rol] ?? rol}
                       </span>
                     </div>
+
+                    {/* Configuración a medias → retomar el asistente (resumable) */}
+                    {setupPendiente(hotel) && (
+                      <Link
+                        href={`/panel/${hotel.slug}/onboarding`}
+                        className="btn-press mt-4 flex items-center justify-between gap-3 rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 hover:border-amber-300 transition-colors"
+                      >
+                        <span className="flex items-center gap-2 text-xs font-semibold text-amber-900">
+                          <CircleDashed size={15} aria-hidden="true" />
+                          Configuración incompleta
+                        </span>
+                        <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-900">
+                          Terminar de configurar <ArrowRight size={13} aria-hidden="true" />
+                        </span>
+                      </Link>
+                    )}
 
                     <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2">
                       <Link

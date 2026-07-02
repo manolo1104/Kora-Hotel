@@ -123,6 +123,39 @@ export function calcDepositAmount(
   return nights >= minNights ? Math.round(total * (pct / 100)) : Math.round(total);
 }
 
+// ── Rate plans ────────────────────────────────────────────
+// Tarifa "No reembolsable": descuento % sobre el subtotal de habitaciones
+// (no aplica a extras). El % viene de las reglas del hotel.
+export type RatePlan = "flex" | "nrf";
+
+export function calcNrfDiscount(roomsSubtotal: number, pct: number): number {
+  const p = Math.max(0, Math.min(Number(pct) || 0, 50));
+  return Math.round(Math.max(0, roomsSubtotal) * (p / 100));
+}
+
+// ── Desglose de impuestos ─────────────────────────────────
+// Los precios del hotel son FINALES (impuestos incluidos). El desglose separa
+// tarifa base + IVA 16% + ISH (% del estado, configurable) sin cambiar el total.
+export const IVA_PCT = 16;
+
+export interface TaxBreakdown {
+  base: number;
+  iva: number;
+  ish: number;
+  ishPct: number;
+  total: number;
+}
+
+export function calcTaxBreakdown(total: number, ishPct = 0): TaxBreakdown {
+  const t = Math.max(0, Math.round(total));
+  const pct = Math.max(0, Math.min(Number(ishPct) || 0, 10));
+  const factor = 1 + IVA_PCT / 100 + pct / 100;
+  const base = Math.round(t / factor);
+  const iva = Math.round((t / factor) * (IVA_PCT / 100));
+  const ish = Math.max(0, t - base - iva); // residuo: el desglose siempre suma el total
+  return { base, iva, ish, ishPct: pct, total: t };
+}
+
 // ── Extras vendibles (add-ons) ────────────────────────────────
 export interface AddonRule {
   nombre: string;

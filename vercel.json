@@ -8,7 +8,8 @@
     { "path": "/api/cron/digest", "schedule": "0 14 * * *" },
     { "path": "/api/cron/dunning", "schedule": "30 14 * * *" },
     { "path": "/api/cron/email-sequences", "schedule": "0 15 * * *" },
-    { "path": "/api/cron/ical-sync", "schedule": "0 13 * * *" }
+    { "path": "/api/cron/ical-sync", "schedule": "0 13 * * *" },
+    { "path": "/api/cron/abandono", "schedule": "30 * * * *" }
   ],
   "headers": [
     {

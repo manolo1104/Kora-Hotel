@@ -1,0 +1,59 @@
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { resolveHotel } from "@/lib/tenant";
+import { createAdminClient } from "@/lib/supabase/admin";
+
+export const dynamic = "force-dynamic";
+
+const Body = z.object({
+  email: z.email().max(160),
+  nombre: z.string().trim().max(120).optional(),
+  lang: z.enum(["es", "en"]).default("es"),
+  // Snapshot de la búsqueda (fechas, carrito, extras) para restaurarla desde el
+  // email de recuperación. Se guarda tal cual, con tope de tamaño.
+  payload: z.record(z.string(), z.unknown()).default({}),
+});
+
+// Captura temprana del email en el checkout (paso de datos). Si el huésped
+// abandona sin pagar, el cron de recuperación (Fase 4) le escribe. Best-effort:
+// nunca bloquea el flujo de reserva.
+export async function POST(req: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const hotel = await resolveHotel(slug);
+  if (!hotel) return NextResponse.json({ error: "hotel-no-encontrado" }, { status: 404 });
+
+  // Hotel demo: no se capturan correos de quien juega con él.
+  if ((hotel.extras as { demo?: boolean } | null)?.demo === true) {
+    return NextResponse.json({ ok: true, demo: true });
+  }
+
+  const parsed = Body.safeParse(await req.json().catch(() => null));
+  if (!parsed.success) return NextResponse.json({ error: "datos-invalidos" }, { status: 400 });
+
+  const { email, nombre, lang, payload } = parsed.data;
+  if (JSON.stringify(payload).length > 4000) {
+    return NextResponse.json({ error: "payload-muy-grande" }, { status: 400 });
+  }
+
+  try {
+    const supabase = createAdminClient();
+    const { error } = await supabase.from("booking_intents").upsert(
+      {
+        hotel_id: hotel.id,
+        email: email.toLowerCase(),
+        nombre: nombre || null,
+        lang,
+        payload,
+        convertido: false,
+        recordatorio_enviado_at: null,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "hotel_id,email" },
+    );
+    if (error) console.error("booking_intents upsert error:", error);
+  } catch (e) {
+    console.error("intento error:", e);
+  }
+  // Siempre ok: la captura es auxiliar, no debe romper el checkout.
+  return NextResponse.json({ ok: true });
+}

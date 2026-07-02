@@ -165,6 +165,22 @@ export async function createTemporaryHold(
   if (error) console.error("createTemporaryHold error:", error);
 }
 
+/**
+ * Extiende el hold de una sesión. Se usa cuando el huésped genera un voucher
+ * OXXO: el cuarto queda apartado mientras va a pagar en efectivo.
+ */
+export async function extendHold(hotelId: string, sessionId: string, hours: number): Promise<void> {
+  const supabase = createAdminClient();
+  const expires = new Date(Date.now() + hours * 3_600_000).toISOString();
+  const { error } = await supabase
+    .from("blocks")
+    .update({ expires_at: expires })
+    .eq("hotel_id", hotelId)
+    .eq("status", "HOLD")
+    .eq("hold_session", sessionId);
+  if (error) console.error("extendHold error:", error);
+}
+
 /** Libera el hold de una sesión (al abandonar el carrito o tras confirmar). */
 export async function releaseHold(hotelId: string, sessionId: string): Promise<void> {
   const supabase = createAdminClient();

@@ -6,54 +6,79 @@ import {
   createBookingAtomic,
   findBookingByPaymentIntent,
   generarConfirmacion,
+  type CrearReservaResult,
 } from "@/lib/db/bookings";
-import { releaseHold } from "@/lib/db/availability";
+import { releaseHold, extendHold } from "@/lib/db/availability";
+import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  sendConfirmacionReserva,
+  sendAvisoReservaHotel,
+  resolveHotelAvisoEmail,
+} from "@/lib/email/reserva";
+import { deriveConnectState, upsertConnectState } from "@/lib/stripe/connect";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-// Webhook del motor público: cuando Stripe confirma el pago, crea la reserva de
-// forma atómica (anti-overbooking) e idempotente. Verifica la firma con
-// Usa STRIPE_WEBHOOK_SECRET_RESERVAS (DISTINTO del de suscripciones en
-// /api/stripe/webhook): Stripe firma cada endpoint registrado con su PROPIO
-// secreto, así que reservas y suscripciones necesitan secretos separados. El
-// hotel_id viaja en la metadata (nunca del body abierto).
-export async function POST(req: NextRequest) {
-  const secret = process.env.STRIPE_WEBHOOK_SECRET_RESERVAS;
-  if (!secret) {
-    console.error("STRIPE_WEBHOOK_SECRET_RESERVAS no configurado — webhook de reservas inactivo");
-    return NextResponse.json({ error: "webhook-no-configurado" }, { status: 500 });
-  }
+// Webhook del motor público (reservas). Con DIRECT CHARGES los eventos llegan
+// desde las cuentas conectadas de los hoteles, así que en Stripe se registra
+// este endpoint DOS veces: como endpoint de cuenta propia (sesiones legadas de
+// la plataforma) y como endpoint de "connected accounts". Cada registro tiene
+// su propio secreto:
+//   - STRIPE_WEBHOOK_SECRET_RESERVAS          (cuenta propia)
+//   - STRIPE_WEBHOOK_SECRET_RESERVAS_CONNECT  (cuentas conectadas)
+// (Y siguen siendo DISTINTOS del de suscripciones en /api/stripe/webhook.)
+// Eventos: checkout.session.completed / async_payment_succeeded (confirman
+// reserva), async_payment_failed / expired (liberan el hold), account.updated
+// (persiste el estado Connect) y charge.refunded (marca reembolso y libera
+// inventario). El hotel_id viaja en la metadata (nunca del body abierto).
 
+function verificarFirma(raw: string, sig: string): Stripe.Event | null {
   const stripe = getStripe();
-  const sig = req.headers.get("stripe-signature");
-  const raw = await req.text();
-  let event: Stripe.Event;
-  try {
-    event = stripe.webhooks.constructEvent(raw, sig || "", secret);
-  } catch (e) {
-    console.error("Firma de webhook inválida:", e);
-    return NextResponse.json({ error: "firma-invalida" }, { status: 400 });
+  const secrets = [
+    process.env.STRIPE_WEBHOOK_SECRET_RESERVAS,
+    process.env.STRIPE_WEBHOOK_SECRET_RESERVAS_CONNECT,
+  ].filter(Boolean) as string[];
+  for (const secret of secrets) {
+    try {
+      return stripe.webhooks.constructEvent(raw, sig, secret);
+    } catch {
+      // probar el siguiente secreto
+    }
   }
+  return null;
+}
 
-  if (event.type !== "checkout.session.completed") {
-    return NextResponse.json({ received: true, ignored: event.type });
-  }
+function refOf(session: Stripe.Checkout.Session): string {
+  // Referencia de idempotencia: el payment_intent, o el setup_intent cuando la
+  // reserva es "pagar en hotel" (modo setup, sin cobro).
+  return (
+    (typeof session.payment_intent === "string"
+      ? session.payment_intent
+      : session.payment_intent?.id) ||
+    (typeof session.setup_intent === "string" ? session.setup_intent : session.setup_intent?.id) ||
+    ""
+  );
+}
 
-  const session = event.data.object as Stripe.Checkout.Session;
+// Crea la reserva (atómica e idempotente) a partir de una sesión de Checkout
+// pagada o de una garantía de tarjeta completada, y envía la confirmación.
+async function confirmarReserva(
+  session: Stripe.Checkout.Session,
+  origin: string,
+): Promise<NextResponse> {
   const md = session.metadata || {};
   const hotelId = md.hotel_id;
-  if (!hotelId) return NextResponse.json({ error: "sin-hotel" }, { status: 400 });
+  // Sin hotel_id no es una sesión del motor (p.ej. suscripción SaaS): ignorar
+  // con 200 para que Stripe no reintente en bucle.
+  if (!hotelId) return NextResponse.json({ received: true, ignored: "sin-hotel" });
 
-  const paymentIntentId =
-    typeof session.payment_intent === "string"
-      ? session.payment_intent
-      : session.payment_intent?.id ?? "";
+  const paymentRef = refOf(session);
 
   try {
     // Idempotencia.
-    if (paymentIntentId) {
-      const existing = await findBookingByPaymentIntent(hotelId, paymentIntentId);
+    if (paymentRef) {
+      const existing = await findBookingByPaymentIntent(hotelId, paymentRef);
       if (existing) return NextResponse.json({ received: true, already: existing.confirmacion });
     }
 
@@ -66,29 +91,40 @@ export async function POST(req: NextRequest) {
       .filter(Boolean);
 
     const hotel = md.slug ? await resolveHotel(md.slug) : null;
-    const confirmacion = generarConfirmacion(hotel?.prefijo_confirmacion);
     const huespedes = (Number(md.adults) || 0) + (Number(md.children) || 0) || 1;
     const email = md.customerEmail || session.customer_details?.email || "";
+    const esPagoHotel = md.payMode === "hotel";
+    const anticipo = esPagoHotel ? 0 : Number(md.depositPaid) || 0;
+    const total = Number(md.stayTotal) || 0;
 
     // CLAVE anti-overbooking: liberar el HOLD de ESTA sesión ANTES de crear la
     // reserva, para que el RPC no lo cuente como solape contra sí mismo.
     if (md.holdSession) await releaseHold(hotelId, md.holdSession).catch(() => {});
 
-    const result = await createBookingAtomic(hotelId, {
-      habitaciones,
-      checkin: md.checkin,
-      checkout: md.checkout,
-      confirmacion,
-      cliente: md.customerName || null,
-      telefono: md.customerPhone || null,
-      email: email || null,
-      total: Number(md.stayTotal) || 0,
-      anticipo: Number(md.depositPaid) || 0,
-      huespedes,
-      paymentIntentId: paymentIntentId || null,
-      estado: "CONFIRMADA",
-      origen: "web",
-    });
+    // El folio corto puede chocar con el índice único (hotel_id, confirmacion):
+    // se reintenta con folio nuevo (el pago ya ocurrió; perderlo no es opción).
+    let confirmacion = "";
+    let result: CrearReservaResult = { ok: false };
+    for (let intento = 0; intento < 3; intento++) {
+      confirmacion = generarConfirmacion(hotel?.prefijo_confirmacion);
+      result = await createBookingAtomic(hotelId, {
+        habitaciones,
+        checkin: md.checkin,
+        checkout: md.checkout,
+        confirmacion,
+        cliente: md.customerName || null,
+        telefono: md.customerPhone || null,
+        email: email || null,
+        total,
+        anticipo,
+        huespedes,
+        paymentIntentId: paymentRef || null,
+        estado: "CONFIRMADA",
+        origen: esPagoHotel ? "web-pago-hotel" : "web",
+        ratePlan: md.ratePlan === "nrf" ? "nrf" : "flex",
+      });
+      if (result.ok || !/duplicate key|confirmacion/i.test(result.error ?? "")) break;
+    }
 
     if (!result.ok) {
       console.error("createBookingAtomic falló en webhook:", result.error);
@@ -97,31 +133,62 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ received: true, warning: result.error });
     }
 
-    // Email de confirmación (gated por RESEND).
-    if (process.env.RESEND_API_KEY && email.includes("@")) {
+    // El intento de reserva quedó convertido: el cron de abandono ya no escribe.
+    if (email.includes("@")) {
       try {
-        const { Resend } = await import("resend");
-        const resend = new Resend(process.env.RESEND_API_KEY);
-        const from = process.env.RESEND_FROM || (hotel?.config?.email_from as string) || "reservas@kora-hotel.com";
-        await resend.emails.send({
-          from,
-          to: [email],
-          subject: `Tu reserva está confirmada — ${confirmacion}`,
-          html: `<div style="font-family:system-ui,sans-serif;max-width:480px;padding:24px;">
-            <h2 style="color:#1B4332;">¡Reserva confirmada! 🎉</h2>
-            <p>Gracias ${md.customerName || ""}. Tu reserva en <b>${hotel?.nombre ?? "el hotel"}</b> quedó confirmada.</p>
-            <table style="border-collapse:collapse;width:100%;font-size:14px;">
-              <tr><td style="padding:6px 0;color:#667;">Folio</td><td style="padding:6px 0;font-weight:600;">${confirmacion}</td></tr>
-              <tr><td style="padding:6px 0;color:#667;">Habitación(es)</td><td style="padding:6px 0;">${habitaciones.join(", ")}</td></tr>
-              <tr><td style="padding:6px 0;color:#667;">Llegada</td><td style="padding:6px 0;">${md.checkin}</td></tr>
-              <tr><td style="padding:6px 0;color:#667;">Salida</td><td style="padding:6px 0;">${md.checkout}</td></tr>
-              <tr><td style="padding:6px 0;color:#667;">Anticipo pagado</td><td style="padding:6px 0;font-weight:600;color:#1B4332;">$${Number(md.depositPaid).toLocaleString("es-MX")} MXN</td></tr>
-              <tr><td style="padding:6px 0;color:#667;">Saldo al llegar</td><td style="padding:6px 0;">$${Number(md.pending).toLocaleString("es-MX")} MXN</td></tr>
-            </table>
-          </div>`,
-        });
+        await createAdminClient()
+          .from("booking_intents")
+          .update({ convertido: true, updated_at: new Date().toISOString() })
+          .eq("hotel_id", hotelId)
+          .eq("email", email.toLowerCase());
+      } catch {
+        // Tabla aún no creada o error transitorio: no afecta la reserva.
+      }
+    }
+
+    // Email de confirmación (gated por RESEND dentro del helper).
+    await sendConfirmacionReserva(
+      email,
+      {
+        hotelNombre: hotel?.nombre ?? "el hotel",
+        confirmacion,
+        habitaciones,
+        checkin: md.checkin,
+        checkout: md.checkout,
+        anticipo,
+        pendiente: Math.max(0, total - anticipo),
+        cliente: md.customerName || null,
+        ratePlan: md.ratePlan || null,
+        portalUrl: `${origin}/reserva/consultar`,
+      },
+      (hotel?.config?.email_from as string) || null,
+    );
+
+    // Aviso INMEDIATO al hotel (además del digest). Best-effort: nunca tumba
+    // el webhook — la reserva ya quedó creada.
+    if (hotel) {
+      try {
+        const avisoTo = await resolveHotelAvisoEmail(hotel);
+        if (avisoTo) {
+          await sendAvisoReservaHotel(avisoTo, {
+            hotelNombre: hotel.nombre,
+            panelUrl: `${origin}/panel/${hotel.slug}/reservas`,
+            confirmacion,
+            cliente: md.customerName || null,
+            telefono: md.customerPhone || null,
+            email: email || null,
+            habitaciones,
+            checkin: md.checkin,
+            checkout: md.checkout,
+            huespedes,
+            total,
+            anticipo,
+            pagoEnHotel: esPagoHotel,
+            ratePlan: md.ratePlan || null,
+          });
+        }
       } catch (e) {
-        console.error("webhook email error:", e);
+        console.error("aviso al hotel falló:", e);
       }
     }
 
@@ -129,5 +196,112 @@ export async function POST(req: NextRequest) {
   } catch (e) {
     console.error("webhook handler error:", e);
     return NextResponse.json({ error: "handler-error" }, { status: 500 });
+  }
+}
+
+export async function POST(req: NextRequest) {
+  if (!process.env.STRIPE_WEBHOOK_SECRET_RESERVAS && !process.env.STRIPE_WEBHOOK_SECRET_RESERVAS_CONNECT) {
+    console.error("Secretos de webhook de reservas no configurados — webhook inactivo");
+    return NextResponse.json({ error: "webhook-no-configurado" }, { status: 500 });
+  }
+
+  const sig = req.headers.get("stripe-signature");
+  const raw = await req.text();
+  const event = verificarFirma(raw, sig || "");
+  if (!event) {
+    console.error("Firma de webhook inválida (reservas)");
+    return NextResponse.json({ error: "firma-invalida" }, { status: 400 });
+  }
+
+  const origin = new URL(req.url).origin;
+
+  switch (event.type) {
+    // Pago inmediato (tarjeta) o garantía completada (pagar en hotel). Con OXXO
+    // la sesión llega "completed" pero SIN pagar: se extiende el hold mientras
+    // el huésped deposita (voucher de 1 día) y la reserva se crea al confirmarse
+    // el pago (async_payment_succeeded).
+    case "checkout.session.completed": {
+      const session = event.data.object as Stripe.Checkout.Session;
+      const md = session.metadata || {};
+      if (!md.hotel_id) return NextResponse.json({ received: true, ignored: "sin-hotel" });
+      if (session.mode === "setup" || session.payment_status === "paid") {
+        return confirmarReserva(session, origin);
+      }
+      if (md.holdSession) await extendHold(md.hotel_id, md.holdSession, 48).catch(() => {});
+      return NextResponse.json({ received: true, pendingPayment: true });
+    }
+
+    // El pago diferido (OXXO) se acreditó → ahora sí, reserva confirmada.
+    case "checkout.session.async_payment_succeeded": {
+      const session = event.data.object as Stripe.Checkout.Session;
+      return confirmarReserva(session, origin);
+    }
+
+    // El voucher venció o la sesión expiró sin pagar → soltar el cuarto.
+    case "checkout.session.async_payment_failed":
+    case "checkout.session.expired": {
+      const session = event.data.object as Stripe.Checkout.Session;
+      const md = session.metadata || {};
+      if (md.hotel_id && md.holdSession) {
+        await releaseHold(md.hotel_id, md.holdSession).catch(() => {});
+      }
+      return NextResponse.json({ received: true, released: true });
+    }
+
+    // Estado de la cuenta conectada del hotel (onboarding, charges, payouts,
+    // OXXO) → se persiste para que el checkout y el panel no consulten en vivo.
+    case "account.updated": {
+      const acct = event.data.object as Stripe.Account;
+      let hotelId = acct.metadata?.hotel_id ?? null;
+      if (!hotelId) {
+        const { data } = await createAdminClient()
+          .from("hoteles")
+          .select("id")
+          .eq("stripe_account_id", acct.id)
+          .maybeSingle();
+        hotelId = (data as { id: string } | null)?.id ?? null;
+      }
+      if (hotelId) await upsertConnectState(hotelId, deriveConnectState(acct));
+      return NextResponse.json({ received: true, account: acct.id });
+    }
+
+    // Reembolso TOTAL → reserva REEMBOLSADA y se libera el inventario.
+    // (charge.refunded es true solo cuando se devolvió todo; parciales se ignoran.)
+    case "charge.refunded": {
+      const charge = event.data.object as Stripe.Charge;
+      if (!charge.refunded) return NextResponse.json({ received: true, partial: true });
+      const pi =
+        typeof charge.payment_intent === "string"
+          ? charge.payment_intent
+          : (charge.payment_intent?.id ?? "");
+      if (!pi) return NextResponse.json({ received: true, ignored: "sin-pi" });
+
+      const admin = createAdminClient();
+      const { data } = await admin
+        .from("bookings")
+        .select("id, hotel_id, estado")
+        .eq("payment_intent_id", pi)
+        .maybeSingle();
+      const booking = data as { id: string; hotel_id: string; estado: string } | null;
+      if (booking && booking.estado !== "REEMBOLSADA") {
+        const { error } = await admin
+          .from("bookings")
+          .update({ estado: "REEMBOLSADA" })
+          .eq("id", booking.id);
+        // Si la BD aún no admite REEMBOLSADA (SQL fase 3 sin aplicar), cae a CANCELADA.
+        if (error) {
+          await admin.from("bookings").update({ estado: "CANCELADA" }).eq("id", booking.id);
+        }
+        await admin.from("blocks").delete().eq("hotel_id", booking.hotel_id).eq("booking_id", booking.id);
+      }
+      return NextResponse.json({ received: true, refunded: Boolean(booking) });
+    }
+
+    // Cubierto por checkout.session.completed; se acusa recibo sin duplicar.
+    case "payment_intent.succeeded":
+      return NextResponse.json({ received: true, ignored: event.type });
+
+    default:
+      return NextResponse.json({ received: true, ignored: event.type });
   }
 }

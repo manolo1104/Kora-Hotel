@@ -96,6 +96,11 @@ export interface BookingRules {
   anticipoPct: number; // % a cobrar como anticipo (10..100)
   anticipoMinNoches: number; // mín. noches para anticipo parcial; menos = cobra 100%
   minNoches: number; // mín. de noches por reserva
+  nrfActiva: boolean; // ¿ofrece tarifa No Reembolsable?
+  nrfPct: number; // % de descuento de la tarifa no reembolsable (5..50)
+  cancelacionDias: number; // días antes del check-in con cancelación gratis (0..30)
+  pagoEnHotel: boolean; // ¿permite reservar con tarjeta como garantía y pagar al llegar?
+  ishPct: number; // % de ISH del estado para el desglose (0..10)
   nightOpts: NightPriceOpts;
 }
 
@@ -109,11 +114,19 @@ function clampNum(v: unknown, def: number, min: number, max: number): number {
  * config (vía nightOpts). Valores por defecto = comportamiento previo (50% / 2 noches).
  */
 export function bookingRules(hotel: HotelLike): BookingRules {
-  const reglas = ((hotel.extras as Record<string, unknown>)?.reglas ?? {}) as Record<string, unknown>;
+  const extras = (hotel.extras ?? {}) as Record<string, unknown>;
+  const reglas = (extras.reglas ?? {}) as Record<string, unknown>;
+  const impuestos = (extras.impuestos ?? {}) as Record<string, unknown>;
   return {
     anticipoPct: clampNum(reglas.anticipoPct, 50, 10, 100),
     anticipoMinNoches: clampNum(reglas.anticipoMinNoches, 2, 1, 30),
     minNoches: clampNum(reglas.minNoches, 1, 1, 30),
+    nrfActiva: reglas.nrfActiva === true,
+    nrfPct: clampNum(reglas.nrfPct, 10, 5, 50),
+    cancelacionDias: clampNum(reglas.cancelacionDias, 2, 0, 30),
+    pagoEnHotel: reglas.pagoEnHotel === true,
+    // ISH admite decimales (hay estados con 2.5%): no usar toNum (solo enteros).
+    ishPct: Math.max(0, Math.min(10, Number(impuestos.ishPct) || 0)),
     nightOpts: nightOpts(hotel),
   };
 }
