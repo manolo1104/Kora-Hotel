@@ -30,6 +30,7 @@
 
   display: flex;
   min-height: 100vh;
+  padding-top: 64px; /* deja pasar el header fijo de 64px (h-16) de SiteFrame */
   background: var(--parch);
 }
 
@@ -41,7 +42,7 @@
 }
 
 @media (max-width: 768px) {
-  .shell { flex-direction: column; }
+  .shell { flex-direction: column; padding-top: 0; }
   /* padding-top deja espacio al botón hamburguesa fijo (top:12px, height:40px) */
   .content { padding: 64px 16px 20px; }
 }

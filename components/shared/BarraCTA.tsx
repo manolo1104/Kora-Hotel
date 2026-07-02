@@ -10,14 +10,14 @@ export function BarraCTA() {
             ¿Listo para transformar tu hotel?
           </h2>
           <p className="mt-3 text-kora-accent text-base leading-relaxed">
-            Plan mes a mes desde $1,990, sin permanencia. Te montamos todo y
-            capacitamos a tu equipo.
+            Empieza con 30 días gratis. Plan mes a mes desde $1,990, sin
+            permanencia; cancela cuando quieras.
           </p>
           <a
-            href="/#contacto"
+            href="/precios"
             className="btn-press btn-arrow mt-6 inline-flex items-center gap-2 px-6 py-3.5 rounded-full bg-white text-kora-primary font-bold text-sm hover:bg-gray-50 transition-colors"
           >
-            Solicitar mi lugar
+            Empezar 30 días gratis
             <ArrowRight size={16} aria-hidden="true" />
           </a>
         </Reveal>

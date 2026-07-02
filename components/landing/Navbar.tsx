@@ -73,16 +73,16 @@ export function Navbar() {
               </a>
             );
           })}
-          {/* Escasez honesta: cupos de implementación al mes (capacidad real de onboarding) */}
+          {/* Prueba gratis: gancho honesto y consistente con el alta self-service */}
           <span className="hidden lg:inline-flex items-center gap-1.5 text-[11px] font-semibold text-kora-primary">
             <span className="w-1.5 h-1.5 rounded-full bg-kora-accent animate-pulse" aria-hidden="true" />
-            Cupos limitados este mes
+            30 días gratis
           </span>
           <a
-            href="/#motor-reservas"
+            href="/precios"
             className="btn-press btn-arrow btn-fill inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-kora-primary text-white text-sm font-semibold hover:bg-kora-primary-dark transition-colors"
           >
-            Ver el motor
+            Empezar gratis
           </a>
         </div>
 
@@ -144,14 +144,14 @@ export function Navbar() {
                 </motion.a>
               ))}
               <motion.a
-                href="/#motor-reservas"
+                href="/precios"
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.22, delay: 0.05 + navLinks.length * 0.06, ease: EASE }}
                 className="btn-press mt-3 block w-full text-center px-5 py-3 rounded-full bg-kora-primary text-white text-sm font-semibold"
                 onClick={() => setMenuOpen(false)}
               >
-                Ver el motor
+                Empezar gratis
               </motion.a>
             </div>
           </motion.div>

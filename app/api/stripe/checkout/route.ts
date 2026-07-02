@@ -78,7 +78,10 @@ export async function POST(req: Request) {
       customer: customerId,
       line_items: [{ price: plan.priceId, quantity: 1 }],
       metadata: { user_id: user.id, plan: plan.clave },
-      subscription_data: { metadata: { user_id: user.id, plan: plan.clave } },
+      subscription_data: {
+        trial_period_days: 30, // 30 días de prueba: la tarjeta queda en garantía, el primer cobro es hasta el día 31
+        metadata: { user_id: user.id, plan: plan.clave },
+      },
       success_url: `${SITE}/pago/exito?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${SITE}/precios`,
       locale: "es",
