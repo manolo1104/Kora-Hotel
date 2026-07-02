@@ -111,10 +111,10 @@ export function Hero() {
 
               <motion.div {...item(0.2)} className="flex flex-col sm:flex-row gap-3">
                 <a
-                  href="#contacto"
+                  href="#precios"
                   className="btn-press btn-arrow btn-fill inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-kora-accent text-kora-primary font-semibold text-sm hover:bg-kora-accent-dark transition-colors"
                 >
-                  Solicitar mi lugar
+                  Empezar 30 días gratis
                   <ArrowRight size={16} />
                 </a>
                 <a
@@ -167,8 +167,8 @@ export function Hero() {
                   · Xilitla, SLP
                 </p>
                 <p className="text-xs text-kora-muted">
-                  Solo damos de alta a unos pocos hoteles al mes, para montar
-                  bien cada sistema (y tu web, si la quieres).
+                  30 días gratis, sin compromiso: pruébalo con tu hotel y el
+                  primer cobro es hasta el día 31 (cancela antes y no pagas).
                 </p>
                 <div className="animate-pulse-ring inline-flex items-center gap-2 bg-[#1B4332]/8 text-kora-primary px-4 py-2 rounded-full text-sm font-medium">
                   <span className="text-kora-accent font-bold text-base leading-none">★</span>

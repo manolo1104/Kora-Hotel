@@ -38,8 +38,8 @@ const featuresCompleto = [CAMILA_FULL, PRICING_IA, ...featuresBase];
 const garantias = [
   {
     icon: ShieldCheck,
-    titulo: "Garantía de 30 días",
-    texto: "Si no te convence, te devolvemos tu primera mensualidad.",
+    titulo: "30 días gratis",
+    texto: "Prueba Kora completo un mes. No se cobra nada hasta el día 31; cancela antes y no pagas.",
   },
   {
     icon: BadgeCheck,
@@ -234,22 +234,25 @@ export function PricingSection() {
                   </p>
                 )}
 
-                <a
-                  href="/#contacto"
+                <Link
+                  href={`/pago/iniciar?plan=${plan.clave}`}
                   className={`btn-press btn-arrow mt-8 flex items-center justify-center gap-2 w-full py-3.5 rounded-full font-bold text-sm transition-colors text-center ${
                     plan.destacado
                       ? "btn-fill bg-kora-accent text-kora-primary hover:bg-kora-accent-dark"
                       : "border-2 border-kora-primary text-kora-primary hover:bg-kora-primary hover:text-white"
                   }`}
                 >
-                  Solicitar mi lugar
-                </a>
-                <Link
-                  href={`/pago/iniciar?plan=${plan.clave}`}
-                  className="mt-3 block text-center text-xs font-semibold text-kora-muted underline hover:text-kora-primary transition-colors"
-                >
-                  o suscríbete ya con tarjeta
+                  Empezar — 30 días gratis
                 </Link>
+                <p className="mt-2 text-center text-[11px] text-kora-muted">
+                  Sin cargo hoy · cancela cuando quieras
+                </p>
+                <a
+                  href="/#contacto"
+                  className="mt-2 block text-center text-xs font-semibold text-kora-muted underline hover:text-kora-primary transition-colors"
+                >
+                  o prefiero que me contacten primero
+                </a>
               </GlowCard>
             </Reveal>
           ))}
