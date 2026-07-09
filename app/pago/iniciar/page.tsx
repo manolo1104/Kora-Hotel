@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
 
-// Punto único de entrada al pago: /pago/iniciar?plan=boutique|hotel|grande
+// Punto único de entrada al pago: /pago/iniciar?plan=basico|completo
 // - Sin sesión → manda a /entrar conservando el plan (y regresa aquí al entrar).
 // - Con sesión → crea el Checkout de Stripe y redirige.
 function Iniciar() {

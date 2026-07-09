@@ -59,13 +59,13 @@ export function AgenteSection() {
 
               <div className="mt-8 flex flex-wrap items-center gap-4">
                 <a
-                  href="#contacto"
+                  href="/precios"
                   className="btn-press btn-arrow btn-fill inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-kora-accent text-kora-primary font-semibold text-sm hover:bg-kora-accent-dark transition-colors"
                 >
-                  Solicitar mi lugar
+                  Empezar 30 días gratis
                   <ArrowRight size={16} />
                 </a>
-                <span className="text-xs text-white/50">Camila Lite en Boutique · completa (24/7, sin límite) desde el plan Hotel</span>
+                <span className="text-xs text-white/50">Camila (WhatsApp con IA, 24/7) viene incluida en el plan Kora ($550/mes)</span>
               </div>
             </div>
           </Reveal>

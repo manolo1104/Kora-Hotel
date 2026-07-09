@@ -10,15 +10,25 @@ export const metadata: Metadata = {
   alternates: { canonical: "/entrar" },
 };
 
+// Solo permitimos destinos internos (evita open-redirect): debe empezar con
+// una sola "/" y no con "//" ni "/\".
+function destinoSeguro(v: string | undefined): string | null {
+  if (!v || !v.startsWith("/") || v.startsWith("//") || v.startsWith("/\\")) return null;
+  return v;
+}
+
 export default async function EntrarPage({
   searchParams,
 }: {
-  searchParams: Promise<{ plan?: string }>;
+  searchParams: Promise<{ plan?: string; next?: string }>;
 }) {
-  const { plan: planParam } = await searchParams;
+  const { plan: planParam, next: nextParam } = await searchParams;
   const plan = planPorClave(planParam);
-  // Si viene de /precios con un plan, al entrar lo mandamos directo al pago.
-  const next = plan ? `/pago/iniciar?plan=${plan.clave}` : "/panel";
+  // Prioridad del destino tras entrar: 1) plan (va al pago), 2) ?next= seguro
+  // (ej. el onboarding), 3) el panel.
+  const next = plan
+    ? `/pago/iniciar?plan=${plan.clave}`
+    : destinoSeguro(nextParam) ?? "/panel";
 
   return (
     <main className="pt-16">

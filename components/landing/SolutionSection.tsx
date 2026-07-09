@@ -24,8 +24,9 @@ export function SolutionSection() {
 
         <Reveal delay={0.2}>
           <p className="mt-10 text-xs text-kora-muted">
-            Camila Lite viene en Boutique; la versión completa (24/7, sin límite)
-            y el pricing dinámico, desde el plan Hotel (9 a 20 habitaciones).
+            Un solo plan de $550 MXN/mes, todo incluido y con habitaciones
+            ilimitadas: motor de reservas, PMS, Camila (WhatsApp con IA, 24/7),
+            dashboard, CRM y facturación CFDI.
           </p>
         </Reveal>
       </div>

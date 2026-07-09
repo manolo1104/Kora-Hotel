@@ -10,8 +10,8 @@ export function BarraCTA() {
             ¿Listo para transformar tu hotel?
           </h2>
           <p className="mt-3 text-kora-accent text-base leading-relaxed">
-            Empieza con 30 días gratis. Plan mes a mes desde $1,990, sin
-            permanencia; cancela cuando quieras.
+            Empieza con 30 días gratis. Un solo plan de $550/mes con
+            habitaciones ilimitadas, sin permanencia; cancela cuando quieras.
           </p>
           <a
             href="/precios"

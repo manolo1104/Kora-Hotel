@@ -37,11 +37,10 @@ export default function TerminosPage() {
               <p>
                 Kora es un sistema de gestión hotelera todo-en-uno que incluye
                 motor de reservas directo, agente de WhatsApp con inteligencia
-                artificial, sistema de gestión de propiedades (PMS), pricing
-                dinámico, CRM de huéspedes, blog automático y dashboard de
-                métricas. El servicio se presta de
-                forma exclusiva a hoteles boutique e independientes con 5 a 40
-                habitaciones en México.
+                artificial, sistema de gestión de propiedades (PMS), CRM de
+                huéspedes, blog automático y dashboard de métricas. El servicio
+                se presta de forma exclusiva a hoteles boutique e independientes
+                en México.
               </p>
             </section>
 
@@ -66,11 +65,12 @@ export default function TerminosPage() {
                 3. Pagos y cancelación
               </h2>
               <p>
-                El servicio se factura mensualmente. El precio depende del
-                tamaño del hotel (número de habitaciones): $1,990 MXN/mes de 1 a
-                8 habitaciones, $2,990 MXN/mes de 9 a 20 habitaciones y $4,490
-                MXN/mes de 21 habitaciones o más (más IVA), y se mantiene vigente
-                mientras la suscripción esté activa.
+                El servicio se factura mensualmente. Hay un solo plan de $550
+                MXN/mes (más IVA), con habitaciones ilimitadas y todo incluido:
+                motor de reservas, PMS, Camila (WhatsApp con IA), dashboard, CRM
+                y facturación CFDI 4.0. El precio se mantiene vigente mientras la
+                suscripción esté activa. El plan incluye 30 días de prueba
+                gratis; el primer cargo se realiza al finalizar la prueba.
               </p>
               <ul className="mt-3 space-y-1.5 list-disc list-inside text-kora-muted">
                 <li>

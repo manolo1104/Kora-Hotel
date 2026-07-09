@@ -125,6 +125,16 @@ export function Hero() {
                 </a>
               </motion.div>
 
+              {/* Alta self-service: entra directo al onboarding a cargar tu hotel */}
+              <motion.a
+                {...item(0.22)}
+                href="/panel/onboarding"
+                className="btn-press btn-arrow inline-flex items-center gap-1.5 text-sm font-semibold text-kora-primary hover:text-kora-primary-dark transition-colors"
+              >
+                Empieza a cargar tu hotel ahora
+                <ArrowRight size={15} aria-hidden="true" />
+              </motion.a>
+
               {/* Señales de confianza honestas (tipo Stripe) */}
               <motion.ul
                 {...item(0.24)}

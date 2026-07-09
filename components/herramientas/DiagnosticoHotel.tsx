@@ -187,7 +187,7 @@ function nivelPorPuntaje(p: number): Nivel {
       bg: "#FFFBEB",
       koraTitulo: "Estás cerca — Kora te da el empujón que falta",
       koraTexto:
-        "Reservas directas, precio dinámico automático y facturación sin batallar. Kora junta las piezas que aún operas por separado.",
+        "Reservas directas, WhatsApp con IA y facturación sin batallar. Kora junta las piezas que aún operas por separado.",
     };
   }
   return {

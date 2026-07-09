@@ -10,7 +10,7 @@ import { trackLead } from "@/lib/analytics";
 const WA_FALLBACK_URL = `https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "524891251458"}?text=Hola%2C%20quiero%20m%C3%A1s%20informaci%C3%B3n%20de%20Kora`;
 
 const benefits = [
-  "Plan mes a mes desde $1,990 MXN/mes — sin permanencia",
+  "Plan mes a mes de $550 MXN/mes, habitaciones ilimitadas — sin permanencia",
   "Te montamos todo y capacitamos a tu equipo en 48 a 72 horas",
   "Opcional: tu sitio web profesional con motor de reservas (servicio aparte)",
   "Soporte directo con el equipo fundador",
@@ -39,7 +39,7 @@ export function ContactForm() {
       );
     } else if (revpar > 0) {
       setPersonalizado(
-        `Tu RevPAR es de $${Math.round(revpar).toLocaleString("es-MX")} MXN. Con el precio dinámico de Kora puedes hacerlo crecer.`
+        `Tu RevPAR es de $${Math.round(revpar).toLocaleString("es-MX")} MXN. Con las reservas directas de Kora puedes hacerlo crecer.`
       );
     }
   }, []);

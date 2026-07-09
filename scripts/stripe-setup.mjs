@@ -17,9 +17,7 @@ const stripe = new Stripe(KEY);
 const modo = KEY.startsWith("sk_live") ? "LIVE" : "PRUEBA";
 
 const PLANES = [
-  { clave: "boutique", nombre: "Kora Boutique (1 a 8 habitaciones)", mxn: 1990, env: "STRIPE_PRICE_BOUTIQUE" },
-  { clave: "hotel", nombre: "Kora Hotel (9 a 20 habitaciones)", mxn: 2990, env: "STRIPE_PRICE_HOTEL" },
-  { clave: "grande", nombre: "Kora Hotel grande (21+ habitaciones)", mxn: 4490, env: "STRIPE_PRICE_GRANDE" },
+  { clave: "kora", nombre: "Kora (todo incluido, habitaciones ilimitadas)", mxn: 550, env: "STRIPE_PRICE_KORA" },
 ];
 
 console.log(`\nCreando productos en Stripe (modo ${modo})…\n`);

@@ -79,6 +79,12 @@ export function Navbar() {
             30 días gratis
           </span>
           <a
+            href="/entrar"
+            className="nav-link text-sm font-semibold text-kora-primary hover:text-kora-primary-dark transition-colors"
+          >
+            Iniciar sesión
+          </a>
+          <a
             href="/precios"
             className="btn-press btn-arrow btn-fill inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-kora-primary text-white text-sm font-semibold hover:bg-kora-primary-dark transition-colors"
           >
@@ -144,10 +150,20 @@ export function Navbar() {
                 </motion.a>
               ))}
               <motion.a
+                href="/entrar"
+                initial={{ opacity: 0, x: -12 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.22, delay: 0.05 + navLinks.length * 0.06, ease: EASE }}
+                className="block text-sm font-semibold text-kora-primary py-3 border-b border-gray-50 hover:text-kora-primary-dark transition-colors"
+                onClick={() => setMenuOpen(false)}
+              >
+                Iniciar sesión
+              </motion.a>
+              <motion.a
                 href="/precios"
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.22, delay: 0.05 + navLinks.length * 0.06, ease: EASE }}
+                transition={{ duration: 0.22, delay: 0.05 + (navLinks.length + 1) * 0.06, ease: EASE }}
                 className="btn-press mt-3 block w-full text-center px-5 py-3 rounded-full bg-kora-primary text-white text-sm font-semibold"
                 onClick={() => setMenuOpen(false)}
               >

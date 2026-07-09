@@ -21,11 +21,11 @@ import { ContactForm } from "@/components/landing/ContactForm";
 export const metadata: Metadata = {
   title: "Kora — Sistema hotelero con IA para hoteles boutique en México",
   description:
-    "Reservas directas sin comisión, agente de WhatsApp 24/7 y todo tu hotel en una sola pantalla — en español, con CFDI. Plan mes a mes desde $1,990 MXN/mes, sin permanencia.",
+    "Reservas directas sin comisión, agente de WhatsApp 24/7 y todo tu hotel en una sola pantalla — en español, con CFDI. Plan mes a mes de $550 MXN/mes con habitaciones ilimitadas, sin permanencia.",
   openGraph: {
     title: "Kora — Sistema hotelero con IA para hoteles boutique en México",
     description:
-      "Reservas directas sin comisión, agente de WhatsApp 24/7 y todo tu hotel en una sola pantalla — en español, con CFDI. Plan mes a mes desde $1,990 MXN/mes, sin permanencia.",
+      "Reservas directas sin comisión, agente de WhatsApp 24/7 y todo tu hotel en una sola pantalla — en español, con CFDI. Plan mes a mes de $550 MXN/mes con habitaciones ilimitadas, sin permanencia.",
     type: "website",
     locale: "es_MX",
     siteName: "Kora",
@@ -34,7 +34,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Kora — Sistema hotelero con IA para hoteles boutique en México",
     description:
-      "Reservas directas sin comisión, agente de WhatsApp 24/7 y todo tu hotel en una sola pantalla — en español, con CFDI. Plan mes a mes desde $1,990 MXN/mes, sin permanencia.",
+      "Reservas directas sin comisión, agente de WhatsApp 24/7 y todo tu hotel en una sola pantalla — en español, con CFDI. Plan mes a mes de $550 MXN/mes con habitaciones ilimitadas, sin permanencia.",
   },
   alternates: {
     canonical: "/",
@@ -58,25 +58,23 @@ const jsonLd = {
       inLanguage: "es-MX",
       url: SITE_URL,
       description:
-        "Sistema hotelero todo-en-uno con IA: motor de reservas directas sin comisiones, agente de WhatsApp 24/7, PMS, dashboard con CRM, pricing dinámico y CFDI 4.0. Para hoteles boutique en México.",
+        "Sistema hotelero todo-en-uno con IA: motor de reservas directas sin comisiones, agente de WhatsApp 24/7, PMS, dashboard con CRM y CFDI 4.0. Para hoteles boutique en México.",
       publisher: { "@id": `${SITE_URL}/#organization` },
       featureList: [
         "Motor de reservas directas sin comisiones",
         "Agente de WhatsApp con IA 24/7",
         "PMS: habitaciones, check-in/out y housekeeping",
-        "Pricing dinámico con IA",
+        "Habitaciones ilimitadas",
         "Dashboard con métricas, RevPAR y forecast de 30 días",
         "CRM de huéspedes y emails automáticos",
         "Facturación CFDI 4.0 integrada con el SAT",
       ],
       offers: {
-        "@type": "AggregateOffer",
+        "@type": "Offer",
         priceCurrency: "MXN",
-        lowPrice: "1990",
-        highPrice: "4490",
-        offerCount: 3,
+        price: "550",
         description:
-          "Plan mes a mes desde $1,990 MXN/mes según el tamaño del hotel (3 planes: 1–8, 9–20 y 21+ habitaciones), sin permanencia. Sitio web profesional opcional, como servicio aparte.",
+          "Plan único de $550 MXN/mes, todo incluido y con habitaciones ilimitadas: motor de reservas, PMS, Camila (WhatsApp con IA), dashboard, CRM y CFDI 4.0. Mes a mes, sin permanencia. Sitio web profesional opcional, como servicio aparte.",
       },
     },
     {

@@ -10,6 +10,6 @@ export default function OpengraphImage() {
   return koraOG({
     title: "Llena tu hotel con reservas directas. Sin depender de Booking.",
     subtitle:
-      "Reservas directas sin comisión, WhatsApp 24/7 y tu hotel en una sola pantalla · desde $1,990 MXN/mes, en español.",
+      "Reservas directas sin comisión, WhatsApp 24/7 y tu hotel en una sola pantalla · $550 MXN/mes, habitaciones ilimitadas.",
   });
 }

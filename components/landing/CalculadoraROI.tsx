@@ -32,7 +32,7 @@ function calcular(
   const ingresosOTA = ingresosTotales * (porcentajeOTA / 100);
   const comisionMensual = ingresosOTA * (comisionOTA / 100);
   const comisionAnual = comisionMensual * 12;
-  const koraAnual = 2990 * 12; // $35,880 MXN
+  const koraAnual = 550 * 12; // plan Kora: $6,600 MXN al año
   const reservasRecuperadas = ingresosOTA * 0.4;
   const comisionEvitada = reservasRecuperadas * (comisionOTA / 100);
   const ahorroNetoAnual = comisionEvitada * 12 - koraAnual;

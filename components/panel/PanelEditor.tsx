@@ -23,7 +23,6 @@ import {
   MessageCircle,
   BedDouble,
   LayoutDashboard,
-  TrendingUp,
   Users,
   Receipt,
   Sparkles,
@@ -103,11 +102,6 @@ const KORA_PRO = [
     Icon: LayoutDashboard,
     t: "Dashboard con métricas",
     d: "Ocupación, ingresos, RevPAR y pronóstico a 30 días en tiempo real.",
-  },
-  {
-    Icon: TrendingUp,
-    t: "Pricing dinámico con IA",
-    d: "Sube tarifas en alta demanda y llena en temporada baja, automático.",
   },
   {
     Icon: Users,

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CheckCircle2, ArrowRight, ShieldCheck, BadgeCheck, Lock, X } from "lucide-react";
+import { CheckCircle2, ArrowRight, ShieldCheck, BadgeCheck, Lock } from "lucide-react";
 import { Reveal } from "@/components/shared/Reveal";
 import { CountUp } from "@/components/shared/CountUp";
 import { GlowCard } from "@/components/shared/GlowCard";
@@ -15,24 +15,18 @@ const incluyeWeb = [
   "Lo construimos, publicamos y te capacitamos",
 ];
 
-// Funciones que comparten todos los planes (la base de Kora).
-const featuresBase = [
-  "PMS completo: habitaciones, check-in/out, housekeeping",
-  "Dashboard + métricas + forecast 30 días",
+// Plan único ($550): todo incluido, con habitaciones ilimitadas.
+const featuresKora = [
+  "Motor de reservas directo, 0% de comisión",
+  "Habitaciones ilimitadas",
+  "PMS completo: check-in/out y housekeeping",
+  "Camila: agente de WhatsApp con IA, 24/7",
+  "Dashboard con métricas y forecast de 30 días",
   "CRM de huéspedes y emails automáticos",
-  "CFDI 4.0 integrado con el SAT",
+  "Facturación CFDI 4.0 integrada con el SAT",
+  "Mini-página de reservas y cobro con tarjeta",
   "Soporte directo con el equipo fundador",
 ];
-
-// Camila viene en TODOS los planes: versión Lite (con límite mensual) en
-// Boutique, y completa 24/7 sin límite desde el plan Hotel. El pricing dinámico
-// es exclusivo de Hotel en adelante.
-const CAMILA_LITE = "Camila Lite: asistente de WhatsApp con IA (con límite mensual)";
-const CAMILA_FULL = "Agente WhatsApp con IA (24/7, sin límite)";
-const PRICING_IA = "Pricing dinámico con IA";
-
-const featuresBoutique = [CAMILA_LITE, ...featuresBase];
-const featuresCompleto = [CAMILA_FULL, PRICING_IA, ...featuresBase];
 
 // Garantías de la oferta (badges de confianza).
 const garantias = [
@@ -53,13 +47,11 @@ const garantias = [
   },
 ];
 
-// Tarifas escalonadas por número de habitaciones (fuente única: lib/oferta.ts).
-// Boutique trae Camila Lite; la Camila completa 24/7 y el pricing dinámico
-// vienen desde el plan Hotel.
+// Plan único (fuente única: lib/oferta.ts): todo incluido, sin límite de
+// habitaciones.
 const planes = PLANES.map((p) => ({
   ...p,
-  features: p.clave === "boutique" ? featuresBoutique : featuresCompleto,
-  noIncluye: p.clave === "boutique" ? [PRICING_IA] : [],
+  features: featuresKora,
 }));
 
 export function PricingSection() {
@@ -72,14 +64,14 @@ export function PricingSection() {
               Precios
             </h2>
             <p className="text-kora-muted">
-              Tu precio según el tamaño de tu hotel.{" "}
+              Un solo plan, todo incluido y con habitaciones ilimitadas.{" "}
               <span className="font-bold text-kora-primary">
                 Plan mes a mes, sin permanencia.
               </span>
             </p>
             <p className="mt-2 text-sm text-kora-muted">
-              Solo damos de alta a unos pocos hoteles al mes para montar bien
-              cada sistema.
+              Pruébalo 30 días gratis. No se cobra nada hasta el
+              día 31; cancela antes y no pagas.
             </p>
           </div>
         </Reveal>
@@ -132,13 +124,12 @@ export function PricingSection() {
           </div>
         </Reveal>
 
-        {/* Tarifas escalonadas por tamaño del hotel */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
+        {/* Plan único: todo incluido, habitaciones ilimitadas */}
+        <div className="max-w-md mx-auto">
           {planes.map((plan, i) => (
             <Reveal
               key={plan.nombre}
               delay={0.15 + i * 0.08}
-              className={plan.destacado ? "order-first md:order-none" : undefined}
             >
               <GlowCard
                 className={`relative h-full rounded-3xl p-8 bg-white ${
@@ -150,7 +141,7 @@ export function PricingSection() {
                 {plan.destacado && (
                   <div className="absolute -top-4 left-1/2 -translate-x-1/2">
                     <span className="animate-badge-in inline-flex items-center px-4 py-1.5 rounded-full bg-kora-accent text-kora-primary text-xs font-bold whitespace-nowrap">
-                      El más elegido
+                      Todo incluido
                     </span>
                   </div>
                 )}
@@ -214,25 +205,7 @@ export function PricingSection() {
                       <span className="text-sm text-kora-text">{f}</span>
                     </li>
                   ))}
-                  {plan.noIncluye.map((f) => (
-                    <li key={f} className="flex items-center justify-between gap-2">
-                      <span className="flex items-start gap-2.5 text-sm text-kora-muted">
-                        <X size={16} className="flex-shrink-0 text-gray-300 mt-0.5" aria-hidden="true" />
-                        {f}
-                      </span>
-                      <span className="flex-shrink-0 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">
-                        Plan Hotel
-                      </span>
-                    </li>
-                  ))}
                 </ul>
-
-                {plan.noIncluye.length > 0 && (
-                  <p className="mt-3 text-xs font-medium text-amber-800 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 leading-snug">
-                    El pricing dinámico con IA y la versión completa de Camila
-                    (24/7, sin límite) se incluyen desde el plan Hotel.
-                  </p>
-                )}
 
                 <Link
                   href={`/pago/iniciar?plan=${plan.clave}`}
@@ -247,12 +220,13 @@ export function PricingSection() {
                 <p className="mt-2 text-center text-[11px] text-kora-muted">
                   Sin cargo hoy · cancela cuando quieras
                 </p>
-                <a
-                  href="/#contacto"
-                  className="mt-2 block text-center text-xs font-semibold text-kora-muted underline hover:text-kora-primary transition-colors"
+                <Link
+                  href="/panel/onboarding"
+                  className="btn-press btn-arrow mt-2 flex items-center justify-center gap-1.5 text-center text-xs font-semibold text-kora-primary underline decoration-kora-accent underline-offset-2 hover:text-kora-primary-dark transition-colors"
                 >
-                  o prefiero que me contacten primero
-                </a>
+                  o empieza a cargar tu hotel ahora
+                  <ArrowRight size={13} aria-hidden="true" />
+                </Link>
               </GlowCard>
             </Reveal>
           ))}

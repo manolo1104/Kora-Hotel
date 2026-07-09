@@ -1,13 +1,18 @@
 // Fuente única de la oferta comercial.
 
-// Mensualidad de entrada (hotel boutique chico) — el "desde" que se comunica.
-export const PRECIO_DESDE = 1990;
+// Mensualidad del plan (el "desde" que se comunica).
+export const PRECIO_DESDE = 550;
 
-// ─── Planes de suscripción (fuente única) ─────────────────────────────────────
+// ─── Plan de suscripción (fuente única) ───────────────────────────────────────
 // Los price IDs de Stripe viven en variables de entorno porque cambian entre
 // modo prueba y modo live (se generan con: node scripts/stripe-setup.mjs).
+//
+// Por ahora hay UN SOLO plan:
+//   • Kora ($550/mes) → todo incluido, con habitaciones ilimitadas: motor de
+//     reservas directo, PMS, Camila (WhatsApp con IA), dashboard, CRM y
+//     facturación CFDI. (El pricing dinámico queda fuera por ahora.)
 
-export type PlanClave = "boutique" | "hotel" | "grande";
+export type PlanClave = "kora";
 
 export interface Plan {
   clave: PlanClave;
@@ -20,28 +25,12 @@ export interface Plan {
 
 export const PLANES: Plan[] = [
   {
-    clave: "boutique",
-    nombre: "Boutique",
-    rango: "1 a 8 habitaciones",
+    clave: "kora",
+    nombre: "Plan Kora",
+    rango: "Todo incluido · habitaciones ilimitadas",
     precio: PRECIO_DESDE,
-    destacado: false,
-    priceId: process.env.STRIPE_PRICE_BOUTIQUE,
-  },
-  {
-    clave: "hotel",
-    nombre: "Hotel",
-    rango: "9 a 20 habitaciones",
-    precio: 2990,
     destacado: true,
-    priceId: process.env.STRIPE_PRICE_HOTEL,
-  },
-  {
-    clave: "grande",
-    nombre: "Hotel grande",
-    rango: "21 habitaciones o más",
-    precio: 4490,
-    destacado: false,
-    priceId: process.env.STRIPE_PRICE_GRANDE,
+    priceId: process.env.STRIPE_PRICE_KORA,
   },
 ];
 

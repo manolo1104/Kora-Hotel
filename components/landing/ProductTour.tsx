@@ -10,11 +10,10 @@ import {
   useSpring,
   useReducedMotion,
 } from "motion/react";
-import { Globe, LayoutDashboard, TrendingUp, BarChart2, ArrowRight } from "lucide-react";
+import { Globe, LayoutDashboard, BarChart2, ArrowRight } from "lucide-react";
 import {
   ReservaMockup,
   PMSMockup,
-  PricingMockup,
   DashboardMockup,
 } from "@/components/caracteristicas/Mockups";
 
@@ -46,18 +45,8 @@ const PASOS = [
     demoHref: null,
   },
   {
-    id: "pricing-dinamico",
-    num: "03",
-    label: "Precios con IA",
-    Icon: TrendingUp,
-    title: "Precios que se ajustan solos",
-    desc: "Kora sube y baja tus tarifas según la demanda, los puentes y los eventos locales. Sin contratar un revenue manager.",
-    Mockup: PricingMockup,
-    demoHref: null,
-  },
-  {
     id: "dashboard",
-    num: "04",
+    num: "03",
     label: "Panel",
     Icon: BarChart2,
     title: "Las métricas que de verdad importan",
