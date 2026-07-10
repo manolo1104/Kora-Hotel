@@ -1,4 +1,4 @@
-import { Check } from "lucide-react";
+import { Check, FileCheck, ShieldCheck, Lock } from "lucide-react";
 
 // Franja de confianza con datos 100% reales (nada inventado).
 const items = [
@@ -7,6 +7,27 @@ const items = [
   "CFDI 4.0 con el SAT",
   "Te quedas con el 100% del pago",
   "Todo en español",
+];
+
+// Certificaciones y cumplimiento REALES (sin logos oficiales que no nos
+// corresponden): cada claim es verificable tal cual está escrito.
+const certificaciones = [
+  {
+    Icon: FileCheck,
+    texto: "Facturación CFDI 4.0 conforme al SAT, vía PAC autorizado",
+  },
+  {
+    Icon: ShieldCheck,
+    texto: "Pagos procesados por Stripe · certificación PCI DSS Nivel 1",
+  },
+  {
+    Icon: Lock,
+    texto: "Cifrado SSL/TLS en todo el sitio",
+  },
+  {
+    Icon: null,
+    texto: "🇲🇽 Empresa 100% mexicana",
+  },
 ];
 
 export function TrustStrip() {
@@ -22,6 +43,20 @@ export function TrustStrip() {
               <span className="text-xs sm:text-sm font-medium text-kora-text whitespace-nowrap">
                 {t}
               </span>
+            </li>
+          ))}
+        </ul>
+
+        <ul
+          className="mt-4 pt-4 border-t border-gray-100 flex flex-wrap items-center justify-center gap-x-7 gap-y-2"
+          aria-label="Cumplimiento y seguridad"
+        >
+          {certificaciones.map(({ Icon, texto }) => (
+            <li key={texto} className="flex items-center gap-1.5">
+              {Icon && (
+                <Icon size={13} className="text-kora-primary flex-shrink-0" aria-hidden="true" />
+              )}
+              <span className="text-[11px] text-kora-muted whitespace-nowrap">{texto}</span>
             </li>
           ))}
         </ul>

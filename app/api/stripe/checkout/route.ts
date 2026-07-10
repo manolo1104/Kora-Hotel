@@ -28,7 +28,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Inicia sesión para continuar." }, { status: 401 });
   }
 
-  let body: { plan?: string };
+  let body: { plan?: string; embedded?: boolean };
   try {
     body = await req.json();
   } catch {
@@ -85,8 +85,14 @@ export async function POST(req: Request) {
         );
     }
 
-    const session = await stripe.checkout.sessions.create({
-      mode: "subscription",
+    // Embebido: el pago ocurre DENTRO de kora-hotel.com (Stripe Embedded
+    // Checkout, mismo nivel de seguridad PCI). Requiere la llave pública en el
+    // cliente; sin ella, el flujo cae al Checkout hospedado de siempre.
+    const puedeEmbebido =
+      body.embedded === true && Boolean(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
+
+    const comun = {
+      mode: "subscription" as const,
       customer: customerId,
       line_items: [{ price: plan.priceId, quantity: 1 }],
       metadata: { user_id: user.id, plan: plan.clave },
@@ -94,10 +100,25 @@ export async function POST(req: Request) {
         trial_period_days: 30, // 30 días de prueba: la tarjeta queda en garantía, el primer cobro es hasta el día 31
         metadata: { user_id: user.id, plan: plan.clave },
       },
+      locale: "es" as const,
+      allow_promotion_codes: true,
+    };
+
+    if (puedeEmbebido) {
+      const session = await stripe.checkout.sessions.create({
+        ...comun,
+        // "embedded_page" = el Embedded Checkout clásico (así se llama "embedded"
+        // en la versión de API que fija este SDK).
+        ui_mode: "embedded_page",
+        return_url: `${SITE}/pago/exito?session_id={CHECKOUT_SESSION_ID}`,
+      });
+      return NextResponse.json({ clientSecret: session.client_secret });
+    }
+
+    const session = await stripe.checkout.sessions.create({
+      ...comun,
       success_url: `${SITE}/pago/exito?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${SITE}/precios`,
-      locale: "es",
-      allow_promotion_codes: true,
     });
 
     return NextResponse.json({ url: session.url });
