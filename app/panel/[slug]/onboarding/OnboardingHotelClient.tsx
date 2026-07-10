@@ -149,8 +149,16 @@ export function OnboardingHotelClient(props: Props) {
       }
       if (nuevas.length > 0) {
         const todas = [...fotos, ...nuevas];
+        const { error: dbErr } = await supabase
+          .from("hoteles")
+          .update({ fotos: todas })
+          .eq("id", props.hotelId);
+        if (dbErr) {
+          // No mentir: si la BD no guardó, la UI no debe mostrar la foto como guardada.
+          setError("Las fotos se subieron pero no se pudieron guardar. Recarga e inténtalo de nuevo.");
+          return;
+        }
         setFotos(todas);
-        await supabase.from("hoteles").update({ fotos: todas }).eq("id", props.hotelId);
       }
     } finally {
       setSubiendo(false);
@@ -158,9 +166,18 @@ export function OnboardingHotelClient(props: Props) {
   }
 
   async function quitarFoto(url: string) {
+    const previas = fotos;
     const restantes = fotos.filter((u) => u !== url);
     setFotos(restantes);
-    await supabase.from("hoteles").update({ fotos: restantes }).eq("id", props.hotelId);
+    const { error: dbErr } = await supabase
+      .from("hoteles")
+      .update({ fotos: restantes })
+      .eq("id", props.hotelId);
+    if (dbErr) {
+      // Revertir: la foto sigue en la BD, la UI no debe fingir que se quitó.
+      setFotos(previas);
+      setError("No se pudo quitar la foto. Inténtalo de nuevo.");
+    }
   }
 
   // ── Paso 4: Stripe Connect ─────────────────────────────────────────────────
@@ -278,7 +295,7 @@ export function OnboardingHotelClient(props: Props) {
 
         <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
           <a
-            href={`/panel/${props.slug}/reservas`}
+            href={`/panel/${props.slug}/insights`}
             className="btn-press btn-fill inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-full bg-kora-accent text-kora-primary font-bold text-sm hover:bg-kora-accent-dark transition-colors"
           >
             <LayoutDashboard size={16} aria-hidden="true" /> Abrir mi panel

@@ -18,7 +18,8 @@ export default async function OnboardingPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/entrar");
+  // Sin sesión: al entrar regresa directo aquí a cargar los datos del hotel.
+  if (!user) redirect("/entrar?next=/panel/onboarding");
 
   return (
     <main className="pt-16">

@@ -224,7 +224,7 @@ export const glosario: TerminoGlosario[] = [
     cuerpo: [
       "Cobrar la misma tarifa en un martes de febrero que en un puente de Semana Santa deja dinero sobre la mesa. El pricing dinámico responde a la realidad: cuando hay mucha demanda, el precio sube; cuando hay poca, baja para llenar.",
       "Hacerlo a mano es difícil porque hay que vigilar eventos locales, puentes y la ocupación de la zona. Por eso suele apoyarse en software que sugiere o ajusta el precio automáticamente.",
-      "Kora incluye pricing dinámico con IA que considera demanda, eventos locales y puentes para sugerir la tarifa óptima de cada noche.",
+      "Un buen software de pricing considera demanda, eventos locales y puentes para sugerir la tarifa óptima de cada noche, en lugar de cobrar lo mismo todo el año.",
     ],
     faqs: [
       {

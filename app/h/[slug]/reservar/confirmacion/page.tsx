@@ -8,6 +8,7 @@ import {
   CalendarPlus,
   MapPin,
   Search,
+  Clock,
 } from "lucide-react";
 import { resolveHotel } from "@/lib/tenant";
 import { getStripe, stripeEnvReady } from "@/lib/stripe/server";
@@ -42,6 +43,7 @@ interface Resumen {
   payMode?: string; // "hotel" = tarjeta como garantía, se paga al llegar
   amountPaid?: number; // de la sesión, en MXN
   customerName?: string;
+  paymentStatus?: string; // "unpaid" = voucher OXXO generado pero sin pagar
 }
 
 // Link "Agregar a Google Calendar" (evento de día completo, checkout exclusivo).
@@ -145,6 +147,7 @@ export default async function ConfirmacionPage({
         amountPaid:
           typeof session.amount_total === "number" ? session.amount_total / 100 : undefined,
         customerName: md.customerName || session.customer_details?.name || undefined,
+        paymentStatus: session.payment_status || undefined,
       };
     } catch {
       resumen = null;
@@ -164,6 +167,10 @@ export default async function ConfirmacionPage({
   const anticipoPct = Number(resumen?.anticipoPct) || null;
   const pagado =
     resumen?.amountPaid ?? (resumen?.depositPaid ? Number(resumen.depositPaid) : undefined);
+  // OXXO: Stripe redirige aquí al GENERAR el voucher, todavía sin pagar. No es
+  // honesto decir "Pagado" ni disparar purchase: la reserva se confirma cuando
+  // OXXO acredita el pago (webhook async_payment_succeeded).
+  const oxxoPendiente = resumen?.payMode !== "hotel" && resumen?.paymentStatus === "unpaid";
 
   // Ubicación para el mapa y el evento de calendario.
   const ubicacion = (hotel?.ubicacion as string | null) ?? "";
@@ -190,7 +197,7 @@ export default async function ConfirmacionPage({
         ga4Id={extras.medicion?.ga4Id || null}
         metaPixelId={extras.medicion?.metaPixelId || null}
       />
-      {resumen && resumen.payMode !== "hotel" && (
+      {resumen && resumen.payMode !== "hotel" && !oxxoPendiente && (
         <PurchaseTracker
           txId={resumen.folio || session_id || ""}
           value={pagado ?? 0}
@@ -210,20 +217,35 @@ export default async function ConfirmacionPage({
           ) : null}
           <div
             className="mx-auto grid h-16 w-16 place-items-center rounded-full"
-            style={{ background: "color-mix(in srgb, var(--brand) 14%, white)" }}
+            style={{
+              background: oxxoPendiente
+                ? "color-mix(in srgb, #d97706 14%, white)"
+                : "color-mix(in srgb, var(--brand) 14%, white)",
+            }}
             aria-hidden="true"
           >
-            <CheckCircle size={36} style={{ color: "var(--brand)" }} />
+            {oxxoPendiente ? (
+              <Clock size={36} style={{ color: "#d97706" }} />
+            ) : (
+              <CheckCircle size={36} style={{ color: "var(--brand)" }} />
+            )}
           </div>
 
-          <p className="mt-4 text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--brand)" }}>
-            {t(lang, "confTitulo")}
+          <p
+            className="mt-4 text-xs font-semibold uppercase tracking-wide"
+            style={{ color: oxxoPendiente ? "#d97706" : "var(--brand)" }}
+          >
+            {t(lang, oxxoPendiente ? "confOxxoTitulo" : "confTitulo")}
           </p>
           <h1 className="mt-1 text-2xl font-extrabold tracking-tight">
             {t(lang, "confNosVemos", { hotel: hotelNombre })}
           </h1>
           <p className="mt-2 text-sm text-kora-muted">
-            {resumen ? t(lang, "confCorreo") : t(lang, "confRegistrada")}
+            {oxxoPendiente
+              ? t(lang, "confOxxoDetalle")
+              : resumen
+                ? t(lang, "confCorreo")
+                : t(lang, "confRegistrada")}
           </p>
 
           {resumen?.folio && (
@@ -315,11 +337,16 @@ export default async function ConfirmacionPage({
                       {pagado != null && (
                         <div className="mt-1 flex justify-between text-sm">
                           <span className="text-kora-muted">
-                            {isDeposit && anticipoPct
-                              ? t(lang, "confPagadoAnticipo", { pct: anticipoPct })
-                              : t(lang, "confPagado")}
+                            {oxxoPendiente
+                              ? t(lang, "confOxxoPorPagar")
+                              : isDeposit && anticipoPct
+                                ? t(lang, "confPagadoAnticipo", { pct: anticipoPct })
+                                : t(lang, "confPagado")}
                           </span>
-                          <span className="font-semibold tabular-nums" style={{ color: "var(--brand)" }}>
+                          <span
+                            className="font-semibold tabular-nums"
+                            style={{ color: oxxoPendiente ? "#d97706" : "var(--brand)" }}
+                          >
                             {formatMXN(pagado)}
                           </span>
                         </div>

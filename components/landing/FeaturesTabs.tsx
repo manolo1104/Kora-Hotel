@@ -3,11 +3,10 @@
 import { useState } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "motion/react";
-import { Globe, LayoutDashboard, TrendingUp, BarChart2, ArrowRight } from "lucide-react";
+import { Globe, LayoutDashboard, BarChart2, ArrowRight } from "lucide-react";
 import {
   ReservaMockup,
   PMSMockup,
-  PricingMockup,
   DashboardMockup,
 } from "@/components/caracteristicas/Mockups";
 
@@ -29,14 +28,6 @@ const tabs = [
     title: "Tu hotel en una sola pantalla",
     desc: "Mapa de habitaciones en tiempo real, check-in y check-out digital, y housekeeping coordinado. Se acabaron el cuaderno y el Excel.",
     Mockup: PMSMockup,
-  },
-  {
-    id: "pricing-dinamico",
-    label: "Precios con IA",
-    Icon: TrendingUp,
-    title: "Precios que se ajustan solos",
-    desc: "Kora sube y baja tus tarifas según la demanda, los puentes y los eventos locales. Sin contratar un revenue manager.",
-    Mockup: PricingMockup,
   },
   {
     id: "dashboard",

@@ -98,12 +98,15 @@ export async function checkAvailability(
 
 /**
  * Fechas completamente reservadas (todos los cuartos ocupados) en los próximos
- * meses — para deshabilitar días en el calendario público.
+ * meses — para deshabilitar días en el calendario público. Si se pasan los
+ * nombres de cuartos VIGENTES, los bloqueos de cuartos renombrados/borrados no
+ * cuentan (sin esto, un block viejo podía cerrar un día que sí es vendible).
  */
 export async function getFullyBookedDates(
   hotelId: string,
   totalRooms: number,
   monthsAhead = 6,
+  currentRoomNames?: string[],
 ): Promise<string[]> {
   if (totalRooms <= 0) return [];
   const supabase = createAdminClient();
@@ -125,8 +128,10 @@ export async function getFullyBookedDates(
     return [];
   }
 
+  const vigentes = currentRoomNames?.length ? new Set(currentRoomNames) : null;
   const perDate = new Map<string, Set<string>>();
   for (const b of (data ?? []) as BlockRow[]) {
+    if (vigentes && !vigentes.has(b.habitacion)) continue;
     for (const date of dateRange(b.checkin, b.checkout)) {
       if (date < today || date > cutoffStr) continue;
       if (!perDate.has(date)) perDate.set(date, new Set());

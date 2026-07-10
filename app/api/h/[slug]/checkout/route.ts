@@ -13,7 +13,7 @@ import {
   type CartItem,
   type AddonRule,
 } from "@/lib/booking";
-import { checkAvailability, createTemporaryHold } from "@/lib/db/availability";
+import { checkAvailability, createTemporaryHold, releaseHold } from "@/lib/db/availability";
 import { getStripe, stripeEnvReady } from "@/lib/stripe/server";
 import { getConnectState } from "@/lib/stripe/connect";
 
@@ -83,8 +83,24 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   if (cleanCart.length === 0) {
     return NextResponse.json({ error: "Carrito inválido" }, { status: 400 });
   }
+  // Capacidad: los cuartos elegidos deben alcanzar para los adultos declarados
+  // (la UI ya lo exige; aquí se repite porque el endpoint es público).
+  const capacidadTotal = cleanCart.reduce((s, c) => {
+    const room = rooms.find((r) => r.id === c.roomId);
+    return s + (room?.maxGuests ?? 0);
+  }, 0);
+  if (capacidadTotal < adults) {
+    return NextResponse.json({ error: "capacidad-insuficiente" }, { status: 400 });
+  }
   const nights = calcNights(checkin, checkout);
   if (nights <= 0) return NextResponse.json({ error: "Fechas inválidas" }, { status: 400 });
+
+  // Nada de reservar el pasado (el formato ya lo validó zod; comparar strings
+  // YYYY-MM-DD funciona). "Hoy" en la zona del hotel, no en UTC.
+  const hoyMx = new Date().toLocaleDateString("en-CA", { timeZone: "America/Mexico_City" });
+  if (checkin < hoyMx) {
+    return NextResponse.json({ error: "Fechas inválidas" }, { status: 400 });
+  }
 
   // Reglas del hotel (anticipo, mínimo de noches) — fuente autoritativa server-side.
   const rules = bookingRules(hotel);
@@ -152,20 +168,23 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     return NextResponse.json({ error: "pago-hotel-no-disponible" }, { status: 400 });
   }
 
-  // Hold de 30 min para los cuartos elegidos (lo libera el webhook al confirmar;
-  // si el huésped genera un voucher OXXO, el webhook lo extiende).
-  const sessionId = `web_${Date.now().toString(36)}_${Math.round(Number(`0.${checkin.replace(/\D/g, "")}`) * 1e6)}`;
-  await createTemporaryHold(hotel.id, roomNames, checkin, checkout, sessionId, 30);
+  // Validar el monto ANTES de apartar nada (si esto falla, no debe quedar hold).
+  const amountCents = Math.round(deposit * 100);
+  if (!esPagoHotel && amountCents < MIN_CENTS) {
+    return NextResponse.json({ error: "Monto inválido" }, { status: 400 });
+  }
+
+  // Hold de 35 min para los cuartos elegidos (lo libera el webhook al confirmar,
+  // el huésped al cancelar en Stripe, o expira solo). El id es un UUID: solo
+  // quien inició la sesión lo conoce. Si el huésped genera un voucher OXXO, el
+  // webhook extiende el hold.
+  const sessionId = `web_${crypto.randomUUID()}`;
+  await createTemporaryHold(hotel.id, roomNames, checkin, checkout, sessionId, 35);
 
   const roomsMeta = cleanCart
     .map((c) => `${rooms.find((r) => r.id === c.roomId)!.name}:${c.guestCount}`)
     .join("|")
     .slice(0, 480);
-
-  const amountCents = Math.round(deposit * 100);
-  if (!esPagoHotel && amountCents < MIN_CENTS) {
-    return NextResponse.json({ error: "Monto inválido" }, { status: 400 });
-  }
 
   const origin = new URL(req.url).origin;
   const stripe = getStripe();
@@ -203,7 +222,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   const requestOptions = direct ? { stripeAccount: connect.accountId as string } : undefined;
 
   const successUrl = `${origin}/h/${slug}/reservar/confirmacion?session_id={CHECKOUT_SESSION_ID}&lang=${lang}`;
-  const cancelUrl = `${origin}/h/${slug}/reservar?cancelado=1&lang=${lang}`;
+  // El hs permite al cliente liberar SU hold al volver de un pago cancelado
+  // (sin esto, el huésped se auto-bloqueaba el cuarto 30+ minutos).
+  const cancelUrl = `${origin}/h/${slug}/reservar?cancelado=1&hs=${sessionId}&lang=${lang}`;
+
+  // La sesión de Checkout no debe vivir más que el hold: sin esto, un huésped
+  // podía pagar horas después con el cuarto ya revendido. (Mínimo de Stripe:
+  // 30 min; el hold de 35 lo cubre.)
+  const expiresAt = Math.floor(Date.now() / 1000) + 31 * 60;
 
   try {
     // "Pagar en el hotel": Checkout en modo setup — guarda la tarjeta como
@@ -224,6 +250,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
           customer: customer.id,
           payment_method_types: ["card"],
           metadata: md,
+          expires_at: expiresAt,
           success_url: successUrl,
           cancel_url: cancelUrl,
         },
@@ -264,6 +291,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
         customer_email: customerEmail || undefined,
         metadata: md,
         payment_intent_data: { metadata: md },
+        expires_at: expiresAt,
         success_url: successUrl,
         cancel_url: cancelUrl,
       },
@@ -271,6 +299,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     );
     return NextResponse.json({ url: session.url });
   } catch (e) {
+    // Si Stripe falló, el hold no debe quedarse apartando el cuarto.
+    await releaseHold(hotel.id, sessionId).catch(() => {});
     console.error("checkout session error:", e);
     return NextResponse.json({ error: "No se pudo iniciar el pago" }, { status: 500 });
   }

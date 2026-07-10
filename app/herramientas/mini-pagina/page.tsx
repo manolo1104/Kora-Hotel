@@ -43,7 +43,7 @@ const faqs = [
   },
   {
     q: "¿En qué se diferencia de Kora completo?",
-    a: "Esta página gratis capta reservas por WhatsApp. Kora completo va más allá: un agente de IA que contesta, cotiza, cobra el anticipo y confirma la reserva solo, además de PMS, precio dinámico y facturación.",
+    a: "Esta página gratis capta reservas por WhatsApp. Kora completo va más allá: un agente de IA que contesta, cotiza, cobra el anticipo y confirma la reserva solo, además de PMS, dashboard con métricas y facturación.",
   },
 ];
 

@@ -1,5 +1,6 @@
 import { Globe, Code2, CreditCard, ArrowRight, Lock } from "lucide-react";
 import { Reveal } from "@/components/shared/Reveal";
+import { CtaLink } from "@/components/shared/CtaLink";
 
 // Sección dedicada al producto ancla: el motor de reservas directas.
 // El hero muestra el motor "vivo"; aquí mostramos el ángulo de propiedad:
@@ -58,13 +59,14 @@ export function MotorReservasSection() {
               </ul>
 
               <div className="mt-8 flex flex-col sm:flex-row gap-3">
-                <a
-                  href="#contacto"
+                <CtaLink
+                  href="/pago/iniciar?plan=kora"
+                  ctaName="motor_pago"
                   className="btn-press btn-arrow btn-fill inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-kora-accent text-kora-primary font-semibold text-sm hover:bg-kora-accent-dark transition-colors"
                 >
-                  Solicitar mi lugar
+                  Empezar 30 días gratis
                   <ArrowRight size={16} />
-                </a>
+                </CtaLink>
                 <a
                   href="#demo-motor"
                   className="btn-press inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full border-2 border-kora-primary text-kora-primary font-semibold text-sm hover:bg-kora-primary hover:text-white transition-colors"

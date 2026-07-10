@@ -227,10 +227,15 @@ export default function ReservarClient({
   }
 
   // ── Fechas + huéspedes ──────────────────────────────────
-  const today = new Date().toISOString().split("T")[0];
-  const initialCheckout = new Date(Date.now() + 86400000 * Math.max(1, reglas.minNoches))
-    .toISOString()
-    .split("T")[0];
+  // "Hoy" en la zona del hotel (no UTC): con toISOString(), un huésped en
+  // México después de las ~6 p.m. veía "hoy" corrido un día, y el SSR (UTC)
+  // no coincidía con el cliente.
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: "America/Mexico_City" });
+  const initialCheckout = (() => {
+    const d = new Date(`${today}T12:00:00`);
+    d.setDate(d.getDate() + Math.max(1, reglas.minNoches));
+    return d.toISOString().split("T")[0];
+  })();
 
   const [checkin, setCheckin] = useState(today);
   const [checkout, setCheckout] = useState(initialCheckout);
@@ -242,6 +247,16 @@ export default function ReservarClient({
   useEffect(() => {
     try {
       const q = new URLSearchParams(window.location.search);
+      // Regresó de un Checkout cancelado: liberar SU hold de inmediato para
+      // que su propio carrito no le bloquee el cuarto (ni a otros) ~30 min.
+      const hs = q.get("hs") ?? "";
+      if (q.get("cancelado") === "1" && /^web_[0-9a-f-]{36}$/.test(hs)) {
+        fetch(`/api/h/${slug}/hold`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ session: hs }),
+        }).catch(() => {});
+      }
       const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
       const qIn = q.get("checkin") ?? "";
       const qOut = q.get("checkout") ?? "";
@@ -723,6 +738,7 @@ export default function ReservarClient({
                 fullDates={fullDates}
                 minNights={reglas.minNoches}
                 lang={lang}
+                today={today}
               />
 
               <div className="mt-3 grid grid-cols-2 gap-3">

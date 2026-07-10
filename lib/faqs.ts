@@ -12,9 +12,9 @@ export const faqs: Faq[] = [
       "Sí, como servicio aparte. Te diseñamos y construimos tu sitio web profesional completo con tu motor de reservas propio (sin comisiones), tu dominio, hosting y certificado de seguridad. Lo cotizamos según tu hotel, aparte de tu mensualidad de Kora. Si ya tienes página, también puedes conectar tu motor de reservas a la que usas.",
   },
   {
-    question: "¿Cómo se decide mi precio mensual?",
+    question: "¿Cuánto cuesta y qué incluye?",
     answer:
-      "Por el tamaño de tu hotel: de 1 a 8 habitaciones son $1,990 MXN/mes, de 9 a 20 habitaciones $2,990 MXN/mes, y de 21 habitaciones o más $4,490 MXN/mes. El plan Boutique incluye el motor de reservas, PMS, dashboard, CRM y Camila Lite (asistente de WhatsApp con IA, con límite mensual); la versión completa de Camila (24/7, sin límite) y el pricing dinámico se incluyen desde el plan Hotel (9 a 20 habitaciones).",
+      "Hay un solo plan de $550 MXN/mes, mes a mes y sin permanencia, con habitaciones ilimitadas y todo incluido: el motor de reservas directo (0% de comisión), el PMS completo, Camila (agente de WhatsApp con IA 24/7), el dashboard con tus reservas y métricas, el CRM de huéspedes con emails automáticos y la facturación CFDI 4.0. Lo pruebas 30 días gratis (el primer cobro es hasta el día 31).",
   },
   {
     question: "¿Hay permanencia o contrato?",

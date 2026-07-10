@@ -122,55 +122,6 @@ export function PMSMockup() {
   );
 }
 
-// ─── Pricing dinámico ───────────────────────────────────────────────────────────
-
-export function PricingMockup() {
-  const reduce = useReducedMotion();
-  const days = ["L", "M", "X", "J", "V", "S", "D"];
-  const prices = [980, 1050, 1020, 1100, 1450, 1800, 1650];
-  const max = Math.max(...prices);
-  const bar = (i: number, pct: number) =>
-    reduce
-      ? { style: { height: `${pct}%` } }
-      : {
-          style: { height: `${pct}%`, transformOrigin: "bottom" as const },
-          initial: { scaleY: 0 },
-          whileInView: { scaleY: 1 },
-          viewport: VIEWPORT,
-          transition: { duration: 0.5, delay: i * 0.07, ease: EASE },
-        };
-
-  return (
-    <WindowFrame title="Pricing dinámico">
-      <div className="p-5">
-        <div className="flex justify-between items-baseline mb-4">
-          <p className="text-[10px] font-bold text-kora-muted uppercase tracking-widest">
-            Pricing esta semana
-          </p>
-          <span className="text-xs font-bold text-kora-accent">+18% RevPAR</span>
-        </div>
-        <div className="flex items-end gap-1.5">
-          {days.map((day, i) => (
-            <div key={day} className="flex-1 flex flex-col items-center gap-1">
-              {/* Riel de altura FIJA (h-24) para que el % de la barra siempre resuelva */}
-              <div className="w-full h-24 flex items-end">
-                <motion.div
-                  {...bar(i, (prices[i] / max) * 100)}
-                  className={`w-full rounded-md ${i >= 4 ? "bg-kora-primary" : "bg-kora-accent/40"}`}
-                />
-              </div>
-              <span className="text-[9px] text-kora-muted font-medium">{day}</span>
-            </div>
-          ))}
-        </div>
-        <p className="mt-3 text-[10px] text-kora-muted leading-tight">
-          Finde detectado · precios ajustados automáticamente
-        </p>
-      </div>
-    </WindowFrame>
-  );
-}
-
 // ─── Dashboard ──────────────────────────────────────────────────────────────────
 
 export function DashboardMockup() {

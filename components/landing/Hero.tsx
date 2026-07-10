@@ -10,6 +10,7 @@ import {
 } from "motion/react";
 import { ArrowRight, Gift, Lock, FileCheck, Database } from "lucide-react";
 import { BookingEngineMockup } from "@/components/landing/ProductMockups";
+import { trackCta } from "@/lib/analytics";
 
 const EASE = [0.23, 1, 0.32, 1] as const;
 
@@ -111,7 +112,8 @@ export function Hero() {
 
               <motion.div {...item(0.2)} className="flex flex-col sm:flex-row gap-3">
                 <a
-                  href="#precios"
+                  href="/pago/iniciar?plan=kora"
+                  onClick={() => trackCta("hero_pago")}
                   className="btn-press btn-arrow btn-fill inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-kora-accent text-kora-primary font-semibold text-sm hover:bg-kora-accent-dark transition-colors"
                 >
                   Empezar 30 días gratis
@@ -124,6 +126,17 @@ export function Hero() {
                   Probar el motor en vivo
                 </a>
               </motion.div>
+
+              {/* Alta self-service: entra directo al onboarding a cargar tu hotel */}
+              <motion.a
+                {...item(0.22)}
+                href="/panel/onboarding"
+                onClick={() => trackCta("hero_onboarding")}
+                className="btn-press btn-arrow inline-flex items-center gap-1.5 text-sm font-semibold text-kora-primary hover:text-kora-primary-dark transition-colors"
+              >
+                Empieza a cargar tu hotel ahora
+                <ArrowRight size={15} aria-hidden="true" />
+              </motion.a>
 
               {/* Señales de confianza honestas (tipo Stripe) */}
               <motion.ul

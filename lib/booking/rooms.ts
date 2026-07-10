@@ -29,8 +29,10 @@ interface HotelLike {
 }
 
 function toNum(v: unknown, fallback = 0): number {
-  if (typeof v === "number") return v;
-  if (typeof v === "string") return parseInt(v.replace(/[^0-9]/g, ""), 10) || fallback;
+  if (typeof v === "number") return Number.isFinite(v) ? v : fallback;
+  // Conservar el punto decimal: "1,500.50" → 1500.5. (parseInt lo trituraba a
+  // 150050 y el motor cobraba 100×; la mini-página, con Number(), mostraba bien.)
+  if (typeof v === "string") return parseFloat(v.replace(/[^0-9.]/g, "")) || fallback;
   return fallback;
 }
 

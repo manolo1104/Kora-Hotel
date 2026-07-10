@@ -170,7 +170,7 @@ export default function ComoFuncionaPage() {
               },
               {
                 title: "Sin comisiones ocultas",
-                desc: "Desde $1,990 MXN/mes según tu tamaño, con tu sitio web profesional incluido. Sin sorpresas de activación ni de uso.",
+                desc: "$550 MXN/mes con habitaciones ilimitadas, mes a mes y sin permanencia. Sin sorpresas de activación ni de uso.",
               },
               {
                 title: "Soporte humano en español",

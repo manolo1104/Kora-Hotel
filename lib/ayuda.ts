@@ -24,12 +24,12 @@ export const AYUDA: ArticuloAyuda[] = [
   },
   {
     slug: "precios-y-planes",
-    titulo: "Precios y planes de Kora",
-    resumen: "Qué incluye cada plan y cómo se decide tu precio.",
+    titulo: "Precios y plan de Kora",
+    resumen: "Cuánto cuesta y qué incluye el plan.",
     contenido: [
-      "Tu precio depende del tamaño de tu hotel: Boutique (1 a 8 habitaciones) $1,990 MXN/mes, Hotel (9 a 20 habitaciones) $2,990 MXN/mes y Hotel grande (21 o más) $4,490 MXN/mes.",
-      "Todos los planes incluyen el PMS completo, dashboard con métricas, CRM de huéspedes con emails automáticos, facturación CFDI 4.0 y soporte directo con el equipo fundador.",
-      "Camila Lite (asistente de WhatsApp con IA, con límite mensual) viene en Boutique; la versión completa 24/7 y el pricing dinámico, desde el plan Hotel.",
+      "Hay un solo plan de $550 MXN/mes, mes a mes y sin permanencia, con habitaciones ilimitadas.",
+      "Incluye todo: el motor de reservas directo (0% de comisión), el PMS completo, Camila (agente de WhatsApp con IA 24/7), el dashboard con métricas, el CRM de huéspedes con emails automáticos y la facturación CFDI 4.0.",
+      "Lo pruebas 30 días gratis: no se cobra nada hasta el día 31 y cancelas antes sin pagar.",
       "La mini-página de reservas es gratis para siempre, con o sin plan.",
       "Pagas con tarjeta desde la página de precios; el cobro es mensual y automático. Puedes cambiar de tarjeta, descargar recibos o cancelar tú mismo desde tu panel, en “Administrar mi pago”.",
     ],

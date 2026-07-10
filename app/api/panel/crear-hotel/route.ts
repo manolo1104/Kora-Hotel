@@ -21,7 +21,8 @@ function slugify(s: string): string {
 
 function toNum(v: unknown, fallback = 0): number {
   if (typeof v === "number") return Number.isFinite(v) ? v : fallback;
-  if (typeof v === "string") return parseInt(v.replace(/[^0-9]/g, ""), 10) || fallback;
+  // Conservar el punto decimal: "1,500.50" → 1500.5 (parseInt daba 150050).
+  if (typeof v === "string") return parseFloat(v.replace(/[^0-9.]/g, "")) || fallback;
   return fallback;
 }
 

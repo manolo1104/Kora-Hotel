@@ -8,9 +8,9 @@ import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 import { PLANES } from "@/lib/oferta";
 
 export const metadata: Metadata = {
-  title: "Precios de Kora: sistema hotelero para hoteles boutique desde $1,990 MXN/mes",
+  title: "Precios de Kora: sistema hotelero para hoteles boutique · $550 MXN/mes",
   description:
-    "Plan mes a mes desde $1,990 MXN/mes según el tamaño de tu hotel, sin permanencia. Motor de reservas, agente de WhatsApp, PMS, CRM e IA, todo incluido. Sitio web profesional opcional, como servicio aparte.",
+    "Un solo plan de $550 MXN/mes con habitaciones ilimitadas, mes a mes y sin permanencia: motor de reservas, PMS, Camila (WhatsApp con IA), dashboard, CRM y CFDI 4.0. Prueba 30 días gratis. Sitio web profesional opcional, como servicio aparte.",
   alternates: {
     canonical: "/precios",
   },
@@ -26,19 +26,20 @@ const jsonLd = {
       "@type": "Product",
       name: "Kora",
       description:
-        "Sistema hotelero todo-en-uno con IA para hoteles boutique en México: reservas directas sin comisiones, agente de WhatsApp 24/7, PMS, dashboard con CRM, pricing dinámico y CFDI 4.0.",
+        "Sistema hotelero todo-en-uno con IA para hoteles boutique en México: reservas directas sin comisiones, agente de WhatsApp 24/7, PMS, dashboard con CRM y CFDI 4.0.",
       brand: {
         "@type": "Brand",
         name: "Kora",
       },
       offers: PLANES.map((p) => ({
         "@type": "Offer",
-        name: `Kora ${p.nombre} (${p.rango})`,
+        name: `Kora ${p.nombre}`,
         price: String(p.precio),
         priceCurrency: "MXN",
         url: `${SITE_URL}/precios`,
         availability: "https://schema.org/InStock",
-        description: `Todo incluido para hoteles de ${p.rango.toLowerCase()}, plan mes a mes sin permanencia.`,
+        description:
+          "Todo Kora con habitaciones ilimitadas: motor de reservas (0% de comisión), Camila (WhatsApp con IA), facturación CFDI 4.0, PMS, dashboard y CRM. Plan mes a mes, sin permanencia.",
       })),
     },
     {
@@ -79,8 +80,8 @@ export default function PreciosPage() {
           </Reveal>
           <Reveal delay={0.12}>
             <p className="mt-4 text-kora-muted text-lg leading-relaxed">
-              Tu precio según el tamaño de tu hotel. Plan mes a mes, sin
-              permanencia. Sin sorpresas.
+              Un solo plan, todo incluido y con habitaciones ilimitadas. Mes a
+              mes, sin permanencia. Sin sorpresas.
             </p>
           </Reveal>
           <Reveal delay={0.2}>

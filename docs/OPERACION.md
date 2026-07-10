@@ -54,6 +54,6 @@ existentes conservan su precio anterior.
 
 ## Variables de entorno (Vercel → Settings → Environment Variables)
 
-`STRIPE_SECRET_KEY` (live), `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_BOUTIQUE`,
-`STRIPE_PRICE_HOTEL`, `STRIPE_PRICE_GRANDE`, `RESEND_API_KEY`, `RESEND_FROM`,
+`STRIPE_SECRET_KEY` (live), `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_KORA`,
+`RESEND_API_KEY`, `RESEND_FROM`,
 `NOTIFY_EMAIL`, `CRON_SECRET`, más las que ya existían (Supabase, Anthropic, GA…).

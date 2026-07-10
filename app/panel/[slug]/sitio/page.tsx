@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, LayoutDashboard } from "lucide-react";
 import { Reveal } from "@/components/shared/Reveal";
 import { PanelEditor } from "@/components/panel/PanelEditor";
 import { requireHotelMember } from "@/lib/tenant";
@@ -44,10 +44,11 @@ export default async function EditarSitioPage({
                 <p className="mt-1 text-sm text-kora-muted">{ctx.hotel.nombre}</p>
               </div>
               <Link
-                href={`/panel/${slug}/reservas`}
-                className="btn-press inline-flex items-center px-4 py-2 rounded-full border border-gray-200 text-kora-text font-semibold text-sm hover:border-kora-accent transition-colors"
+                href={`/panel/${slug}/insights`}
+                className="btn-press inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-kora-primary text-white font-semibold text-sm hover:bg-kora-primary-dark transition-colors"
               >
-                Panel operativo
+                <LayoutDashboard size={16} aria-hidden="true" />
+                Ir a mi panel
               </Link>
             </div>
           </Reveal>

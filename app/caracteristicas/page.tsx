@@ -4,7 +4,6 @@ import {
   Globe,
   MessageCircle,
   LayoutDashboard,
-  TrendingUp,
   BarChart2,
   CheckCircle2,
   ArrowRight,
@@ -17,7 +16,6 @@ import {
   ReservaMockup,
   WhatsAppMockup,
   PMSMockup,
-  PricingMockup,
   DashboardMockup,
 } from "@/components/caracteristicas/Mockups";
 import { VsBooking } from "@/components/caracteristicas/VsBooking";
@@ -25,7 +23,7 @@ import { VsBooking } from "@/components/caracteristicas/VsBooking";
 export const metadata: Metadata = {
   title: "Características de Kora: PMS, IA y reservas directas",
   description:
-    "Motor de reservas directo, agente WhatsApp con IA, PMS, dashboard con CRM y pricing dinámico. El sistema todo-en-uno para hoteles boutique en México.",
+    "Motor de reservas directo, agente WhatsApp con IA, PMS y dashboard con CRM. El sistema todo-en-uno para hoteles boutique en México.",
   alternates: {
     canonical: "/caracteristicas",
   },
@@ -157,7 +155,7 @@ export default function CaracteristicasPage() {
           </Reveal>
           <Reveal delay={0.12}>
             <p className="mt-5 text-kora-muted text-lg leading-relaxed max-w-2xl mx-auto">
-              Cinco módulos integrados que reemplazan tu mezcla de herramientas
+              Cuatro módulos integrados que reemplazan tu mezcla de herramientas
               sueltas. Un solo pago, una sola pantalla, cero comisiones.
             </p>
           </Reveal>
@@ -246,30 +244,9 @@ export default function CaracteristicasPage() {
 
       {/* Module 4 */}
       <ModuleSection
-        id="pricing-dinamico"
-        icon={<TrendingUp size={18} />}
-        tag="Módulo 4"
-        title="Pricing dinámico con IA"
-        description="Kora ajusta tus tarifas automáticamente según ocupación, temporada, puentes y eventos locales. Sin que tengas que hacer nada. Sin contratar un revenue manager."
-        bullets={[
-          "Detecta fines de semana y puentes antes que tú",
-          "Sube precios cuando la demanda lo justifica",
-          "Nunca vende por debajo de tu tarifa mínima",
-          "Maximiza el RevPAR mes a mes",
-        ]}
-        mockup={<PricingMockup />}
-        reverse
-        tool={{
-          label: "Calcula tu RevPAR y tu tarifa ideal",
-          href: "/herramientas/calculadora-tarifa",
-        }}
-      />
-
-      {/* Module 5 */}
-      <ModuleSection
         id="dashboard"
         icon={<BarChart2 size={18} />}
-        tag="Módulo 5"
+        tag="Módulo 4"
         title="Dashboard, métricas y CRM"
         description="El centro de operación de tu hotel: calendario con todas tus reservas, alta y edición en segundos, CRM con el historial de cada huésped y las métricas que importan. Todo en una pantalla, sin hojas de Excel."
         bullets={[

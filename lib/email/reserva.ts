@@ -17,27 +17,55 @@ export interface ConfirmacionEmailArgs {
   ratePlan?: string | null; // 'nrf' = tarifa no reembolsable
   portalUrl?: string; // link a /reserva/consultar
   brandColor?: string;
+  lang?: "es" | "en"; // idioma con el que reservó el huésped (md.lang)
 }
 
 export function buildConfirmacionEmailHtml(a: ConfirmacionEmailArgs): string {
   const color = a.brandColor || "#1B4332";
   const fmt = (n: number) => `$${Math.round(n).toLocaleString("es-MX")} MXN`;
+  const en = a.lang === "en";
+  const t = en
+    ? {
+        titulo: "Booking confirmed! 🎉",
+        gracias: (c: string, h: string) => `Thank you ${c}. Your booking at <b>${h}</b> is confirmed.`,
+        folio: "Confirmation",
+        habitaciones: "Room(s)",
+        llegada: "Check-in",
+        salida: "Check-out",
+        anticipo: "Deposit paid",
+        saldo: "Balance on arrival",
+        tarifa: "Rate",
+        nrf: "Non-refundable",
+        portal: (u: string) => `View or manage your booking at <a href="${u}" style="color:${color};">${u}</a> with your confirmation number and email.`,
+      }
+    : {
+        titulo: "¡Reserva confirmada! 🎉",
+        gracias: (c: string, h: string) => `Gracias ${c}. Tu reserva en <b>${h}</b> quedó confirmada.`,
+        folio: "Folio",
+        habitaciones: "Habitación(es)",
+        llegada: "Llegada",
+        salida: "Salida",
+        anticipo: "Anticipo pagado",
+        saldo: "Saldo al llegar",
+        tarifa: "Tarifa",
+        nrf: "No reembolsable",
+        portal: (u: string) => `Consulta o gestiona tu reserva en <a href="${u}" style="color:${color};">${u}</a> con tu folio y tu correo.`,
+      };
   return `<div style="font-family:system-ui,sans-serif;max-width:480px;padding:24px;">
-    <h2 style="color:${color};">¡Reserva confirmada! 🎉</h2>
-    <p>Gracias ${a.cliente || ""}. Tu reserva en <b>${a.hotelNombre}</b> quedó confirmada.</p>
+    <h2 style="color:${color};">${t.titulo}</h2>
+    <p>${t.gracias(a.cliente || "", a.hotelNombre)}</p>
     <table style="border-collapse:collapse;width:100%;font-size:14px;">
-      <tr><td style="padding:6px 0;color:#667;">Folio</td><td style="padding:6px 0;font-weight:600;">${a.confirmacion}</td></tr>
-      <tr><td style="padding:6px 0;color:#667;">Habitación(es)</td><td style="padding:6px 0;">${a.habitaciones.join(", ")}</td></tr>
-      <tr><td style="padding:6px 0;color:#667;">Llegada</td><td style="padding:6px 0;">${a.checkin}</td></tr>
-      <tr><td style="padding:6px 0;color:#667;">Salida</td><td style="padding:6px 0;">${a.checkout}</td></tr>
-      <tr><td style="padding:6px 0;color:#667;">Anticipo pagado</td><td style="padding:6px 0;font-weight:600;color:${color};">${fmt(a.anticipo)}</td></tr>
-      <tr><td style="padding:6px 0;color:#667;">Saldo al llegar</td><td style="padding:6px 0;">${fmt(a.pendiente)}</td></tr>
-      ${a.ratePlan === "nrf" ? `<tr><td style="padding:6px 0;color:#667;">Tarifa</td><td style="padding:6px 0;">No reembolsable</td></tr>` : ""}
+      <tr><td style="padding:6px 0;color:#667;">${t.folio}</td><td style="padding:6px 0;font-weight:600;">${a.confirmacion}</td></tr>
+      <tr><td style="padding:6px 0;color:#667;">${t.habitaciones}</td><td style="padding:6px 0;">${a.habitaciones.join(", ")}</td></tr>
+      <tr><td style="padding:6px 0;color:#667;">${t.llegada}</td><td style="padding:6px 0;">${a.checkin}</td></tr>
+      <tr><td style="padding:6px 0;color:#667;">${t.salida}</td><td style="padding:6px 0;">${a.checkout}</td></tr>
+      <tr><td style="padding:6px 0;color:#667;">${t.anticipo}</td><td style="padding:6px 0;font-weight:600;color:${color};">${fmt(a.anticipo)}</td></tr>
+      <tr><td style="padding:6px 0;color:#667;">${t.saldo}</td><td style="padding:6px 0;">${fmt(a.pendiente)}</td></tr>
+      ${a.ratePlan === "nrf" ? `<tr><td style="padding:6px 0;color:#667;">${t.tarifa}</td><td style="padding:6px 0;">${t.nrf}</td></tr>` : ""}
     </table>
     ${
       a.portalUrl
-        ? `<p style="margin-top:16px;font-size:13px;color:#667;">Consulta o gestiona tu reserva en
-      <a href="${a.portalUrl}" style="color:${color};">${a.portalUrl}</a> con tu folio y tu correo.</p>`
+        ? `<p style="margin-top:16px;font-size:13px;color:#667;">${t.portal(a.portalUrl)}</p>`
         : ""
     }
   </div>`;
@@ -72,7 +100,9 @@ export async function sendConfirmacionReserva(
 ): Promise<boolean> {
   return sendMotorEmail(
     to,
-    `Tu reserva está confirmada — ${args.confirmacion}`,
+    args.lang === "en"
+      ? `Your booking is confirmed — ${args.confirmacion}`
+      : `Tu reserva está confirmada — ${args.confirmacion}`,
     buildConfirmacionEmailHtml(args),
     fromOverride,
   );
@@ -218,6 +248,102 @@ export async function sendAvisoCancelacionHotel(
     to,
     `Reserva cancelada ${args.confirmacion} — ${args.checkin}`,
     buildAvisoCancelacionHotelHtml(args),
+  );
+}
+
+// ─── Pago recibido SIN cuarto disponible (conflicto al confirmar) ────────────
+// Caso raro pero grave: el huésped pagó y, al crear la reserva, el cuarto ya
+// estaba ocupado (p.ej. dejó el Checkout abierto y otro reservó antes).
+
+export interface PagoSinCuartoArgs {
+  hotelNombre: string;
+  cliente?: string | null;
+  email?: string | null;
+  telefono?: string | null;
+  habitaciones: string[];
+  checkin: string;
+  checkout: string;
+  monto: number;
+  reembolsado: boolean; // true = el reembolso automático se creó en Stripe
+  lang?: "es" | "en";
+}
+
+export function buildPagoSinCuartoHuespedHtml(a: PagoSinCuartoArgs): string {
+  const en = a.lang === "en";
+  const fmt = (n: number) => `$${Math.round(n).toLocaleString("es-MX")} MXN`;
+  if (en) {
+    return `<div style="font-family:system-ui,sans-serif;max-width:520px;padding:24px;">
+      <h2 style="color:#1B4332;">We're sorry — your room is no longer available</h2>
+      <p>Your payment for <b>${a.hotelNombre}</b> (${a.checkin} → ${a.checkout}) went
+      through, but the room was taken just before we could confirm your booking.</p>
+      <p><b>${
+        a.reembolsado
+          ? `We already issued a full refund of ${fmt(a.monto)} — it will appear in your account within a few business days.`
+          : `We are processing a full refund of ${fmt(a.monto)}. If you don't see it within 5 business days, reply to this email.`
+      }</b></p>
+      <p style="font-size:13px;color:#667;">The hotel has been notified and may reach out with alternative dates.</p>
+    </div>`;
+  }
+  return `<div style="font-family:system-ui,sans-serif;max-width:520px;padding:24px;">
+    <h2 style="color:#1B4332;">Una disculpa — tu cuarto ya no está disponible</h2>
+    <p>Tu pago para <b>${a.hotelNombre}</b> (${a.checkin} → ${a.checkout}) sí se procesó,
+    pero el cuarto se ocupó justo antes de que pudiéramos confirmar tu reserva.</p>
+    <p><b>${
+      a.reembolsado
+        ? `Ya emitimos el reembolso completo de ${fmt(a.monto)}: lo verás reflejado en unos días hábiles.`
+        : `Estamos procesando tu reembolso completo de ${fmt(a.monto)}. Si no lo ves en 5 días hábiles, responde a este correo.`
+    }</b></p>
+    <p style="font-size:13px;color:#667;">El hotel ya fue notificado y puede contactarte con fechas alternativas.</p>
+  </div>`;
+}
+
+export function buildPagoSinCuartoHotelHtml(a: PagoSinCuartoArgs): string {
+  const fmt = (n: number) => `$${Math.round(n).toLocaleString("es-MX")} MXN`;
+  return `<div style="font-family:system-ui,sans-serif;max-width:520px;padding:24px;">
+    <h2 style="color:#b91c1c;">⚠️ Pago recibido sin cuarto disponible</h2>
+    <p>Un huésped pagó en <b>${a.hotelNombre}</b> pero su cuarto ya estaba ocupado al
+    confirmar (probablemente dejó el pago abierto y alguien más reservó antes).</p>
+    <table style="border-collapse:collapse;width:100%;font-size:14px;">
+      <tr><td style="padding:6px 12px 6px 0;color:#667;">Huésped</td><td style="padding:6px 0;">${a.cliente || "—"} · ${a.email || "—"} · ${a.telefono || "—"}</td></tr>
+      <tr><td style="padding:6px 12px 6px 0;color:#667;">Cuarto(s)</td><td style="padding:6px 0;">${a.habitaciones.join(", ") || "—"}</td></tr>
+      <tr><td style="padding:6px 12px 6px 0;color:#667;">Fechas</td><td style="padding:6px 0;">${a.checkin} → ${a.checkout}</td></tr>
+      <tr><td style="padding:6px 12px 6px 0;color:#667;">Monto</td><td style="padding:6px 0;">${fmt(a.monto)}</td></tr>
+      <tr><td style="padding:6px 12px 6px 0;color:#667;">Reembolso</td><td style="padding:6px 0;">${
+        a.reembolsado
+          ? "✅ Emitido automáticamente en Stripe"
+          : "❌ NO se pudo emitir automático — hazlo a mano en tu Stripe HOY"
+      }</td></tr>
+    </table>
+    <p style="font-size:13px;color:#667;">Si tienes otro cuarto libre en esas fechas,
+    contacta al huésped: puedes salvar la venta.</p>
+  </div>`;
+}
+
+/** Disculpa + estado del reembolso al huésped. Best-effort, nunca lanza. */
+export async function sendPagoSinCuartoHuesped(
+  to: string,
+  args: PagoSinCuartoArgs,
+  fromOverride?: string | null,
+): Promise<boolean> {
+  return sendMotorEmail(
+    to,
+    args.lang === "en"
+      ? `About your payment — ${args.hotelNombre}`
+      : `Sobre tu pago — ${args.hotelNombre}`,
+    buildPagoSinCuartoHuespedHtml(args),
+    fromOverride,
+  );
+}
+
+/** Alerta urgente al hotel (y a Kora vía NOTIFY_EMAIL). Best-effort, nunca lanza. */
+export async function sendPagoSinCuartoHotel(
+  to: string,
+  args: PagoSinCuartoArgs,
+): Promise<boolean> {
+  return sendMotorEmail(
+    to,
+    `⚠️ URGENTE: pago sin cuarto — ${args.hotelNombre} (${args.checkin})`,
+    buildPagoSinCuartoHotelHtml(args),
   );
 }
 

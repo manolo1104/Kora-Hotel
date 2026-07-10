@@ -13,9 +13,9 @@ const tools = [
 
 const koraFeatures = [
   "Página web + motor de reservas",
-  "Agente WhatsApp con IA 24/7 *",
+  "Agente WhatsApp con IA 24/7",
   "PMS completo (rooms, check-in/out)",
-  "Pricing dinámico con IA *",
+  "Habitaciones ilimitadas",
   "Dashboard + métricas en tiempo real",
   "Emails pre y post estancia",
   "Soporte en español",
@@ -81,10 +81,9 @@ export function ComparisonSection() {
                 ))}
               </div>
               <div className="mt-5 pt-4 border-t border-kora-primary/20 flex items-center justify-between gap-4">
-                <span className="font-semibold text-kora-primary text-sm">Todo incluido, en una sola cuenta</span>
+                <span className="font-semibold text-kora-primary text-sm">Todo Kora, en una sola cuenta</span>
                 <span className="font-bold text-2xl text-kora-primary whitespace-nowrap">
-                  <span className="text-sm font-semibold align-middle">desde </span>
-                  <CountUp to={1990} prefix="$" className="tabular-nums" /> MXN/mes
+                  <CountUp to={550} prefix="$" className="tabular-nums" /> MXN/mes
                 </span>
               </div>
             </div>
@@ -97,8 +96,9 @@ export function ComparisonSection() {
             cerrado directo.
           </p>
           <p className="mt-3 text-center text-xs text-white/50 max-w-xl mx-auto leading-relaxed">
-            * Camila Lite viene en Boutique; la versión completa (24/7, sin
-            límite) y el pricing dinámico, desde el plan Hotel ($2,990 MXN/mes).
+            Un solo plan de $550 MXN/mes, todo incluido y con habitaciones
+            ilimitadas: motor de reservas, Camila (WhatsApp con IA), PMS,
+            dashboard, CRM y facturación CFDI.
           </p>
         </Reveal>
       </div>

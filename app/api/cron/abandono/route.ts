@@ -6,7 +6,8 @@ import type { MiniExtras } from "@/lib/mini";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// ── CRON de recuperación de abandono (corre cada hora, ver vercel.json) ─────
+// ── CRON de recuperación de abandono (corre 1 vez al día — límite del plan
+// Hobby de Vercel; ver vercel.json) ──────────────────────────────────────────
 // Lee booking_intents (email capturado en el paso de datos del motor) que NO
 // convirtieron y les manda UN recordatorio con link para retomar la búsqueda.
 //

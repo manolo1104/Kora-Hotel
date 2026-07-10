@@ -290,7 +290,7 @@ export const articles: Article[] = [
 
 <h2 id="como-automatizar">Cómo automatizarlo sin ser experto</h2>
 
-<p>Los principios del revenue management se pueden automatizar con la tecnología correcta. Un <a href="/caracteristicas#pricing-dinamico">sistema de pricing dinámico</a> que conozca tu ocupación en tiempo real, tenga acceso al calendario de puentes y eventos, y ajuste tus tarifas dentro de los rangos que defines (mínimo y máximo) puede hacer el 80% del trabajo.</p>
+<p>Los principios del revenue management se pueden automatizar con la tecnología correcta. Un <a href="/glosario/pricing-dinamico">sistema de pricing dinámico</a> que conozca tu ocupación en tiempo real, tenga acceso al calendario de puentes y eventos, y ajuste tus tarifas dentro de los rangos que defines (mínimo y máximo) puede hacer el 80% del trabajo.</p>
 
 <p>El otro 20% es tu juicio: conoces tu mercado, tus huéspedes habituales y las particularidades de tu zona mejor que cualquier algoritmo.</p>
 
@@ -308,8 +308,8 @@ export const articles: Article[] = [
 <p>Si tienes esas respuestas, ya tienes la base para empezar a hacer revenue management. Si no las tienes, el problema a resolver primero es tener visibilidad de tus propios números.</p>
 
 <div class="callout-cta">
-  <strong style="color: white; font-size: 1.1rem;">¿Quieres pricing dinámico en tu hotel?</strong>
-  <p>Kora incluye pricing dinámico con IA que ajusta tus tarifas automáticamente. Te mostramos cómo funciona.</p>
+  <strong style="color: white; font-size: 1.1rem;">¿Quieres subir tu RevPAR sin depender de Booking?</strong>
+  <p>Kora reúne tu motor de reservas directas, PMS, WhatsApp con IA y métricas en una sola pantalla. Te mostramos cómo funciona.</p>
   <a href="/#contacto">Ver demo del sistema →</a>
 </div>
     `,

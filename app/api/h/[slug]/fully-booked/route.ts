@@ -13,8 +13,13 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ slu
   const hotel = await resolveHotel(slug);
   if (!hotel) return NextResponse.json({ error: "hotel-no-encontrado" }, { status: 404 });
 
-  const totalRooms = hotelRooms(hotel).length;
-  const dates = await getFullyBookedDates(hotel.id, totalRooms);
+  const rooms = hotelRooms(hotel);
+  const dates = await getFullyBookedDates(
+    hotel.id,
+    rooms.length,
+    6,
+    rooms.map((r) => r.name),
+  );
   return NextResponse.json(
     { dates },
     { headers: { "Cache-Control": "public, s-maxage=120, stale-while-revalidate=600" } },
