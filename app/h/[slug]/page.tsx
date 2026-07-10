@@ -618,7 +618,9 @@ export default async function MiniPagina({
     >
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        // El JSON incluye texto del hotelero (nombre, reseñas, FAQ): escapar "<"
+        // evita que un "</script>" inyectado rompa el bloque y ejecute JS (XSS).
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
       />
 
       {preview === "1" && (

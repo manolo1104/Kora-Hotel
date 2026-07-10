@@ -14,7 +14,11 @@ import {
   sendConfirmacionReserva,
   sendAvisoReservaHotel,
   resolveHotelAvisoEmail,
+  sendPagoSinCuartoHuesped,
+  sendPagoSinCuartoHotel,
+  type PagoSinCuartoArgs,
 } from "@/lib/email/reserva";
+import { NOTIFY_EMAIL } from "@/lib/email/resend";
 import { deriveConnectState, upsertConnectState } from "@/lib/stripe/connect";
 
 export const dynamic = "force-dynamic";
@@ -61,11 +65,73 @@ function refOf(session: Stripe.Checkout.Session): string {
   );
 }
 
+// El peor caso del motor: el pago entró pero el cuarto se ocupó antes de crear
+// la reserva (Checkout dejado abierto, o carrera de dos reservas). NUNCA en
+// silencio: reembolso automático + correo al huésped + alerta al hotel y a Kora.
+async function manejarPagoSinCuarto(
+  session: Stripe.Checkout.Session,
+  paymentRef: string,
+  stripeAccount: string | null,
+): Promise<void> {
+  const md = session.metadata || {};
+  const habitaciones = (md.rooms || "")
+    .split("|")
+    .map((s) => {
+      const i = s.lastIndexOf(":");
+      return (i > 0 ? s.slice(0, i) : s).trim();
+    })
+    .filter(Boolean);
+  const monto = Number(md.depositPaid) || (session.amount_total ?? 0) / 100;
+
+  // Reembolso automático (solo hubo cargo real en modo payment). OXXO no
+  // admite reembolsos vía Stripe: en ese caso queda la alerta manual.
+  let reembolsado = false;
+  if (session.mode === "payment" && paymentRef.startsWith("pi_") && monto > 0) {
+    try {
+      await getStripe().refunds.create(
+        { payment_intent: paymentRef },
+        stripeAccount ? { stripeAccount } : undefined,
+      );
+      reembolsado = true;
+    } catch (e) {
+      console.error("reembolso automático falló (pago sin cuarto):", e);
+    }
+  }
+
+  const hotel = md.slug ? await resolveHotel(md.slug).catch(() => null) : null;
+  const args: PagoSinCuartoArgs = {
+    hotelNombre: hotel?.nombre ?? md.slug ?? "el hotel",
+    cliente: md.customerName || null,
+    email: md.customerEmail || session.customer_details?.email || null,
+    telefono: md.customerPhone || null,
+    habitaciones,
+    checkin: md.checkin || "",
+    checkout: md.checkout || "",
+    monto,
+    reembolsado,
+    lang: md.lang === "en" ? "en" : "es",
+  };
+
+  if (args.email) {
+    await sendPagoSinCuartoHuesped(
+      args.email,
+      args,
+      (hotel?.config?.email_from as string) || null,
+    ).catch(() => {});
+  }
+  if (hotel) {
+    const avisoTo = await resolveHotelAvisoEmail(hotel).catch(() => "");
+    if (avisoTo) await sendPagoSinCuartoHotel(avisoTo, args).catch(() => {});
+  }
+  if (NOTIFY_EMAIL) await sendPagoSinCuartoHotel(NOTIFY_EMAIL, args).catch(() => {});
+}
+
 // Crea la reserva (atómica e idempotente) a partir de una sesión de Checkout
 // pagada o de una garantía de tarjeta completada, y envía la confirmación.
 async function confirmarReserva(
   session: Stripe.Checkout.Session,
   origin: string,
+  stripeAccount: string | null,
 ): Promise<NextResponse> {
   const md = session.metadata || {};
   const hotelId = md.hotel_id;
@@ -127,10 +193,19 @@ async function confirmarReserva(
     }
 
     if (!result.ok) {
-      console.error("createBookingAtomic falló en webhook:", result.error);
-      // 200 para no reintentar en bucle si fue conflicto de disponibilidad;
-      // el pago ya ocurrió y queda por reconciliar manualmente.
-      return NextResponse.json({ received: true, warning: result.error });
+      // Conflicto REAL de disponibilidad: el cuarto se ocupó entre el pago y la
+      // reserva. Reembolso automático + avisos (huésped, hotel, Kora) y 200:
+      // reintentar no ayuda, el cuarto ya no existe.
+      if (result.unavailable) {
+        console.error("pago sin cuarto disponible:", result.error);
+        await manejarPagoSinCuarto(session, paymentRef, stripeAccount);
+        return NextResponse.json({ received: true, unavailable: true });
+      }
+      // Error transitorio (BD caída, timeout): 500 para que Stripe REINTENTE.
+      // El RPC es idempotente por payment_intent, así que reintentar es seguro
+      // — jamás perder en silencio una reserva ya pagada.
+      console.error("createBookingAtomic falló en webhook (transitorio):", result.error);
+      return NextResponse.json({ error: result.error }, { status: 500 });
     }
 
     // El intento de reserva quedó convertido: el cron de abandono ya no escribe.
@@ -160,6 +235,7 @@ async function confirmarReserva(
         cliente: md.customerName || null,
         ratePlan: md.ratePlan || null,
         portalUrl: `${origin}/reserva/consultar`,
+        lang: md.lang === "en" ? "en" : "es",
       },
       (hotel?.config?.email_from as string) || null,
     );
@@ -225,7 +301,7 @@ export async function POST(req: NextRequest) {
       const md = session.metadata || {};
       if (!md.hotel_id) return NextResponse.json({ received: true, ignored: "sin-hotel" });
       if (session.mode === "setup" || session.payment_status === "paid") {
-        return confirmarReserva(session, origin);
+        return confirmarReserva(session, origin, event.account ?? null);
       }
       if (md.holdSession) await extendHold(md.hotel_id, md.holdSession, 48).catch(() => {});
       return NextResponse.json({ received: true, pendingPayment: true });
@@ -234,7 +310,7 @@ export async function POST(req: NextRequest) {
     // El pago diferido (OXXO) se acreditó → ahora sí, reserva confirmada.
     case "checkout.session.async_payment_succeeded": {
       const session = event.data.object as Stripe.Checkout.Session;
-      return confirmarReserva(session, origin);
+      return confirmarReserva(session, origin, event.account ?? null);
     }
 
     // El voucher venció o la sesión expiró sin pagar → soltar el cuarto.

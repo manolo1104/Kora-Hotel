@@ -126,6 +126,10 @@ const es = {
   confTitulo: "¡Reserva confirmada!",
   confNosVemos: "Nos vemos en {hotel}",
   confCorreo: "Recibirás un correo de confirmación en los próximos minutos.",
+  confOxxoTitulo: "Falta un paso: paga tu voucher en OXXO",
+  confOxxoDetalle:
+    "Tu cuarto queda apartado mientras pagas (el voucher vence en 24 horas). En cuanto OXXO nos confirme el pago te llega el correo con tu folio.",
+  confOxxoPorPagar: "Por pagar en OXXO",
   confRegistrada: "¡Gracias! Tu solicitud quedó registrada. Te contactaremos para confirmar los detalles.",
   confFolio: "Número de confirmación",
   confCheckin: "Check-in",
@@ -286,6 +290,10 @@ const en: Record<MsgKey, string> = {
   errVerificar: "We couldn't check availability. Please try again.",
   errSinPago: "This hotel doesn't have online payment or WhatsApp set up yet.",
   confTitulo: "Booking confirmed!",
+  confOxxoTitulo: "One step left: pay your OXXO voucher",
+  confOxxoDetalle:
+    "Your room is on hold while you pay (the voucher expires in 24 hours). As soon as OXXO confirms your payment, you'll get an email with your confirmation number.",
+  confOxxoPorPagar: "To pay at OXXO",
   confNosVemos: "See you at {hotel}",
   confCorreo: "You'll get a confirmation email in the next few minutes.",
   confRegistrada: "Thanks! Your request was recorded. We'll contact you to confirm the details.",

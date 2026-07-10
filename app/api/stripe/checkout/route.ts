@@ -57,6 +57,18 @@ export async function POST(req: Request) {
         { status: 409 }
       );
     }
+    // Con pago vencido NO se abre otra suscripción (quedarían dos vivas en
+    // Stripe y la fila única por usuario dejaría huérfana la primera): que
+    // regularice el pago desde el portal de facturación en su panel.
+    if (susc && susc.estado === "pago_vencido") {
+      return NextResponse.json(
+        {
+          error:
+            "Tu plan tiene un pago pendiente. Actualiza tu tarjeta desde tu panel (Mi suscripción) y se reactiva solo.",
+        },
+        { status: 409 }
+      );
+    }
 
     let customerId = susc?.stripe_customer_id as string | null;
     if (!customerId) {

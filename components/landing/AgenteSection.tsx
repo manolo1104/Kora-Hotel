@@ -1,5 +1,6 @@
 import { Clock, MessageSquare, Languages, ArrowRight } from "lucide-react";
 import { Reveal } from "@/components/shared/Reveal";
+import { CtaLink } from "@/components/shared/CtaLink";
 import { WhatsAppMockup } from "@/components/landing/ProductMockups";
 
 // Momento dedicado al agente de WhatsApp (estilo Notion: "el turno de noche").
@@ -58,13 +59,14 @@ export function AgenteSection() {
               </ul>
 
               <div className="mt-8 flex flex-wrap items-center gap-4">
-                <a
-                  href="/precios"
+                <CtaLink
+                  href="/pago/iniciar?plan=kora"
+                  ctaName="agente_pago"
                   className="btn-press btn-arrow btn-fill inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-kora-accent text-kora-primary font-semibold text-sm hover:bg-kora-accent-dark transition-colors"
                 >
                   Empezar 30 días gratis
                   <ArrowRight size={16} />
-                </a>
+                </CtaLink>
                 <span className="text-xs text-white/50">Camila (WhatsApp con IA, 24/7) viene incluida en el plan Kora ($550/mes)</span>
               </div>
             </div>

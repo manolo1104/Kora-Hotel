@@ -62,8 +62,11 @@ export async function findGuestBooking(folio: string, email: string): Promise<Gu
     .select(
       "id, hotel_id, confirmacion, cliente, email, checkin, checkout, noches, huespedes, habitaciones, total, anticipo, estado, rate_plan, hoteles(nombre, slug, whatsapp, extras, config)",
     )
+    // El folio es único por (hotel_id, confirmacion), no global: pueden existir
+    // varios hoteles con el mismo folio. El match real es folio+email; un tope
+    // bajo podía truncar justo la reserva del huésped.
     .eq("confirmacion", f)
-    .limit(5);
+    .limit(50);
   if (error) {
     console.error("findGuestBooking error:", error);
     return null;

@@ -28,6 +28,7 @@ import {
   Sparkles,
   BarChart3,
   ArrowRight,
+  CalendarCheck,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { AMENIDADES } from "@/lib/amenidades";
@@ -237,6 +238,8 @@ export function PanelEditor({
 
   const qrPaginaRef = useRef<HTMLDivElement>(null);
   const qrGuiaRef = useRef<HTMLDivElement>(null);
+  const qrMotorRef = useRef<HTMLDivElement>(null);
+  const [copiadoEmbed, setCopiadoEmbed] = useState(false);
 
   useEffect(() => {
     let activo = true;
@@ -524,9 +527,9 @@ export function PanelEditor({
         .filter(Boolean),
     };
 
-    const extras = {
-      // Base: claves que este editor no maneja (onboarding, futuras) se conservan.
-      ...extrasBase.current,
+    // Claves que SÍ maneja este editor. La base (claves ajenas como
+    // extras.onboarding) se agrega al momento de escribir, releída de la BD.
+    const extrasPropios = {
       amenidades,
       instagram: instagram.trim(),
       facebook: facebook.trim(),
@@ -583,11 +586,30 @@ export function PanelEditor({
       publicado,
       guia,
     };
-    const payload = { ...payloadBase, extras };
 
     const COL_FALTANTE = "42703";
 
     try {
+      // Releer extras JUSTO antes de escribir: el onboarding u otra pestaña
+      // pudieron guardar claves desde que este editor cargó; con la foto vieja
+      // de la carga, este update las revertía (last-write-wins del jsonb).
+      if (hotelId) {
+        try {
+          const { data: fresco } = await supabase
+            .from("hoteles")
+            .select("extras")
+            .eq("id", hotelId)
+            .maybeSingle();
+          if (fresco?.extras && typeof fresco.extras === "object") {
+            extrasBase.current = fresco.extras as Record<string, unknown>;
+          }
+        } catch {
+          // Sin lectura fresca se usa la base de la carga (comportamiento previo).
+        }
+      }
+      const extras = { ...extrasBase.current, ...extrasPropios };
+      const payload = { ...payloadBase, extras };
+
       if (hotelId) {
         let { error: upErr } = await supabase
           .from("hoteles")
@@ -647,6 +669,8 @@ export function PanelEditor({
 
   const urlPagina = `${SITE}/h/${slug}`;
   const urlGuia = `${SITE}/g/${slug}`;
+  const urlMotor = `${SITE}/h/${slug}/reservar`;
+  const embedSnippet = `<script src="${SITE}/embed.js" data-hotel="${slug}"></script>`;
   const card = "bg-white rounded-2xl p-6 sm:p-7 border border-gray-100 shadow-sm";
 
   // ─── Wizard de bienvenida: 4 pasos y tu página queda publicada ─────────────
@@ -886,6 +910,14 @@ export function PanelEditor({
               className="btn-press inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-kora-accent text-kora-primary font-semibold text-sm hover:bg-kora-accent-dark transition-colors"
             >
               <ExternalLink size={14} /> Abrir mi página
+            </a>
+            <a
+              href={`/h/${slug}/reservar`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-press inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-gray-200 text-kora-text font-semibold text-sm hover:border-kora-accent transition-colors"
+            >
+              <CalendarCheck size={14} /> Mi motor de reservas
             </a>
             <a
               href={`/h/${slug}?preview=1`}
@@ -2175,37 +2207,90 @@ export function PanelEditor({
 
       {/* ─── COMPARTIR ─── */}
       {tab === "compartir" && hotelId && (
-        <div className={card}>
-          <h2 className="text-lg font-bold text-kora-text mb-1">Tus códigos QR</h2>
-          <p className="text-sm text-kora-muted mb-5">
-            Imprímelos: el de reservas para recepción y redes; el de la guía para la habitación.
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <div className="text-center">
-              <div ref={qrPaginaRef} className="inline-flex p-3 rounded-xl border border-gray-100 bg-white">
-                <QRCodeCanvas value={urlPagina} size={150} fgColor="#1B4332" level="M" marginSize={2} />
+        <div className="space-y-6">
+          <div className={card}>
+            <h2 className="text-lg font-bold text-kora-text mb-1">Tus códigos QR</h2>
+            <p className="text-sm text-kora-muted mb-5">
+              Imprímelos: el de tu página para recepción y redes; el del motor va directo
+              a reservar; el de la guía para la habitación.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+              <div className="text-center">
+                <div ref={qrPaginaRef} className="inline-flex p-3 rounded-xl border border-gray-100 bg-white">
+                  <QRCodeCanvas value={urlPagina} size={150} fgColor="#1B4332" level="M" marginSize={2} />
+                </div>
+                <p className="mt-2 text-xs font-semibold text-kora-text">Página de reservas</p>
+                <button
+                  type="button"
+                  onClick={() => descargarQR(qrPaginaRef, "qr-reservas.png")}
+                  className="btn-press mt-2 inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-gray-200 text-kora-text text-sm font-semibold hover:border-kora-accent transition-colors"
+                >
+                  <Download size={14} /> Descargar
+                </button>
               </div>
-              <p className="mt-2 text-xs font-semibold text-kora-text">Página de reservas</p>
-              <button
-                type="button"
-                onClick={() => descargarQR(qrPaginaRef, "qr-reservas.png")}
-                className="btn-press mt-2 inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-gray-200 text-kora-text text-sm font-semibold hover:border-kora-accent transition-colors"
-              >
-                <Download size={14} /> Descargar
-              </button>
+              <div className="text-center">
+                <div ref={qrMotorRef} className="inline-flex p-3 rounded-xl border border-gray-100 bg-white">
+                  <QRCodeCanvas value={urlMotor} size={150} fgColor="#1B4332" level="M" marginSize={2} />
+                </div>
+                <p className="mt-2 text-xs font-semibold text-kora-text">Motor de reservas</p>
+                <button
+                  type="button"
+                  onClick={() => descargarQR(qrMotorRef, "qr-motor.png")}
+                  className="btn-press mt-2 inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-gray-200 text-kora-text text-sm font-semibold hover:border-kora-accent transition-colors"
+                >
+                  <Download size={14} /> Descargar
+                </button>
+              </div>
+              <div className="text-center">
+                <div ref={qrGuiaRef} className="inline-flex p-3 rounded-xl border border-gray-100 bg-white">
+                  <QRCodeCanvas value={urlGuia} size={150} fgColor="#1B4332" level="M" marginSize={2} />
+                </div>
+                <p className="mt-2 text-xs font-semibold text-kora-text">Guía del huésped</p>
+                <button
+                  type="button"
+                  onClick={() => descargarQR(qrGuiaRef, "qr-guia.png")}
+                  className="btn-press mt-2 inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-gray-200 text-kora-text text-sm font-semibold hover:border-kora-accent transition-colors"
+                >
+                  <Download size={14} /> Descargar
+                </button>
+              </div>
             </div>
-            <div className="text-center">
-              <div ref={qrGuiaRef} className="inline-flex p-3 rounded-xl border border-gray-100 bg-white">
-                <QRCodeCanvas value={urlGuia} size={150} fgColor="#1B4332" level="M" marginSize={2} />
-              </div>
-              <p className="mt-2 text-xs font-semibold text-kora-text">Guía del huésped</p>
+          </div>
+
+          {/* Incrustar el motor en tu propia web (misma línea que muestra el onboarding) */}
+          <div className={card}>
+            <h2 className="text-lg font-bold text-kora-text mb-1">
+              Tu motor, dentro de tu propia web
+            </h2>
+            <p className="text-sm text-kora-muted mb-4">
+              Si ya tienes página web, pega esta línea donde quieras el botón de
+              reservar (o pásasela a tu webmaster). El motor se abre con tus
+              colores y tus tarifas.
+            </p>
+            <div className="rounded-xl bg-kora-primary/95 px-4 py-3 overflow-x-auto">
+              <code className="text-xs text-kora-accent whitespace-nowrap">{embedSnippet}</code>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
               <button
                 type="button"
-                onClick={() => descargarQR(qrGuiaRef, "qr-guia.png")}
-                className="btn-press mt-2 inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-gray-200 text-kora-text text-sm font-semibold hover:border-kora-accent transition-colors"
+                onClick={() => {
+                  navigator.clipboard?.writeText(embedSnippet);
+                  setCopiadoEmbed(true);
+                  setTimeout(() => setCopiadoEmbed(false), 2000);
+                }}
+                className="btn-press inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-gray-200 text-kora-text text-sm font-semibold hover:border-kora-accent transition-colors"
               >
-                <Download size={14} /> Descargar
+                {copiadoEmbed ? <Check size={14} /> : <Copy size={14} />}
+                {copiadoEmbed ? "Copiado" : "Copiar código"}
               </button>
+              <a
+                href={urlMotor}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-press inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-gray-200 text-kora-text text-sm font-semibold hover:border-kora-accent transition-colors"
+              >
+                <ExternalLink size={14} /> Ver mi motor
+              </a>
             </div>
           </div>
         </div>

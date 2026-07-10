@@ -5,6 +5,7 @@ import { useInView } from "motion/react";
 import { ArrowRight } from "lucide-react";
 import { Reveal } from "@/components/shared/Reveal";
 import { AhorroStickyPill } from "@/components/landing/AhorroStickyPill";
+import { trackCta } from "@/lib/analytics";
 
 const WA_CALC_URL = `https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "524891251458"}?text=Hola%2C%20us%C3%A9%20la%20calculadora%20de%20Kora%20y%20quiero%20saber%20m%C3%A1s`;
 
@@ -386,15 +387,25 @@ export function CalculadoraROI() {
           <p className="text-sm text-kora-text font-medium mb-3">
             ¿Quieres ver estos números aplicados a tu hotel?
           </p>
-          <a
-            href={WA_CALC_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn-press btn-arrow btn-fill inline-flex items-center gap-2 px-6 py-3.5 rounded-full bg-kora-accent text-kora-primary font-bold text-sm hover:bg-kora-accent-dark transition-colors"
-          >
-            Hablar con Manolo por WhatsApp
-            <ArrowRight size={15} aria-hidden="true" />
-          </a>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <a
+              href="/pago/iniciar?plan=kora"
+              onClick={() => trackCta("roi_pago")}
+              className="btn-press btn-arrow btn-fill inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-kora-accent text-kora-primary font-bold text-sm hover:bg-kora-accent-dark transition-colors"
+            >
+              Recuperarlos — 30 días gratis
+              <ArrowRight size={15} aria-hidden="true" />
+            </a>
+            <a
+              href={WA_CALC_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => trackCta("roi_whatsapp")}
+              className="btn-press inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full border-2 border-kora-primary text-kora-primary font-semibold text-sm hover:bg-kora-primary hover:text-white transition-colors"
+            >
+              Hablar con Manolo por WhatsApp
+            </a>
+          </div>
         </div>
       </div>
 

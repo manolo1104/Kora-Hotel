@@ -11,6 +11,9 @@ interface Props {
   fullDates: string[]; // YYYY-MM-DD con TODO el hotel ocupado
   minNights: number;
   lang: Lang;
+  // "Hoy" en la zona del hotel (lo pasa el padre para que SSR y cliente
+  // coincidan; sin él, la celda de hoy podía diferir e hidratar mal).
+  today?: string;
 }
 
 function toISO(d: Date): string {
@@ -48,8 +51,9 @@ function monthMatrix(year: number, month: number): (MonthCell | null)[] {
 // Calendario de rango del motor: pinta en tiempo real las fechas con el hotel
 // lleno (fullDates, del inventario del PMS) y respeta el mínimo de noches.
 // La verdad final siempre la re-valida el servidor al buscar y al pagar.
-export function DateRangeCalendar({ checkin, checkout, onChange, fullDates, minNights, lang }: Props) {
-  const today = toISO(new Date());
+export function DateRangeCalendar({ checkin, checkout, onChange, fullDates, minNights, lang, today: todayProp }: Props) {
+  const today =
+    todayProp || new Date().toLocaleDateString("en-CA", { timeZone: "America/Mexico_City" });
   const full = useMemo(() => new Set(fullDates), [fullDates]);
   const locale = localeOf(lang);
 

@@ -64,6 +64,17 @@
   color: var(--sand);
 }
 
+/* Grupo secundario: la cara pública del hotel (sitio y motor) */
+.navGroupLabel {
+  margin: 14px 12px 4px;
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(250,248,245,0.35);
+  font-family: var(--font-jost), sans-serif;
+}
+
 .botToggle {
   border-top: 1px solid rgba(255,255,255,0.08);
   padding: 14px 16px;

@@ -1,5 +1,6 @@
 import { ArrowRight, ExternalLink } from "lucide-react";
 import { Reveal } from "@/components/shared/Reveal";
+import { CtaLink } from "@/components/shared/CtaLink";
 
 // Demo INTERACTIVO del motor: no es un mockup ni un video — es el motor real
 // apuntando al hotel de demostración (extras.demo=true en la BD). El visitante
@@ -64,14 +65,25 @@ export function DemoMotorSection() {
             </p>
 
             <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
-              <a
-                href="#contacto"
+              <CtaLink
+                href="/panel/onboarding"
+                ctaName="demo_onboarding"
                 className="btn-press btn-arrow btn-fill inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-kora-accent text-kora-primary font-semibold text-sm hover:bg-kora-accent-dark transition-colors"
               >
-                Quiero esto en mi web
+                Crear el mío con mi hotel
                 <ArrowRight size={16} aria-hidden="true" />
-              </a>
+              </CtaLink>
+              <CtaLink
+                href="/pago/iniciar?plan=kora"
+                ctaName="demo_pago"
+                className="btn-press inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full border-2 border-kora-primary text-kora-primary font-semibold text-sm hover:bg-kora-primary hover:text-white transition-colors"
+              >
+                Empezar 30 días gratis
+              </CtaLink>
             </div>
+            <p className="mt-3 text-center text-xs text-kora-muted">
+              Cargas tus cuartos y fotos en unos 5 minutos.
+            </p>
           </div>
         </Reveal>
       </div>

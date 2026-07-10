@@ -150,8 +150,11 @@ export function calcTaxBreakdown(total: number, ishPct = 0): TaxBreakdown {
   const t = Math.max(0, Math.round(total));
   const pct = Math.max(0, Math.min(Number(ishPct) || 0, 10));
   const factor = 1 + IVA_PCT / 100 + pct / 100;
-  const base = Math.round(t / factor);
   const iva = Math.round((t / factor) * (IVA_PCT / 100));
+  // Sin ISH, el renglón de ISH no se muestra en la UI: el residuo de redondeo
+  // se absorbe en la base para que lo VISIBLE siempre sume el total exacto.
+  if (pct <= 0) return { base: t - iva, iva, ish: 0, ishPct: 0, total: t };
+  const base = Math.round(t / factor);
   const ish = Math.max(0, t - base - iva); // residuo: el desglose siempre suma el total
   return { base, iva, ish, ishPct: pct, total: t };
 }

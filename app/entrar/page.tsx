@@ -5,7 +5,7 @@ import { planPorClave } from "@/lib/oferta";
 
 export const metadata: Metadata = {
   title: "Entrar | Kora",
-  description: "Entra para crear y editar tu mini-página de reservas gratis.",
+  description: "Entra a tu panel de Kora o crea tu cuenta para cargar tu hotel.",
   robots: { index: false },
   alternates: { canonical: "/entrar" },
 };
@@ -30,6 +30,20 @@ export default async function EntrarPage({
     ? `/pago/iniciar?plan=${plan.clave}`
     : destinoSeguro(nextParam) ?? "/panel";
 
+  // El título y el texto siguen la intención con la que llegó la persona:
+  // activar la prueba (pago), cargar su hotel (onboarding) o entrar al panel.
+  const vaAlOnboarding = next.startsWith("/panel/onboarding");
+  const titulo = plan
+    ? "Activa tus 30 días gratis"
+    : vaAlOnboarding
+      ? "Empieza a cargar tu hotel"
+      : "Entra a tu panel";
+  const detalle = plan
+    ? `Crea tu cuenta o entra para empezar tu prueba de 30 días del ${plan.nombre}. Hoy no se cobra nada: el primer cargo ($${plan.precio.toLocaleString("es-MX")} MXN/mes) es hasta el día 31, y puedes cancelar antes.`
+    : vaAlOnboarding
+      ? "Crea tu cuenta o entra para cargar tus cuartos, precios y fotos. Te toma unos 5 minutos y no necesitas tarjeta."
+      : "Entra o crea tu cuenta para administrar tu hotel y tu página de reservas directas.";
+
   return (
     <main className="pt-16">
       <section className="py-16 sm:py-24 bg-kora-bg min-h-[70vh]">
@@ -37,12 +51,10 @@ export default async function EntrarPage({
           <Reveal>
             <div className="text-center mb-8">
               <h1 className="text-3xl font-bold text-kora-text tracking-tight">
-                {plan ? `Tu plan ${plan.nombre}` : "Tu mini-página gratis"}
+                {titulo}
               </h1>
               <p className="mt-3 text-kora-muted text-sm leading-relaxed">
-                {plan
-                  ? `Crea tu cuenta o entra para activar tu plan ${plan.nombre} ($${plan.precio.toLocaleString("es-MX")} MXN/mes). Después del pago configuras tu hotel en 5 minutos.`
-                  : "Entra o crea tu cuenta para armar tu página de reservas directas y tu guía del huésped, sin costo."}
+                {detalle}
               </p>
             </div>
           </Reveal>

@@ -1,7 +1,7 @@
 'use client';
 
 import { usePathname, useRouter } from 'next/navigation';
-import { Calendar, BookOpen, FileText, TrendingUp, Users, BarChart2, LogOut, Menu, X, LayoutDashboard, Receipt, ClipboardCheck, Globe2, CreditCard } from 'lucide-react';
+import { Calendar, BookOpen, FileText, TrendingUp, Users, BarChart2, LogOut, Menu, X, LayoutDashboard, Receipt, ClipboardCheck, Globe2, CreditCard, Pencil, CalendarCheck, Building2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import styles from './AdminSidebar.module.css';
@@ -29,8 +29,8 @@ export default function AdminSidebar({ slug, hotelName }: { slug: string; hotelN
 
   useEffect(() => {
     fetch('/api/admin/bot-status')
-      .then(r => r.json())
-      .then(d => setBotEnabled(d.enabled))
+      .then(r => (r.ok ? r.json() : Promise.reject(new Error('no-auth'))))
+      .then(d => setBotEnabled(Boolean(d.enabled)))
       .catch(() => setBotEnabled(true));
   }, []);
 
@@ -86,6 +86,31 @@ export default function AdminSidebar({ slug, hotelName }: { slug: string; hotelN
               </a>
             );
           })}
+
+          {/* La cara pública del hotel: editar el sitio y ver el motor en vivo */}
+          <p className={styles.navGroupLabel}>Mi sitio</p>
+          <a
+            href={`${base}/sitio`}
+            className={`${styles.navItem} ${pathname === `${base}/sitio` ? styles.active : ''}`}
+            onClick={() => setOpen(false)}
+          >
+            <Pencil size={18} strokeWidth={1.5} />
+            <span>Editar mi sitio</span>
+          </a>
+          <a
+            href={`/h/${slug}/reservar`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={styles.navItem}
+            onClick={() => setOpen(false)}
+          >
+            <CalendarCheck size={18} strokeWidth={1.5} />
+            <span>Ver mi motor</span>
+          </a>
+          <a href="/panel" className={styles.navItem} onClick={() => setOpen(false)}>
+            <Building2 size={18} strokeWidth={1.5} />
+            <span>Mis hoteles</span>
+          </a>
         </nav>
 
         <div className={styles.botToggle}>

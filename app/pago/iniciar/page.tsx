@@ -4,8 +4,10 @@ import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
+import { trackBeginCheckout } from "@/lib/analytics";
+import { PRECIO_DESDE } from "@/lib/oferta";
 
-// Punto único de entrada al pago: /pago/iniciar?plan=basico|completo
+// Punto único de entrada al pago: /pago/iniciar?plan=kora
 // - Sin sesión → manda a /entrar conservando el plan (y regresa aquí al entrar).
 // - Con sesión → crea el Checkout de Stripe y redirige.
 function Iniciar() {
@@ -19,6 +21,8 @@ function Iniciar() {
       router.replace("/precios");
       return;
     }
+    // Todo intento de pago pasa por aquí: el punto único para medir el embudo.
+    trackBeginCheckout(plan, PRECIO_DESDE);
     let activo = true;
     (async () => {
       try {

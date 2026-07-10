@@ -6,7 +6,8 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   const ctx = await getActiveHotel();
-  if (!ctx) return NextResponse.json({ enabled: true });
+  // Igual que el POST: sin sesión/hotel activo no hay estado que reportar.
+  if (!ctx) return NextResponse.json({ error: "no-auth" }, { status: 401 });
   const enabled = await getBotStatus(ctx.hotelId);
   return NextResponse.json({ enabled });
 }

@@ -3,6 +3,7 @@ import { CheckCircle2, ArrowRight, ShieldCheck, BadgeCheck, Lock } from "lucide-
 import { Reveal } from "@/components/shared/Reveal";
 import { CountUp } from "@/components/shared/CountUp";
 import { GlowCard } from "@/components/shared/GlowCard";
+import { CtaLink } from "@/components/shared/CtaLink";
 import { PLANES } from "@/lib/oferta";
 
 // Lo que incluye el sitio web profesional que construimos (el gancho gratis).
@@ -207,8 +208,9 @@ export function PricingSection() {
                   ))}
                 </ul>
 
-                <Link
+                <CtaLink
                   href={`/pago/iniciar?plan=${plan.clave}`}
+                  ctaName="precios_pago"
                   className={`btn-press btn-arrow mt-8 flex items-center justify-center gap-2 w-full py-3.5 rounded-full font-bold text-sm transition-colors text-center ${
                     plan.destacado
                       ? "btn-fill bg-kora-accent text-kora-primary hover:bg-kora-accent-dark"
@@ -216,17 +218,18 @@ export function PricingSection() {
                   }`}
                 >
                   Empezar — 30 días gratis
-                </Link>
+                </CtaLink>
                 <p className="mt-2 text-center text-[11px] text-kora-muted">
                   Sin cargo hoy · cancela cuando quieras
                 </p>
-                <Link
+                <CtaLink
                   href="/panel/onboarding"
+                  ctaName="precios_onboarding"
                   className="btn-press btn-arrow mt-2 flex items-center justify-center gap-1.5 text-center text-xs font-semibold text-kora-primary underline decoration-kora-accent underline-offset-2 hover:text-kora-primary-dark transition-colors"
                 >
-                  o empieza a cargar tu hotel ahora
+                  o empieza a cargar tu hotel ahora — sin tarjeta
                   <ArrowRight size={13} aria-hidden="true" />
-                </Link>
+                </CtaLink>
               </GlowCard>
             </Reveal>
           ))}

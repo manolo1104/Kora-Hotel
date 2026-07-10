@@ -157,7 +157,7 @@ export default async function PanelPage() {
 
                     <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2">
                       <Link
-                        href={`/panel/${hotel.slug}/reservas`}
+                        href={`/panel/${hotel.slug}/insights`}
                         className="btn-press inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-kora-primary text-white font-semibold text-xs sm:text-sm hover:bg-kora-primary-dark transition-colors"
                       >
                         <LayoutDashboard size={15} aria-hidden="true" /> Panel

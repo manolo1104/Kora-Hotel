@@ -39,3 +39,15 @@ export function trackCta(name: string) {
   if (typeof window === "undefined" || typeof window.gtag !== "function") return;
   window.gtag("event", "cta_click", { cta_name: name });
 }
+
+// Inicio de checkout de la suscripción (evento estándar de GA4). Se dispara en
+// /pago/iniciar: el punto único por el que pasa todo intento de pago, venga del
+// CTA que venga.
+export function trackBeginCheckout(plan: string, value: number) {
+  if (typeof window === "undefined" || typeof window.gtag !== "function") return;
+  window.gtag("event", "begin_checkout", {
+    currency: "MXN",
+    value,
+    items: [{ item_id: plan, item_name: `Plan ${plan}` }],
+  });
+}

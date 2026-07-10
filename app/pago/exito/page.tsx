@@ -4,6 +4,7 @@ import { CheckCircle2, ArrowRight } from "lucide-react";
 import { Reveal } from "@/components/shared/Reveal";
 import { getStripe, stripeEnvReady } from "@/lib/stripe/server";
 import { planPorClave } from "@/lib/oferta";
+import { getHotelesDelUsuario } from "@/lib/tenant";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +31,16 @@ export default async function PagoExitoPage({
     }
   }
 
+  // Siguiente paso sin fricción: si aún no tiene hotel, directo al onboarding;
+  // si ya tiene, a su panel. (Best-effort: en caso de duda, al hub.)
+  let siguienteHref = "/panel";
+  try {
+    const hoteles = await getHotelesDelUsuario();
+    if (hoteles.length === 0) siguienteHref = "/panel/onboarding";
+  } catch {
+    // Sin sesión legible aquí, el hub resuelve.
+  }
+
   return (
     <main className="pt-16">
       <section className="py-20 sm:py-28 bg-kora-bg min-h-[70vh]">
@@ -50,7 +61,7 @@ export default async function PagoExitoPage({
                 hotel: te toma unos 5 minutos.
               </p>
               <Link
-                href="/panel"
+                href={siguienteHref}
                 className="btn-press btn-fill mt-7 inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-full bg-kora-accent text-kora-primary font-bold text-sm hover:bg-kora-accent-dark transition-colors"
               >
                 Configurar mi hotel

@@ -93,10 +93,12 @@ export function ContactForm() {
                 </div>
               )}
               <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-white leading-tight">
-                Lleva tu hotel a las reservas directas
+                ¿Prefieres que te acompañemos?
               </h2>
               <p className="mt-4 text-kora-accent text-base leading-relaxed">
-                Plan mes a mes, sin permanencia, con soporte directo del equipo fundador.
+                Si aún tienes dudas, déjanos tus datos y te contactamos: te
+                enseñamos Kora con tu hotel y te ayudamos a arrancar. Sin
+                compromiso.
               </p>
 
               <ul className="mt-8 space-y-4" aria-label="Beneficios de Kora">
@@ -266,7 +268,7 @@ export function ContactForm() {
                         >
                           WhatsApp
                         </a>{" "}
-                        y aseguramos tu lugar.
+                        y te contestamos ahí mismo.
                       </div>
                     )}
 
@@ -281,7 +283,7 @@ export function ContactForm() {
                           Enviando...
                         </>
                       ) : (
-                        "Solicitar mi lugar"
+                        "Quiero que me contacten"
                       )}
                     </button>
                   </motion.form>
