@@ -80,19 +80,31 @@ export function SuscripcionCard({
         {error && <p className="text-xs text-red-600">{error}</p>}
       </div>
       {esStripe && (
-        <button
-          type="button"
-          onClick={abrirPortal}
-          disabled={abriendo}
-          className="btn-press inline-flex items-center gap-2 px-4 py-2 rounded-full border border-gray-200 text-kora-text font-semibold text-sm hover:border-kora-accent transition-colors disabled:opacity-60"
-        >
-          {abriendo ? (
-            <Loader2 size={14} className="animate-spin" aria-hidden="true" />
-          ) : (
-            <CreditCard size={14} aria-hidden="true" />
-          )}
-          Administrar mi pago
-        </button>
+        <div className="flex items-center gap-4 flex-wrap">
+          <button
+            type="button"
+            onClick={abrirPortal}
+            disabled={abriendo}
+            className="btn-press inline-flex items-center gap-2 px-4 py-2 rounded-full border border-gray-200 text-kora-text font-semibold text-sm hover:border-kora-accent transition-colors disabled:opacity-60"
+          >
+            {abriendo ? (
+              <Loader2 size={14} className="animate-spin" aria-hidden="true" />
+            ) : (
+              <CreditCard size={14} aria-hidden="true" />
+            )}
+            Administrar mi pago
+          </button>
+          {/* La promesa del sitio ("cancela en un clic") debe verse aquí, no
+              escondida: mismo portal, sin llamadas ni correos. */}
+          <button
+            type="button"
+            onClick={abrirPortal}
+            disabled={abriendo}
+            className="text-xs font-semibold text-kora-muted underline underline-offset-2 hover:text-kora-text transition-colors disabled:opacity-60"
+          >
+            Cancelar suscripción
+          </button>
+        </div>
       )}
     </div>
   );

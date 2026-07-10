@@ -38,8 +38,9 @@ const garantias = [
   },
   {
     icon: BadgeCheck,
-    titulo: "Mes a mes, sin permanencia",
-    texto: "Cancelas cuando quieras, sin penalización.",
+    titulo: "Cancelas tú mismo, en un clic",
+    texto:
+      "Desde tu panel, sin llamadas ni correos ni penalización. Mes a mes, sin permanencia.",
   },
   {
     icon: Lock,
@@ -71,8 +72,14 @@ export function PricingSection() {
               </span>
             </p>
             <p className="mt-2 text-sm text-kora-muted">
-              Pruébalo 30 días gratis. No se cobra nada hasta el
-              día 31; cancela antes y no pagas.
+              Pruébalo 30 días gratis. No se cobra nada hasta el día 31;
+              cancelas antes tú mismo, desde tu panel, y no pagas.
+            </p>
+            {/* Urgencia REAL (capacidad de acompañamiento, no falso countdown) */}
+            <p className="mt-4 inline-flex items-center gap-2 rounded-full bg-kora-accent/15 px-4 py-2 text-xs font-semibold text-kora-primary">
+              <span className="w-1.5 h-1.5 rounded-full bg-kora-accent animate-pulse" aria-hidden="true" />
+              Cupo limitado: acompañamos personalmente el arranque de pocos
+              hoteles nuevos al mes
             </p>
           </div>
         </Reveal>
@@ -220,7 +227,17 @@ export function PricingSection() {
                   Empezar — 30 días gratis
                 </CtaLink>
                 <p className="mt-2 text-center text-[11px] text-kora-muted">
-                  Sin cargo hoy · cancela cuando quieras
+                  Sin cargo hoy · cancelas tú mismo en un clic, desde tu panel
+                </p>
+                {/* Social proof real: el sistema opera un hotel de verdad hoy */}
+                <p className="mt-3 text-center text-[11px] text-kora-muted">
+                  El mismo sistema que opera las reservas reales de{" "}
+                  <Link
+                    href="/casos/paraiso-encantado"
+                    className="font-semibold text-kora-primary underline decoration-kora-accent underline-offset-2 hover:text-kora-primary-dark"
+                  >
+                    Hotel Paraíso Encantado
+                  </Link>
                 </p>
                 <CtaLink
                   href="/panel/onboarding"
