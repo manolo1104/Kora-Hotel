@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient, adminEnvReady } from "@/lib/supabase/admin";
 import { getStripe, stripeEnvReady } from "@/lib/stripe/server";
 import { planPorClave } from "@/lib/oferta";
+import { pruebaDelHotel } from "@/lib/suscripcion";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -91,15 +92,34 @@ export async function POST(req: Request) {
     const puedeEmbebido =
       body.embedded === true && Boolean(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
 
+    // La prueba de 30 días vive en el PRODUCTO (corre desde que creó su primer
+    // hotel, sin tarjeta). Al activar el plan se respeta el tiempo que le QUEDE:
+    // ni 30 días extra encima de su prueba, ni cobrarle antes de tiempo. Sin
+    // hotel aún (paga primero, carga después) → 30 días desde hoy. Prueba
+    // vencida (o a <48 h, mínimo de Stripe) → el cobro corre desde hoy.
+    const { data: primerHotel } = await admin
+      .from("hoteles")
+      .select("created_at, extras")
+      .eq("owner_id", user.id)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    const prueba = primerHotel
+      ? pruebaDelHotel(primerHotel as { created_at: string | null; extras: Record<string, unknown> | null })
+      : null;
+    const subMeta = { user_id: user.id, plan: plan.clave };
+    const subscriptionData = !primerHotel
+      ? { trial_period_days: 30, metadata: subMeta }
+      : prueba && !prueba.vencida && prueba.diasRestantes >= 2
+        ? { trial_end: Math.floor(prueba.fin.getTime() / 1000), metadata: subMeta }
+        : { metadata: subMeta };
+
     const comun = {
       mode: "subscription" as const,
       customer: customerId,
       line_items: [{ price: plan.priceId, quantity: 1 }],
       metadata: { user_id: user.id, plan: plan.clave },
-      subscription_data: {
-        trial_period_days: 30, // 30 días de prueba: la tarjeta queda en garantía, el primer cobro es hasta el día 31
-        metadata: { user_id: user.id, plan: plan.clave },
-      },
+      subscription_data: subscriptionData,
       locale: "es" as const,
       allow_promotion_codes: true,
     };

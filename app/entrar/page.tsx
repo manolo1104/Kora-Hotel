@@ -39,9 +39,9 @@ export default async function EntrarPage({
       ? "Empieza a cargar tu hotel"
       : "Entra a tu panel";
   const detalle = plan
-    ? `Crea tu cuenta o entra para empezar tu prueba de 30 días del ${plan.nombre}. Hoy no se cobra nada: el primer cargo ($${plan.precio.toLocaleString("es-MX")} MXN/mes) es hasta el día 31, y puedes cancelar antes.`
+    ? `Crea tu cuenta o entra para activar tu ${plan.nombre} ($${plan.precio.toLocaleString("es-MX")} MXN/mes). Se respeta el tiempo que te quede de tu prueba gratis, y cancelas cuando quieras desde tu panel.`
     : vaAlOnboarding
-      ? "Crea tu cuenta o entra para cargar tus cuartos, precios y fotos. Te toma unos 5 minutos y no necesitas tarjeta."
+      ? "Crea tu cuenta o entra para cargar tus cuartos, precios y fotos. Te toma unos 5 minutos y no necesitas tarjeta: tu prueba de 30 días empieza al crear tu hotel."
       : "Entra o crea tu cuenta para administrar tu hotel y tu página de reservas directas.";
 
   return (

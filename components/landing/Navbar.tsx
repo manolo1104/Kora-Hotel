@@ -86,8 +86,8 @@ export function Navbar() {
             Iniciar sesión
           </a>
           <a
-            href="/pago/iniciar?plan=kora"
-            onClick={() => trackCta("nav_pago")}
+            href="/panel/onboarding"
+            onClick={() => trackCta("nav_onboarding")}
             className="btn-press btn-arrow btn-fill inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-kora-primary text-white text-sm font-semibold hover:bg-kora-primary-dark transition-colors"
           >
             Empezar gratis
@@ -162,13 +162,13 @@ export function Navbar() {
                 Iniciar sesión
               </motion.a>
               <motion.a
-                href="/pago/iniciar?plan=kora"
+                href="/panel/onboarding"
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.22, delay: 0.05 + (navLinks.length + 1) * 0.06, ease: EASE }}
                 className="btn-press mt-3 block w-full text-center px-5 py-3 rounded-full bg-kora-primary text-white text-sm font-semibold"
                 onClick={() => {
-                  trackCta("nav_pago_movil");
+                  trackCta("nav_onboarding_movil");
                   setMenuOpen(false);
                 }}
               >

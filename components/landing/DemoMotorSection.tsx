@@ -78,11 +78,11 @@ export function DemoMotorSection() {
                 ctaName="demo_pago"
                 className="btn-press inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full border-2 border-kora-primary text-kora-primary font-semibold text-sm hover:bg-kora-primary hover:text-white transition-colors"
               >
-                Empezar 30 días gratis
+                Activar mi plan
               </CtaLink>
             </div>
             <p className="mt-3 text-center text-xs text-kora-muted">
-              Cargas tus cuartos y fotos en unos 5 minutos.
+              Gratis 30 días y sin tarjeta: cargas tus cuartos y fotos en unos 5 minutos.
             </p>
           </div>
         </Reveal>

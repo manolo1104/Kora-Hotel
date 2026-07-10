@@ -62,3 +62,56 @@ export function tienePlanActivo(s: Suscripcion | null): boolean {
 export async function ownerTienePlanActivo(ownerId: string): Promise<boolean> {
   return tienePlanActivo(await getSuscripcion(ownerId));
 }
+
+// ─── Prueba de 30 días SIN tarjeta ───────────────────────────────────────────
+// La prueba se DERIVA del created_at del hotel (sin columnas nuevas ni
+// migraciones): 30 días desde su creación. Para hoteles creados antes del
+// lanzamiento de la prueba, corre desde el lanzamiento — nadie amanece pausado
+// por un cambio de reglas retroactivo.
+
+export const PRUEBA_DIAS = 30;
+const LANZAMIENTO_PRUEBA = Date.parse("2026-07-10T00:00:00-06:00");
+
+export interface PruebaHotel {
+  fin: Date;
+  diasRestantes: number; // 0 cuando ya venció
+  vencida: boolean;
+}
+
+export function pruebaDelHotel(hotel: {
+  created_at?: string | null;
+  extras?: Record<string, unknown> | null;
+}): PruebaHotel | null {
+  // El hotel de demostración nunca caduca.
+  if ((hotel.extras as { demo?: boolean } | null)?.demo === true) return null;
+  const creado = hotel.created_at ? Date.parse(hotel.created_at) : NaN;
+  const inicio = Number.isNaN(creado) ? LANZAMIENTO_PRUEBA : Math.max(creado, LANZAMIENTO_PRUEBA);
+  const fin = new Date(inicio + PRUEBA_DIAS * 86_400_000);
+  const msRestantes = fin.getTime() - Date.now();
+  return {
+    fin,
+    diasRestantes: Math.max(0, Math.ceil(msRestantes / 86_400_000)),
+    vencida: msRestantes <= 0,
+  };
+}
+
+export interface AccesoHotel {
+  activo: boolean; // puede operar (plan pagado, cortesía, demo o prueba vigente)
+  planActivo: boolean;
+  prueba: PruebaHotel | null; // null si tiene plan o es demo
+}
+
+/**
+ * Acceso operativo de un hotel: plan del dueño O prueba vigente. Es EL punto
+ * único que decide si el motor cobra y el panel opera.
+ */
+export async function accesoDelHotel(hotel: {
+  owner_id: string;
+  created_at?: string | null;
+  extras?: Record<string, unknown> | null;
+}): Promise<AccesoHotel> {
+  const planActivo = await ownerTienePlanActivo(hotel.owner_id);
+  if (planActivo) return { activo: true, planActivo: true, prueba: null };
+  const prueba = pruebaDelHotel(hotel);
+  return { activo: !prueba || !prueba.vencida, planActivo: false, prueba };
+}

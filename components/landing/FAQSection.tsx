@@ -80,19 +80,19 @@ export function FAQSection() {
           </p>
           <div className="mt-4 flex flex-col sm:flex-row gap-3 justify-center">
             <a
-              href="/pago/iniciar?plan=kora"
-              onClick={() => trackCta("faq_pago")}
+              href="/panel/onboarding"
+              onClick={() => trackCta("faq_onboarding")}
               className="btn-press btn-arrow btn-fill inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-kora-accent text-kora-primary font-semibold text-sm hover:bg-kora-accent-dark transition-colors"
             >
-              Empezar 30 días gratis
+              Empezar gratis — sin tarjeta
               <ArrowRight size={16} aria-hidden="true" />
             </a>
             <a
-              href="/panel/onboarding"
-              onClick={() => trackCta("faq_onboarding")}
+              href="/pago/iniciar?plan=kora"
+              onClick={() => trackCta("faq_pago")}
               className="btn-press inline-flex items-center justify-center px-6 py-3.5 rounded-full border-2 border-kora-primary text-kora-primary font-semibold text-sm hover:bg-kora-primary hover:text-white transition-colors"
             >
-              Cargar mi hotel — sin tarjeta
+              Activar mi plan — $550/mes
             </a>
           </div>
         </div>

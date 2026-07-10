@@ -129,8 +129,9 @@ function Iniciar() {
 
           {listo && (
             <p className="mt-4 text-center text-xs text-kora-muted">
-              Hoy no se cobra nada: tu prueba dura 30 días y puedes cancelar
-              antes del primer cargo, tú mismo, desde tu panel.
+              Se respeta el tiempo que te quede de prueba gratis; el detalle del
+              primer cargo lo ves arriba antes de confirmar. Mes a mes, sin
+              permanencia: cancelas tú mismo desde tu panel.
             </p>
           )}
         </>

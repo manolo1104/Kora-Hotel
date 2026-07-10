@@ -60,11 +60,11 @@ export function AgenteSection() {
 
               <div className="mt-8 flex flex-wrap items-center gap-4">
                 <CtaLink
-                  href="/pago/iniciar?plan=kora"
-                  ctaName="agente_pago"
+                  href="/panel/onboarding"
+                  ctaName="agente_onboarding"
                   className="btn-press btn-arrow btn-fill inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-kora-accent text-kora-primary font-semibold text-sm hover:bg-kora-accent-dark transition-colors"
                 >
-                  Empezar 30 días gratis
+                  Probar Kora gratis — sin tarjeta
                   <ArrowRight size={16} />
                 </CtaLink>
                 <span className="text-xs text-white/50">Camila (WhatsApp con IA, 24/7) viene incluida en el plan Kora ($550/mes)</span>

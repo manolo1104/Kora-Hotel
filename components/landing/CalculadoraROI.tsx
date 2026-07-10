@@ -389,11 +389,11 @@ export function CalculadoraROI() {
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <a
-              href="/pago/iniciar?plan=kora"
-              onClick={() => trackCta("roi_pago")}
+              href="/panel/onboarding"
+              onClick={() => trackCta("roi_onboarding")}
               className="btn-press btn-arrow btn-fill inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-kora-accent text-kora-primary font-bold text-sm hover:bg-kora-accent-dark transition-colors"
             >
-              Recuperarlos — 30 días gratis
+              Recuperarlos — prueba gratis
               <ArrowRight size={15} aria-hidden="true" />
             </a>
             <a

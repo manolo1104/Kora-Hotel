@@ -112,11 +112,11 @@ export function Hero() {
 
               <motion.div {...item(0.2)} className="flex flex-col sm:flex-row gap-3">
                 <a
-                  href="/pago/iniciar?plan=kora"
-                  onClick={() => trackCta("hero_pago")}
+                  href="/panel/onboarding"
+                  onClick={() => trackCta("hero_onboarding")}
                   className="btn-press btn-arrow btn-fill inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-kora-accent text-kora-primary font-semibold text-sm hover:bg-kora-accent-dark transition-colors"
                 >
-                  Empezar 30 días gratis
+                  Empezar gratis — sin tarjeta
                   <ArrowRight size={16} />
                 </a>
                 <a
@@ -127,14 +127,14 @@ export function Hero() {
                 </a>
               </motion.div>
 
-              {/* Alta self-service: entra directo al onboarding a cargar tu hotel */}
+              {/* El que llega decidido puede activar su plan de una vez */}
               <motion.a
                 {...item(0.22)}
-                href="/panel/onboarding"
-                onClick={() => trackCta("hero_onboarding")}
+                href="/pago/iniciar?plan=kora"
+                onClick={() => trackCta("hero_pago")}
                 className="btn-press btn-arrow inline-flex items-center gap-1.5 text-sm font-semibold text-kora-primary hover:text-kora-primary-dark transition-colors"
               >
-                Empieza a cargar tu hotel ahora
+                ¿Ya lo conoces? Activa tu plan
                 <ArrowRight size={15} aria-hidden="true" />
               </motion.a>
 
@@ -180,8 +180,8 @@ export function Hero() {
                   · Xilitla, SLP
                 </p>
                 <p className="text-xs text-kora-muted">
-                  30 días gratis, sin compromiso: pruébalo con tu hotel y el
-                  primer cobro es hasta el día 31 (cancela antes y no pagas).
+                  30 días gratis y sin tarjeta: carga tu hotel y pruébalo todo.
+                  Si te convence, activas tu plan; si no, no pagas nada.
                 </p>
                 <div className="animate-pulse-ring inline-flex items-center gap-2 bg-[#1B4332]/8 text-kora-primary px-4 py-2 rounded-full text-sm font-medium">
                   <span className="text-kora-accent font-bold text-base leading-none">★</span>

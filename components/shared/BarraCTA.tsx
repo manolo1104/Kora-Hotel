@@ -15,20 +15,20 @@ export function BarraCTA() {
             habitaciones ilimitadas, sin permanencia; cancela cuando quieras.
           </p>
           <CtaLink
-            href="/pago/iniciar?plan=kora"
-            ctaName="barra_pago"
+            href="/panel/onboarding"
+            ctaName="barra_onboarding"
             className="btn-press btn-arrow mt-6 inline-flex items-center gap-2 px-6 py-3.5 rounded-full bg-white text-kora-primary font-bold text-sm hover:bg-gray-50 transition-colors"
           >
-            Empezar 30 días gratis
+            Empezar 30 días gratis — sin tarjeta
             <ArrowRight size={16} aria-hidden="true" />
           </CtaLink>
           <div className="mt-4">
             <CtaLink
-              href="/panel/onboarding"
-              ctaName="barra_onboarding"
+              href="/pago/iniciar?plan=kora"
+              ctaName="barra_pago"
               className="text-sm font-semibold text-kora-accent underline decoration-white/30 underline-offset-4 hover:text-white transition-colors"
             >
-              o empieza a cargar tu hotel ahora — sin tarjeta
+              ¿Ya lo probaste? Activa tu plan de una vez
             </CtaLink>
           </div>
         </Reveal>

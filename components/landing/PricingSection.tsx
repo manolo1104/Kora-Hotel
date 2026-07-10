@@ -33,8 +33,9 @@ const featuresKora = [
 const garantias = [
   {
     icon: ShieldCheck,
-    titulo: "30 días gratis",
-    texto: "Prueba Kora completo un mes. No se cobra nada hasta el día 31; cancela antes y no pagas.",
+    titulo: "30 días gratis, sin tarjeta",
+    texto:
+      "Carga tu hotel y usa Kora completo un mes sin dar ningún dato de pago. Activas tu plan solo si te convence.",
   },
   {
     icon: BadgeCheck,
@@ -72,8 +73,8 @@ export function PricingSection() {
               </span>
             </p>
             <p className="mt-2 text-sm text-kora-muted">
-              Pruébalo 30 días gratis. No se cobra nada hasta el día 31;
-              cancelas antes tú mismo, desde tu panel, y no pagas.
+              Pruébalo 30 días gratis, <span className="font-semibold text-kora-text">sin tarjeta</span>:
+              cargas tu hotel y lo usas todo. Activas tu plan solo si te convence.
             </p>
             {/* Urgencia REAL (capacidad de acompañamiento, no falso countdown) */}
             <p className="mt-4 inline-flex items-center gap-2 rounded-full bg-kora-accent/15 px-4 py-2 text-xs font-semibold text-kora-primary">
@@ -216,18 +217,18 @@ export function PricingSection() {
                 </ul>
 
                 <CtaLink
-                  href={`/pago/iniciar?plan=${plan.clave}`}
-                  ctaName="precios_pago"
+                  href="/panel/onboarding"
+                  ctaName="precios_onboarding"
                   className={`btn-press btn-arrow mt-8 flex items-center justify-center gap-2 w-full py-3.5 rounded-full font-bold text-sm transition-colors text-center ${
                     plan.destacado
                       ? "btn-fill bg-kora-accent text-kora-primary hover:bg-kora-accent-dark"
                       : "border-2 border-kora-primary text-kora-primary hover:bg-kora-primary hover:text-white"
                   }`}
                 >
-                  Empezar — 30 días gratis
+                  Empezar gratis — sin tarjeta
                 </CtaLink>
                 <p className="mt-2 text-center text-[11px] text-kora-muted">
-                  Sin cargo hoy · cancelas tú mismo en un clic, desde tu panel
+                  30 días completos · cancelas tú mismo en un clic, desde tu panel
                 </p>
                 {/* Social proof real: el sistema opera un hotel de verdad hoy */}
                 <p className="mt-3 text-center text-[11px] text-kora-muted">
@@ -240,11 +241,11 @@ export function PricingSection() {
                   </Link>
                 </p>
                 <CtaLink
-                  href="/panel/onboarding"
-                  ctaName="precios_onboarding"
+                  href={`/pago/iniciar?plan=${plan.clave}`}
+                  ctaName="precios_pago"
                   className="btn-press btn-arrow mt-2 flex items-center justify-center gap-1.5 text-center text-xs font-semibold text-kora-primary underline decoration-kora-accent underline-offset-2 hover:text-kora-primary-dark transition-colors"
                 >
-                  o empieza a cargar tu hotel ahora — sin tarjeta
+                  ¿Ya lo probaste? Activa tu plan de una vez
                   <ArrowRight size={13} aria-hidden="true" />
                 </CtaLink>
               </GlowCard>
