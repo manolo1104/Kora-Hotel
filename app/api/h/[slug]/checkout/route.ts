@@ -5,6 +5,7 @@ import { resolveHotel } from "@/lib/tenant";
 import {
   hotelRooms,
   bookingRules,
+  seasonMinNoches,
   calcCartSubtotal,
   calcNights,
   calcDepositAmount,
@@ -111,10 +112,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   }
 
   // Reglas del hotel (anticipo, mínimo de noches) — fuente autoritativa server-side.
+  // El mínimo puede ser mayor si la estancia LLEGA en una temporada con min-noches.
   const rules = bookingRules(hotel);
-  if (nights < rules.minNoches) {
+  const minNochesEfectivo = Math.max(rules.minNoches, seasonMinNoches(hotel, checkin));
+  if (nights < minNochesEfectivo) {
     return NextResponse.json(
-      { error: "min-noches", minNoches: rules.minNoches },
+      { error: "min-noches", minNoches: minNochesEfectivo },
       { status: 400 },
     );
   }

@@ -29,14 +29,14 @@ const HEADER_H = 54;
 const MONTHS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 const DAYS_VISIBLE = 49;
 
-interface Props { bookings: AdminBooking[]; rooms: string[]; bookingRooms: BookingRoom[]; onRefresh: () => void }
+interface Props { slug: string; bookings: AdminBooking[]; rooms: string[]; bookingRooms: BookingRoom[]; onRefresh: () => void }
 
 function toDate(s: string) { return new Date(s + 'T00:00:00'); }
 function isoToday() { return new Date().toISOString().split('T')[0]; }
 // Web bookings store "Suite Jungla (2 personas)" — strip the parenthetical
 function extractRoom(s: string): string { return s.replace(/\s*\([^)]*\)/g, '').trim(); }
 
-export default function GanttView({ bookings, rooms, bookingRooms, onRefresh }: Props) {
+export default function GanttView({ slug, bookings, rooms, bookingRooms, onRefresh }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [offsetDays, setOffsetDays] = useState(-3); // start 3 days before today
   const [modal, setModal] = useState<{ booking?: AdminBooking; defaultCheckin?: string } | null>(null);
@@ -342,6 +342,7 @@ export default function GanttView({ bookings, rooms, bookingRooms, onRefresh }: 
           booking={modal.booking}
           defaultCheckin={modal.defaultCheckin}
           rooms={bookingRooms}
+          slug={slug}
           onClose={() => setModal(null)}
           onSaved={() => { onRefresh(); setModal(null); }}
         />

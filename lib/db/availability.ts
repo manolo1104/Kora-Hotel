@@ -50,18 +50,22 @@ export async function getOccupiedRoomNames(
   checkin: string,
   checkout: string,
   excludeSession?: string | null,
+  excludeBookingId?: string | null,
 ): Promise<string[]> {
   const supabase = createAdminClient();
   const nowIso = new Date().toISOString();
   // Solape (half-open): b.checkin < checkout AND checkin < b.checkout.
   let query = supabase
     .from("blocks")
-    .select("habitacion, checkin, checkout, status, expires_at, hold_session")
+    .select("habitacion, checkin, checkout, status, expires_at, hold_session, booking_id")
     .eq("hotel_id", hotelId)
     .lt("checkin", checkout)
     .gt("checkout", checkin)
     .or(`expires_at.is.null,expires_at.gt.${nowIso}`);
   if (excludeSession) query = query.or(`hold_session.is.null,hold_session.neq.${excludeSession}`);
+  // Al EDITAR una reserva, sus propios blocks no deben contar como ocupación
+  // (si no, la reserva "chocaría" consigo misma al revalidar).
+  if (excludeBookingId) query = query.or(`booking_id.is.null,booking_id.neq.${excludeBookingId}`);
   const { data, error } = await query;
   if (error) throw error;
   const names = new Set<string>();

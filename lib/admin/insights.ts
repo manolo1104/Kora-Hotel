@@ -18,6 +18,12 @@ function parseTotal(raw: string | number): number {
   return parseInt(String(raw).replace(/[^0-9]/g, ''), 10) || 0;
 }
 
+// Unidades que ocupa una reserva (el CSV de habitaciones puede traer varias).
+// Una reserva de 2 unidades cuenta como 2 en la ocupación, no como 1.
+function countUnits(habitaciones: string): number {
+  return String(habitaciones || '').split(',').map((s) => s.trim()).filter(Boolean).length;
+}
+
 function isActive(b: AdminBooking): boolean {
   return b.estado !== 'CANCELADA';
 }
@@ -77,6 +83,8 @@ export interface InsightsData {
   origen: OriginBreakdown[];
   ahorroOTAs: number;
   agentes: AgentSummary;
+  /** Total de cuartos del hotel (para que el cliente no hardcodee "13"). */
+  totalSuites: number;
 }
 
 export function calcInsights(
@@ -89,7 +97,9 @@ export function calcInsights(
   const today = new Date(todayStr + 'T00:00:00');
 
   // ── HOY ─────────────────────────────────────────────────────────────
-  const suitesOcupadasHoy = bookings.filter(b => bookingCoversDate(b, today)).length;
+  const suitesOcupadasHoy = bookings
+    .filter(b => bookingCoversDate(b, today))
+    .reduce((s, b) => s + countUnits(b.habitaciones), 0);
   const pctOcupacion = Math.round((suitesOcupadasHoy / totalSuites) * 100);
 
   const checkins: TodayMovement[] = bookings
@@ -140,7 +150,9 @@ export function calcInsights(
   const DIAS_ES = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
   const forecast7dias: DayForecast[] = Array.from({ length: 7 }, (_, i) => {
     const d = addDays(today, i);
-    const ocupadas = bookings.filter(b => bookingCoversDate(b, d)).length;
+    const ocupadas = bookings
+      .filter(b => bookingCoversDate(b, d))
+      .reduce((s, b) => s + countUnits(b.habitaciones), 0);
     return {
       fecha: toDateStr(d),
       label: i === 0 ? 'Hoy' : i === 1 ? 'Mañana' : DIAS_ES[d.getDay()],
@@ -221,6 +233,7 @@ export function calcInsights(
       emails: { confirmacion: emailConf, preestancia: emailPre, postestancia: emailPost },
       blogs,
     },
+    totalSuites,
   };
 }
 

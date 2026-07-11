@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getActiveHotel } from "@/lib/panel/active-hotel";
 import { getAllBookings, getAgentMetrics } from "@/lib/db/admin";
 import { calcInsights } from "@/lib/admin/insights";
-import { roomNamesOf } from "@/lib/booking";
+import { totalUnits } from "@/lib/booking";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +13,7 @@ export async function GET() {
     getAllBookings(ctx.hotelId),
     getAgentMetrics(ctx.hotelId),
   ]);
-  const totalCuartos = roomNamesOf(ctx.hotel).length || 13;
+  const totalCuartos = totalUnits(ctx.hotel) || 13;
   const data = calcInsights(bookings, agentMetrics, totalCuartos);
   return NextResponse.json(data);
 }

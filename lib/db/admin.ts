@@ -28,8 +28,8 @@ function stripRoomSuffix(name: string): string {
   return name.replace(/\s*\([^)]*\)/g, "").trim();
 }
 
-/** Divide un CSV de habitaciones en nombres limpios. Helper puro. */
-function splitRooms(habitacionesStr: string): string[] {
+/** Divide un CSV de habitaciones en nombres limpios (sin sufijo "(Xp)"). Helper puro. */
+export function splitRooms(habitacionesStr: string): string[] {
   return habitacionesStr
     .split(",")
     .map((r) => stripRoomSuffix(r))
@@ -276,9 +276,13 @@ export async function createManualBooking(
     notas: string;
     anticipo?: number;
   },
+  prefijo?: string | null,
 ): Promise<string> {
   const supabase = createAdminClient();
-  const confirmacion = generarConfirmacion("PE-M");
+  // Prefijo de confirmación por hotel (hotel.prefijo_confirmacion). Si es NULL
+  // (p. ej. Paraíso) generarConfirmacion cae a "KO". Antes estaba fijo en "PE-M"
+  // → todos los hoteles emitían folios con prefijo de Paraíso.
+  const confirmacion = generarConfirmacion(prefijo);
 
   const { data: inserted, error } = await supabase
     .from("bookings")

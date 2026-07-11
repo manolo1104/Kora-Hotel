@@ -31,6 +31,7 @@ import {
   CalendarCheck,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { deriveUnidades } from "@/lib/booking";
 import { AMENIDADES } from "@/lib/amenidades";
 import {
   FUENTES,
@@ -59,6 +60,19 @@ interface Habitacion {
   capacidad?: string;
   fotos?: string[];
   tarifas?: Tarifa[];
+  cantidad?: number | string; // unidades físicas del tipo (default 1)
+  unidades?: string[]; // nombres de cada unidad (solo si cantidad > 1)
+}
+// Temporada tal como se edita en el formulario (valores como string para los
+// inputs; se convierten a números al guardar en extras.temporadas).
+interface TemporadaForm {
+  id: string;
+  nombre: string;
+  desde: string;
+  hasta: string;
+  tipo: "porcentaje" | "fijo";
+  valor: string;
+  minNoches: string;
 }
 
 function slugify(s: string): string {
@@ -215,6 +229,37 @@ export function PanelEditor({
     setAddons((a) => a.filter((_, idx) => idx !== i));
   }
 
+  // Temporadas y tarifas por fecha (extras.temporadas) + recargo de fin de semana
+  // (extras.recargoFinDeSemana). El motor las respeta noche por noche server-side.
+  const [temporadas, setTemporadas] = useState<TemporadaForm[]>([]);
+  const [finSemActivo, setFinSemActivo] = useState(false);
+  const [finSemDias, setFinSemDias] = useState<number[]>([5, 6]);
+  const [finSemTipo, setFinSemTipo] = useState<"porcentaje" | "fijo">("porcentaje");
+  const [finSemValor, setFinSemValor] = useState("");
+  function addTemporada() {
+    setTemporadas((t) => [
+      ...t,
+      {
+        id: Math.random().toString(36).slice(2, 10),
+        nombre: "",
+        desde: "",
+        hasta: "",
+        tipo: "porcentaje",
+        valor: "",
+        minNoches: "",
+      },
+    ]);
+  }
+  function updateTemporada(i: number, campo: keyof TemporadaForm, valor: string) {
+    setTemporadas((t) => t.map((it, idx) => (idx === i ? { ...it, [campo]: valor } : it)));
+  }
+  function removeTemporada(i: number) {
+    setTemporadas((t) => t.filter((_, idx) => idx !== i));
+  }
+  function toggleFinSemDia(d: number) {
+    setFinSemDias((ds) => (ds.includes(d) ? ds.filter((x) => x !== d) : [...ds, d].sort()));
+  }
+
   // Premium (gancho — controlado por nosotros)
   const [marcaOculta, setMarcaOculta] = useState(false);
 
@@ -257,7 +302,25 @@ export function PanelEditor({
         setUbicacion(data.ubicacion ?? "");
         setDescripcion(data.descripcion ?? "");
         setWhatsapp(data.whatsapp ?? "");
-        setHabitaciones(Array.isArray(data.habitaciones) ? data.habitaciones : []);
+        setHabitaciones(
+          (Array.isArray(data.habitaciones) ? data.habitaciones : []).map(
+            (h: Habitacion) => {
+              const cant = Math.max(1, Math.min(50, Math.round(Number(h?.cantidad) || 1)));
+              // Poblar la lista de unidades para que la UI la pueda editar.
+              return cant > 1
+                ? {
+                    ...h,
+                    cantidad: cant,
+                    unidades: deriveUnidades(
+                      String(h?.nombre || "").trim() || "Habitación",
+                      cant,
+                      h?.unidades
+                    ),
+                  }
+                : { ...h, cantidad: cant };
+            }
+          )
+        );
         setFotos(Array.isArray(data.fotos) ? data.fotos : []);
         setPublicado(data.publicado !== false);
         const ex = data.extras ?? {};
@@ -296,6 +359,34 @@ export function PanelEditor({
         setNotifEmail(ex.notificaciones?.email ?? "");
         setAbandonoActivo(ex.notificaciones?.abandono !== false);
         setAddons(Array.isArray(ex.addons) ? ex.addons : []);
+        setTemporadas(
+          Array.isArray(ex.temporadas)
+            ? ex.temporadas.map((t: Record<string, unknown>) => {
+                const aj = (t?.ajuste ?? {}) as Record<string, unknown>;
+                return {
+                  id: typeof t?.id === "string" ? t.id : Math.random().toString(36).slice(2, 10),
+                  nombre: typeof t?.nombre === "string" ? t.nombre : "",
+                  desde: typeof t?.desde === "string" ? t.desde : "",
+                  hasta: typeof t?.hasta === "string" ? t.hasta : "",
+                  tipo: aj.tipo === "fijo" ? "fijo" : "porcentaje",
+                  valor: aj.valor != null ? String(aj.valor) : "",
+                  minNoches: t?.minNoches != null ? String(t.minNoches) : "",
+                };
+              })
+            : []
+        );
+        const rfs = (ex.recargoFinDeSemana ?? null) as Record<string, unknown> | null;
+        if (rfs && typeof rfs === "object") {
+          const aj = (rfs.ajuste ?? {}) as Record<string, unknown>;
+          setFinSemActivo(rfs.activo === true);
+          setFinSemDias(
+            Array.isArray(rfs.dias) && rfs.dias.length
+              ? (rfs.dias as number[])
+              : [5, 6]
+          );
+          setFinSemTipo(aj.tipo === "fijo" ? "fijo" : "porcentaje");
+          setFinSemValor(aj.valor != null ? String(aj.valor) : "");
+        }
         setMarcaOculta(ex.premium?.marcaOculta === true);
         const g = data.guia ?? {};
         setWifi(g.wifi ?? "");
@@ -330,6 +421,30 @@ export function PanelEditor({
   }
   function removeHab(i: number) {
     setHabitaciones((h) => h.filter((_, idx) => idx !== i));
+  }
+  // Cambia la cantidad de unidades del tipo y redimensiona la lista de nombres
+  // (conserva los que ya escribió el hotelero; rellena los nuevos con el default).
+  function updateHabCantidad(i: number, valor: string) {
+    const n = Math.max(1, Math.min(50, Math.round(Number(valor) || 1)));
+    setHabitaciones((h) =>
+      h.map((it, idx) => {
+        if (idx !== i) return it;
+        const nombre = String(it.nombre || "").trim() || "Habitación";
+        const derived = deriveUnidades(nombre, n);
+        const prev = Array.isArray(it.unidades) ? it.unidades : [];
+        const unidades = derived.map((d, u) => (prev[u]?.trim() ? prev[u] : d));
+        return { ...it, cantidad: n, unidades: n > 1 ? unidades : undefined };
+      })
+    );
+  }
+  function updateHabUnidad(i: number, j: number, valor: string) {
+    setHabitaciones((h) =>
+      h.map((it, idx) =>
+        idx === i
+          ? { ...it, unidades: (it.unidades ?? []).map((u, uj) => (uj === j ? valor : u)) }
+          : it
+      )
+    );
   }
 
   function addTarifa(i: number) {
@@ -512,6 +627,21 @@ export function PanelEditor({
       setTab("contenido");
       return;
     }
+    // Los nombres de unidad son la identidad en disponibilidad (blocks): dos
+    // unidades con el mismo nombre se pisarían. Deben ser únicos en todo el hotel.
+    const nombresUnidad = habitaciones
+      .flatMap((h) => {
+        const cant = Math.max(1, Math.min(50, Math.round(Number(h.cantidad) || 1)));
+        return deriveUnidades(String(h.nombre || "").trim() || "Habitación", cant, h.unidades);
+      })
+      .map((u) => u.trim().toLowerCase())
+      .filter(Boolean);
+    const dup = nombresUnidad.find((u, idx) => nombresUnidad.indexOf(u) !== idx);
+    if (dup) {
+      setError("Hay nombres de unidad repetidos. Cada unidad (y tipo) debe tener un nombre único.");
+      setTab("habitaciones");
+      return;
+    }
     setGuardando(true);
     setGuardado(false);
 
@@ -571,6 +701,23 @@ export function PanelEditor({
       addons: addons
         .filter((a) => (a.nombre ?? "").trim())
         .map((a) => ({ nombre: a.nombre.trim(), precio: Number(a.precio) || 0, tipo: a.tipo })),
+      // Temporadas: solo las que tienen fechas y valor. El resolver del motor
+      // (lib/booking/rooms.ts) revalida y clampa al leer, así que aquí basta filtrar.
+      temporadas: temporadas
+        .filter((t) => t.desde && t.hasta && t.valor !== "")
+        .map((t) => ({
+          id: t.id,
+          nombre: t.nombre.trim() || "Temporada",
+          desde: t.desde,
+          hasta: t.hasta,
+          ajuste: { tipo: t.tipo, valor: Number(t.valor) || 0 },
+          ...(Number(t.minNoches) > 0 ? { minNoches: Number(t.minNoches) } : {}),
+        })),
+      recargoFinDeSemana: {
+        activo: finSemActivo,
+        dias: finSemDias,
+        ajuste: { tipo: finSemTipo, valor: Number(finSemValor) || 0 },
+      },
       formasPago,
       idiomas,
       premium: { marcaOculta },
@@ -1236,6 +1383,45 @@ export function PanelEditor({
                   />
                 </div>
 
+                {/* Inventario: cuántas unidades físicas idénticas de este tipo */}
+                <div className="rounded-lg bg-white border border-gray-100 p-3">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <label className="text-xs font-semibold text-kora-text">
+                      Unidades de este tipo
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={50}
+                      className={`${inputCls} !py-2 w-24`}
+                      value={h.cantidad ?? 1}
+                      onChange={(e) => updateHabCantidad(i, e.target.value)}
+                    />
+                    <span className="text-xs text-kora-muted">
+                      cuántos cuartos idénticos de este tipo tienes (1 = uno solo)
+                    </span>
+                  </div>
+                  {Number(h.cantidad ?? 1) > 1 && (
+                    <div className="mt-3 space-y-2">
+                      <p className="text-[11px] text-kora-muted">
+                        Nombre de cada unidad (único; cada uno tendrá su propio
+                        calendario/OTA):
+                      </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {(h.unidades ?? []).map((u, j) => (
+                          <input
+                            key={j}
+                            className={`${inputCls} !py-2`}
+                            value={u}
+                            onChange={(e) => updateHabUnidad(i, j, e.target.value)}
+                            placeholder={`Unidad ${j + 1}`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 <div className="rounded-lg bg-white border border-gray-100 p-3">
                   <p className="text-xs font-semibold text-kora-text mb-2">
                     Precios por número de personas{" "}
@@ -1800,6 +1986,200 @@ export function PanelEditor({
                   recepción. Requiere tener Pagos conectados.
                 </p>
               </div>
+            </div>
+          </div>
+
+          {/* Temporadas y tarifas por fecha */}
+          <div className={`${card} space-y-4`}>
+            <div className="flex items-center gap-2">
+              <CalendarCheck size={18} className="text-kora-primary" />
+              <h2 className="text-lg font-bold text-kora-text">Temporadas y tarifas</h2>
+            </div>
+            <p className="text-sm text-kora-muted">
+              Sube o baja el precio de <strong>todos</strong> tus cuartos en fechas
+              específicas (Semana Santa, diciembre, temporada baja). El ajuste solo
+              aplica en esas noches, tanto en tu motor de reservas como en el bot de
+              WhatsApp.
+            </p>
+
+            <div className="space-y-3">
+              {temporadas.map((t, i) => (
+                <div
+                  key={t.id}
+                  className="rounded-xl border border-gray-100 bg-kora-bg/40 p-4 space-y-3"
+                >
+                  <div className="flex flex-wrap items-end gap-2">
+                    <div className="flex-1 min-w-[140px]">
+                      <label className="block text-[11px] font-semibold text-kora-muted mb-1">
+                        Nombre
+                      </label>
+                      <input
+                        className={inputCls}
+                        value={t.nombre}
+                        onChange={(e) => updateTemporada(i, "nombre", e.target.value)}
+                        placeholder="Ej. Semana Santa"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeTemporada(i)}
+                      className="btn-press w-9 h-9 rounded-lg border border-gray-200 flex items-center justify-center text-red-600 hover:border-red-300"
+                      aria-label="Quitar temporada"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-semibold text-kora-muted mb-1">
+                        Desde
+                      </label>
+                      <input
+                        type="date"
+                        className={inputCls}
+                        value={t.desde}
+                        onChange={(e) => updateTemporada(i, "desde", e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-kora-muted mb-1">
+                        Hasta
+                      </label>
+                      <input
+                        type="date"
+                        className={inputCls}
+                        value={t.hasta}
+                        onChange={(e) => updateTemporada(i, "hasta", e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap items-end gap-2">
+                    <div className="w-44">
+                      <label className="block text-[11px] font-semibold text-kora-muted mb-1">
+                        Ajuste
+                      </label>
+                      <select
+                        className={inputCls}
+                        value={t.tipo}
+                        onChange={(e) => updateTemporada(i, "tipo", e.target.value)}
+                      >
+                        <option value="porcentaje">Porcentaje (+/−%)</option>
+                        <option value="fijo">Precio fijo por noche</option>
+                      </select>
+                    </div>
+                    <div className="w-32">
+                      <label className="block text-[11px] font-semibold text-kora-muted mb-1">
+                        {t.tipo === "fijo" ? "Precio/noche" : "Porcentaje"}
+                      </label>
+                      <input
+                        type="number"
+                        className={inputCls}
+                        value={t.valor}
+                        onChange={(e) => updateTemporada(i, "valor", e.target.value)}
+                        placeholder={t.tipo === "fijo" ? "3000" : "40"}
+                      />
+                    </div>
+                    <div className="w-32">
+                      <label className="block text-[11px] font-semibold text-kora-muted mb-1">
+                        Mín. noches
+                      </label>
+                      <input
+                        type="number"
+                        min={0}
+                        className={inputCls}
+                        value={t.minNoches}
+                        onChange={(e) => updateTemporada(i, "minNoches", e.target.value)}
+                        placeholder="opcional"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-[11px] text-kora-muted">
+                    {t.tipo === "fijo"
+                      ? "Esas noches cuestan exactamente este precio (reemplaza el precio del cuarto)."
+                      : "Ej. 40 = +40% sobre el precio base. Usa un número negativo (−20) para descuento."}
+                  </p>
+                </div>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={addTemporada}
+              className="btn-press inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-gray-200 text-kora-text font-semibold text-sm hover:border-kora-accent transition-colors"
+            >
+              <Plus size={15} /> Agregar temporada
+            </button>
+
+            {/* Recargo de fin de semana */}
+            <div className="pt-4 border-t border-gray-100 space-y-3">
+              <label className="flex items-center gap-2.5 text-sm font-semibold text-kora-text">
+                <input
+                  type="checkbox"
+                  checked={finSemActivo}
+                  onChange={(e) => setFinSemActivo(e.target.checked)}
+                  className="h-4 w-4 accent-kora-primary"
+                />
+                Recargo automático de fin de semana
+              </label>
+              {finSemActivo && (
+                <div className="space-y-3 pl-1">
+                  <div>
+                    <span className="block text-[11px] font-semibold text-kora-muted mb-1.5">
+                      Días con recargo
+                    </span>
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        { d: 5, l: "Viernes" },
+                        { d: 6, l: "Sábado" },
+                        { d: 0, l: "Domingo" },
+                      ].map(({ d, l }) => (
+                        <button
+                          key={d}
+                          type="button"
+                          onClick={() => toggleFinSemDia(d)}
+                          className={`btn-press px-3 py-1.5 rounded-full border text-sm font-semibold transition-colors ${
+                            finSemDias.includes(d)
+                              ? "border-kora-accent bg-kora-accent/10 text-kora-primary"
+                              : "border-gray-200 text-kora-muted hover:border-kora-accent"
+                          }`}
+                        >
+                          {l}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap items-end gap-2">
+                    <div className="w-44">
+                      <label className="block text-[11px] font-semibold text-kora-muted mb-1">
+                        Ajuste
+                      </label>
+                      <select
+                        className={inputCls}
+                        value={finSemTipo}
+                        onChange={(e) => setFinSemTipo(e.target.value as "porcentaje" | "fijo")}
+                      >
+                        <option value="porcentaje">Porcentaje (+%)</option>
+                        <option value="fijo">Precio fijo por noche</option>
+                      </select>
+                    </div>
+                    <div className="w-32">
+                      <label className="block text-[11px] font-semibold text-kora-muted mb-1">
+                        {finSemTipo === "fijo" ? "Precio/noche" : "Porcentaje"}
+                      </label>
+                      <input
+                        type="number"
+                        className={inputCls}
+                        value={finSemValor}
+                        onChange={(e) => setFinSemValor(e.target.value)}
+                        placeholder={finSemTipo === "fijo" ? "2500" : "25"}
+                      />
+                    </div>
+                  </div>
+                  <p className="text-[11px] text-kora-muted">
+                    Se aplica en esos días cuando la fecha NO cae dentro de una
+                    temporada (la temporada manda).
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 

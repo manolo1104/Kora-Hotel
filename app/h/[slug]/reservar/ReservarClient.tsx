@@ -30,6 +30,8 @@ import {
   calcNrfDiscount,
   calcTaxBreakdown,
   formatMXN,
+  type Temporada,
+  type RecargoFinDeSemana,
 } from "@/lib/booking";
 import { t, localeOf, normalizeLang, LANG_KEY, type Lang } from "@/lib/booking/i18n";
 import {
@@ -69,6 +71,8 @@ interface Props {
     ishPct: number;
     weekdayDiscount: number;
     weekdayDiscountUntil?: string;
+    temporadas: Temporada[];
+    recargoFinDeSemana: RecargoFinDeSemana | null;
   };
 }
 
@@ -410,8 +414,10 @@ export default function ReservarClient({
     () => ({
       weekdayDiscount: reglas.weekdayDiscount,
       weekdayDiscountUntil: reglas.weekdayDiscountUntil,
+      temporadas: reglas.temporadas,
+      recargoFinDeSemana: reglas.recargoFinDeSemana ?? undefined,
     }),
-    [reglas.weekdayDiscount, reglas.weekdayDiscountUntil],
+    [reglas.weekdayDiscount, reglas.weekdayDiscountUntil, reglas.temporadas, reglas.recargoFinDeSemana],
   );
   const subtotal = useMemo(
     () => calcCartSubtotal(rooms, cart, checkin, checkout, priceOpts),

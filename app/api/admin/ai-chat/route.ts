@@ -8,7 +8,7 @@ import {
   buildCRM,
 } from "@/lib/db/admin";
 import { calcInsights } from "@/lib/admin/insights";
-import { roomNamesOf } from "@/lib/booking";
+import { totalUnits } from "@/lib/booking";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -23,7 +23,7 @@ export const dynamic = "force-dynamic";
 
 const MODEL = "claude-haiku-4-5";
 const MAX_TOKENS = 2048;
-const TOTAL_SUITES = 13; // mismo dominio que insights.ts y el cliente
+const TOTAL_SUITES = 13; // respaldo si el hotel aún no configura sus cuartos
 const RES_MAX = 250;
 const COT_MAX = 200;
 const HUESP_MAX = 250;
@@ -84,7 +84,7 @@ export async function POST(req: Request) {
   //    las funciones de lib/db/admin ya devuelven [] (no lanzan).
   const hotelId = ctx.hotelId;
   const hotelNombre = ctx.hotel.nombre || "tu hotel";
-  const totalCuartos = roomNamesOf(ctx.hotel).length || TOTAL_SUITES;
+  const totalCuartos = totalUnits(ctx.hotel) || TOTAL_SUITES;
 
   let bookings: Awaited<ReturnType<typeof getAllBookings>> = [];
   let quotes: Awaited<ReturnType<typeof getAllQuotes>> = [];
@@ -190,7 +190,7 @@ MES ACTUAL (${now.toLocaleDateString("es-MX", { month: "long", year: "numeric" }
 - RevPAR: $${insights.mes.revpar.toLocaleString("es-MX")} MXN
 
 PRÓXIMOS 7 DÍAS:
-${insights.forecast7dias.map((d) => `- ${d.label} (${d.fecha}): ${d.ocupadas}/${TOTAL_SUITES} suites (${d.porcentaje}%)`).join("\n")}
+${insights.forecast7dias.map((d) => `- ${d.label} (${d.fecha}): ${d.ocupadas}/${totalCuartos} suites (${d.porcentaje}%)`).join("\n")}
 
 ORIGEN DE RESERVAS (mes actual):
 ${insights.origen.length ? insights.origen.map((o) => `- ${o.label}: ${o.count} reservas ($${o.ingresos.toLocaleString("es-MX")} MXN)`).join("\n") : "- (sin reservas este mes aún)"}

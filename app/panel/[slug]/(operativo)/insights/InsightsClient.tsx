@@ -12,7 +12,6 @@ import styles from './insights.module.css';
 const fmt = (n: number) => `$${n.toLocaleString('es-MX')}`;
 const pct = (n: number) => `${n}%`;
 
-const TOTAL_SUITES = 13;
 const CHAT_STORAGE_KEY = 'kora_insights_chat';
 const MAX_STORED_MSGS = 20;
 
@@ -152,7 +151,7 @@ export default function InsightsClient() {
     );
   }
 
-  const { hoy, mes, forecast7dias, origen, ahorroOTAs, agentes } = data;
+  const { hoy, mes, forecast7dias, origen, ahorroOTAs, agentes, totalSuites } = data;
   const checkins = hoy.movimientos.filter(m => m.tipo === 'checkin');
   const checkouts = hoy.movimientos.filter(m => m.tipo === 'checkout');
 
@@ -181,7 +180,7 @@ export default function InsightsClient() {
         <KpiCard
           icon={<BedDouble size={20} />}
           label="Ocupación hoy"
-          value={`${hoy.suitesOcupadas}/${TOTAL_SUITES}`}
+          value={`${hoy.suitesOcupadas}/${totalSuites}`}
           sub={pct(hoy.porcentajeOcupacion)}
           accent={FOREST}
           bar={hoy.porcentajeOcupacion}
@@ -242,7 +241,7 @@ export default function InsightsClient() {
       <div className={styles.chartRow}>
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>Ocupación próximos 7 días</h2>
-          <ForecastBars data={forecast7dias} />
+          <ForecastBars data={forecast7dias} total={totalSuites} />
           <div className={styles.chartLegend}>
             <span><span className={styles.dot} style={{ background: '#2d7a34' }} /> +80%</span>
             <span><span className={styles.dot} style={{ background: '#52b788' }} /> 50-79%</span>
@@ -380,8 +379,9 @@ export default function InsightsClient() {
 
 // ── Charts (SVG inline, reemplazan recharts) ──────────────────────────────────
 
-// Barras de ocupación próximos 7 días. Mismo dominio [0, 13] y umbrales de color.
-function ForecastBars({ data }: { data: DayForecast[] }) {
+// Barras de ocupación próximos 7 días. La altura usa el % (ya calculado con el
+// total real del hotel en el server); `total` es solo para el tooltip "N/total".
+function ForecastBars({ data, total }: { data: DayForecast[]; total: number }) {
   const W = 480, H = 200;
   const padT = 14, padB = 28, padX = 8;
   const plotH = H - padT - padB;
@@ -394,13 +394,13 @@ function ForecastBars({ data }: { data: DayForecast[] }) {
   return (
     <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} role="img" aria-label="Ocupación próximos 7 días">
       {data.map((d, i) => {
-        const h = (d.ocupadas / TOTAL_SUITES) * plotH;
+        const h = (d.porcentaje / 100) * plotH;
         const x = padX + slot * i + (slot - barW) / 2;
         const y = padT + plotH - h;
         return (
           <g key={i}>
             <rect x={x} y={y} width={barW} height={Math.max(0, h)} rx={4} fill={colorFor(d.porcentaje)}>
-              <title>{`${d.label}: ${d.ocupadas}/${TOTAL_SUITES} suites (${d.porcentaje}%)`}</title>
+              <title>{`${d.label}: ${d.ocupadas}/${total} suites (${d.porcentaje}%)`}</title>
             </rect>
             <text x={x + barW / 2} y={H - padB + 18} textAnchor="middle" fontSize="12" fill="#6b7280" fontFamily="var(--font-jost)">
               {d.label}

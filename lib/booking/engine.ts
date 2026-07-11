@@ -8,7 +8,7 @@
 
 export interface BookingRoom {
   id: number | string;
-  name: string;
+  name: string; // nombre del TIPO (y, si cantidad=1, también su única unidad)
   description?: string;
   price: number;
   priceTiers: Record<number, number>;
@@ -16,6 +16,10 @@ export interface BookingRoom {
   image?: string;
   images?: string[];
   features?: string[];
+  // Inventario: un tipo puede tener N unidades físicas. cantidad=1 (default) =
+  // comportamiento previo. `unidades` son los nombres reales que usan blocks/iCal.
+  cantidad: number;
+  unidades: string[];
 }
 
 // ── Precios ──────────────────────────────────────────────
@@ -30,13 +34,55 @@ export function getRoomBasePrice(room: BookingRoom, guests: number): number {
 }
 
 /**
- * Precio por noche. Por defecto es el precio base. Un hotel puede activar el
- * descuento entre semana (lun–jue) vía `opts`. (En mi-hotel era un -$300 fijo
- * con corte el 15-jun-2026; aquí se vuelve configurable por hotel.)
+ * Ajuste de precio de una temporada o del recargo de fin de semana:
+ * "porcentaje" (+40 / -20 sobre la base) o "fijo" (precio exacto por noche).
+ */
+export interface SeasonAdjustment {
+  tipo: "porcentaje" | "fijo";
+  valor: number;
+}
+
+/**
+ * Temporada de tarifa por rango de fechas. El precio de esas noches sube/baja
+ * según `ajuste`. Aplica IGUAL a todos los cuartos (un +40% sube todos). El
+ * precio por-cuarto llegará con la migración a tipos de habitación.
+ */
+export interface Temporada {
+  id: string;
+  nombre: string;
+  desde: string; // 'YYYY-MM-DD' inclusive
+  hasta: string; // 'YYYY-MM-DD' inclusive
+  ajuste: SeasonAdjustment;
+  minNoches?: number; // mín. de noches si la estancia LLEGA en esta temporada
+}
+
+/** Recargo automático para ciertos días de la semana (p. ej. vie/sáb). */
+export interface RecargoFinDeSemana {
+  activo: boolean;
+  dias: number[]; // getDay(): 0=Dom … 6=Sáb (default vie/sáb = [5,6])
+  ajuste: SeasonAdjustment;
+}
+
+/**
+ * Precio por noche. Por defecto es el precio base. Un hotel puede configurar
+ * (vía `opts`): temporadas por fecha, recargo de fin de semana y/o el descuento
+ * entre semana (lun–jue, comportamiento previo). Precedencia por noche:
+ *   1) temporada que cubra la fecha (gana la primera de la lista),
+ *   2) recargo de fin de semana,
+ *   3) descuento entre semana,
+ *   4) precio base.
  */
 export interface NightPriceOpts {
   weekdayDiscount?: number; // MXN a restar lun–jue; 0 = sin descuento
   weekdayDiscountUntil?: string; // 'YYYY-MM-DD'; a partir de aquí no aplica
+  temporadas?: Temporada[];
+  recargoFinDeSemana?: RecargoFinDeSemana;
+}
+
+/** Aplica un ajuste (porcentaje o fijo) a un precio base. Nunca baja de 0. */
+function applyAdjustment(base: number, adj: SeasonAdjustment): number {
+  if (adj.tipo === "fijo") return Math.max(0, Math.round(adj.valor));
+  return Math.max(0, Math.round(base * (1 + adj.valor / 100)));
 }
 
 export function getRoomNightPrice(
@@ -46,10 +92,26 @@ export function getRoomNightPrice(
   opts: NightPriceOpts = {},
 ): number {
   const base = getRoomBasePrice(room, guests);
-  const desc = opts.weekdayDiscount ?? 0;
-  if (desc <= 0) return base;
   const d = new Date(`${dateStr}T12:00:00`);
   if (isNaN(d.getTime())) return base;
+
+  // 1) Temporada por rango de fechas (comparación de strings ISO: sin TZ).
+  //    Gana la PRIMERA temporada de la lista que cubra la fecha.
+  for (const t of opts.temporadas ?? []) {
+    if (dateStr >= t.desde && dateStr <= t.hasta) {
+      return applyAdjustment(base, t.ajuste);
+    }
+  }
+
+  // 2) Recargo de fin de semana (solo si no cayó en temporada).
+  const rfs = opts.recargoFinDeSemana;
+  if (rfs?.activo && Array.isArray(rfs.dias) && rfs.dias.includes(d.getDay())) {
+    return applyAdjustment(base, rfs.ajuste);
+  }
+
+  // 3) Descuento entre semana (lun–jue, comportamiento previo).
+  const desc = opts.weekdayDiscount ?? 0;
+  if (desc <= 0) return base;
   if (opts.weekdayDiscountUntil && d >= new Date(`${opts.weekdayDiscountUntil}T12:00:00`)) {
     return base;
   }

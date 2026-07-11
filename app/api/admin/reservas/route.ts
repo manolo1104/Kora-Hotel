@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
       total: data.total,
       notas: data.notas,
       anticipo: data.anticipo,
-    });
+    }, ctx.hotel.prefijo_confirmacion);
 
     // TODO loyalty: en Paraíso se llamaba checkAndEnrollLoyalty aquí. Kora aún no
     // tiene módulo de lealtad → se omite.

@@ -61,6 +61,7 @@ export default function CalendarioClient({ slug, initialBookings, rooms, roomPri
 
       {view === 'calendario' && (
         <AvailabilityCalendar
+          slug={slug}
           bookings={bookings}
           rooms={rooms}
           roomPrices={roomPrices}
@@ -70,7 +71,7 @@ export default function CalendarioClient({ slug, initialBookings, rooms, roomPri
       )}
 
       {view === 'gantt' && (
-        <GanttView bookings={bookings} rooms={rooms} bookingRooms={bookingRooms} onRefresh={refresh} />
+        <GanttView slug={slug} bookings={bookings} rooms={rooms} bookingRooms={bookingRooms} onRefresh={refresh} />
       )}
 
       {modal && (
@@ -78,6 +79,7 @@ export default function CalendarioClient({ slug, initialBookings, rooms, roomPri
           booking={modal.booking}
           defaultCheckin={modal.defaultCheckin}
           rooms={bookingRooms}
+          slug={slug}
           onClose={() => setModal(null)}
           onSaved={() => { refresh(); setModal(null); }}
         />

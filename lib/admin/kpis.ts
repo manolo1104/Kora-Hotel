@@ -7,6 +7,12 @@ function parseTotal(raw: string | number): number {
   return parseInt(String(raw).replace(/[^0-9]/g, ''), 10) || 0;
 }
 
+// Unidades que ocupa una reserva (CSV de habitaciones). Una reserva de 2
+// unidades cuenta como 2 noche-cuarto, no 1 (ocupación/ADR/RevPAR correctos).
+function countUnits(habitaciones: string): number {
+  return String(habitaciones || '').split(',').map((s) => s.trim()).filter(Boolean).length;
+}
+
 function daysInMonth(year: number, month: number) {
   return new Date(year, month + 1, 0).getDate();
 }
@@ -26,7 +32,7 @@ function calcNightsForBooking(b: AdminBooking): number {
   return 0;
 }
 
-export function calcKPIs(bookings: AdminBooking[]) {
+export function calcKPIs(bookings: AdminBooking[], totalSuites: number = TOTAL_SUITES) {
   const now = new Date();
   const todayStr = now.toISOString().split('T')[0];
 
@@ -60,12 +66,12 @@ export function calcKPIs(bookings: AdminBooking[]) {
   const ingresosPrevMes = bookingsPrevMes.reduce((s, b) => s + b.total, 0);
   const ingresosYear = bookingsYear.reduce((s, b) => s + b.total, 0);
 
-  const nochesMes = bookingsMes.reduce((s, b) => s + calcNightsForBooking(b), 0);
-  const nochesPrevMes = bookingsPrevMes.reduce((s, b) => s + calcNightsForBooking(b), 0);
-  const nochesDisponiblesMes = TOTAL_SUITES * diasMes;
+  const nochesMes = bookingsMes.reduce((s, b) => s + calcNightsForBooking(b) * countUnits(b.habitaciones), 0);
+  const nochesPrevMes = bookingsPrevMes.reduce((s, b) => s + calcNightsForBooking(b) * countUnits(b.habitaciones), 0);
+  const nochesDisponiblesMes = totalSuites * diasMes;
 
   const ocupacionMes = nochesMes > 0 ? Math.round((nochesMes / nochesDisponiblesMes) * 100) : 0;
-  const ocupacionPrevMes = nochesPrevMes > 0 ? Math.round((nochesPrevMes / (TOTAL_SUITES * daysInMonth(prevMonthStart.getFullYear(), prevMonthStart.getMonth()))) * 100) : 0;
+  const ocupacionPrevMes = nochesPrevMes > 0 ? Math.round((nochesPrevMes / (totalSuites * daysInMonth(prevMonthStart.getFullYear(), prevMonthStart.getMonth()))) * 100) : 0;
 
   const adrMes = nochesMes > 0 ? Math.round(ingresosMes / nochesMes) : 0;
   const revparMes = Math.round((adrMes * ocupacionMes) / 100);

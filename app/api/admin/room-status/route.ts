@@ -7,7 +7,7 @@ import {
   type RoomStatus,
   type RoomStatusType,
 } from "@/lib/db/admin";
-import { roomNamesOf } from "@/lib/booking";
+import { unitNamesOf } from "@/lib/booking";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +28,7 @@ export async function GET() {
     getAllBookings(ctx.hotelId),
   ]);
 
-  const roomNames = roomNamesOf(ctx.hotel);
+  const roomNames = unitNamesOf(ctx.hotel);
 
   // Estado por suite (default DISPONIBLE para cuartos sin fila guardada).
   const bySuite = new Map<string, RoomStatus>();
