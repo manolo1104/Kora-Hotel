@@ -43,8 +43,11 @@ function ClienteDrawer({ cliente, hotelName, onClose }: { cliente: GuestProfile;
           totalReservas: cliente.totalReservas, notas: cliente.notas,
         }),
       });
-      if (res.ok) { setOfferSent(true); setTimeout(() => setOfferSent(false), 4000); }
-      else { const d = await res.json().catch(() => ({})); alert('Error: ' + (d.error || 'No se pudo enviar')); }
+      // Éxito real = HTTP ok Y {ok:true}. Un 200 con {ok:false} NO es enviado
+      // (antes marcaba "✓ enviada" en falso con cualquier 200).
+      const d = await res.json().catch(() => ({}));
+      if (res.ok && d.ok) { setOfferSent(true); setTimeout(() => setOfferSent(false), 4000); }
+      else { alert('Error: ' + (d.error || 'No se pudo enviar')); }
     } finally { setSendingOffer(false); }
   }
 
