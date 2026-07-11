@@ -47,12 +47,59 @@ export const PARAISO_PAQUETES: PaqueteCat[] = [
   { nombre: 'Paquete personalizado', habitacionDefault: 'Jungla',            noches: 2, personas: 2, precio: 0,     descripcion: '' },
 ];
 
-/** Tours ofrecidos por este hotel (vacío si aún no configura los suyos). */
-export function catalogoTours(slug: string): TourCat[] {
+// Forma de extras.cotizaciones (lo que el hotelero configura en el panel).
+export interface CotizacionesExtras {
+  tours?: TourCat[];
+  paquetes?: PaqueteCat[];
+}
+
+const num = (v: unknown, d = 0) => {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : d;
+};
+const s = (v: unknown) => (typeof v === "string" ? v.trim() : "");
+
+/** Normaliza/valida los tours guardados en extras.cotizaciones. */
+export function toursDeExtras(cot: unknown): TourCat[] {
+  const raw = (cot as CotizacionesExtras | null)?.tours;
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((t) => ({ nombre: s((t as TourCat)?.nombre), precio: Math.max(0, num((t as TourCat)?.precio)) }))
+    .filter((t) => t.nombre);
+}
+
+/** Normaliza/valida los paquetes guardados en extras.cotizaciones. */
+export function paquetesDeExtras(cot: unknown): PaqueteCat[] {
+  const raw = (cot as CotizacionesExtras | null)?.paquetes;
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((p) => {
+      const o = p as PaqueteCat;
+      return {
+        nombre: s(o?.nombre),
+        habitacionDefault: s(o?.habitacionDefault),
+        noches: Math.max(1, Math.round(num(o?.noches, 1))),
+        personas: Math.max(1, Math.round(num(o?.personas, 1))),
+        precio: Math.max(0, num(o?.precio)),
+        descripcion: s(o?.descripcion),
+      };
+    })
+    .filter((p) => p.nombre);
+}
+
+/**
+ * Tours ofrecidos por el hotel. Lee de extras.cotizaciones si el hotelero los
+ * configuró; si no, cae al catálogo hardcodeado SOLO para el hotel piloto.
+ */
+export function catalogoTours(slug: string, cot?: unknown): TourCat[] {
+  const propios = toursDeExtras(cot);
+  if (propios.length) return propios;
   return slug === PARAISO_SLUG ? PARAISO_TOURS : [];
 }
 
-/** Paquetes ofrecidos por este hotel (vacío si aún no configura los suyos). */
-export function catalogoPaquetes(slug: string): PaqueteCat[] {
+/** Paquetes ofrecidos por el hotel (extras.cotizaciones → fallback piloto). */
+export function catalogoPaquetes(slug: string, cot?: unknown): PaqueteCat[] {
+  const propios = paquetesDeExtras(cot);
+  if (propios.length) return propios;
   return slug === PARAISO_SLUG ? PARAISO_PAQUETES : [];
 }

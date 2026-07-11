@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { X, Loader2, AlertTriangle, CheckCircle, Plus, MessageSquare, Mail, Download, Pencil } from 'lucide-react';
 import type { AdminBooking } from '@/lib/admin/sheets-admin';
 import { getRoomBasePrice, type BookingRoom } from '@/lib/booking';
-import { catalogoTours, catalogoPaquetes } from '@/lib/admin/cotizaciones-catalogo';
+import { type TourCat, type PaqueteCat } from '@/lib/admin/cotizaciones-catalogo';
 import type { TourItem } from '@/lib/booking-html';
 import type { PaqueteItem } from '@/app/panel/[slug]/(operativo)/cotizaciones/CotizacionesClient';
 import styles from './Modal.module.css';
@@ -138,10 +138,24 @@ export default function ReservationModal({ booking, rooms, slug, defaultCheckin,
   // Lista las UNIDADES físicas (no los tipos): un tipo con cantidad N aporta sus
   // N unidades. Así el hotelero elige la unidad exacta y no sobrevende un tipo.
   const SUITES = rooms.flatMap(r => r.unidades);
-  // Catálogo de tours/paquetes POR HOTEL (antes hardcodeado a Paraíso). Vacío
-  // para hoteles que no lo configuran → las secciones se ocultan.
-  const tours = catalogoTours(slug);
-  const paquetes = catalogoPaquetes(slug);
+  // Catálogo de tours/paquetes POR HOTEL desde /api/admin/catalogo (extras.cotizaciones).
+  // Vacío para hoteles que no lo configuran → las secciones se ocultan.
+  const [tours, setTours] = useState<TourCat[]>([]);
+  const [paquetes, setPaquetes] = useState<PaqueteCat[]>([]);
+  useEffect(() => {
+    let cancel = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/admin/catalogo');
+        if (!res.ok) return;
+        const d = await res.json();
+        if (cancel) return;
+        setTours(Array.isArray(d.tours) ? d.tours : []);
+        setPaquetes(Array.isArray(d.paquetes) ? d.paquetes : []);
+      } catch { /* sin catálogo */ }
+    })();
+    return () => { cancel = true; };
+  }, [slug]);
   const defaultSuite = (defaultRoom && SUITES.includes(defaultRoom)) ? defaultRoom : (SUITES[3] ?? SUITES[0] ?? '');
 
   const [form, setForm] = useState({

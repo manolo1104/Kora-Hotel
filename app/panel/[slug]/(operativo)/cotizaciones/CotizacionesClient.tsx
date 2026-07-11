@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Plus, Send, MessageSquare, RefreshCw, Loader2, X, Download, Pencil, Trash2, ChevronDown, ChevronUp, Search } from 'lucide-react';
 import { buildBookingHtml } from '@/lib/booking-html';
 import type { TourItem } from '@/lib/booking-html';
 import type { AdminQuote } from '@/lib/admin/sheets-admin';
 import type { BookingRoom } from '@/lib/booking';
-import { catalogoTours, catalogoPaquetes, type TourCat, type PaqueteCat } from '@/lib/admin/cotizaciones-catalogo';
+import { type TourCat, type PaqueteCat } from '@/lib/admin/cotizaciones-catalogo';
 import styles from './cotizaciones.module.css';
 
 // NOTA multi-tenant: ya NO existe BOOKING_ROOMS global. La lista de cuartos llega
@@ -787,11 +787,25 @@ function EditQuoteModal({ quote, rooms, tours, paquetes, onClose, onSaved }: {
 }
 
 export default function CotizacionesClient({ initialQuotes, rooms, slug }: Props) {
-  // Catálogo de tours/paquetes POR HOTEL (antes hardcodeado a Paraíso, fugaba a
-  // otros tenants). Vacío mientras el hotel no configure el suyo → las secciones
-  // se ocultan en ambos modales.
-  const tours = useMemo(() => catalogoTours(slug), [slug]);
-  const paquetes = useMemo(() => catalogoPaquetes(slug), [slug]);
+  // Catálogo de tours/paquetes POR HOTEL, desde /api/admin/catalogo (lee de
+  // extras.cotizaciones que el hotelero edita en el panel). Vacío mientras no
+  // configure el suyo → las secciones se ocultan en ambos modales.
+  const [tours, setTours] = useState<TourCat[]>([]);
+  const [paquetes, setPaquetes] = useState<PaqueteCat[]>([]);
+  useEffect(() => {
+    let cancel = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/admin/catalogo');
+        if (!res.ok) return;
+        const d = await res.json();
+        if (cancel) return;
+        setTours(Array.isArray(d.tours) ? d.tours : []);
+        setPaquetes(Array.isArray(d.paquetes) ? d.paquetes : []);
+      } catch { /* sin catálogo: secciones ocultas */ }
+    })();
+    return () => { cancel = true; };
+  }, [slug]);
   const SUITES = useMemo(() => rooms.map(r => r.name), [rooms]);
   const [quotes, setQuotes] = useState(initialQuotes);
   const [showModal, setShowModal] = useState(false);

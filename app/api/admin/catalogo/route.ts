@@ -1,0 +1,18 @@
+import { NextResponse } from "next/server";
+import { getActiveHotel } from "@/lib/panel/active-hotel";
+import { catalogoTours, catalogoPaquetes } from "@/lib/admin/cotizaciones-catalogo";
+
+export const dynamic = "force-dynamic";
+
+// Catálogo de tours y paquetes del hotel activo (desde extras.cotizaciones, con
+// fallback al catálogo del hotel piloto). Lo consumen CotizacionesClient y
+// ReservationModal para no depender de un hardcode por slug.
+export async function GET() {
+  const ctx = await getActiveHotel();
+  if (!ctx) return NextResponse.json({ error: "no-auth" }, { status: 401 });
+  const cot = (ctx.hotel.extras as Record<string, unknown> | null)?.cotizaciones;
+  return NextResponse.json({
+    tours: catalogoTours(ctx.hotel.slug, cot),
+    paquetes: catalogoPaquetes(ctx.hotel.slug, cot),
+  });
+}

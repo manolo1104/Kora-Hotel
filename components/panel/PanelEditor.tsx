@@ -65,6 +65,15 @@ interface Habitacion {
   cantidad?: number | string; // unidades físicas del tipo (default 1)
   unidades?: string[]; // nombres de cada unidad (solo si cantidad > 1)
 }
+// Paquete de cotización tal como se edita (números como string para los inputs).
+interface PaqueteForm {
+  nombre: string;
+  habitacionDefault: string;
+  noches: string;
+  personas: string;
+  precio: string;
+  descripcion: string;
+}
 // Temporada tal como se edita en el formulario (valores como string para los
 // inputs; se convierten a números al guardar en extras.temporadas).
 interface TemporadaForm {
@@ -260,6 +269,32 @@ export function PanelEditor({
     setAddons((a) => a.filter((_, idx) => idx !== i));
   }
 
+  // Catálogo de Cotizaciones (extras.cotizaciones): paquetes y tours que el
+  // hotelero arma para la herramienta de cotizaciones y el alta manual.
+  const [paquetesCat, setPaquetesCat] = useState<PaqueteForm[]>([]);
+  const [toursCat, setToursCat] = useState<{ nombre: string; precio: string }[]>([]);
+  function addPaquete() {
+    setPaquetesCat((p) => [
+      ...p,
+      { nombre: "", habitacionDefault: "", noches: "2", personas: "2", precio: "", descripcion: "" },
+    ]);
+  }
+  function updatePaquete(i: number, campo: keyof PaqueteForm, valor: string) {
+    setPaquetesCat((p) => p.map((it, idx) => (idx === i ? { ...it, [campo]: valor } : it)));
+  }
+  function removePaquete(i: number) {
+    setPaquetesCat((p) => p.filter((_, idx) => idx !== i));
+  }
+  function addTourCat() {
+    setToursCat((t) => [...t, { nombre: "", precio: "" }]);
+  }
+  function updateTourCat(i: number, campo: "nombre" | "precio", valor: string) {
+    setToursCat((t) => t.map((it, idx) => (idx === i ? { ...it, [campo]: valor } : it)));
+  }
+  function removeTourCat(i: number) {
+    setToursCat((t) => t.filter((_, idx) => idx !== i));
+  }
+
   // Temporadas y tarifas por fecha (extras.temporadas) + recargo de fin de semana
   // (extras.recargoFinDeSemana). El motor las respeta noche por noche server-side.
   const [temporadas, setTemporadas] = useState<TemporadaForm[]>([]);
@@ -304,6 +339,8 @@ export function PanelEditor({
 
   const [subiendo, setSubiendo] = useState(false);
   const [subiendoHab, setSubiendoHab] = useState<number | null>(null);
+  const [genDescIdx, setGenDescIdx] = useState<number | null>(null); // habitación cuya descripción se está generando con IA
+  const [tonoDesc, setTonoDesc] = useState("evocadora"); // tono elegido para la descripción con IA
   const [guardando, setGuardando] = useState(false);
   const [guardado, setGuardado] = useState(false);
   const [error, setError] = useState("");
@@ -390,6 +427,23 @@ export function PanelEditor({
         setNotifEmail(ex.notificaciones?.email ?? "");
         setAbandonoActivo(ex.notificaciones?.abandono !== false);
         setAddons(Array.isArray(ex.addons) ? ex.addons : []);
+        const cot = (ex.cotizaciones ?? {}) as Record<string, unknown>;
+        setPaquetesCat(
+          (Array.isArray(cot.paquetes) ? cot.paquetes : []).map((p: Record<string, unknown>) => ({
+            nombre: String(p?.nombre ?? ""),
+            habitacionDefault: String(p?.habitacionDefault ?? ""),
+            noches: String(p?.noches ?? 2),
+            personas: String(p?.personas ?? 2),
+            precio: String(p?.precio ?? ""),
+            descripcion: String(p?.descripcion ?? ""),
+          }))
+        );
+        setToursCat(
+          (Array.isArray(cot.tours) ? cot.tours : []).map((t: Record<string, unknown>) => ({
+            nombre: String(t?.nombre ?? ""),
+            precio: String(t?.precio ?? ""),
+          }))
+        );
         setTemporadas(
           Array.isArray(ex.temporadas)
             ? ex.temporadas.map((t: Record<string, unknown>) => {
@@ -509,6 +563,41 @@ export function PanelEditor({
           : it
       )
     );
+  }
+
+  // Genera la descripción de la habitación i con IA (según nombre, capacidad,
+  // features y el tono elegido) y la mete en el campo de descripción.
+  async function generarDescripcion(i: number) {
+    if (genDescIdx !== null) return;
+    const h = habitaciones[i];
+    if (!h?.nombre?.trim()) {
+      setError("Ponle primero un nombre a la habitación para generar su descripción.");
+      return;
+    }
+    setGenDescIdx(i);
+    setError("");
+    try {
+      const res = await fetch("/api/admin/room-description", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nombre: h.nombre,
+          capacidad: h.capacidad,
+          features: h.features ?? [],
+          tono: tonoDesc,
+        }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (res.ok && d.texto) {
+        updateHab(i, "descripcion", d.texto);
+      } else {
+        setError(d.error || "No se pudo generar la descripción.");
+      }
+    } catch {
+      setError("No se pudo generar la descripción. Revisa tu conexión.");
+    } finally {
+      setGenDescIdx(null);
+    }
   }
 
   // Activa/desactiva una característica (feature) de la habitación i.
@@ -750,6 +839,22 @@ export function PanelEditor({
       addons: addons
         .filter((a) => (a.nombre ?? "").trim())
         .map((a) => ({ nombre: a.nombre.trim(), precio: Number(a.precio) || 0, tipo: a.tipo })),
+      // Catálogo de Cotizaciones (paquetes + tours). El resolver revalida al leer.
+      cotizaciones: {
+        paquetes: paquetesCat
+          .filter((p) => p.nombre.trim())
+          .map((p) => ({
+            nombre: p.nombre.trim(),
+            habitacionDefault: p.habitacionDefault.trim(),
+            noches: Math.max(1, Math.round(Number(p.noches) || 1)),
+            personas: Math.max(1, Math.round(Number(p.personas) || 1)),
+            precio: Math.max(0, Number(p.precio) || 0),
+            descripcion: p.descripcion.trim(),
+          })),
+        tours: toursCat
+          .filter((t) => t.nombre.trim())
+          .map((t) => ({ nombre: t.nombre.trim(), precio: Math.max(0, Number(t.precio) || 0) })),
+      },
       // Temporadas: solo las que tienen fechas y valor. El resolver del motor
       // (lib/booking/rooms.ts) revalida y clampa al leer, así que aquí basta filtrar.
       temporadas: temporadas
@@ -1416,12 +1521,42 @@ export function PanelEditor({
                     inputMode="numeric"
                   />
                 </div>
-                <input
-                  className={inputCls}
-                  value={h.descripcion}
-                  onChange={(e) => updateHab(i, "descripcion", e.target.value)}
-                  placeholder="Breve descripción (opcional)"
-                />
+                <div className="space-y-2">
+                  <textarea
+                    className={`${inputCls} min-h-[70px] resize-y`}
+                    value={h.descripcion}
+                    onChange={(e) => updateHab(i, "descripcion", e.target.value)}
+                    placeholder="Breve descripción (opcional)"
+                    rows={2}
+                  />
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-[11px] text-kora-muted">Descripción con IA — tono:</span>
+                    <select
+                      className="text-xs rounded-lg border border-gray-200 px-2 py-1.5 text-kora-text bg-white focus:outline-none focus:ring-2 focus:ring-kora-accent"
+                      value={tonoDesc}
+                      onChange={(e) => setTonoDesc(e.target.value)}
+                    >
+                      <option value="evocadora">Evocadora</option>
+                      <option value="emotiva">Emotiva</option>
+                      <option value="vender">Para vender</option>
+                      <option value="sencilla">Sencilla</option>
+                      <option value="moderna">Moderna</option>
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() => generarDescripcion(i)}
+                      disabled={genDescIdx !== null}
+                      className="btn-press inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-kora-accent bg-kora-accent/10 text-kora-primary text-xs font-semibold hover:bg-kora-accent/20 transition-colors disabled:opacity-60"
+                    >
+                      {genDescIdx === i ? (
+                        <Loader2 size={13} className="animate-spin" />
+                      ) : (
+                        <Sparkles size={13} />
+                      )}
+                      {genDescIdx === i ? "Generando…" : "Generar con IA"}
+                    </button>
+                  </div>
+                </div>
                 <div className="sm:max-w-[50%]">
                   <input
                     className={inputCls}
@@ -2473,6 +2608,99 @@ export function PanelEditor({
             >
               <Plus size={15} /> Agregar extra
             </button>
+          </div>
+
+          {/* Paquetes y tours (catálogo de Cotizaciones → extras.cotizaciones) */}
+          <div className={`${card} space-y-4`}>
+            <div className="flex items-center gap-2">
+              <FileText size={18} className="text-kora-primary" />
+              <h2 className="text-lg font-bold text-kora-text">Paquetes y tours</h2>
+            </div>
+            <p className="text-sm text-kora-muted">
+              Paquetes (ej. “Noche de Selva”) y tours que aparecen en tu herramienta de
+              Cotizaciones y en el alta manual de reservas.
+            </p>
+
+            {/* Paquetes */}
+            <div className="space-y-3">
+              <p className="text-xs font-semibold text-kora-text">Paquetes</p>
+              {paquetesCat.map((p, i) => (
+                <div key={i} className="rounded-xl border border-gray-100 bg-kora-bg/40 p-3 space-y-2">
+                  <div className="flex flex-wrap gap-2">
+                    <input
+                      className={`${inputCls} flex-1 min-w-[160px]`}
+                      value={p.nombre}
+                      onChange={(e) => updatePaquete(i, "nombre", e.target.value)}
+                      placeholder="Nombre (ej. Noche de Selva)"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removePaquete(i)}
+                      className="btn-press w-9 h-9 rounded-lg border border-gray-200 flex items-center justify-center text-red-600 hover:border-red-300"
+                      aria-label="Quitar paquete"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    <input className={`${inputCls} !py-2`} value={p.noches} onChange={(e) => updatePaquete(i, "noches", e.target.value)} placeholder="Noches" inputMode="numeric" />
+                    <input className={`${inputCls} !py-2`} value={p.personas} onChange={(e) => updatePaquete(i, "personas", e.target.value)} placeholder="Personas" inputMode="numeric" />
+                    <input className={`${inputCls} !py-2`} value={p.precio} onChange={(e) => updatePaquete(i, "precio", e.target.value)} placeholder="Precio" inputMode="numeric" />
+                    <input className={`${inputCls} !py-2`} value={p.habitacionDefault} onChange={(e) => updatePaquete(i, "habitacionDefault", e.target.value)} placeholder="Habitación (opc.)" />
+                  </div>
+                  <input
+                    className={`${inputCls} !py-2`}
+                    value={p.descripcion}
+                    onChange={(e) => updatePaquete(i, "descripcion", e.target.value)}
+                    placeholder="Qué incluye (ej. 2 noches · spa · 2 desayunos)"
+                  />
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={addPaquete}
+                className="btn-press inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-gray-200 text-kora-text font-semibold text-sm hover:border-kora-accent transition-colors"
+              >
+                <Plus size={15} /> Agregar paquete
+              </button>
+            </div>
+
+            {/* Tours */}
+            <div className="space-y-3 pt-3 border-t border-gray-100">
+              <p className="text-xs font-semibold text-kora-text">Tours</p>
+              {toursCat.map((t, i) => (
+                <div key={i} className="flex flex-wrap items-center gap-2 rounded-xl border border-gray-100 bg-kora-bg/40 p-3">
+                  <input
+                    className={`${inputCls} !py-2 flex-1 min-w-[160px]`}
+                    value={t.nombre}
+                    onChange={(e) => updateTourCat(i, "nombre", e.target.value)}
+                    placeholder="Nombre del tour"
+                  />
+                  <input
+                    className={`${inputCls} !py-2 w-28`}
+                    value={t.precio}
+                    onChange={(e) => updateTourCat(i, "precio", e.target.value)}
+                    placeholder="Precio/pax"
+                    inputMode="numeric"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeTourCat(i)}
+                    className="btn-press w-9 h-9 rounded-lg border border-gray-200 flex items-center justify-center text-red-600 hover:border-red-300"
+                    aria-label="Quitar tour"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={addTourCat}
+                className="btn-press inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-gray-200 text-kora-text font-semibold text-sm hover:border-kora-accent transition-colors"
+              >
+                <Plus size={15} /> Agregar tour
+              </button>
+            </div>
           </div>
 
           {/* Políticas / pago / idiomas */}
