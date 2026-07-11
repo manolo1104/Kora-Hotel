@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { Plus, Send, MessageSquare, RefreshCw, Loader2, X, Download, Pencil, Trash2, ChevronDown, ChevronUp, Search } from 'lucide-react';
+import { Plus, Send, MessageSquare, RefreshCw, Loader2, X, Download, Pencil, Trash2, ChevronDown, ChevronUp, Search, CalendarCheck } from 'lucide-react';
 import { buildBookingHtml } from '@/lib/booking-html';
 import type { TourItem } from '@/lib/booking-html';
 import type { AdminQuote } from '@/lib/admin/sheets-admin';
@@ -811,6 +811,7 @@ export default function CotizacionesClient({ initialQuotes, rooms, slug }: Props
   const [showModal, setShowModal] = useState(false);
   const [editQuote, setEditQuote] = useState<AdminQuote | null>(null);
   const [sendingId, setSendingId] = useState<string | null>(null);
+  const [convertingId, setConvertingId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [estadoFilter, setEstadoFilter] = useState('');
   const [suiteFilter, setSuiteFilter] = useState('');
@@ -848,6 +849,18 @@ export default function CotizacionesClient({ initialQuotes, rooms, slug }: Props
       if (res.ok) { alert(`✅ Email enviado a ${q.email}`); refresh(); }
       else { const d = await res.json().catch(() => ({})); alert('Error al enviar email' + (d.error ? `: ${d.error}` : '')); }
     } finally { setSendingId(null); }
+  }
+
+  async function convertir(q: AdminQuote) {
+    if (q.estado === 'ACEPTADA') return alert('Esta cotización ya se convirtió en reserva.');
+    if (!confirm(`¿Convertir la cotización ${q.id} en reserva?\n\nSe creará la reserva de ${q.cliente || 'el cliente'} (${fmtDate(q.checkin)} → ${fmtDate(q.checkout)}) y se apartarán los cuartos.`)) return;
+    setConvertingId(q.id);
+    try {
+      const res = await fetch(`/api/admin/cotizaciones/${q.id}/convertir`, { method: 'POST' });
+      const d = await res.json().catch(() => ({}));
+      if (res.ok && d.ok) { alert(`✅ Reserva creada con folio ${d.confirmacion}`); refresh(); }
+      else { alert('No se pudo convertir' + (d.error ? `: ${d.error}` : '')); }
+    } finally { setConvertingId(null); }
   }
 
   async function deleteQuote(q: AdminQuote) {
@@ -967,6 +980,15 @@ export default function CotizacionesClient({ initialQuotes, rooms, slug }: Props
             <div className={styles.mobileCardDates}>{fmtDate(q.checkin)} → {fmtDate(q.checkout)} · {q.noches}n</div>
             <div className={styles.mobileCardTotal}>${q.precioTotal.toLocaleString('es-MX')} MXN</div>
             <div className={styles.mobileCardActions}>
+              <button
+                className={`${styles.mobileCardBtn} ${styles.mobileCardBtnSend}`}
+                onClick={() => convertir(q)}
+                disabled={convertingId === q.id || q.estado === 'ACEPTADA'}
+                title="Convertir en reserva"
+                style={{ background: q.estado === 'ACEPTADA' ? undefined : '#1B4332', color: '#fff' }}
+              >
+                {convertingId === q.id ? <Loader2 size={12} /> : <CalendarCheck size={12} />}
+              </button>
               <button className={`${styles.mobileCardBtn} ${styles.mobileCardBtnSend}`} onClick={() => sendEmail(q)} disabled={sendingId === q.id}>
                 {sendingId === q.id ? <Loader2 size={12} /> : <Send size={12} />}
               </button>
@@ -1023,6 +1045,15 @@ export default function CotizacionesClient({ initialQuotes, rooms, slug }: Props
                 </td>
                 <td>
                   <div className={styles.sendActions}>
+                    <button
+                      className={styles.sendBtn}
+                      onClick={() => convertir(q)}
+                      disabled={convertingId === q.id || q.estado === 'ACEPTADA'}
+                      title={q.estado === 'ACEPTADA' ? 'Ya convertida en reserva' : 'Convertir en reserva'}
+                      style={{ background: q.estado === 'ACEPTADA' ? undefined : '#1B4332', color: '#fff' }}
+                    >
+                      {convertingId === q.id ? <Loader2 size={14} className={styles.spin} /> : <CalendarCheck size={14} />}
+                    </button>
                     <button className={styles.sendBtn} onClick={() => sendEmail(q)} disabled={sendingId === q.id} title="Enviar por email">
                       {sendingId === q.id ? <Loader2 size={14} className={styles.spin} /> : <Send size={14} />}
                     </button>

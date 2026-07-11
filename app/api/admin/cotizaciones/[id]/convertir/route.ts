@@ -1,0 +1,90 @@
+import { NextResponse } from "next/server";
+import { getActiveHotel } from "@/lib/panel/active-hotel";
+import { getQuote, updateQuoteStatus } from "@/lib/db/admin";
+import { createBookingAtomic, generarConfirmacion } from "@/lib/db/bookings";
+import { bookingRules } from "@/lib/booking";
+import { calcDepositAmount } from "@/lib/booking/engine";
+
+export const dynamic = "force-dynamic";
+
+// Convierte una COTIZACIÓN en RESERVA conservando su info. Usa el candado atómico
+// (createBookingAtomic) para no sobrevender, genera un folio de reserva nuevo y
+// marca la cotización ACEPTADA. Idempotente-ish: si ya está ACEPTADA, no repite.
+
+/** Huéspedes totales del JSON ||HABS|| de la cotización (fallback suites*2). */
+function huespedesDeNotas(notas: string, nSuites: number): number {
+  const idx = notas.indexOf("||HABS||");
+  if (idx !== -1) {
+    try {
+      const habs = JSON.parse(notas.slice(idx + 8)) as Array<{ huespedes?: number }>;
+      const suma = habs.reduce((s, h) => s + (Number(h?.huespedes) || 0), 0);
+      if (suma > 0) return suma;
+    } catch {
+      /* cae al fallback */
+    }
+  }
+  return Math.max(1, nSuites * 2);
+}
+
+export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const ctx = await getActiveHotel();
+  if (!ctx) return NextResponse.json({ error: "no-auth" }, { status: 401 });
+  if (ctx.rol !== "dueno" && ctx.rol !== "encargada" && ctx.rol !== "recepcion") {
+    return NextResponse.json({ error: "Sin permiso para crear reservas." }, { status: 403 });
+  }
+
+  const { id } = await params;
+  const q = await getQuote(ctx.hotelId, id);
+  if (!q) return NextResponse.json({ error: "Cotización no encontrada." }, { status: 404 });
+  if (q.estado === "ACEPTADA") {
+    return NextResponse.json({ error: "Esta cotización ya se convirtió en reserva." }, { status: 409 });
+  }
+  if (!q.checkin || !q.checkout || new Date(q.checkout) <= new Date(q.checkin)) {
+    return NextResponse.json({ error: "La cotización no tiene fechas válidas." }, { status: 400 });
+  }
+
+  // Cuartos: mismo saneo que las rutas de email (quita el sufijo "(Xp)").
+  const habitaciones = q.suite
+    .split(",")
+    .map((s) => s.replace(/\s*\([^)]*\)/g, "").trim())
+    .filter(Boolean);
+  if (!habitaciones.length) {
+    return NextResponse.json({ error: "La cotización no tiene habitaciones." }, { status: 400 });
+  }
+
+  const rules = bookingRules(ctx.hotel);
+  const anticipo = calcDepositAmount(q.precioTotal, q.noches || 1, {
+    pct: rules.anticipoPct,
+    minNights: rules.anticipoMinNoches,
+  });
+  const confirmacion = generarConfirmacion(ctx.hotel.prefijo_confirmacion);
+
+  const res = await createBookingAtomic(ctx.hotelId, {
+    habitaciones,
+    checkin: q.checkin,
+    checkout: q.checkout,
+    confirmacion,
+    cliente: q.cliente || null,
+    telefono: q.telefono || null,
+    email: q.email || null,
+    total: q.precioTotal,
+    anticipo,
+    huespedes: huespedesDeNotas(q.notas || "", habitaciones.length),
+    estado: "MANUAL",
+    origen: "cotizacion",
+    notas: q.notas || null, // conserva ||TOURS||/||PAQUETES||/||HABS|| para render/email
+  });
+
+  if (!res.ok) {
+    if (res.unavailable) {
+      return NextResponse.json(
+        { error: "Uno o más cuartos ya no están disponibles en esas fechas." },
+        { status: 409 },
+      );
+    }
+    return NextResponse.json({ error: "No se pudo crear la reserva. Intenta de nuevo." }, { status: 500 });
+  }
+
+  await updateQuoteStatus(ctx.hotelId, q.id, "ACEPTADA");
+  return NextResponse.json({ ok: true, confirmacion, bookingId: res.bookingId });
+}

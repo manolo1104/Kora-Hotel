@@ -92,37 +92,63 @@ export async function POST(req: NextRequest) {
   // onboarding (el wizard de configuración manda {returnTo:"onboarding"}).
   const body = (await req.json().catch(() => ({}))) as { returnTo?: string };
   const volverA = body.returnTo === "onboarding" ? "onboarding" : "pagos";
+  const tenant = ctx; // capturado no-nulo para las funciones anidadas
 
-  try {
-    let accountId = ctx.hotel.stripe_account_id;
-    if (!accountId) {
-      const account = await stripe.accounts.create({
-        type: "express",
-        country: "MX",
-        email: undefined,
-        business_type: "individual",
-        capabilities: {
-          card_payments: { requested: true },
-          transfers: { requested: true },
-          oxxo_payments: { requested: true }, // pagos en efectivo vía OXXO
-        },
-        metadata: { hotel_id: ctx.hotelId, slug: ctx.hotel.slug },
-      });
-      accountId = account.id;
-      await admin.from("hoteles").update({ stripe_account_id: accountId }).eq("id", ctx.hotelId);
-      await upsertConnectState(ctx.hotelId, deriveConnectState(account));
-    }
+  // Crea una cuenta Express nueva y la guarda en el hotel.
+  async function crearCuentaNueva(): Promise<string> {
+    const account = await stripe.accounts.create({
+      type: "express",
+      country: "MX",
+      business_type: "individual",
+      capabilities: {
+        card_payments: { requested: true },
+        transfers: { requested: true },
+        oxxo_payments: { requested: true }, // pagos en efectivo vía OXXO
+      },
+      metadata: { hotel_id: tenant.hotelId, slug: tenant.hotel.slug },
+    });
+    await admin.from("hoteles").update({ stripe_account_id: account.id }).eq("id", tenant.hotelId);
+    await upsertConnectState(tenant.hotelId, deriveConnectState(account));
+    return account.id;
+  }
 
-    const link = await stripe.accountLinks.create({
-      account: accountId,
-      refresh_url: `${origin}/panel/${ctx.hotel.slug}/${volverA}?refresh=1`,
-      return_url: `${origin}/panel/${ctx.hotel.slug}/${volverA}?ok=1`,
+  const crearLink = (account: string) =>
+    stripe.accountLinks.create({
+      account,
+      refresh_url: `${origin}/panel/${tenant.hotel.slug}/${volverA}?refresh=1`,
+      return_url: `${origin}/panel/${tenant.hotel.slug}/${volverA}?ok=1`,
       type: "account_onboarding",
     });
 
+  try {
+    let accountId = tenant.hotel.stripe_account_id || (await crearCuentaNueva());
+
+    let link;
+    try {
+      link = await crearLink(accountId);
+    } catch (e: unknown) {
+      // La cuenta guardada no existe con la llave actual (típico: se creó en modo
+      // PRUEBA y ahora corres en VIVO → "No such account"). Se limpia y se crea una
+      // nueva, en vez de fallar para siempre.
+      const err = e as { code?: string; message?: string };
+      const noExiste =
+        err?.code === "resource_missing" ||
+        /no such account|does not exist|account.*not found/i.test(err?.message || "");
+      if (!noExiste) throw e;
+      console.warn("connect: cuenta guardada inválida, recreando:", err?.message);
+      accountId = await crearCuentaNueva();
+      link = await crearLink(accountId);
+    }
+
     return NextResponse.json({ url: link.url });
-  } catch (e) {
+  } catch (e: unknown) {
     console.error("connect onboarding error:", e);
-    return NextResponse.json({ error: "No se pudo iniciar la conexión de pagos." }, { status: 500 });
+    const msg = (e as { message?: string })?.message;
+    // Se propaga el mensaje real de Stripe (esta pantalla es solo del dueño), que
+    // suele ser accionable ("completa el perfil de tu plataforma", etc.).
+    return NextResponse.json(
+      { error: msg ? `No se pudo iniciar la conexión de pagos: ${msg}` : "No se pudo iniciar la conexión de pagos." },
+      { status: 500 },
+    );
   }
 }
