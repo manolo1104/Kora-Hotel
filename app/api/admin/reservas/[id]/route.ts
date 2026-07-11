@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getActiveHotel } from '@/lib/panel/active-hotel';
-import { getAllBookings, updateBooking, cancelBooking } from '@/lib/db/admin';
+import { getAllBookings, updateBooking, cancelBooking, splitRooms } from '@/lib/db/admin';
+import { getOccupiedRoomNames } from '@/lib/db/availability';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,6 +27,40 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const newCheckout = raw.checkout ?? booking.checkout;
   if ((raw.checkin || raw.checkout) && newCheckin && newCheckout && newCheckout <= newCheckin) {
     return NextResponse.json({ error: 'La salida debe ser posterior a la llegada.' }, { status: 400 });
+  }
+
+  // ANTI-SOBREVENTA AL EDITAR: si cambian fechas o cuartos (y la reserva no está
+  // cancelada), revalidar disponibilidad ANTES de aplicar. updateBooking borra y
+  // re-crea los blocks sin revisar solape, así que sin este chequeo el panel podía
+  // sobrevender al mover una reserva a fechas/cuartos ya ocupados por otra.
+  const cambiaFechas   = raw.checkin !== undefined || raw.checkout !== undefined;
+  const cambiaCuartos  = raw.habitaciones !== undefined;
+  const estadoFinal    = raw.estado ?? booking.estado;
+  if ((cambiaFechas || cambiaCuartos) && estadoFinal !== 'CANCELADA') {
+    const roomsNuevos = splitRooms(String(raw.habitaciones ?? booking.habitaciones ?? ''));
+    if (roomsNuevos.length && newCheckin && newCheckout) {
+      try {
+        // Excluir los blocks de esta misma reserva (si no, chocaría consigo misma).
+        const ocupados = await getOccupiedRoomNames(
+          ctx.hotelId, newCheckin, newCheckout, null, booking.id,
+        );
+        const choque = roomsNuevos.filter((r) => ocupados.includes(r));
+        if (choque.length) {
+          return NextResponse.json(
+            { error: `No se puede guardar: ${choque.join(', ')} ya está(n) ocupado(s) en esas fechas.` },
+            { status: 409 },
+          );
+        }
+      } catch (e) {
+        // Fail-closed: ante error de disponibilidad NO aplicamos el cambio
+        // (sobrevender es peor que pedir reintentar).
+        console.error('PATCH reserva revalidación disponibilidad error:', e);
+        return NextResponse.json(
+          { error: 'No se pudo verificar la disponibilidad. Intenta de nuevo.' },
+          { status: 503 },
+        );
+      }
+    }
   }
 
   // updateBooking re-sincroniza los bloqueos RESERVADO (por booking_id) cuando

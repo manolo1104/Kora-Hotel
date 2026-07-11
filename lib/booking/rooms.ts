@@ -3,7 +3,13 @@
 // guarda ({nombre, precio, descripcion}) y un formato rico con tarifas por
 // número de huéspedes ({nombre, precio, priceTiers, maxGuests, fotos...}).
 
-import type { BookingRoom, NightPriceOpts } from "@/lib/booking/engine";
+import type {
+  BookingRoom,
+  NightPriceOpts,
+  Temporada,
+  RecargoFinDeSemana,
+  SeasonAdjustment,
+} from "@/lib/booking/engine";
 
 interface HabitacionRaw {
   id?: number | string;
@@ -20,6 +26,8 @@ interface HabitacionRaw {
   images?: string[];
   image?: string;
   features?: string[];
+  cantidad?: number | string; // unidades físicas del tipo (default 1)
+  unidades?: string[]; // nombres explícitos de cada unidad (opcional)
 }
 
 interface HotelLike {
@@ -34,6 +42,25 @@ function toNum(v: unknown, fallback = 0): number {
   // 150050 y el motor cobraba 100×; la mini-página, con Number(), mostraba bien.)
   if (typeof v === "string") return parseFloat(v.replace(/[^0-9.]/g, "")) || fallback;
   return fallback;
+}
+
+/**
+ * Deriva los nombres de las unidades físicas de un tipo. Fuente ÚNICA de verdad
+ * (blocks, iCal, analítica, asignación de la RPC la usan):
+ *  - `unidades` explícitas y no vacías → se usan (limpias);
+ *  - `cantidad <= 1` → `[name]` (idéntico a hoy: no huérfana blocks/iCal);
+ *  - `cantidad > 1` → `[name, "<name> 2", …, "<name> N"]` (la 1ª conserva el
+ *    nombre pelón para no romper el historial al subir de 1→N).
+ */
+export function deriveUnidades(name: string, cantidad: number, unidadesRaw?: string[]): string[] {
+  if (Array.isArray(unidadesRaw)) {
+    const limpias = unidadesRaw.map((u) => String(u).trim()).filter(Boolean);
+    if (limpias.length) return limpias;
+  }
+  if (cantidad <= 1) return [name];
+  const out = [name];
+  for (let n = 2; n <= cantidad; n++) out.push(`${name} ${n}`);
+  return out;
 }
 
 /** Convierte las habitaciones jsonb del hotel en BookingRoom[] para el motor. */
@@ -53,6 +80,8 @@ export function hotelRooms(hotel: HotelLike): BookingRoom[] {
     }
     if (Object.keys(priceTiers).length === 0) priceTiers = { [maxGuests]: price };
     const images = Array.isArray(h.fotos) ? h.fotos : Array.isArray(h.images) ? h.images : undefined;
+    const cantidad = Math.max(1, Math.min(50, Math.round(toNum(h.cantidad, 1)) || 1));
+    const unidades = deriveUnidades(name, cantidad, h.unidades);
     return {
       id: h.id ?? i + 1,
       name,
@@ -63,13 +92,30 @@ export function hotelRooms(hotel: HotelLike): BookingRoom[] {
       image: h.image ?? images?.[0],
       images,
       features: h.features,
+      cantidad,
+      unidades,
     };
   });
 }
 
-/** Nombres de cuarto del hotel (para disponibilidad). */
+/** Nombres de TIPO del hotel (uno por tipo). NO cambiar: lo usan iCal y check-availability. */
 export function roomNamesOf(hotel: HotelLike): string[] {
   return hotelRooms(hotel).map((r) => r.name);
+}
+
+/** Unidades físicas de un tipo (fuente de verdad para blocks/iCal/asignación). */
+export function unitNamesOfType(room: BookingRoom): string[] {
+  return room.unidades;
+}
+
+/** Todas las unidades físicas del hotel (denominador de inventario real). */
+export function unitNamesOf(hotel: HotelLike): string[] {
+  return hotelRooms(hotel).flatMap((r) => r.unidades);
+}
+
+/** Total de unidades físicas del hotel (suma de cantidades). */
+export function totalUnits(hotel: HotelLike): number {
+  return unitNamesOf(hotel).length;
 }
 
 /**
@@ -83,14 +129,89 @@ export function normalizeRoomName(hotel: HotelLike, name: string): string {
   return aliases[trimmed] || trimmed;
 }
 
-/** Opciones de precio por noche derivadas de la config del hotel (descuento entre semana). */
+// ── Temporadas (extras.temporadas) y recargo de fin de semana ─────────────────
+// Se leen del jsonb con validación estricta: una entrada mal formada se descarta
+// (no revienta el motor). Precios server-side, así que aquí es donde se clampan.
+
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+function parseAdjustment(raw: unknown): SeasonAdjustment | null {
+  if (!raw || typeof raw !== "object") return null;
+  const o = raw as Record<string, unknown>;
+  const tipo = o.tipo === "fijo" ? "fijo" : o.tipo === "porcentaje" ? "porcentaje" : null;
+  if (!tipo) return null;
+  const valor = Number(o.valor);
+  if (!Number.isFinite(valor)) return null;
+  // Porcentaje: -90..+500. Fijo: precio ≥ 0.
+  return tipo === "porcentaje"
+    ? { tipo, valor: Math.max(-90, Math.min(500, valor)) }
+    : { tipo, valor: Math.max(0, valor) };
+}
+
+function parseTemporadas(raw: unknown): Temporada[] {
+  if (!Array.isArray(raw)) return [];
+  const out: Temporada[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const o = item as Record<string, unknown>;
+    const desde = typeof o.desde === "string" ? o.desde : "";
+    const hasta = typeof o.hasta === "string" ? o.hasta : "";
+    if (!ISO_DATE.test(desde) || !ISO_DATE.test(hasta) || desde > hasta) continue;
+    const ajuste = parseAdjustment(o.ajuste);
+    if (!ajuste) continue;
+    const minNoches =
+      o.minNoches != null && Number.isFinite(Number(o.minNoches))
+        ? Math.max(1, Math.min(30, Math.round(Number(o.minNoches))))
+        : undefined;
+    out.push({
+      id: typeof o.id === "string" && o.id ? o.id : `${desde}_${hasta}`,
+      nombre: typeof o.nombre === "string" && o.nombre ? o.nombre : "Temporada",
+      desde,
+      hasta,
+      ajuste,
+      minNoches,
+    });
+  }
+  return out;
+}
+
+function parseRecargoFinDeSemana(raw: unknown): RecargoFinDeSemana | undefined {
+  if (!raw || typeof raw !== "object") return undefined;
+  const o = raw as Record<string, unknown>;
+  if (o.activo !== true) return undefined;
+  const ajuste = parseAdjustment(o.ajuste);
+  if (!ajuste) return undefined;
+  const dias = Array.isArray(o.dias)
+    ? o.dias.map(Number).filter((n) => Number.isInteger(n) && n >= 0 && n <= 6)
+    : [];
+  return { activo: true, dias: dias.length ? dias : [5, 6], ajuste };
+}
+
+/** Opciones de precio por noche derivadas de la config del hotel. */
 export function nightOpts(hotel: HotelLike): NightPriceOpts {
   const cfg = (hotel.config ?? {}) as Record<string, unknown>;
+  const extras = (hotel.extras ?? {}) as Record<string, unknown>;
   return {
     weekdayDiscount: toNum(cfg.weekdayDiscount, 0),
     weekdayDiscountUntil:
       typeof cfg.weekdayDiscountUntil === "string" ? cfg.weekdayDiscountUntil : undefined,
+    temporadas: parseTemporadas(extras.temporadas),
+    recargoFinDeSemana: parseRecargoFinDeSemana(extras.recargoFinDeSemana),
   };
+}
+
+/**
+ * Mínimo de noches exigido por la temporada en la que LLEGA la estancia (0 si
+ * ninguna). Min-LOS por fecha de llegada, como los channel managers. Gana la
+ * primera temporada de la lista que cubra el check-in (misma regla que el precio).
+ */
+export function seasonMinNoches(hotel: HotelLike, checkin: string): number {
+  if (!ISO_DATE.test(checkin)) return 0;
+  const extras = (hotel.extras ?? {}) as Record<string, unknown>;
+  for (const t of parseTemporadas(extras.temporadas)) {
+    if (checkin >= t.desde && checkin <= t.hasta) return t.minNoches ?? 0;
+  }
+  return 0;
 }
 
 // ── Reglas de reserva configurables por hotel (extras.reglas) ─────────────────

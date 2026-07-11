@@ -26,6 +26,7 @@ interface ClickedDay {
 }
 
 interface Props {
+  slug: string;
   bookings: AdminBooking[];
   rooms: string[];
   roomPrices: Record<string, number>;
@@ -33,7 +34,7 @@ interface Props {
   onRefresh: () => void;
 }
 
-export default function AvailabilityCalendar({ bookings, rooms, roomPrices, bookingRooms, onRefresh }: Props) {
+export default function AvailabilityCalendar({ slug, bookings, rooms, roomPrices, bookingRooms, onRefresh }: Props) {
   const now = new Date();
   const todayStr = now.toISOString().split('T')[0];
 
@@ -398,6 +399,7 @@ export default function AvailabilityCalendar({ bookings, rooms, roomPrices, book
         <ReservationModal
           booking={editBooking}
           rooms={bookingRooms}
+          slug={slug}
           onClose={() => setEditBooking(null)}
           onSaved={() => { onRefresh(); setEditBooking(null); loadSheet(); }}
         />
@@ -409,6 +411,7 @@ export default function AvailabilityCalendar({ bookings, rooms, roomPrices, book
           defaultCheckin={newBookingParams.date}
           defaultRoom={newBookingParams.room}
           rooms={bookingRooms}
+          slug={slug}
           onClose={() => setNewBookingParams(null)}
           onSaved={() => { onRefresh(); setNewBookingParams(null); loadSheet(); }}
         />

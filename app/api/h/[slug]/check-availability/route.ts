@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { resolveHotel } from "@/lib/tenant";
-import { checkAvailability } from "@/lib/db/availability";
-import { normalizeRoomName, roomNamesOf } from "@/lib/booking";
+import { freeUnitsByType } from "@/lib/db/availability";
 
 export const dynamic = "force-dynamic";
 
@@ -28,12 +27,29 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   const parsed = Body.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "datos-invalidos" }, { status: 400 });
 
-  const { checkin, checkout, rooms } = parsed.data;
-  const roomNames = (rooms && rooms.length > 0 ? rooms : roomNamesOf(hotel)).map((r) =>
-    normalizeRoomName(hotel, typeof r === "string" ? r : (r?.name ?? "")),
-  );
-  const result = await checkAvailability(hotel.id, checkin, checkout, roomNames);
-  const totalRooms = roomNames.length;
-  const availableCount = Math.max(0, totalRooms - result.unavailableRooms.length);
-  return NextResponse.json({ ...result, totalRooms, availableCount });
+  const { checkin, checkout } = parsed.data;
+
+  // Disponibilidad POR TIPO (cada tipo puede tener varias unidades).
+  const typesAvail = await freeUnitsByType(hotel.id, hotel, checkin, checkout);
+  const types = typesAvail.map((t) => ({
+    id: t.id,
+    name: t.name,
+    freeCount: t.freeCount,
+    cantidad: t.cantidad,
+  }));
+  const availableUnits = typesAvail.reduce((s, t) => s + t.freeCount, 0);
+  const totalUnits = typesAvail.reduce((s, t) => s + t.cantidad, 0);
+  // Campos legacy (compat): un tipo "no disponible" = 0 unidades libres.
+  const unavailableRooms = typesAvail.filter((t) => t.freeCount === 0).map((t) => t.name);
+  const totalRooms = typesAvail.length;
+  const availableCount = typesAvail.filter((t) => t.freeCount > 0).length;
+  return NextResponse.json({
+    available: unavailableRooms.length === 0,
+    unavailableRooms,
+    totalRooms,
+    availableCount,
+    types,
+    totalUnits,
+    availableUnits,
+  });
 }

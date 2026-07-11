@@ -5,6 +5,7 @@ import { resolveHotel } from "@/lib/tenant";
 import {
   hotelRooms,
   bookingRules,
+  seasonMinNoches,
   calcCartSubtotal,
   calcNights,
   calcDepositAmount,
@@ -13,7 +14,7 @@ import {
   type CartItem,
   type AddonRule,
 } from "@/lib/booking";
-import { checkAvailability, createTemporaryHold, releaseHold } from "@/lib/db/availability";
+import { freeUnitsByType, createTemporaryHold, releaseHold } from "@/lib/db/availability";
 import { accesoDelHotel } from "@/lib/suscripcion";
 import { getStripe, stripeEnvReady } from "@/lib/stripe/server";
 import { getConnectState } from "@/lib/stripe/connect";
@@ -31,6 +32,7 @@ const CheckoutBody = z.object({
       z.object({
         roomId: z.union([z.string(), z.number()]),
         guestCount: z.coerce.number().int().min(1).max(20),
+        quantity: z.coerce.number().int().min(1).max(20).default(1),
       }),
     )
     .min(1)
@@ -86,6 +88,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     cleanCart.push({
       roomId: room.id,
       guestCount: Math.max(1, Math.min(item.guestCount, room.maxGuests)),
+      quantity: Math.max(1, Math.min(item.quantity, room.cantidad)),
     });
   }
   if (cleanCart.length === 0) {
@@ -95,7 +98,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   // (la UI ya lo exige; aquí se repite porque el endpoint es público).
   const capacidadTotal = cleanCart.reduce((s, c) => {
     const room = rooms.find((r) => r.id === c.roomId);
-    return s + (room?.maxGuests ?? 0);
+    return s + (room?.maxGuests ?? 0) * (c.quantity ?? 1);
   }, 0);
   if (capacidadTotal < adults) {
     return NextResponse.json({ error: "capacidad-insuficiente" }, { status: 400 });
@@ -111,24 +114,37 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   }
 
   // Reglas del hotel (anticipo, mínimo de noches) — fuente autoritativa server-side.
+  // El mínimo puede ser mayor si la estancia LLEGA en una temporada con min-noches.
   const rules = bookingRules(hotel);
-  if (nights < rules.minNoches) {
+  const minNochesEfectivo = Math.max(rules.minNoches, seasonMinNoches(hotel, checkin));
+  if (nights < minNochesEfectivo) {
     return NextResponse.json(
-      { error: "min-noches", minNoches: rules.minNoches },
+      { error: "min-noches", minNoches: minNochesEfectivo },
       { status: 400 },
     );
   }
 
-  const roomNames = cleanCart.map((c) => rooms.find((r) => r.id === c.roomId)!.name);
-
-  // Disponibilidad real antes de cobrar.
-  const avail = await checkAvailability(hotel.id, checkin, checkout, roomNames);
-  if (!avail.available) {
-    return NextResponse.json(
-      { error: "no-disponible", unavailableRooms: avail.unavailableRooms },
-      { status: 409 },
-    );
+  // Asignación de UNIDADES concretas por tipo (asignación app-side). Cada unidad
+  // es un nombre único; reservar esos nombres con el candado atómico existente
+  // garantiza que no haya sobreventa. Esto también HACE de chequeo de disponibilidad:
+  // si un tipo no tiene suficientes unidades libres para la cantidad pedida → 409.
+  const typesAvail = await freeUnitsByType(hotel.id, hotel, checkin, checkout);
+  const availByType = new Map(typesAvail.map((t) => [String(t.id), t]));
+  const allocated: { name: string; guestCount: number }[] = [];
+  for (const c of cleanCart) {
+    const ta = availByType.get(String(c.roomId));
+    const qty = c.quantity ?? 1;
+    if (!ta || ta.freeCount < qty) {
+      return NextResponse.json(
+        { error: "no-disponible", unavailableRooms: ta ? [ta.name] : [] },
+        { status: 409 },
+      );
+    }
+    for (const unitName of ta.freeUnitNames.slice(0, qty)) {
+      allocated.push({ name: unitName, guestCount: c.guestCount });
+    }
   }
+  const roomNames = allocated.map((a) => a.name);
 
   const opts = rules.nightOpts;
   const subtotal = calcCartSubtotal(rooms, cleanCart, checkin, checkout, opts);
@@ -189,8 +205,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   const sessionId = `web_${crypto.randomUUID()}`;
   await createTemporaryHold(hotel.id, roomNames, checkin, checkout, sessionId, 35);
 
-  const roomsMeta = cleanCart
-    .map((c) => `${rooms.find((r) => r.id === c.roomId)!.name}:${c.guestCount}`)
+  // Metadata: una entrada por UNIDAD asignada ("Unidad:huespedes"). El webhook las
+  // reserva por nombre con el candado atómico (igual que hoy con varios cuartos).
+  const roomsMeta = allocated
+    .map((a) => `${a.name}:${a.guestCount}`)
     .join("|")
     .slice(0, 480);
 

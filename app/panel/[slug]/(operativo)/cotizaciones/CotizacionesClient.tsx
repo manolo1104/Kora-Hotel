@@ -6,6 +6,7 @@ import { buildBookingHtml } from '@/lib/booking-html';
 import type { TourItem } from '@/lib/booking-html';
 import type { AdminQuote } from '@/lib/admin/sheets-admin';
 import type { BookingRoom } from '@/lib/booking';
+import { catalogoTours, catalogoPaquetes, type TourCat, type PaqueteCat } from '@/lib/admin/cotizaciones-catalogo';
 import styles from './cotizaciones.module.css';
 
 // NOTA multi-tenant: ya NO existe BOOKING_ROOMS global. La lista de cuartos llega
@@ -32,13 +33,9 @@ export interface PaqueteItem {
   precio: number;     // precio total del paquete (editable)
 }
 
-export const PAQUETES_CATALOG: { nombre: string; habitacionDefault: string; noches: number; personas: number; precio: number; descripcion: string }[] = [
-  { nombre: 'Noche de Selva',      habitacionDefault: 'Suite Flor de Liz 1', noches: 2, personas: 2, precio: 5200,  descripcion: '2 noches · spa privado · 2 desayunos · Las Pozas' },
-  { nombre: 'Ruta de las Pozas',   habitacionDefault: 'Jungla',              noches: 3, personas: 2, precio: 8900,  descripcion: '3 noches · desayunos · tour Las Pozas · tour Tamul' },
-  { nombre: 'Familia Huasteca',    habitacionDefault: 'Helechos 1',          noches: 3, personas: 4, precio: 13500, descripcion: '3 noches · suite familiar · desayunos · tour Las Pozas' },
-  { nombre: 'Selva en Silencio',   habitacionDefault: 'Suite LindaVista',    noches: 3, personas: 2, precio: 6900,  descripcion: '3 noches · tour Las Pozas (grupo reducido) · late check-out' },
-  { nombre: 'Paquete personalizado', habitacionDefault: 'Jungla',            noches: 2, personas: 2, precio: 0,     descripcion: '' },
-];
+// Los catálogos de tours/paquetes ya no viven aquí (fugaban datos de Paraíso a
+// otros hoteles). Se resuelven por hotel desde lib/admin/cotizaciones-catalogo y
+// llegan por props (tours/paquetes) a cada modal.
 
 const PAQUETES_SEP = '||PAQUETES||';
 function parsePaquetes(notas: string): PaqueteItem[] {
@@ -68,16 +65,6 @@ function getPaquetesTotal(paquetes: PaqueteItem[]): number {
 }
 
 // ── Tours / Experiencias ──────────────────────────────────────────────────────
-export const TOURS_CATALOG: { nombre: string; precio: number }[] = [
-  { nombre: 'Expedición Tamul (Sótano + Cascada + Cenote)', precio: 1450 },
-  { nombre: 'Ruta Surrealista (Las Pozas + Huichihuayán)', precio: 1300 },
-  { nombre: 'Cascadas del Meco (El Meco + El Salto)', precio: 1600 },
-  { nombre: 'Paraíso Escalonado (Minas Viejas + Micos)', precio: 1500 },
-  { nombre: 'Ruta Acuática (Puente de Dios + Siete Cascadas)', precio: 1500 },
-  { nombre: 'Sótano de las Golondrinas', precio: 800 },
-  { nombre: 'Tour personalizado', precio: 0 },
-];
-
 const TOURS_SEP = '||TOURS||';
 function parseTours(notas: string): TourItem[] {
   const idx = notas.indexOf(TOURS_SEP);
@@ -174,7 +161,7 @@ export function printBookingPDF(b: {
 
 interface Props { initialQuotes: AdminQuote[]; rooms: BookingRoom[]; slug: string }
 
-function QuoteModal({ rooms, onClose, onSaved }: { rooms: BookingRoom[]; onClose: () => void; onSaved: () => Promise<void> }) {
+function QuoteModal({ rooms, tours, paquetes, onClose, onSaved }: { rooms: BookingRoom[]; tours: TourCat[]; paquetes: PaqueteCat[]; onClose: () => void; onSaved: () => Promise<void> }) {
   const SUITES = rooms.map(r => r.name);
   const defaultSuite = SUITES[3] ?? SUITES[0] ?? '';
   const [form, setForm] = useState({ cliente: '', telefono: '', email: '', checkin: '', checkout: '' });
@@ -188,13 +175,13 @@ function QuoteModal({ rooms, onClose, onSaved }: { rooms: BookingRoom[]; onClose
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  function addTour() { setTourItems(t => [...t, { nombre: TOURS_CATALOG[0].nombre, personas: 2, precio: TOURS_CATALOG[0].precio }]); setPrecioManual(null); }
+  function addTour() { const first = tours[0]; if (!first) return; setTourItems(t => [...t, { nombre: first.nombre, personas: 2, precio: first.precio }]); setPrecioManual(null); }
   function removeTour(i: number) { setTourItems(t => t.filter((_, idx) => idx !== i)); setPrecioManual(null); }
   function updateTour(i: number, key: keyof TourItem, val: string | number) {
     setTourItems(t => t.map((item, idx) => {
       if (idx !== i) return item;
       if (key === 'nombre') {
-        const cat = TOURS_CATALOG.find(c => c.nombre === val);
+        const cat = tours.find(c => c.nombre === val);
         return { ...item, nombre: String(val), precio: cat ? cat.precio : item.precio };
       }
       return { ...item, [key]: typeof val === 'string' ? parseInt(val) || 0 : val };
@@ -206,7 +193,7 @@ function QuoteModal({ rooms, onClose, onSaved }: { rooms: BookingRoom[]; onClose
     setPaqueteItems(p => p.map((item, idx) => {
       if (idx !== i) return item;
       if (key === 'nombre') {
-        const cat = PAQUETES_CATALOG.find(c => c.nombre === val);
+        const cat = paquetes.find(c => c.nombre === val);
         return cat ? { ...item, nombre: cat.nombre, habitacion: cat.habitacionDefault, noches: cat.noches, personas: cat.personas, precio: cat.precio } : { ...item, nombre: String(val) };
       }
       return { ...item, [key]: typeof val === 'string' ? (isNaN(Number(val)) ? val : Number(val)) : val };
@@ -307,7 +294,8 @@ function QuoteModal({ rooms, onClose, onSaved }: { rooms: BookingRoom[]; onClose
             ))}
           </div>
 
-          {/* Tours */}
+          {/* Tours (solo si el hotel configuró su catálogo) */}
+          {tours.length > 0 && (
           <div className={styles.roomsSection}>
             <div className={styles.roomsSectionHeader}>
               <span className={styles.roomsSectionLabel}>Tours / Experiencias</span>
@@ -322,7 +310,7 @@ function QuoteModal({ rooms, onClose, onSaved }: { rooms: BookingRoom[]; onClose
               <div key={i} className={styles.roomRow}>
                 <select className={styles.roomRowSelect} style={{ flex: 2 }} value={t.nombre}
                   onChange={e => updateTour(i, 'nombre', e.target.value)}>
-                  {TOURS_CATALOG.map(c => <option key={c.nombre}>{c.nombre}</option>)}
+                  {tours.map(c => <option key={c.nombre}>{c.nombre}</option>)}
                 </select>
                 <select className={styles.roomRowSelect} value={t.personas}
                   onChange={e => updateTour(i, 'personas', parseInt(e.target.value))}>
@@ -337,15 +325,17 @@ function QuoteModal({ rooms, onClose, onSaved }: { rooms: BookingRoom[]; onClose
               </div>
             ))}
           </div>
+          )}
 
-          {/* Paquetes */}
+          {/* Paquetes (solo si el hotel configuró su catálogo) */}
+          {paquetes.length > 0 && (
           <div className={styles.roomsSection}>
             <div className={styles.roomsSectionHeader}>
               <span className={styles.roomsSectionLabel}>🎁 Paquetes Todo Incluido</span>
             </div>
             {/* Catálogo de paquetes — clic para agregar */}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
-              {PAQUETES_CATALOG.filter(c => c.precio > 0).map(cat => {
+              {paquetes.filter(c => c.precio > 0).map(cat => {
                 const yaAgregado = paqueteItems.some(p => p.nombre === cat.nombre);
                 return (
                   <button
@@ -376,7 +366,7 @@ function QuoteModal({ rooms, onClose, onSaved }: { rooms: BookingRoom[]; onClose
               <div key={i} className={styles.roomRow} style={{ flexWrap: 'wrap', gap: 6 }}>
                 <select className={styles.roomRowSelect} style={{ flex: '2 1 140px' }} value={p.nombre}
                   onChange={e => updatePaquete(i, 'nombre', e.target.value)}>
-                  {PAQUETES_CATALOG.map(c => <option key={c.nombre}>{c.nombre}</option>)}
+                  {paquetes.map(c => <option key={c.nombre}>{c.nombre}</option>)}
                 </select>
                 <select className={styles.roomRowSelect} style={{ flex: '2 1 120px' }} value={p.habitacion}
                   onChange={e => updatePaquete(i, 'habitacion', e.target.value)}>
@@ -397,6 +387,7 @@ function QuoteModal({ rooms, onClose, onSaved }: { rooms: BookingRoom[]; onClose
               </div>
             ))}
           </div>
+          )}
 
           {/* Precio */}
           <div className={styles.priceBreakdown}>
@@ -479,9 +470,11 @@ function QuoteModal({ rooms, onClose, onSaved }: { rooms: BookingRoom[]; onClose
   );
 }
 
-function EditQuoteModal({ quote, rooms, onClose, onSaved }: {
+function EditQuoteModal({ quote, rooms, tours, paquetes, onClose, onSaved }: {
   quote: AdminQuote;
   rooms: BookingRoom[];
+  tours: TourCat[];
+  paquetes: PaqueteCat[];
   onClose: () => void;
   onSaved: (q: AdminQuote, changes: Partial<AdminQuote>) => void;
 }) {
@@ -528,13 +521,13 @@ function EditQuoteModal({ quote, rooms, onClose, onSaved }: {
     setHabitaciones(h => h.map((item, idx) => idx === i ? { ...item, precioOverride: precio } : item));
     setPrecioManual(null); setPromoActiva(false);
   }
-  function addTourE() { setTourItems(t => [...t, { nombre: TOURS_CATALOG[0].nombre, personas: 2, precio: TOURS_CATALOG[0].precio }]); setPrecioManual(null); }
+  function addTourE() { const first = tours[0]; if (!first) return; setTourItems(t => [...t, { nombre: first.nombre, personas: 2, precio: first.precio }]); setPrecioManual(null); }
   function removeTourE(i: number) { setTourItems(t => t.filter((_, idx) => idx !== i)); setPrecioManual(null); }
   function updateTourE(i: number, key: keyof TourItem, val: string | number) {
     setTourItems(t => t.map((item, idx) => {
       if (idx !== i) return item;
       if (key === 'nombre') {
-        const cat = TOURS_CATALOG.find(c => c.nombre === val);
+        const cat = tours.find(c => c.nombre === val);
         return { ...item, nombre: String(val), precio: cat ? cat.precio : item.precio };
       }
       return { ...item, [key]: typeof val === 'string' ? parseInt(val) || 0 : val };
@@ -546,7 +539,7 @@ function EditQuoteModal({ quote, rooms, onClose, onSaved }: {
     setPaqueteItems(p => p.map((item, idx) => {
       if (idx !== i) return item;
       if (key === 'nombre') {
-        const cat = PAQUETES_CATALOG.find(c => c.nombre === val);
+        const cat = paquetes.find(c => c.nombre === val);
         return cat ? { ...item, nombre: cat.nombre, habitacion: cat.habitacionDefault, noches: cat.noches, personas: cat.personas, precio: cat.precio } : { ...item, nombre: String(val) };
       }
       return { ...item, [key]: typeof val === 'string' ? (isNaN(Number(val)) ? val : Number(val)) : val };
@@ -619,7 +612,8 @@ function EditQuoteModal({ quote, rooms, onClose, onSaved }: {
             ))}
           </div>
 
-          {/* Tours */}
+          {/* Tours (oculto si el hotel no tiene catálogo y la cotización no trae tours) */}
+          {(tours.length > 0 || tourItems.length > 0) && (
           <div className={styles.roomsSection}>
             <div className={styles.roomsSectionHeader}>
               <span className={styles.roomsSectionLabel}>Tours / Experiencias</span>
@@ -634,7 +628,7 @@ function EditQuoteModal({ quote, rooms, onClose, onSaved }: {
               <div key={i} className={styles.roomRow}>
                 <select className={styles.roomRowSelect} style={{ flex: 2 }} value={t.nombre}
                   onChange={e => updateTourE(i, 'nombre', e.target.value)}>
-                  {TOURS_CATALOG.map(c => <option key={c.nombre}>{c.nombre}</option>)}
+                  {tours.map(c => <option key={c.nombre}>{c.nombre}</option>)}
                 </select>
                 <select className={styles.roomRowSelect} value={t.personas}
                   onChange={e => updateTourE(i, 'personas', parseInt(e.target.value))}>
@@ -649,15 +643,17 @@ function EditQuoteModal({ quote, rooms, onClose, onSaved }: {
               </div>
             ))}
           </div>
+          )}
 
-          {/* Paquetes — EditQuoteModal */}
+          {/* Paquetes — EditQuoteModal (oculto si no hay catálogo ni paquetes en la cotización) */}
+          {(paquetes.length > 0 || paqueteItems.length > 0) && (
           <div className={styles.roomsSection}>
             <div className={styles.roomsSectionHeader}>
               <span className={styles.roomsSectionLabel}>🎁 Paquetes Todo Incluido</span>
             </div>
             {/* Catálogo de paquetes — clic para agregar */}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
-              {PAQUETES_CATALOG.filter(c => c.precio > 0).map(cat => {
+              {paquetes.filter(c => c.precio > 0).map(cat => {
                 const yaAgregado = paqueteItems.some(p => p.nombre === cat.nombre);
                 return (
                   <button
@@ -688,7 +684,7 @@ function EditQuoteModal({ quote, rooms, onClose, onSaved }: {
               <div key={i} className={styles.roomRow} style={{ flexWrap: 'wrap', gap: 6 }}>
                 <select className={styles.roomRowSelect} style={{ flex: '2 1 140px' }} value={p.nombre}
                   onChange={e => updatePaqueteE(i, 'nombre', e.target.value)}>
-                  {PAQUETES_CATALOG.map(c => <option key={c.nombre}>{c.nombre}</option>)}
+                  {paquetes.map(c => <option key={c.nombre}>{c.nombre}</option>)}
                 </select>
                 <select className={styles.roomRowSelect} style={{ flex: '2 1 120px' }} value={p.habitacion}
                   onChange={e => updatePaqueteE(i, 'habitacion', e.target.value)}>
@@ -709,6 +705,7 @@ function EditQuoteModal({ quote, rooms, onClose, onSaved }: {
               </div>
             ))}
           </div>
+          )}
 
           {/* Precio */}
           <div className={styles.priceBreakdown}>
@@ -790,7 +787,11 @@ function EditQuoteModal({ quote, rooms, onClose, onSaved }: {
 }
 
 export default function CotizacionesClient({ initialQuotes, rooms, slug }: Props) {
-  void slug; // el tenant se resuelve server-side por cookie; el slug queda disponible por consistencia
+  // Catálogo de tours/paquetes POR HOTEL (antes hardcodeado a Paraíso, fugaba a
+  // otros tenants). Vacío mientras el hotel no configure el suyo → las secciones
+  // se ocultan en ambos modales.
+  const tours = useMemo(() => catalogoTours(slug), [slug]);
+  const paquetes = useMemo(() => catalogoPaquetes(slug), [slug]);
   const SUITES = useMemo(() => rooms.map(r => r.name), [rooms]);
   const [quotes, setQuotes] = useState(initialQuotes);
   const [showModal, setShowModal] = useState(false);
@@ -1034,8 +1035,8 @@ export default function CotizacionesClient({ initialQuotes, rooms, slug }: Props
       </div>
       </div> {/* /tableScrollWrap */}
 
-      {showModal && <QuoteModal rooms={rooms} onClose={() => setShowModal(false)} onSaved={refresh} />}
-      {editQuote && <EditQuoteModal quote={editQuote} rooms={rooms} onClose={() => setEditQuote(null)} onSaved={saveEdit} />}
+      {showModal && <QuoteModal rooms={rooms} tours={tours} paquetes={paquetes} onClose={() => setShowModal(false)} onSaved={refresh} />}
+      {editQuote && <EditQuoteModal quote={editQuote} rooms={rooms} tours={tours} paquetes={paquetes} onClose={() => setEditQuote(null)} onSaved={saveEdit} />}
     </div>
   );
 }

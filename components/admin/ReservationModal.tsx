@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { X, Loader2, AlertTriangle, CheckCircle, Plus, MessageSquare, Mail, Download, Pencil } from 'lucide-react';
 import type { AdminBooking } from '@/lib/admin/sheets-admin';
 import { getRoomBasePrice, type BookingRoom } from '@/lib/booking';
-import { TOURS_CATALOG, PAQUETES_CATALOG } from '@/app/panel/[slug]/(operativo)/cotizaciones/CotizacionesClient';
+import { catalogoTours, catalogoPaquetes } from '@/lib/admin/cotizaciones-catalogo';
 import type { TourItem } from '@/lib/booking-html';
 import type { PaqueteItem } from '@/app/panel/[slug]/(operativo)/cotizaciones/CotizacionesClient';
 import styles from './Modal.module.css';
@@ -12,8 +12,9 @@ import styles from './Modal.module.css';
 interface HabItem { suite: string; huespedes: number; precioOverride?: number }
 
 function getPrecioNoche(rooms: BookingRoom[], suite: string, personas: number): number {
-  // Fuente única de precios: lib/booking (motor). Los cuartos vienen del hotel.
-  const room = rooms.find(r => r.name === suite);
+  // Fuente única de precios: lib/booking (motor). `suite` puede ser el nombre de
+  // una UNIDAD (ej. "Deluxe 2"); se mapea a su TIPO para tomar el precio.
+  const room = rooms.find(r => r.unidades.includes(suite)) ?? rooms.find(r => r.name === suite);
   return room ? getRoomBasePrice(room, personas) : 1900;
 }
 
@@ -125,15 +126,22 @@ function SuccessPanel({ data, onEdit, onClose }: {
 interface Props {
   booking?: AdminBooking;
   rooms: BookingRoom[];
+  slug: string;
   defaultCheckin?: string;
   defaultRoom?: string;
   onClose: () => void;
   onSaved: () => void;
 }
 
-export default function ReservationModal({ booking, rooms, defaultCheckin, defaultRoom, onClose, onSaved }: Props) {
+export default function ReservationModal({ booking, rooms, slug, defaultCheckin, defaultRoom, onClose, onSaved }: Props) {
   const isEdit = !!booking;
-  const SUITES = rooms.map(r => r.name);
+  // Lista las UNIDADES físicas (no los tipos): un tipo con cantidad N aporta sus
+  // N unidades. Así el hotelero elige la unidad exacta y no sobrevende un tipo.
+  const SUITES = rooms.flatMap(r => r.unidades);
+  // Catálogo de tours/paquetes POR HOTEL (antes hardcodeado a Paraíso). Vacío
+  // para hoteles que no lo configuran → las secciones se ocultan.
+  const tours = catalogoTours(slug);
+  const paquetes = catalogoPaquetes(slug);
   const defaultSuite = (defaultRoom && SUITES.includes(defaultRoom)) ? defaultRoom : (SUITES[3] ?? SUITES[0] ?? '');
 
   const [form, setForm] = useState({
@@ -172,20 +180,21 @@ export default function ReservationModal({ booking, rooms, defaultCheckin, defau
     try { return JSON.parse(rawNotas.slice(idx + PAQUETES_SEP_LOCAL.length)); } catch { return []; }
   });
 
-  function addTourM() { setTourItems(t => [...t, { nombre: TOURS_CATALOG[0].nombre, personas: 2, precio: TOURS_CATALOG[0].precio }]); }
+  function addTourM() { const first = tours[0]; if (!first) return; setTourItems(t => [...t, { nombre: first.nombre, personas: 2, precio: first.precio }]); }
   function removeTourM(i: number) { setTourItems(t => t.filter((_, idx) => idx !== i)); }
   function updateTourM(i: number, key: keyof TourItem, val: string | number) {
     setTourItems(t => t.map((item, idx) => {
       if (idx !== i) return item;
       if (key === 'nombre') {
-        const cat = TOURS_CATALOG.find(c => c.nombre === val);
+        const cat = tours.find(c => c.nombre === val);
         return { ...item, nombre: String(val), precio: cat ? cat.precio : item.precio };
       }
       return { ...item, [key]: typeof val === 'string' ? parseInt(val) || 0 : val };
     }));
   }
   function addPaqueteM() {
-    const cat = PAQUETES_CATALOG[0];
+    const cat = paquetes[0];
+    if (!cat) return;
     setPaqueteItems(p => [...p, { nombre: cat.nombre, habitacion: cat.habitacionDefault, noches: cat.noches, personas: cat.personas, precio: cat.precio }]);
   }
   function removePaqueteM(i: number) { setPaqueteItems(p => p.filter((_, idx) => idx !== i)); }
@@ -193,7 +202,7 @@ export default function ReservationModal({ booking, rooms, defaultCheckin, defau
     setPaqueteItems(p => p.map((item, idx) => {
       if (idx !== i) return item;
       if (key === 'nombre') {
-        const cat = PAQUETES_CATALOG.find(c => c.nombre === val);
+        const cat = paquetes.find(c => c.nombre === val);
         return cat ? { ...item, nombre: cat.nombre, habitacion: cat.habitacionDefault, noches: cat.noches, personas: cat.personas, precio: cat.precio } : { ...item, nombre: String(val) };
       }
       return { ...item, [key]: typeof val === 'string' ? (isNaN(Number(val)) ? val : Number(val)) : val };
@@ -549,7 +558,8 @@ export default function ReservationModal({ booking, rooms, defaultCheckin, defau
             <p className={styles.roomsTotal}>{totalHuespedes} huésped{totalHuespedes !== 1 ? 'es' : ''} en total</p>
           </div>
 
-          {/* Tours / Experiencias */}
+          {/* Tours / Experiencias (oculto si el hotel no tiene catálogo y la reserva no trae tours) */}
+          {(tours.length > 0 || tourItems.length > 0) && (
           <div className={styles.roomsSection}>
             <div className={styles.roomsSectionHeader}>
               <span className={styles.roomsSectionLabel}>Tours / Experiencias</span>
@@ -564,7 +574,7 @@ export default function ReservationModal({ booking, rooms, defaultCheckin, defau
               <div key={i} className={styles.roomRow}>
                 <select className={styles.roomRowSelect} style={{ flex: 2 }} value={t.nombre}
                   onChange={e => updateTourM(i, 'nombre', e.target.value)}>
-                  {TOURS_CATALOG.map(c => <option key={c.nombre}>{c.nombre}</option>)}
+                  {tours.map(c => <option key={c.nombre}>{c.nombre}</option>)}
                 </select>
                 <select className={styles.roomRowSelect} value={t.personas}
                   onChange={e => updateTourM(i, 'personas', parseInt(e.target.value))}>
@@ -582,8 +592,10 @@ export default function ReservationModal({ booking, rooms, defaultCheckin, defau
               <p className={styles.roomsTotal}>Tours: ${toursCalculado.toLocaleString('es-MX')} MXN</p>
             )}
           </div>
+          )}
 
-          {/* Paquetes */}
+          {/* Paquetes (oculto si el hotel no tiene catálogo y la reserva no trae paquetes) */}
+          {(paquetes.length > 0 || paqueteItems.length > 0) && (
           <div className={styles.roomsSection}>
             <div className={styles.roomsSectionHeader}>
               <span className={styles.roomsSectionLabel}>🎁 Paquetes Todo Incluido</span>
@@ -596,7 +608,7 @@ export default function ReservationModal({ booking, rooms, defaultCheckin, defau
               <div key={i} className={styles.roomRow} style={{ flexWrap: 'wrap', gap: 6 }}>
                 <select className={styles.roomRowSelect} style={{ flex: '2 1 140px' }} value={p.nombre}
                   onChange={e => updatePaqueteM(i, 'nombre', e.target.value)}>
-                  {PAQUETES_CATALOG.map(c => <option key={c.nombre}>{c.nombre}</option>)}
+                  {paquetes.map(c => <option key={c.nombre}>{c.nombre}</option>)}
                 </select>
                 <select className={styles.roomRowSelect} style={{ flex: '2 1 120px' }} value={p.habitacion}
                   onChange={e => updatePaqueteM(i, 'habitacion', e.target.value)}>
@@ -620,6 +632,7 @@ export default function ReservationModal({ booking, rooms, defaultCheckin, defau
               <p className={styles.roomsTotal}>Paquetes: ${paquetesCalculado.toLocaleString('es-MX')} MXN</p>
             )}
           </div>
+          )}
 
           {/* Calculador de precio */}
           <div className={styles.priceCalc}>

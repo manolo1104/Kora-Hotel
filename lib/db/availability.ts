@@ -10,10 +10,20 @@
 // SOLO servidor.
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import { hotelRooms } from "@/lib/booking";
 
 export interface AvailabilityResult {
   available: boolean;
   unavailableRooms: string[];
+}
+
+/** Disponibilidad de un TIPO de habitación: cuántas unidades libres y cuáles. */
+export interface TypeAvailability {
+  id: number | string;
+  name: string; // nombre del tipo
+  cantidad: number; // unidades totales del tipo
+  freeCount: number; // unidades libres para las fechas
+  freeUnitNames: string[]; // nombres de las unidades libres (para asignar)
 }
 
 interface BlockRow {
@@ -50,18 +60,22 @@ export async function getOccupiedRoomNames(
   checkin: string,
   checkout: string,
   excludeSession?: string | null,
+  excludeBookingId?: string | null,
 ): Promise<string[]> {
   const supabase = createAdminClient();
   const nowIso = new Date().toISOString();
   // Solape (half-open): b.checkin < checkout AND checkin < b.checkout.
   let query = supabase
     .from("blocks")
-    .select("habitacion, checkin, checkout, status, expires_at, hold_session")
+    .select("habitacion, checkin, checkout, status, expires_at, hold_session, booking_id")
     .eq("hotel_id", hotelId)
     .lt("checkin", checkout)
     .gt("checkout", checkin)
     .or(`expires_at.is.null,expires_at.gt.${nowIso}`);
   if (excludeSession) query = query.or(`hold_session.is.null,hold_session.neq.${excludeSession}`);
+  // Al EDITAR una reserva, sus propios blocks no deben contar como ocupación
+  // (si no, la reserva "chocaría" consigo misma al revalidar).
+  if (excludeBookingId) query = query.or(`booking_id.is.null,booking_id.neq.${excludeBookingId}`);
   const { data, error } = await query;
   if (error) throw error;
   const names = new Set<string>();
@@ -94,6 +108,38 @@ export async function checkAvailability(
     console.error("checkAvailability error:", e);
     return { available: false, unavailableRooms: roomNames };
   }
+}
+
+/**
+ * Unidades libres POR TIPO para [checkin, checkout). Base del motor por cantidad:
+ * cada tipo puede tener N unidades físicas (BookingRoom.unidades); una unidad está
+ * libre si su nombre NO está ocupado. Devuelve también los nombres de unidad libres
+ * para poder ASIGNAR unidades concretas al reservar (la reserva de esos nombres
+ * sigue pasando por el candado atómico existente, así que no hay sobreventa).
+ * Fail-closed: ante error de BD, 0 libres en todos los tipos.
+ */
+export async function freeUnitsByType(
+  hotelId: string,
+  hotel: Parameters<typeof hotelRooms>[0],
+  checkin: string,
+  checkout: string,
+  excludeSession?: string | null,
+): Promise<TypeAvailability[]> {
+  const rooms = hotelRooms(hotel);
+  if (!checkin || !checkout || new Date(checkout) <= new Date(checkin)) {
+    return rooms.map((r) => ({ id: r.id, name: r.name, cantidad: r.cantidad, freeCount: 0, freeUnitNames: [] }));
+  }
+  let occSet: Set<string>;
+  try {
+    occSet = new Set(await getOccupiedRoomNames(hotelId, checkin, checkout, excludeSession));
+  } catch (e) {
+    console.error("freeUnitsByType error:", e);
+    return rooms.map((r) => ({ id: r.id, name: r.name, cantidad: r.cantidad, freeCount: 0, freeUnitNames: [] }));
+  }
+  return rooms.map((r) => {
+    const freeUnitNames = r.unidades.filter((u) => !occSet.has(u));
+    return { id: r.id, name: r.name, cantidad: r.cantidad, freeCount: freeUnitNames.length, freeUnitNames };
+  });
 }
 
 /**

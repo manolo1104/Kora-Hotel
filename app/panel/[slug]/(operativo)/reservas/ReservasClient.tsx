@@ -71,7 +71,7 @@ interface Props {
 }
 
 export default function ReservasClient({ initialBookings, rooms, slug }: Props) {
-  void slug; // el tenant se resuelve server-side por cookie; el slug queda disponible por consistencia
+  // slug se usa para resolver el catálogo de tours/paquetes por hotel en el modal.
   const SUITES = useMemo(() => rooms.map(r => r.name), [rooms]);
 
   const [bookings, setBookings] = useState(initialBookings);
@@ -406,6 +406,7 @@ export default function ReservasClient({ initialBookings, rooms, slug }: Props) 
         <ReservationModal
           booking={modal.mode === 'edit' ? modal.booking : undefined}
           rooms={rooms}
+          slug={slug}
           onClose={() => setModal(null)}
           onSaved={refresh}
         />
