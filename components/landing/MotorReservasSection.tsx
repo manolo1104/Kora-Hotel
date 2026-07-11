@@ -60,11 +60,11 @@ export function MotorReservasSection() {
 
               <div className="mt-8 flex flex-col sm:flex-row gap-3">
                 <CtaLink
-                  href="/pago/iniciar?plan=kora"
-                  ctaName="motor_pago"
+                  href="/panel/onboarding"
+                  ctaName="motor_onboarding"
                   className="btn-press btn-arrow btn-fill inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-kora-accent text-kora-primary font-semibold text-sm hover:bg-kora-accent-dark transition-colors"
                 >
-                  Empezar 30 días gratis
+                  Crear mi motor gratis
                   <ArrowRight size={16} />
                 </CtaLink>
                 <a

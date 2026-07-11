@@ -28,6 +28,7 @@ export interface HotelRow {
   prefijo_confirmacion: string | null;
   stripe_account_id: string | null;
   publicado: boolean;
+  created_at: string | null; // ancla de la prueba de 30 días (lib/suscripcion)
 }
 
 export interface TenantContext {
@@ -38,7 +39,7 @@ export interface TenantContext {
 }
 
 const HOTEL_COLS =
-  "id, owner_id, slug, nombre, ubicacion, descripcion, whatsapp, habitaciones, fotos, guia, extras, config, prefijo_confirmacion, stripe_account_id, publicado";
+  "id, owner_id, slug, nombre, ubicacion, descripcion, whatsapp, habitaciones, fotos, guia, extras, config, prefijo_confirmacion, stripe_account_id, publicado, created_at";
 
 /** Lee un hotel por slug (datos públicos). Devuelve null si no existe. */
 export async function resolveHotel(slug: string): Promise<HotelRow | null> {

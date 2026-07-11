@@ -1,8 +1,9 @@
 import { notFound } from "next/navigation";
+import { MessageCircle } from "lucide-react";
 import { resolveHotel } from "@/lib/tenant";
 import { hotelRooms, bookingRules } from "@/lib/booking";
 import { COLOR_DEFAULT, inkFor, fontStack, type MiniExtras } from "@/lib/mini";
-import { ownerTienePlanActivo } from "@/lib/suscripcion";
+import { accesoDelHotel } from "@/lib/suscripcion";
 import { getConnectState } from "@/lib/stripe/connect";
 import { HotelAnalytics } from "@/components/booking/HotelAnalytics";
 import ReservarClient from "./ReservarClient";
@@ -28,9 +29,46 @@ export default async function ReservarPage({
   const color = diseno.color || COLOR_DEFAULT;
   const acento = diseno.acento || color; // si no hay acento, usa el color de marca
 
+  // Prueba de 30 días vencida y sin plan → el motor se pausa. El huésped nunca
+  // choca contra una pared: se le deja el contacto directo del hotel.
+  const acceso = await accesoDelHotel(hotel);
+  if (!acceso.activo) {
+    const whatsappNum = (hotel.whatsapp ?? "").replace(/\D/g, "");
+    return (
+      <div className="min-h-screen w-full bg-kora-bg flex items-center justify-center px-4">
+        <div className="max-w-md w-full rounded-2xl border border-gray-100 bg-white p-8 text-center shadow-sm">
+          {diseno.logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={diseno.logoUrl}
+              alt={hotel.nombre}
+              className="mx-auto mb-4 h-10 w-auto max-w-[180px] object-contain"
+            />
+          ) : null}
+          <h1 className="text-xl font-bold text-kora-text">{hotel.nombre}</h1>
+          <p className="mt-3 text-sm text-kora-muted leading-relaxed">
+            Las reservas en línea de este hotel están pausadas por el momento.
+            <span className="block mt-1">Online booking is temporarily paused.</span>
+          </p>
+          {whatsappNum && (
+            <a
+              href={`https://wa.me/${whatsappNum}?text=${encodeURIComponent(
+                `Hola, quiero reservar en ${hotel.nombre}`,
+              )}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-press mt-5 inline-flex items-center justify-center gap-2 rounded-full bg-kora-primary px-6 py-3 text-sm font-bold text-white hover:bg-kora-primary-dark transition-colors"
+            >
+              <MessageCircle size={16} aria-hidden="true" /> Reservar por WhatsApp
+            </a>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   // Quitar la marca de Kora es premium: solo se respeta con plan activo del dueño.
-  const marcaOculta =
-    extras.premium?.marcaOculta === true && (await ownerTienePlanActivo(hotel.owner_id));
+  const marcaOculta = extras.premium?.marcaOculta === true && acceso.planActivo;
 
   // Portada: la 1ª foto del hotel como banner (a menos que el dueño lo desactive).
   const coverUrl = diseno.portada !== false && hotel.fotos?.[0] ? hotel.fotos[0] : null;

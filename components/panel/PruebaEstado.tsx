@@ -1,0 +1,76 @@
+import Link from "next/link";
+import { Clock, Lock, ArrowRight, Database } from "lucide-react";
+import type { PruebaHotel } from "@/lib/suscripcion";
+
+// Estado de la prueba de 30 días en el panel operativo (server components).
+// - Banner: cuenta regresiva discreta pero visible, con CTA a activar el plan.
+// - Pantalla vencida: firme pero honesta — los datos están a salvo, nada se borra.
+
+export function PruebaBanner({ prueba }: { prueba: PruebaHotel }) {
+  const urgente = prueba.diasRestantes <= 5;
+  return (
+    <div
+      className={`flex items-center justify-between gap-3 flex-wrap px-4 py-2.5 text-sm ${
+        urgente ? "bg-amber-50 border-b border-amber-200" : "bg-kora-bg border-b border-gray-100"
+      }`}
+    >
+      <p className={`flex items-center gap-2 ${urgente ? "text-amber-900" : "text-kora-text"}`}>
+        <Clock size={15} className={urgente ? "text-amber-600" : "text-kora-primary"} aria-hidden="true" />
+        <span>
+          <strong>
+            {prueba.diasRestantes === 1
+              ? "Último día de tu prueba gratis"
+              : `Te quedan ${prueba.diasRestantes} días de prueba gratis`}
+          </strong>{" "}
+          — todo lo que configures se queda contigo.
+        </span>
+      </p>
+      <Link
+        href="/pago/iniciar?plan=kora"
+        className="btn-press inline-flex items-center gap-1.5 rounded-full bg-kora-primary px-4 py-1.5 text-xs font-bold text-white hover:bg-kora-primary-dark transition-colors"
+      >
+        Activar mi plan — $550/mes
+        <ArrowRight size={13} aria-hidden="true" />
+      </Link>
+    </div>
+  );
+}
+
+export function PruebaVencida({ hotelNombre }: { hotelNombre: string }) {
+  return (
+    <div className="min-h-[70vh] flex items-center justify-center px-4 py-16">
+      <div className="max-w-lg w-full rounded-3xl border border-gray-100 bg-white p-8 sm:p-10 text-center shadow-sm">
+        <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-amber-100" aria-hidden="true">
+          <Lock size={26} className="text-amber-600" />
+        </div>
+        <h1 className="mt-5 text-2xl font-bold tracking-tight text-kora-text">
+          Tu prueba gratis terminó
+        </h1>
+        <p className="mt-3 text-sm text-kora-muted leading-relaxed">
+          El panel de <span className="font-semibold text-kora-text">{hotelNombre}</span>{" "}
+          está en pausa y tu motor de reservas dejó de recibir pagos. Activa tu
+          plan y todo vuelve a funcionar al instante, exactamente como lo dejaste.
+        </p>
+        <div className="mt-4 flex items-start gap-2.5 rounded-xl bg-kora-bg px-4 py-3 text-left">
+          <Database size={15} className="mt-0.5 flex-shrink-0 text-kora-primary" aria-hidden="true" />
+          <p className="text-xs text-kora-muted leading-relaxed">
+            <span className="font-semibold text-kora-text">Tus datos están a salvo:</span>{" "}
+            reservas, huéspedes, fotos y configuración se conservan íntegros — no
+            borramos nada. Y siguen siendo tuyos: al activar puedes exportarlos
+            cuando quieras.
+          </p>
+        </div>
+        <Link
+          href="/pago/iniciar?plan=kora"
+          className="btn-press btn-fill mt-6 inline-flex items-center justify-center gap-2 rounded-full bg-kora-accent px-7 py-3.5 text-sm font-bold text-kora-primary hover:bg-kora-accent-dark transition-colors"
+        >
+          Activar mi plan — $550 MXN/mes
+          <ArrowRight size={15} aria-hidden="true" />
+        </Link>
+        <p className="mt-3 text-[11px] text-kora-muted">
+          Mes a mes, sin permanencia · cancelas tú mismo en un clic
+        </p>
+      </div>
+    </div>
+  );
+}

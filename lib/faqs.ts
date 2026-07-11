@@ -14,7 +14,12 @@ export const faqs: Faq[] = [
   {
     question: "¿Cuánto cuesta y qué incluye?",
     answer:
-      "Hay un solo plan de $550 MXN/mes, mes a mes y sin permanencia, con habitaciones ilimitadas y todo incluido: el motor de reservas directo (0% de comisión), el PMS completo, Camila (agente de WhatsApp con IA 24/7), el dashboard con tus reservas y métricas, el CRM de huéspedes con emails automáticos y la facturación CFDI 4.0. Lo pruebas 30 días gratis (el primer cobro es hasta el día 31).",
+      "Hay un solo plan de $550 MXN/mes, mes a mes y sin permanencia, con habitaciones ilimitadas y todo incluido: el motor de reservas directo (0% de comisión), el PMS completo, Camila (agente de WhatsApp con IA 24/7), el dashboard con tus reservas y métricas, el CRM de huéspedes con emails automáticos y la facturación CFDI 4.0. Lo pruebas 30 días gratis y sin tarjeta; activas tu plan solo si te convence.",
+  },
+  {
+    question: "¿Necesito tarjeta para empezar?",
+    answer:
+      "No. Creas tu cuenta, cargas tu hotel y usas Kora completo durante 30 días sin dar ningún dato de pago. Cuando te convenza (o al terminar tu prueba) activas tu plan de $550 MXN/mes. Si no lo activas, tu motor de reservas se pausa, pero tus datos se conservan íntegros y puedes retomarlos cuando quieras.",
   },
   {
     question: "¿Hay permanencia o contrato?",

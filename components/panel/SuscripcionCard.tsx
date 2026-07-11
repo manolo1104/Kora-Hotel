@@ -52,17 +52,18 @@ export function SuscripcionCard({
         <div className="flex items-center gap-3">
           <Sparkles size={18} className="text-kora-primary" aria-hidden="true" />
           <p className="text-sm text-kora-text">
-            <span className="font-bold">Página gratis.</span>{" "}
+            <span className="font-bold">Prueba gratis.</span>{" "}
             <span className="text-kora-muted">
-              Con Kora Pro tu hotel se opera solo: reservas, WhatsApp con IA y más.
+              Cada hotel nuevo incluye 30 días completos sin tarjeta; al vencer,
+              su motor se pausa hasta que actives tu plan ($550/mes).
             </span>
           </p>
         </div>
         <Link
-          href="/precios"
+          href="/pago/iniciar?plan=kora"
           className="btn-press inline-flex items-center px-4 py-2 rounded-full bg-kora-accent text-kora-primary font-bold text-sm hover:bg-kora-accent-dark transition-colors"
         >
-          Ver planes
+          Activar mi plan
         </Link>
       </div>
     );

@@ -14,6 +14,7 @@ import {
   type AddonRule,
 } from "@/lib/booking";
 import { checkAvailability, createTemporaryHold, releaseHold } from "@/lib/db/availability";
+import { accesoDelHotel } from "@/lib/suscripcion";
 import { getStripe, stripeEnvReady } from "@/lib/stripe/server";
 import { getConnectState } from "@/lib/stripe/connect";
 
@@ -61,6 +62,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   // el endpoint es público — nadie debe poder cobrarle o apartarle al demo.
   if ((hotel.extras as { demo?: boolean } | null)?.demo === true) {
     return NextResponse.json({ error: "hotel-demo" }, { status: 403 });
+  }
+
+  // Prueba de 30 días vencida y sin plan → el motor no cobra (la página del
+  // motor ya se muestra pausada; esto cierra la puerta también por API).
+  const acceso = await accesoDelHotel(hotel);
+  if (!acceso.activo) {
+    return NextResponse.json({ error: "motor-pausado" }, { status: 403 });
   }
 
   const parsed = CheckoutBody.safeParse(await req.json().catch(() => null));
