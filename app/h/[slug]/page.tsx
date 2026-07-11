@@ -293,6 +293,8 @@ export default async function MiniPagina({
                 src={url}
                 alt={hotel.nombre}
                 className="w-full h-36 sm:h-44 object-cover rounded-xl border border-gray-100"
+                loading="lazy"
+                decoding="async"
               />
             ))}
           </div>
@@ -345,6 +347,8 @@ export default async function MiniPagina({
                           src={url}
                           alt={h.nombre || "Habitación"}
                           className="w-full h-24 sm:h-28 object-cover"
+                          loading="lazy"
+                          decoding="async"
                         />
                       ))}
                     </div>

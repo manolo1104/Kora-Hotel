@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getActiveHotel } from '@/lib/panel/active-hotel';
 import { getQuote, updateQuoteStatus, logAgentActivity } from '@/lib/db/admin';
-import { buildBookingHtml, calcCancelDate72h, fmtDateFull, type TourItem } from '@/lib/booking-html';
+import { type TourItem } from '@/lib/booking-html';
+import { buildBrandedBookingEmailHtml, bookingBrandFromHotel, bookingFromHotel } from '@/lib/email/booking-branded';
 import { Resend } from 'resend';
 
 export const dynamic = 'force-dynamic';
@@ -39,8 +40,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
   if (!process.env.RESEND_API_KEY) {
     return NextResponse.json({ error: 'Email no configurado en este hotel (falta RESEND_API_KEY)' }, { status: 503 });
   }
-  const FROM = process.env.RESEND_FROM || process.env.OWNER_EMAIL;
-  if (!FROM) return NextResponse.json({ error: 'Falta el remitente (RESEND_FROM)' }, { status: 503 });
+  const FROM = bookingFromHotel(ctx.hotel);
 
   const suites = q.suite
     .split(',')
@@ -53,7 +53,8 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     ...paquetes.map(p => ({ nombre: `🎁 ${p.nombre}`, personas: 1, precio: p.precio })),
   ];
 
-  const html = buildBookingHtml({
+  const html = buildBrandedBookingEmailHtml(bookingBrandFromHotel(ctx.hotel), {
+    kind: 'cotizacion',
     confirmacion: q.id,
     cliente: q.cliente || '—',
     suites,
@@ -62,10 +63,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     noches: q.noches || 1,
     huespedes: suites.length * 2,
     total: q.precioTotal,
-    cancelDateStr: calcCancelDate72h(q.checkin),
-    fechaLimiteStr: fmtDateFull(q.checkin),
-    notasClienteText: parseNotasCliente(q.notas || ''),
-    forPrint: false,
+    notasCliente: parseNotasCliente(q.notas || ''),
     tourItems,
   });
 

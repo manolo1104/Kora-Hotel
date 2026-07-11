@@ -32,9 +32,10 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { deriveUnidades } from "@/lib/booking";
-import { AMENIDADES } from "@/lib/amenidades";
+import { AMENIDADES, AMENIDADES_HAB } from "@/lib/amenidades";
 import {
   FUENTES,
+  fontStack,
   COLOR_PRESETS,
   COLOR_DEFAULT,
   FORMAS_PAGO,
@@ -60,6 +61,7 @@ interface Habitacion {
   capacidad?: string;
   fotos?: string[];
   tarifas?: Tarifa[];
+  features?: string[]; // características de la habitación (etiquetas, chips)
   cantidad?: number | string; // unidades físicas del tipo (default 1)
   unidades?: string[]; // nombres de cada unidad (solo si cantidad > 1)
 }
@@ -83,6 +85,35 @@ function slugify(s: string): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 40);
+}
+
+// Comprime/redimensiona una imagen EN EL NAVEGADOR antes de subirla: la escala a
+// máx. `maxDim` px por lado y la exporta a WebP. Si algo falla o no es una imagen
+// rasterizable (SVG/GIF), devuelve el archivo original — nunca bloquea la subida.
+// Reduce mucho el peso → el motor de reservas carga más rápido.
+async function comprimirImagen(file: File, maxDim = 1600, quality = 0.82): Promise<Blob> {
+  const t = file.type;
+  if (!t.startsWith("image/") || t === "image/svg+xml" || t === "image/gif") return file;
+  try {
+    const bitmap = await createImageBitmap(file);
+    const escala = Math.min(1, maxDim / Math.max(bitmap.width, bitmap.height));
+    const w = Math.max(1, Math.round(bitmap.width * escala));
+    const h = Math.max(1, Math.round(bitmap.height * escala));
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return file;
+    ctx.drawImage(bitmap, 0, 0, w, h);
+    bitmap.close?.();
+    const blob: Blob | null = await new Promise((res) =>
+      canvas.toBlob((b) => res(b), "image/webp", quality)
+    );
+    // Solo usar la comprimida si de verdad pesa menos (fotos ya pequeñas no ganan).
+    return blob && blob.size > 0 && blob.size < file.size ? blob : file;
+  } catch {
+    return file;
+  }
 }
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
@@ -480,6 +511,20 @@ export function PanelEditor({
     );
   }
 
+  // Activa/desactiva una característica (feature) de la habitación i.
+  function toggleHabFeature(i: number, label: string) {
+    setHabitaciones((h) =>
+      h.map((it, idx) => {
+        if (idx !== i) return it;
+        const cur = Array.isArray(it.features) ? it.features : [];
+        const features = cur.includes(label)
+          ? cur.filter((f) => f !== label)
+          : [...cur, label];
+        return { ...it, features };
+      })
+    );
+  }
+
   function toggleAmenidad(key: string) {
     setAmenidades((a) =>
       a.includes(key) ? a.filter((k) => k !== key) : [...a, key]
@@ -527,12 +572,16 @@ export function PanelEditor({
       if (!files || files.length === 0) return [];
       const nuevas: string[] = [];
       for (const file of Array.from(files)) {
-        const limpio = file.name.replace(/[^a-zA-Z0-9.]/g, "_");
+        // Comprimir antes de subir (WebP; fallback al original si no aplica).
+        const blob = await comprimirImagen(file);
+        const esWebp = blob !== file && blob.type === "image/webp";
+        const base = file.name.replace(/\.[^.]+$/, "").replace(/[^a-zA-Z0-9]/g, "_");
+        const ext = esWebp ? "webp" : (file.name.split(".").pop() || "jpg").replace(/[^a-z0-9]/gi, "");
         const rnd = Math.random().toString(36).slice(2, 6);
-        const path = `${userId}/${Date.now()}-${rnd}-${limpio}`;
+        const path = `${userId}/${Date.now()}-${rnd}-${base}.${ext}`;
         const { error: upErr } = await supabase.storage
           .from("fotos")
-          .upload(path, file, { upsert: false });
+          .upload(path, blob, { upsert: false, contentType: esWebp ? "image/webp" : file.type || undefined });
         if (upErr) {
           setError("No se pudo subir una foto. Inténtalo de nuevo.");
           continue;
@@ -1462,6 +1511,37 @@ export function PanelEditor({
                   </button>
                 </div>
 
+                {/* Características de la habitación (chips → habitacion.features) */}
+                <div className="rounded-lg bg-white border border-gray-100 p-3">
+                  <p className="text-xs font-semibold text-kora-text mb-2">
+                    Características de la habitación{" "}
+                    <span className="font-normal text-kora-muted">
+                      (se muestran como etiquetas en el motor)
+                    </span>
+                  </p>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {AMENIDADES_HAB.map(({ key, label, Icon }) => {
+                      const activa = (h.features ?? []).includes(label);
+                      return (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => toggleHabFeature(i, label)}
+                          aria-pressed={activa}
+                          className={`btn-press flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-semibold text-left transition-colors ${
+                            activa
+                              ? "border-kora-accent bg-kora-accent/10 text-kora-primary"
+                              : "border-gray-200 text-kora-muted hover:border-kora-accent"
+                          }`}
+                        >
+                          <Icon size={14} aria-hidden={true} />
+                          <span className="min-w-0 truncate">{label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 <div>
                   {(h.fotos ?? []).length > 0 && (
                     <div className="grid grid-cols-4 sm:grid-cols-5 gap-2 mb-2">
@@ -1667,6 +1747,7 @@ export function PanelEditor({
                     key={f.key}
                     type="button"
                     onClick={() => setFuente(f.key)}
+                    style={{ fontFamily: fontStack(f.key) }}
                     className={`btn-press px-4 py-2 rounded-full border text-sm font-semibold transition-colors ${
                       fuente === f.key
                         ? "border-kora-accent bg-kora-accent/10 text-kora-primary"
@@ -1677,31 +1758,69 @@ export function PanelEditor({
                   </button>
                 ))}
               </div>
+              {/* Muestra en vivo de la fuente elegida */}
+              <div
+                className="mt-3 rounded-xl border border-gray-100 bg-kora-bg/40 px-5 py-4"
+                style={{ fontFamily: fontStack(fuente) }}
+              >
+                <p className="text-2xl font-bold text-kora-text leading-tight">
+                  {(nombre.trim() || "Tu Hotel")}
+                </p>
+                <p className="text-sm text-kora-muted mt-1">
+                  Así se verán los títulos y textos de tu página de reservas.
+                </p>
+              </div>
             </div>
 
-            {/* Estilo de portada */}
+            {/* Estilo de portada — con mini-mockup de cada layout */}
             <div>
               <label className="block text-sm font-semibold text-kora-text mb-1.5">
                 Estilo de portada
               </label>
-              <div className="flex flex-wrap gap-2">
+              <div className="grid grid-cols-2 gap-3 max-w-md">
                 {[
                   { k: "banda", label: "Banda con tarjeta" },
-                  { k: "completa", label: "Portada a pantalla completa" },
-                ].map((o) => (
-                  <button
-                    key={o.k}
-                    type="button"
-                    onClick={() => setHeroEstilo(o.k as "banda" | "completa")}
-                    className={`btn-press px-4 py-2 rounded-full border text-sm font-semibold transition-colors ${
-                      heroEstilo === o.k
-                        ? "border-kora-accent bg-kora-accent/10 text-kora-primary"
-                        : "border-gray-200 text-kora-muted hover:border-kora-accent"
-                    }`}
-                  >
-                    {o.label}
-                  </button>
-                ))}
+                  { k: "completa", label: "Pantalla completa" },
+                ].map((o) => {
+                  const activo = heroEstilo === o.k;
+                  return (
+                    <button
+                      key={o.k}
+                      type="button"
+                      onClick={() => setHeroEstilo(o.k as "banda" | "completa")}
+                      aria-pressed={activo}
+                      className={`btn-press rounded-xl border p-2 text-left transition-colors ${
+                        activo
+                          ? "border-kora-accent bg-kora-accent/10"
+                          : "border-gray-200 hover:border-kora-accent"
+                      }`}
+                    >
+                      <div className="relative h-20 rounded-lg overflow-hidden bg-gradient-to-br from-kora-primary to-kora-accent">
+                        {o.k === "banda" ? (
+                          <>
+                            <div className="absolute inset-x-0 top-0 h-10 bg-gradient-to-br from-kora-primary to-kora-accent" />
+                            <div className="absolute inset-x-3 top-7 bottom-1 rounded-md bg-white shadow-sm flex flex-col justify-center px-2 gap-1">
+                              <div className="h-1.5 w-2/3 rounded bg-gray-300" />
+                              <div className="h-1 w-1/2 rounded bg-gray-200" />
+                            </div>
+                          </>
+                        ) : (
+                          <div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
+                            <div className="h-2 w-2/3 rounded bg-white/90" />
+                            <div className="h-1.5 w-1/2 rounded bg-white/70" />
+                          </div>
+                        )}
+                      </div>
+                      <p
+                        className={`mt-1.5 text-xs font-semibold ${
+                          activo ? "text-kora-primary" : "text-kora-muted"
+                        }`}
+                      >
+                        {o.label}
+                      </p>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>

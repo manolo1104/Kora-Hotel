@@ -12,6 +12,14 @@ import {
   Trees,
   UtensilsCrossed,
   Clock,
+  Bath,
+  Mountain,
+  Lock,
+  Wind,
+  Refrigerator,
+  Flame,
+  Sofa,
+  BedDouble,
 } from "lucide-react";
 
 type IconProps = { size?: number; className?: string; "aria-hidden"?: boolean };
@@ -42,3 +50,23 @@ export const AMENIDADES: Amenidad[] = [
 export const AMENIDADES_MAP: Record<string, Amenidad> = Object.fromEntries(
   AMENIDADES.map((a) => [a.key, a])
 );
+
+// Características POR HABITACIÓN (distintas de las del hotel). Se guardan como
+// etiquetas (label) dentro de habitacion.features y el motor las pinta como chips.
+// El `key` = label para que el toggle guarde directo el texto que se muestra.
+export const AMENIDADES_HAB: Amenidad[] = [
+  { key: "Aire acondicionado", label: "Aire acondicionado", Icon: Snowflake },
+  { key: "Ventilador", label: "Ventilador", Icon: Wind },
+  { key: "TV", label: "TV", Icon: Tv },
+  { key: "WiFi", label: "WiFi", Icon: Wifi },
+  { key: "Tina de hidromasaje", label: "Tina de hidromasaje", Icon: Bath },
+  { key: "Agua caliente", label: "Agua caliente", Icon: ShowerHead },
+  { key: "Vista panorámica", label: "Vista panorámica", Icon: Mountain },
+  { key: "Balcón / Terraza", label: "Balcón / Terraza", Icon: Trees },
+  { key: "Minibar", label: "Minibar", Icon: Refrigerator },
+  { key: "Cafetera", label: "Cafetera", Icon: Coffee },
+  { key: "Caja fuerte", label: "Caja fuerte", Icon: Lock },
+  { key: "Chimenea", label: "Chimenea", Icon: Flame },
+  { key: "Sala de estar", label: "Sala de estar", Icon: Sofa },
+  { key: "Cama King", label: "Cama King", Icon: BedDouble },
+];

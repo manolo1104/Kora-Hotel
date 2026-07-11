@@ -20,6 +20,9 @@ interface HabitacionRaw {
   descripcion?: string;
   description?: string;
   priceTiers?: Record<string | number, number>;
+  // El panel guarda "Precios por número de personas" como `tarifas` ([{personas,
+  // precio}]); el motor lo normaliza a priceTiers para cobrarlo (antes se ignoraba).
+  tarifas?: Array<{ personas?: number | string; precio?: number | string }>;
   maxGuests?: number;
   capacidad?: number;
   fotos?: string[];
@@ -76,6 +79,16 @@ export function hotelRooms(hotel: HotelLike): BookingRoom[] {
       for (const [k, v] of Object.entries(h.priceTiers)) {
         const g = Number(k);
         if (!Number.isNaN(g)) priceTiers[g] = toNum(v, price);
+      }
+    }
+    // Fallback: el panel guarda las tarifas por nº de personas en `tarifas`
+    // ([{personas, precio}]). Si no vino priceTiers, se construye de ahí para
+    // que el motor SÍ cobre esos precios (antes el motor las ignoraba).
+    if (Object.keys(priceTiers).length === 0 && Array.isArray(h.tarifas)) {
+      for (const t of h.tarifas) {
+        const g = Math.round(Number(t?.personas));
+        const p = toNum(t?.precio, 0);
+        if (Number.isInteger(g) && g > 0 && p > 0) priceTiers[g] = p;
       }
     }
     if (Object.keys(priceTiers).length === 0) priceTiers = { [maxGuests]: price };

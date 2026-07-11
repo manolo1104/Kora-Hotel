@@ -106,6 +106,8 @@ function RoomGallery({ room, lang }: { room: BookingRoom; lang: Lang }) {
         src={images[idx]}
         alt={t(lang, "fotoDe", { i: idx + 1, n: images.length, room: room.name })}
         className="h-full w-full object-cover"
+        loading="lazy"
+        decoding="async"
       />
       {images.length > 1 && (
         <>
