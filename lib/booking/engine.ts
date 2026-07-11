@@ -155,6 +155,7 @@ export function calcNights(checkin: string, checkout: string): number {
 export interface CartItem {
   roomId: number | string;
   guestCount: number;
+  quantity?: number; // unidades del tipo (default 1); permite "2 Deluxe"
 }
 
 export function calcCartSubtotal(
@@ -167,7 +168,8 @@ export function calcCartSubtotal(
   return cart.reduce((sum, item) => {
     const room = rooms.find((r) => r.id === item.roomId);
     if (!room) return sum;
-    return sum + calcRoomStayTotal(room, item.guestCount, checkin, checkout, opts);
+    const qty = Math.max(1, Math.floor(item.quantity ?? 1));
+    return sum + calcRoomStayTotal(room, item.guestCount, checkin, checkout, opts) * qty;
   }, 0);
 }
 

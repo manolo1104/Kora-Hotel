@@ -183,6 +183,19 @@ function soloDigitos(s: string): string {
   return (s || "").replace(/\D/g, "");
 }
 
+// Mapa id-de-tipo → unidades libres, desde la respuesta de check-availability.
+function buildFreeByType(types: unknown): Record<string, number> {
+  const map: Record<string, number> = {};
+  if (Array.isArray(types)) {
+    for (const t of types) {
+      if (t && typeof t === "object" && "id" in t) {
+        map[String((t as { id: unknown }).id)] = Number((t as { freeCount?: unknown }).freeCount) || 0;
+      }
+    }
+  }
+  return map;
+}
+
 const EMAIL_RE = /.+@.+\..+/;
 
 export default function ReservarClient({
@@ -283,6 +296,8 @@ export default function ReservarClient({
   const [unavailable, setUnavailable] = useState<string[]>([]);
   const [availableCount, setAvailableCount] = useState<number | null>(null);
   const [totalRooms, setTotalRooms] = useState<number | null>(null);
+  // Unidades libres por tipo (id del tipo → cuántas quedan) para el stepper.
+  const [freeByType, setFreeByType] = useState<Record<string, number>>({});
   const [searchError, setSearchError] = useState("");
 
   // Fechas con el hotel lleno → el calendario las bloquea.
@@ -332,11 +347,22 @@ export default function ReservarClient({
     return Math.max(1, Math.min(adults, room.maxGuests || adults));
   }
 
+  // Unidades libres del TIPO para las fechas buscadas. Si aún no hay datos por
+  // tipo (respuesta vieja), cae a: 0 si el tipo está agotado, si no su cantidad.
+  function freeFor(room: BookingRoom): number {
+    const f = freeByType[String(room.id)];
+    return typeof f === "number" ? f : isUnavailable(room) ? 0 : room.cantidad ?? 1;
+  }
+  function cartQty(roomId: number | string): number {
+    return cart.find((c) => c.roomId === roomId)?.quantity ?? 1;
+  }
+
   // ── Reset al cambiar fechas/huéspedes ──────────────────
   function resetSearch() {
     setSearched(false);
     setUnavailable([]);
     setAvailableCount(null);
+    setFreeByType({});
     setCart([]);
     setSearchError("");
   }
@@ -362,8 +388,10 @@ export default function ReservarClient({
       const data = await res.json();
       const unav: string[] = Array.isArray(data?.unavailableRooms) ? data.unavailableRooms : [];
       setUnavailable(unav);
-      setAvailableCount(typeof data?.availableCount === "number" ? data.availableCount : null);
-      setTotalRooms(typeof data?.totalRooms === "number" ? data.totalRooms : null);
+      setFreeByType(buildFreeByType(data?.types));
+      // Urgencia en UNIDADES (no tipos): "solo quedan N".
+      setAvailableCount(typeof data?.availableUnits === "number" ? data.availableUnits : null);
+      setTotalRooms(typeof data?.totalUnits === "number" ? data.totalUnits : null);
       // Medición: vio precios reales de los cuartos disponibles.
       const items: MotorItem[] = rooms
         .filter((r) => !unav.includes(r.name))
@@ -393,10 +421,23 @@ export default function ReservarClient({
     const assigned = cart.reduce((s, i) => s + i.guestCount, 0);
     const remaining = Math.max(1, adults - assigned);
     const guestCount = Math.min(remaining, room.maxGuests || remaining);
-    setCart((prev) => [...prev, { roomId: room.id, guestCount }]);
+    setCart((prev) => [...prev, { roomId: room.id, guestCount, quantity: 1 }]);
   }
   function removeFromCart(roomId: number | string) {
     setCart((prev) => prev.filter((c) => c.roomId !== roomId));
+  }
+  // Cambia cuántas unidades del tipo se reservan (cap = unidades libres). Al bajar
+  // de 1 se quita el tipo del carrito.
+  function updateQuantity(roomId: number | string, delta: number) {
+    setCart((prev) =>
+      prev.flatMap((item) => {
+        if (item.roomId !== roomId) return [item];
+        const room = findRoom(roomId);
+        const maxUnits = room ? freeFor(room) : 1;
+        const q = Math.min(maxUnits, Math.max(0, (item.quantity ?? 1) + delta));
+        return q < 1 ? [] : [{ ...item, quantity: q }];
+      }),
+    );
   }
   function updateGuests(roomId: number | string, delta: number) {
     setCart((prev) =>
@@ -446,7 +487,10 @@ export default function ReservarClient({
     const room = findRoom(item.roomId);
     return room && unavailable.includes(room.name);
   });
-  const cartCapacity = cart.reduce((s, item) => s + (findRoom(item.roomId)?.maxGuests ?? 0), 0);
+  const cartCapacity = cart.reduce(
+    (s, item) => s + (findRoom(item.roomId)?.maxGuests ?? 0) * (item.quantity ?? 1),
+    0,
+  );
   const capacityOk = cart.length === 0 || cartCapacity >= adults;
   const canContinue =
     cart.length > 0 && checkin && checkout && nights > 0 && !cartHasUnavailable && capacityOk;
@@ -469,7 +513,7 @@ export default function ReservarClient({
         item_id: String(room.id),
         item_name: room.name,
         price: calcRoomStayTotal(room, item.guestCount, checkin, checkout, priceOpts),
-        quantity: 1,
+        quantity: item.quantity ?? 1,
       };
     });
   }
@@ -591,8 +635,10 @@ export default function ReservarClient({
         const roomLines = cart
           .map((item) => {
             const room = findRoom(item.roomId)!;
-            const tt = calcRoomStayTotal(room, item.guestCount, checkin, checkout, priceOpts);
-            return `• ${room.name} (${item.guestCount} persona${item.guestCount > 1 ? "s" : ""}) — ${formatMXN(tt)}`;
+            const qty = item.quantity ?? 1;
+            const tt = calcRoomStayTotal(room, item.guestCount, checkin, checkout, priceOpts) * qty;
+            const qtyTxt = qty > 1 ? ` ×${qty}` : "";
+            return `• ${room.name}${qtyTxt} (${item.guestCount} persona${item.guestCount > 1 ? "s" : ""}) — ${formatMXN(tt)}`;
           })
           .join("\n");
         const msg = [
@@ -911,23 +957,54 @@ export default function ReservarClient({
                               {t(lang, "agotada")}
                             </span>
                           ) : searched ? (
-                            <button
-                              onClick={() => (added ? removeFromCart(room.id) : addToCart(room))}
-                              className="btn-press inline-flex items-center gap-1 rounded-full px-4 py-1.5 text-xs font-bold"
-                              style={
-                                added
-                                  ? { border: "1px solid var(--brand)", color: "var(--brand)", background: "white" }
-                                  : { background: "var(--accent)", color: "var(--accent-ink)" }
-                              }
-                            >
-                              {added ? (
-                                <>
-                                  <X size={12} aria-hidden="true" /> {t(lang, "quitar")}
-                                </>
-                              ) : (
-                                t(lang, "seleccionar")
-                              )}
-                            </button>
+                            added && freeFor(room) > 1 ? (
+                              <div
+                                className="inline-flex items-center rounded-full border"
+                                style={{ borderColor: "var(--brand)" }}
+                              >
+                                <button
+                                  onClick={() => updateQuantity(room.id, -1)}
+                                  className="btn-press px-2.5 py-1.5 text-sm font-bold"
+                                  style={{ color: "var(--brand)" }}
+                                  aria-label={`${t(lang, "quitar")} ${room.name}`}
+                                >
+                                  −
+                                </button>
+                                <span
+                                  className="min-w-[2.25rem] text-center text-sm font-bold tabular-nums"
+                                  style={{ color: "var(--brand)" }}
+                                >
+                                  {cartQty(room.id)}
+                                </span>
+                                <button
+                                  onClick={() => updateQuantity(room.id, +1)}
+                                  disabled={cartQty(room.id) >= freeFor(room)}
+                                  className="btn-press px-2.5 py-1.5 text-sm font-bold disabled:opacity-40"
+                                  style={{ color: "var(--brand)" }}
+                                  aria-label="+"
+                                >
+                                  +
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => (added ? removeFromCart(room.id) : addToCart(room))}
+                                className="btn-press inline-flex items-center gap-1 rounded-full px-4 py-1.5 text-xs font-bold"
+                                style={
+                                  added
+                                    ? { border: "1px solid var(--brand)", color: "var(--brand)", background: "white" }
+                                    : { background: "var(--accent)", color: "var(--accent-ink)" }
+                                }
+                              >
+                                {added ? (
+                                  <>
+                                    <X size={12} aria-hidden="true" /> {t(lang, "quitar")}
+                                  </>
+                                ) : (
+                                  t(lang, "seleccionar")
+                                )}
+                              </button>
+                            )
                           ) : (
                             <span className="text-[11px] text-kora-muted">{t(lang, "buscaFechas")}</span>
                           )}
@@ -952,7 +1029,17 @@ export default function ReservarClient({
                     return (
                       <div key={item.roomId} className="rounded-xl border border-gray-100 p-3">
                         <div className="flex items-start justify-between gap-2">
-                          <span className="font-semibold">{room.name}</span>
+                          <span className="font-semibold">
+                            {room.name}
+                            {(item.quantity ?? 1) > 1 && (
+                              <span
+                                className="ml-1.5 rounded-full bg-kora-bg px-2 py-0.5 text-xs font-bold"
+                                style={{ color: "var(--brand)" }}
+                              >
+                                × {item.quantity}
+                              </span>
+                            )}
+                          </span>
                           <button
                             onClick={() => removeFromCart(item.roomId)}
                             aria-label={`${t(lang, "quitar")} ${room.name}`}
@@ -983,7 +1070,9 @@ export default function ReservarClient({
                               <Plus size={12} />
                             </button>
                           </div>
-                          <span className="font-semibold tabular-nums">{formatMXN(tt)}</span>
+                          <span className="font-semibold tabular-nums">
+                            {formatMXN(tt * (item.quantity ?? 1))}
+                          </span>
                         </div>
                         {unav && (
                           <p className="mt-2 inline-flex items-center gap-1 text-[11px] text-amber-700">
@@ -1162,11 +1251,13 @@ export default function ReservarClient({
               <div className="mt-3 space-y-1.5">
                 {cart.map((item) => {
                   const room = findRoom(item.roomId)!;
-                  const tt = calcRoomStayTotal(room, item.guestCount, checkin, checkout, priceOpts);
+                  const qty = item.quantity ?? 1;
+                  const tt = calcRoomStayTotal(room, item.guestCount, checkin, checkout, priceOpts) * qty;
                   return (
                     <div key={item.roomId} className="flex justify-between text-sm">
                       <span>
-                        {room.name} · {item.guestCount}p
+                        {room.name}
+                        {qty > 1 ? ` × ${qty}` : ""} · {item.guestCount}p
                       </span>
                       <span className="tabular-nums">{formatMXN(tt)}</span>
                     </div>

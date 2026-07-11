@@ -12,8 +12,9 @@ import styles from './Modal.module.css';
 interface HabItem { suite: string; huespedes: number; precioOverride?: number }
 
 function getPrecioNoche(rooms: BookingRoom[], suite: string, personas: number): number {
-  // Fuente única de precios: lib/booking (motor). Los cuartos vienen del hotel.
-  const room = rooms.find(r => r.name === suite);
+  // Fuente única de precios: lib/booking (motor). `suite` puede ser el nombre de
+  // una UNIDAD (ej. "Deluxe 2"); se mapea a su TIPO para tomar el precio.
+  const room = rooms.find(r => r.unidades.includes(suite)) ?? rooms.find(r => r.name === suite);
   return room ? getRoomBasePrice(room, personas) : 1900;
 }
 
@@ -134,7 +135,9 @@ interface Props {
 
 export default function ReservationModal({ booking, rooms, slug, defaultCheckin, defaultRoom, onClose, onSaved }: Props) {
   const isEdit = !!booking;
-  const SUITES = rooms.map(r => r.name);
+  // Lista las UNIDADES físicas (no los tipos): un tipo con cantidad N aporta sus
+  // N unidades. Así el hotelero elige la unidad exacta y no sobrevende un tipo.
+  const SUITES = rooms.flatMap(r => r.unidades);
   // Catálogo de tours/paquetes POR HOTEL (antes hardcodeado a Paraíso). Vacío
   // para hoteles que no lo configuran → las secciones se ocultan.
   const tours = catalogoTours(slug);
