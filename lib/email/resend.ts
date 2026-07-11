@@ -18,10 +18,13 @@ export async function enviarEmail({
   to,
   subject,
   html,
+  from,
 }: {
   to: string;
   subject: string;
   html: string;
+  /** Remitente. Por defecto Kora; pásalo para enviar con la marca del hotel. */
+  from?: string;
 }): Promise<boolean> {
   if (!API_KEY || !to) {
     console.log(`[email omitido] ${subject} → ${to || "(sin destinatario)"}`);
@@ -29,7 +32,7 @@ export async function enviarEmail({
   }
   try {
     const resend = new Resend(API_KEY);
-    const { error } = await resend.emails.send({ from: FROM, to, subject, html });
+    const { error } = await resend.emails.send({ from: from || FROM, to, subject, html });
     if (error) {
       console.error("Error enviando email con Resend:", error);
       return false;

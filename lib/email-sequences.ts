@@ -262,6 +262,55 @@ export function buildReturnOfferEmailHtml(data: {
   return wrap(b, `${first}, tu escapada te espera — ${b.promoDiscount} de descuento exclusivo`, body);
 }
 
+/**
+ * Oferta de regreso PERSONALIZADA (manual, desde el CRM de clientes). A
+ * diferencia de buildReturnOfferEmailHtml (copy FIJO del cron día 30), aquí el
+ * cuerpo lo REDACTA la IA según el historial del huésped y se inyecta en el
+ * shell de marca del hotel. `paragraphs` es texto plano ya personalizado: se
+ * escapa a HTML (la salida de la IA no se inyecta cruda). La caja de código
+ * solo aparece si el hotel configuró una promo (`hotel.promoCode`).
+ */
+export function buildPersonalOfferEmailHtml(data: {
+  hotel: HotelBrand;
+  customerName: string;
+  paragraphs: string[];
+  ctaText?: string;
+  promoExpiry?: string;
+}): string {
+  const b = brandDefaults(data.hotel);
+  const esc = (s: string) =>
+    String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const hasPromo = Boolean(data.hotel.promoCode);
+  const bookingUrl = `${b.baseUrl}/reservar${hasPromo ? `?promo=${encodeURIComponent(b.promoCode)}` : ""}`;
+  const paras = data.paragraphs
+    .map((p) => esc(p).trim())
+    .filter(Boolean)
+    .map(
+      (p) =>
+        `<p style="margin:16px 0 0;font-family:'Jost','Helvetica Neue',Arial;font-size:15px;font-weight:300;color:#4a3f30;line-height:1.85;">${p}</p>`,
+    )
+    .join("");
+  const promoBox = hasPromo
+    ? `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border:1px solid #c9b99a;background-color:#fdf9f4;margin:32px 0 0;">
+        <tr><td style="padding:28px 32px;text-align:center;">
+          <p style="margin:0 0 10px;font-family:'Jost','Helvetica Neue',Arial;font-size:10px;letter-spacing:3px;text-transform:uppercase;color:#9a8a74;">Tu código exclusivo</p>
+          <p style="margin:0 0 8px;font-family:'Cormorant Garamond',Georgia,serif;font-size:38px;font-weight:500;color:#2a2218;letter-spacing:4px;">${esc(b.promoCode)}</p>
+          <p style="margin:0;font-family:'Jost','Helvetica Neue',Arial;font-size:12px;color:#9a8a74;">${esc(b.promoDiscount)} de descuento${data.promoExpiry ? ` · Válido hasta el ${esc(data.promoExpiry)}` : ""}</p>
+        </td></tr>
+      </table>`
+    : "";
+  const body = `
+    ${hero("Una nota para ti", "Te tenemos algo especial", `Con cariño, desde ${esc(b.nombre)}.`)}
+    <tr><td class="mplg" style="background-color:#faf8f5;padding:52px 48px;">
+      ${greeting(data.customerName)}
+      ${paras}
+      ${promoBox}
+      ${ctaButton(data.ctaText || `Reservar en ${b.nombre}`, bookingUrl)}
+    </td></tr>`;
+  const first = data.customerName.trim().split(" ")[0];
+  return wrap(b, `${first}, algo especial de ${b.nombre}`, body);
+}
+
 // ── 4. Pre-llegada -3 días: Recordatorio / upsell de servicios ─────────────
 // El menú de restaurante de Paraíso se parametriza: el hotel puede pasar su
 // propia lista de `servicios`. Si no pasa nada, el correo se centra en confirmar
