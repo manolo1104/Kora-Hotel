@@ -616,6 +616,8 @@ export default function ReservarClient({
   const esNrf = ratePlan === "nrf" && reglas.nrfActiva && payMode === "online";
   const nrfDiscount = esNrf ? calcNrfDiscount(subtotal, reglas.nrfPct) : 0;
   const total = Math.max(0, subtotal - nrfDiscount + addonsTotal + experienciasTotal - bundleDiscount);
+  // Total de la estadía sin el descuento NRF (los pasos 1 y 2 lo muestran así).
+  const totalConExtras = subtotal + addonsTotal + experienciasTotal - bundleDiscount;
   const deposit = useMemo(
     () =>
       calcDepositAmount(total, nights, {
@@ -889,7 +891,7 @@ export default function ReservarClient({
         }`}
       >
         {fechas.length > 0 && (
-          <label className="flex items-center gap-1.5 text-[11px] text-kora-muted">
+          <label className="flex items-center gap-1.5 text-xs text-kora-muted">
             {t(lang, "expDia")}
             <select
               className={selCls}
@@ -910,7 +912,7 @@ export default function ReservarClient({
           </label>
         )}
         {horarios.length > 0 && (
-          <label className="flex items-center gap-1.5 text-[11px] text-kora-muted">
+          <label className="flex items-center gap-1.5 text-xs text-kora-muted">
             {t(lang, "expHorario")}
             <select
               className={selCls}
@@ -926,7 +928,7 @@ export default function ReservarClient({
           </label>
         )}
         {restante !== undefined && restante <= 5 && (
-          <span className="text-[11px] font-semibold text-amber-700">
+          <span className="text-xs font-semibold text-amber-700">
             {t(lang, "expQuedan", { n: String(restante) })}
           </span>
         )}
@@ -956,7 +958,7 @@ export default function ReservarClient({
         } as React.CSSProperties
       }
     >
-      <div className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6">
+      <div className="mx-auto w-full max-w-3xl px-4 pt-6 pb-28 sm:px-6 sm:pb-6">
         {/* Toggle de idioma */}
         <div className="mb-3 flex justify-end">
           <div className="inline-flex overflow-hidden rounded-full border border-gray-200 bg-white text-xs font-bold" role="group" aria-label="Idioma / Language">
@@ -1021,7 +1023,7 @@ export default function ReservarClient({
         {step === "buscar" && (
           <>
             {/* ── Paso 1: fechas + habitaciones ── */}
-            <section className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+            <section className="rounded-2xl border border-gray-100 bg-white p-3 shadow-sm sm:p-4">
               <DateRangeCalendar
                 checkin={checkin}
                 checkout={checkout}
@@ -1144,7 +1146,7 @@ export default function ReservarClient({
                             <span className="inline-flex items-center gap-1.5 text-sm font-bold">
                               <Ban size={14} aria-hidden="true" /> {t(lang, "noDisponible")}
                             </span>
-                            <span className="text-[11px] opacity-90">{t(lang, "agotadaFechas")}</span>
+                            <span className="text-xs opacity-90">{t(lang, "agotadaFechas")}</span>
                           </div>
                         )}
                         {added && !unavail && (
@@ -1184,7 +1186,7 @@ export default function ReservarClient({
                             <span className="block text-lg font-extrabold tabular-nums" style={{ color: "var(--brand)" }}>
                               {searched && roomTotal !== null ? formatMXN(roomTotal) : formatMXN(room.price)}
                             </span>
-                            <span className="block text-[11px] text-kora-muted">
+                            <span className="block text-xs text-kora-muted">
                               {searched && roomTotal !== null
                                 ? t(lang, "totalPax", { n: nights, g: guests })
                                 : t(lang, "porNoche")}
@@ -1282,7 +1284,7 @@ export default function ReservarClient({
                           <button
                             onClick={() => removeFromCart(item.roomId)}
                             aria-label={`${t(lang, "quitar")} ${room.name}`}
-                            className="text-kora-muted hover:text-kora-text"
+                            className="-m-2 p-2 text-kora-muted hover:text-kora-text"
                           >
                             <X size={15} />
                           </button>
@@ -1292,7 +1294,7 @@ export default function ReservarClient({
                             <button
                               onClick={() => updateGuests(item.roomId, -1)}
                               disabled={item.guestCount <= 1}
-                              className="grid h-7 w-7 place-items-center rounded-full border border-gray-200 disabled:opacity-40"
+                              className="relative grid h-9 w-9 place-items-center rounded-full border border-gray-200 after:absolute after:-inset-1.5 after:content-[''] disabled:opacity-40"
                               aria-label={t(lang, "menosAdultos")}
                             >
                               <Minus size={12} />
@@ -1303,7 +1305,7 @@ export default function ReservarClient({
                             <button
                               onClick={() => updateGuests(item.roomId, 1)}
                               disabled={item.guestCount >= room.maxGuests}
-                              className="grid h-7 w-7 place-items-center rounded-full border border-gray-200 disabled:opacity-40"
+                              className="relative grid h-9 w-9 place-items-center rounded-full border border-gray-200 after:absolute after:-inset-1.5 after:content-[''] disabled:opacity-40"
                               aria-label={t(lang, "masAdultos")}
                             >
                               <Plus size={12} />
@@ -1314,7 +1316,7 @@ export default function ReservarClient({
                           </span>
                         </div>
                         {unav && (
-                          <p className="mt-2 inline-flex items-center gap-1 text-[11px] text-amber-700">
+                          <p className="mt-2 inline-flex items-center gap-1 text-xs text-amber-700">
                             <AlertTriangle size={12} aria-hidden="true" /> {t(lang, "yaNoDisponible")}
                           </p>
                         )}
@@ -1420,13 +1422,13 @@ export default function ReservarClient({
                                 ) : null}
                                 <p className="text-xs tabular-nums text-kora-muted">{unit}</p>
                                 {sinFechas && (
-                                  <p className="text-[11px] font-semibold text-amber-700">
+                                  <p className="text-xs font-semibold text-amber-700">
                                     {t(lang, "expNoDisponibleFechas")}
                                     {e.dias?.length ? ` · ${t(lang, "expSoloDias", { d: diasLabel(e.dias) })}` : ""}
                                   </p>
                                 )}
                                 {agotado && (
-                                  <p className="text-[11px] font-semibold text-amber-700">
+                                  <p className="text-xs font-semibold text-amber-700">
                                     {t(lang, "expAgotadoFechas")}
                                   </p>
                                 )}
@@ -1438,7 +1440,7 @@ export default function ReservarClient({
                                     aria-label="Quitar uno"
                                     onClick={() => setExp(i, qty - 1)}
                                     disabled={qty <= 0}
-                                    className="grid h-7 w-7 place-items-center rounded-full border border-gray-300 text-lg leading-none text-kora-text disabled:opacity-40"
+                                    className="relative grid h-9 w-9 place-items-center rounded-full border border-gray-300 text-lg leading-none text-kora-text after:absolute after:-inset-1.5 after:content-[''] disabled:opacity-40"
                                   >
                                     −
                                   </button>
@@ -1447,7 +1449,7 @@ export default function ReservarClient({
                                     type="button"
                                     aria-label="Agregar uno"
                                     onClick={() => setExp(i, qty + 1)}
-                                    className="grid h-7 w-7 place-items-center rounded-full border text-lg leading-none"
+                                    className="relative grid h-9 w-9 place-items-center rounded-full border text-lg leading-none after:absolute after:-inset-1.5 after:content-['']"
                                     style={{ background: "var(--brand)", borderColor: "var(--brand)", color: "var(--brand-ink)" }}
                                   >
                                     +
@@ -1459,7 +1461,7 @@ export default function ReservarClient({
                                   onClick={() => toggleExp(i)}
                                   aria-pressed={on}
                                   aria-label={e.nombre}
-                                  className="grid h-6 w-6 shrink-0 place-items-center rounded-md border"
+                                  className="relative grid h-6 w-6 shrink-0 place-items-center rounded-md border after:absolute after:-inset-2.5 after:content-['']"
                                   style={
                                     on
                                       ? { background: "var(--brand)", borderColor: "var(--brand)" }
@@ -1504,7 +1506,7 @@ export default function ReservarClient({
                   <div className="flex justify-between text-base font-bold">
                     <span>{t(lang, "totalEstadia")}</span>
                     <span className="tabular-nums" style={{ color: "var(--brand)" }}>
-                      {formatMXN(subtotal + addonsTotal + experienciasTotal - bundleDiscount)}
+                      {formatMXN(totalConExtras)}
                     </span>
                   </div>
                 </div>
@@ -1518,7 +1520,7 @@ export default function ReservarClient({
                   {t(lang, "continuar")} <ChevronRight size={16} aria-hidden="true" />
                 </button>
 
-                <div className="mt-3 flex flex-wrap justify-center gap-x-4 gap-y-1 text-[11px] text-kora-muted">
+                <div className="mt-3 flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs text-kora-muted">
                   <span className="inline-flex items-center gap-1">
                     <ShieldCheck size={12} aria-hidden="true" /> {t(lang, "pagoSeguro")}
                   </span>
@@ -1660,7 +1662,7 @@ export default function ReservarClient({
               <div className="mt-3 flex justify-between border-t border-gray-100 pt-3 text-base font-bold">
                 <span>{t(lang, "totalEstadia")}</span>
                 <span className="tabular-nums" style={{ color: "var(--brand)" }}>
-                  {formatMXN(subtotal + addonsTotal + experienciasTotal - bundleDiscount)}
+                  {formatMXN(totalConExtras)}
                 </span>
               </div>
             </div>
@@ -1997,7 +1999,7 @@ export default function ReservarClient({
               )}
             </button>
 
-            <p className="mt-3 inline-flex items-center gap-1.5 text-[11px] text-kora-muted">
+            <p className="mt-3 inline-flex items-center gap-1.5 text-xs text-kora-muted">
               <ShieldCheck size={12} aria-hidden="true" /> {t(lang, "pagoCifrado")}
               {payMode === "online" && oxxoDisponible && (
                 <span> · {t(lang, "pagoOnlineDescOxxo")}</span>
@@ -2018,6 +2020,97 @@ export default function ReservarClient({
               Reservas con <span className="font-bold text-kora-primary">Kora</span>
             </a>
           </footer>
+        )}
+
+        {/* Barra de acción fija en móvil: el total y el siguiente paso siempre a
+            un toque, sin buscar el botón al fondo de la página. En ≥sm no existe
+            (los botones inline quedan a la vista). */}
+        {!(step === "pago" && demoOk) && (
+          <div
+            className="fixed inset-x-0 bottom-0 z-40 border-t border-gray-200 bg-white/95 backdrop-blur-sm sm:hidden"
+            style={{ paddingBottom: "max(env(safe-area-inset-bottom), 12px)" }}
+          >
+            <div className="mx-auto w-full max-w-3xl px-4 pt-3">
+              {payError && step !== "buscar" && (
+                <p className="mb-2 flex items-start gap-1.5 text-xs text-red-700" role="alert">
+                  <AlertTriangle size={13} className="mt-0.5 shrink-0" aria-hidden="true" /> {payError}
+                </p>
+              )}
+              <div className="flex items-center gap-3">
+                {(step !== "buscar" || cart.length > 0) && (
+                  <div className="min-w-0">
+                    <p className="text-xs leading-none text-kora-muted">{t(lang, "totalEstadia")}</p>
+                    <p
+                      className="mt-1 truncate text-base font-extrabold tabular-nums"
+                      style={{ color: "var(--brand)" }}
+                    >
+                      {formatMXN(step === "pago" ? total : totalConExtras)}
+                    </p>
+                  </div>
+                )}
+
+                {step === "buscar" && cart.length === 0 ? (
+                  <button
+                    onClick={handleSearch}
+                    disabled={!checkin || !checkout || nights <= 0 || searching}
+                    className="btn-press inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full px-5 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-60"
+                    style={{ background: "var(--accent)", color: "var(--accent-ink)" }}
+                  >
+                    {searching ? (
+                      <>
+                        <Loader2 size={16} className="animate-spin" aria-hidden="true" />{" "}
+                        {t(lang, "verificando")}
+                      </>
+                    ) : searched ? (
+                      t(lang, "actualizarDisponibilidad")
+                    ) : (
+                      t(lang, "verDisponibilidad")
+                    )}
+                  </button>
+                ) : step === "buscar" ? (
+                  <button
+                    onClick={goDatos}
+                    disabled={!canContinue}
+                    className="btn-press ml-auto inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-full px-5 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-60"
+                    style={{ background: "var(--accent)", color: "var(--accent-ink)" }}
+                  >
+                    {t(lang, "continuar")} <ChevronRight size={16} aria-hidden="true" />
+                  </button>
+                ) : step === "datos" ? (
+                  <button
+                    onClick={goPago}
+                    className="btn-press ml-auto inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-full px-5 text-sm font-bold"
+                    style={{ background: "var(--accent)", color: "var(--accent-ink)" }}
+                  >
+                    {t(lang, "continuarPago")} <ChevronRight size={16} aria-hidden="true" />
+                  </button>
+                ) : (
+                  <button
+                    onClick={handlePay}
+                    disabled={paying}
+                    className="btn-press ml-auto inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-full px-5 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-60"
+                    style={{ background: "var(--accent)", color: "var(--accent-ink)" }}
+                  >
+                    {paying ? (
+                      <>
+                        <Loader2 size={16} className="animate-spin" aria-hidden="true" />{" "}
+                        {t(lang, "procesando")}
+                      </>
+                    ) : (
+                      <>
+                        <Lock size={15} aria-hidden="true" />
+                        {payMode === "hotel"
+                          ? t(lang, "reservarGarantia")
+                          : isDeposit
+                            ? t(lang, "pagarAnticipo", { monto: formatMXN(deposit), pct: reglas.anticipoPct })
+                            : t(lang, "pagarTotal", { monto: formatMXN(total) })}
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>
@@ -2041,11 +2134,11 @@ function Counter({
   incLabel: string;
 }) {
   return (
-    <div className="flex items-center justify-between rounded-lg border border-gray-200 px-2 py-1.5">
+    <div className="flex items-center justify-between rounded-lg border border-gray-200 px-2 py-1">
       <button
         onClick={onDec}
         disabled={value <= min}
-        className="grid h-6 w-6 place-items-center rounded-full hover:bg-gray-100 disabled:opacity-40"
+        className="relative grid h-9 w-9 place-items-center rounded-full after:absolute after:-inset-1.5 after:content-[''] hover:bg-gray-100 disabled:opacity-40"
         aria-label={decLabel}
       >
         <Minus size={13} />
@@ -2053,7 +2146,7 @@ function Counter({
       <span className="text-sm font-semibold tabular-nums">{value}</span>
       <button
         onClick={onInc}
-        className="grid h-6 w-6 place-items-center rounded-full hover:bg-gray-100"
+        className="relative grid h-9 w-9 place-items-center rounded-full after:absolute after:-inset-1.5 after:content-[''] hover:bg-gray-100"
         aria-label={incLabel}
       >
         <Plus size={13} />
