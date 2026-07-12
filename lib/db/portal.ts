@@ -3,6 +3,7 @@
 // SOLO servidor.
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import { liberarExperienciaVentas } from "@/lib/db/experiencias";
 import { bookingRules } from "@/lib/booking";
 import type { MiniExtras } from "@/lib/mini";
 
@@ -141,5 +142,7 @@ export async function cancelGuestBooking(b: GuestBooking): Promise<boolean> {
     .eq("hotel_id", b.row.hotel_id)
     .eq("booking_id", b.row.id);
   if (blockErr) console.error("cancelGuestBooking blocks error:", blockErr);
+  // Cupo de experiencias: los lugares de la reserva quedan libres (fail-safe).
+  await liberarExperienciaVentas(b.row.hotel_id, b.row.confirmacion);
   return true;
 }

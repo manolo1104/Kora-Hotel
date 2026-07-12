@@ -12,6 +12,9 @@ import {
   calcAddonsTotal,
   calcExperienciasTotal,
   experienciaFechasDisponibles,
+  experienciaCupoQty,
+  calcExperienciasBundleDiscount,
+  type ExperienciasBundleRule,
   calcNrfDiscount,
   type CartItem,
   type AddonRule,
@@ -19,6 +22,7 @@ import {
   type ExperienciaSelection,
 } from "@/lib/booking";
 import { freeUnitsByType, createTemporaryHold, releaseHold } from "@/lib/db/availability";
+import { ventasPorExperiencia } from "@/lib/db/experiencias";
 import { accesoDelHotel } from "@/lib/suscripcion";
 import { getStripe, stripeEnvReady } from "@/lib/stripe/server";
 import { getConnectState } from "@/lib/stripe/connect";
@@ -217,6 +221,36 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       return NextResponse.json({ error: "experiencia-agenda" }, { status: 400 });
     }
   }
+
+  // Cupo diario (Sprint 3): las selecciones con día no deben rebasar los
+  // lugares del hotel para ese día (lo ya vendido sale de experiencia_ventas;
+  // sin tabla la lectura devuelve {} y el cupo simplemente no se aplica).
+  // `ventaItems` registra lo que ESTA reserva consumirá (lo escribe el webhook).
+  const ventaItems: { experiencia: string; fecha: string; qty: number }[] = [];
+  const conCupo = new Set(
+    hotelExperiencias.filter((e) => (e.cupoDia ?? 0) > 0).map((e) => e.nombre),
+  );
+  for (const sel of selectedExperiencias) {
+    const e = hotelExperiencias[sel.i];
+    if (!e || !sel.fecha) continue;
+    const q = experienciaCupoQty(e, sel.qty, adults);
+    if (q > 0) ventaItems.push({ experiencia: e.nombre, fecha: sel.fecha, qty: q });
+  }
+  if (ventaItems.some((v) => conCupo.has(v.experiencia))) {
+    const vendidos = await ventasPorExperiencia(hotel.id, [...conCupo], checkin, checkout);
+    for (const v of ventaItems) {
+      const e = hotelExperiencias.find((x) => x.nombre === v.experiencia);
+      const cupo = e?.cupoDia ?? 0;
+      if (cupo <= 0) continue;
+      const ya = vendidos[v.experiencia]?.[v.fecha] ?? 0;
+      if (ya + v.qty > cupo) {
+        return NextResponse.json(
+          { error: "experiencia-cupo", experiencia: v.experiencia, fecha: v.fecha, restante: Math.max(0, cupo - ya) },
+          { status: 409 },
+        );
+      }
+    }
+  }
   const experienciaNames = selectedExperiencias
     .map((sel) => {
       const e = hotelExperiencias[sel.i];
@@ -241,7 +275,18 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     adults,
   );
 
-  const stayTotal = Math.max(0, subtotal - nrfDiscount + addonsTotal + experienciasTotal);
+  // Descuento de paquete (Sprint 3): N+ experiencias distintas → % sobre las
+  // experiencias. La regla es DEL HOTEL (extras); el cliente no manda montos.
+  const bundleRule = ((hotel.extras as Record<string, unknown>)?.experienciasBundle ?? null) as
+    | ExperienciasBundleRule
+    | null;
+  const bundleDiscount = calcExperienciasBundleDiscount(
+    experienciasTotal,
+    selectedExperiencias.length,
+    bundleRule,
+  );
+
+  const stayTotal = Math.max(0, subtotal - nrfDiscount + addonsTotal + experienciasTotal - bundleDiscount);
   const esPagoHotel = payMode === "hotel";
   // "Pagar en el hotel": hoy no se cobra nada; la tarjeta queda como garantía.
   const deposit = esPagoHotel
@@ -291,12 +336,28 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   const origin = new URL(req.url).origin;
   const stripe = getStripe();
 
+  // Datos estructurados de experiencias para el webhook (registra el cupo en
+  // experiencia_ventas). JSON compacto [[nombre, lugares, fecha], …], armado
+  // incremental para no partir el JSON con el tope de 500 chars del metadata.
+  let experienciasData = "[]";
+  {
+    const acc: [string, number, string][] = [];
+    for (const v of ventaItems) {
+      const next = JSON.stringify([...acc, [v.experiencia, v.qty, v.fecha]]);
+      if (next.length > 480) break;
+      acc.push([v.experiencia, v.qty, v.fecha]);
+      experienciasData = next;
+    }
+  }
+
   const md: Record<string, string> = {
     hotel_id: hotel.id,
     slug,
     rooms: roomsMeta,
     addons: addonNames.join("|").slice(0, 200),
     experiencias: experienciaNames.join("|").slice(0, 480),
+    experiencias_data: experienciasData,
+    bundleDiscount: String(bundleDiscount),
     checkin: String(checkin),
     checkout: String(checkout),
     nights: String(nights),
@@ -386,8 +447,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
                 description: `${checkin} a ${checkout} · ${nights} noche(s) · ${roomNames.join(", ")}${
                   addonNames.length ? ` · Extras: ${addonNames.join(", ")}` : ""
                 }${experienciaNames.length ? ` · Experiencias: ${experienciaNames.join(", ")}` : ""}${
-                  esNrf ? " · Tarifa no reembolsable" : ""
-                }`,
+                  bundleDiscount > 0 ? ` · Descuento paquete: -$${bundleDiscount}` : ""
+                }${esNrf ? " · Tarifa no reembolsable" : ""}`,
               },
             },
             quantity: 1,

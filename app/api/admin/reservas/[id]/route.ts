@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getActiveHotel } from '@/lib/panel/active-hotel';
 import { getAllBookings, updateBooking, cancelBooking, splitRooms } from '@/lib/db/admin';
 import { getOccupiedRoomNames } from '@/lib/db/availability';
+import { liberarExperienciaVentas } from '@/lib/db/experiencias';
 
 export const dynamic = 'force-dynamic';
 
@@ -67,6 +68,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   // cambian fechas/cuartos; por eso NO usamos block/unblockRooms aquí (evita
   // mezclar estados RESERVADO/BLOQUEADO y dejar fechas viejas ocupadas).
   await updateBooking(ctx.hotelId, booking.id, raw);
+  // Cancelada desde el panel → sus lugares de experiencias quedan libres.
+  if (raw.estado === 'CANCELADA' && booking.estado !== 'CANCELADA') {
+    await liberarExperienciaVentas(ctx.hotelId, booking.confirmacion);
+  }
   return NextResponse.json({ ok: true });
 }
 
@@ -82,5 +87,6 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
 
   // cancelBooking marca CANCELADA y borra los blocks ligados (libera disponibilidad).
   await cancelBooking(ctx.hotelId, booking.id);
+  await liberarExperienciaVentas(ctx.hotelId, booking.confirmacion);
   return NextResponse.json({ ok: true });
 }

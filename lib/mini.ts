@@ -90,6 +90,16 @@ export interface Experiencia {
   // estancia. No afectan el precio; viajan como anotación al hotel.
   dias?: number[]; // días de la semana en que se ofrece (0=Dom … 6=Sáb); vacío/ausente = todos
   horarios?: string[]; // horarios de salida (texto libre, ej. "9:00 am"); ausente = sin horario fijo
+  // Cupo (Sprint 3): lugares disponibles POR DÍA (tabla experiencia_ventas).
+  // 0/undefined = sin límite. No aplica a cobro="noche" (esa no elige día).
+  cupoDia?: number;
+}
+
+// Descuento de paquete (Sprint 3): si el huésped agrega `min` o más
+// experiencias distintas, sus experiencias tienen `pct`% de descuento.
+export interface ExperienciasBundle {
+  min?: number; // mínimo de experiencias distintas (default 2)
+  pct?: number; // % de descuento sobre el total de experiencias (0 = apagado)
 }
 
 // Categorías para agrupar experiencias en el motor y elegir en el panel.
@@ -120,6 +130,7 @@ export interface MiniExtras {
   onboarding?: OnboardingProgreso;
   addons?: Addon[];
   experiencias?: Experiencia[];
+  experienciasBundle?: ExperienciasBundle;
   formasPago?: string[];
   idiomas?: string[];
   premium?: { marcaOculta?: boolean; dominio?: string };

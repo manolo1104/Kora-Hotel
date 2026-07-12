@@ -9,6 +9,7 @@ import {
   type CrearReservaResult,
 } from "@/lib/db/bookings";
 import { releaseHold, extendHold } from "@/lib/db/availability";
+import { registrarExperienciaVentas, liberarExperienciaVentas } from "@/lib/db/experiencias";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   sendConfirmacionReserva,
@@ -170,6 +171,8 @@ async function confirmarReserva(
     const notasPartes: string[] = [];
     if (experiencias.length) notasPartes.push(`Experiencias: ${experiencias.join(", ")}`);
     if (addonsList.length) notasPartes.push(`Extras: ${addonsList.join(", ")}`);
+    const bundleDiscount = Number(md.bundleDiscount) || 0;
+    if (bundleDiscount > 0) notasPartes.push(`Descuento paquete: -$${bundleDiscount}`);
     const notasReserva = notasPartes.join(" · ") || null;
 
     const hotel = md.slug ? await resolveHotel(md.slug) : null;
@@ -223,6 +226,23 @@ async function confirmarReserva(
       // — jamás perder en silencio una reserva ya pagada.
       console.error("createBookingAtomic falló en webhook (transitorio):", result.error);
       return NextResponse.json({ error: result.error }, { status: 500 });
+    }
+
+    // Registrar los lugares de experiencias vendidos (cupo diario, Sprint 3).
+    // Best-effort: nunca tumba el webhook — la reserva ya quedó creada.
+    try {
+      const data = JSON.parse(md.experiencias_data || "[]") as [string, number, string][];
+      await registrarExperienciaVentas(
+        hotelId,
+        confirmacion,
+        (Array.isArray(data) ? data : []).map((d) => ({
+          experiencia: String(d?.[0] ?? ""),
+          qty: Number(d?.[1]) || 0,
+          fecha: String(d?.[2] ?? ""),
+        })),
+      );
+    } catch {
+      // Metadata ausente o malformada: la reserva queda sin registro de cupo.
     }
 
     // El intento de reserva quedó convertido: el cron de abandono ya no escribe.
@@ -374,10 +394,10 @@ export async function POST(req: NextRequest) {
       const admin = createAdminClient();
       const { data } = await admin
         .from("bookings")
-        .select("id, hotel_id, estado")
+        .select("id, hotel_id, estado, confirmacion")
         .eq("payment_intent_id", pi)
         .maybeSingle();
-      const booking = data as { id: string; hotel_id: string; estado: string } | null;
+      const booking = data as { id: string; hotel_id: string; estado: string; confirmacion: string | null } | null;
       if (booking && booking.estado !== "REEMBOLSADA") {
         const { error } = await admin
           .from("bookings")
@@ -388,6 +408,8 @@ export async function POST(req: NextRequest) {
           await admin.from("bookings").update({ estado: "CANCELADA" }).eq("id", booking.id);
         }
         await admin.from("blocks").delete().eq("hotel_id", booking.hotel_id).eq("booking_id", booking.id);
+        // Cupo de experiencias: reembolso total también libera los lugares.
+        await liberarExperienciaVentas(booking.hotel_id, booking.confirmacion ?? "");
       }
       return NextResponse.json({ received: true, refunded: Boolean(booking) });
     }

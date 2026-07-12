@@ -87,6 +87,7 @@ interface ExperienciaForm {
   cantidadMax: string;
   dias: number[]; // días de la semana en que se ofrece (0=Dom … 6=Sáb); vacío = todos
   horarios: string; // horarios separados por coma, tal como se teclean ("9:00 am, 4:00 pm")
+  cupoDia: string; // lugares por día (vacío/0 = sin límite); no aplica a cobro="noche"
 }
 // Temporada tal como se edita en el formulario (valores como string para los
 // inputs; se convierten a números al guardar en extras.temporadas).
@@ -314,12 +315,15 @@ export function PanelEditor({
 
   // Experiencias vendibles (tours, traslados, cena, spa) — viven en extras.experiencias
   const [experiencias, setExperiencias] = useState<ExperienciaForm[]>([]);
+  // Descuento de paquete (extras.experienciasBundle): N+ experiencias → % dcto.
+  const [bundlePct, setBundlePct] = useState(""); // vacío = apagado
+  const [bundleMin, setBundleMin] = useState("2");
   const [genExpDescIdx, setGenExpDescIdx] = useState<number | null>(null); // experiencia cuya descripción se está generando con IA
   const [subiendoImgExp, setSubiendoImgExp] = useState<number | null>(null); // experiencia cuya foto se está subiendo
   function addExperiencia() {
     setExperiencias((x) => [
       ...x,
-      { nombre: "", precio: "", cobro: "unidad", descripcion: "", imagen: "", categoria: "tour", cantidadMax: "", dias: [], horarios: "" },
+      { nombre: "", precio: "", cobro: "unidad", descripcion: "", imagen: "", categoria: "tour", cantidadMax: "", dias: [], horarios: "", cupoDia: "" },
     ]);
   }
   function updateExperiencia(i: number, campo: Exclude<keyof ExperienciaForm, "dias">, valor: string) {
@@ -364,6 +368,7 @@ export function PanelEditor({
           cantidadMax: "",
           dias: [],
           horarios: "",
+          cupoDia: "",
         }));
       return [...prev, ...nuevos];
     });
@@ -543,9 +548,13 @@ export function PanelEditor({
                 ? (e.dias as unknown[]).map(Number).filter((n) => Number.isInteger(n) && n >= 0 && n <= 6)
                 : [],
               horarios: Array.isArray(e?.horarios) ? (e.horarios as unknown[]).map(String).join(", ") : "",
+              cupoDia: e?.cupoDia != null && Number(e.cupoDia) > 0 ? String(e.cupoDia) : "",
             };
           }),
         );
+        const bundle = (ex.experienciasBundle ?? {}) as { min?: unknown; pct?: unknown };
+        setBundlePct(Number(bundle.pct) > 0 ? String(bundle.pct) : "");
+        setBundleMin(Number(bundle.min) >= 2 ? String(bundle.min) : "2");
         const cot = (ex.cotizaciones ?? {}) as Record<string, unknown>;
         setPaquetesCat(
           (Array.isArray(cot.paquetes) ? cot.paquetes : []).map((p: Record<string, unknown>) => ({
@@ -1008,6 +1017,7 @@ export function PanelEditor({
           const cm = Math.max(0, Math.round(Number(e.cantidadMax) || 0));
           // Agenda: días vacíos o los 7 = "todos los días" → no se guarda nada.
           const horarios = e.horarios.split(",").map((h) => h.trim()).filter(Boolean).slice(0, 8);
+          const cupo = Math.max(0, Math.round(Number(e.cupoDia) || 0));
           return {
             nombre: e.nombre.trim(),
             precio: Math.max(0, Number(e.precio) || 0),
@@ -1018,8 +1028,16 @@ export function PanelEditor({
             ...(e.cobro === "unidad" && cm > 0 ? { cantidadMax: cm } : {}),
             ...(e.dias.length > 0 && e.dias.length < 7 ? { dias: e.dias } : {}),
             ...(horarios.length ? { horarios } : {}),
+            ...(e.cobro !== "noche" && cupo > 0 ? { cupoDia: cupo } : {}),
           };
         }),
+      // Descuento de paquete de experiencias (Sprint 3): pct vacío/0 = apagado
+      // (undefined se cae del JSON al guardar → se borra la clave).
+      experienciasBundle: (() => {
+        const pct = Math.min(90, Math.max(0, Math.round(Number(bundlePct) || 0)));
+        const min = Math.max(2, Math.round(Number(bundleMin) || 2));
+        return pct > 0 ? { min, pct } : undefined;
+      })(),
       // Catálogo de Cotizaciones (paquetes + tours). El resolver revalida al leer.
       cotizaciones: {
         paquetes: paquetesCat
@@ -2983,6 +3001,18 @@ export function PanelEditor({
                           placeholder="Ej. 9:00 am, 4:00 pm (separados por coma)"
                         />
                       </div>
+                      <div className="w-32">
+                        <label className="block text-[11px] font-semibold text-kora-muted mb-1">Cupo por día (opc.)</label>
+                        <input
+                          type="number"
+                          min={0}
+                          className={inputCls}
+                          value={e.cupoDia}
+                          onChange={(ev) => updateExperiencia(i, "cupoDia", ev.target.value)}
+                          placeholder="Sin límite"
+                          title="Lugares que puedes atender por día (ej. tu lancha lleva 8). El motor deja de venderla ese día al llenarse."
+                        />
+                      </div>
                     </div>
                   )}
                   <div>
@@ -3052,6 +3082,39 @@ export function PanelEditor({
                   <ArrowRight size={15} /> Importar de mis tours
                 </button>
               )}
+            </div>
+            {/* Descuento de paquete: N+ experiencias → % sobre las experiencias */}
+            <div className="rounded-xl border border-gray-100 bg-kora-bg/40 p-3">
+              <p className="text-sm font-semibold text-kora-text">Descuento de paquete</p>
+              <p className="mt-0.5 text-xs text-kora-muted">
+                Premia a quien arma su paquete: si el huésped agrega este número de
+                experiencias (o más), sus experiencias tienen el descuento. Déjalo
+                vacío para no ofrecerlo.
+              </p>
+              <div className="mt-2 flex flex-wrap items-end gap-3">
+                <div className="w-40">
+                  <label className="block text-[11px] font-semibold text-kora-muted mb-1">Mínimo de experiencias</label>
+                  <input
+                    type="number"
+                    min={2}
+                    className={inputCls}
+                    value={bundleMin}
+                    onChange={(ev) => setBundleMin(ev.target.value)}
+                  />
+                </div>
+                <div className="w-40">
+                  <label className="block text-[11px] font-semibold text-kora-muted mb-1">% de descuento</label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={90}
+                    className={inputCls}
+                    value={bundlePct}
+                    onChange={(ev) => setBundlePct(ev.target.value)}
+                    placeholder="Apagado"
+                  />
+                </div>
+              </div>
             </div>
           </div>
 

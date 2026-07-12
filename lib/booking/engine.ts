@@ -261,6 +261,46 @@ export interface ExperienciaRule {
   // elegida caiga en un día permitido). NO participan en el cálculo del precio.
   dias?: number[]; // días de la semana en que se ofrece (0=Dom … 6=Sáb); vacío = todos
   horarios?: string[]; // horarios de salida; vacío = sin horario fijo
+  cupoDia?: number; // lugares por día (0/undefined = sin límite); no aplica a cobro="noche"
+}
+
+/**
+ * Lugares que una selección CONSUME del cupo diario de su experiencia:
+ * unidad → cantidad de boletos, persona → huéspedes, estancia → 1.
+ * cobro="noche" no elige día → no consume cupo (devuelve 0).
+ */
+export function experienciaCupoQty(
+  e: Pick<ExperienciaRule, "cobro" | "cantidadMax">,
+  qty: number,
+  guests: number,
+): number {
+  if (e.cobro === "noche") return 0;
+  if (e.cobro === "persona") return Math.max(1, guests);
+  if (e.cobro === "estancia") return 1;
+  const cap = e.cantidadMax && e.cantidadMax > 0 ? Math.floor(e.cantidadMax) : Infinity;
+  return Math.min(cap, Math.max(1, Math.floor(Number(qty) || 1)));
+}
+
+/** Regla del descuento de paquete (extras.experienciasBundle). */
+export interface ExperienciasBundleRule {
+  min?: number; // mínimo de experiencias distintas (default 2)
+  pct?: number; // % de descuento sobre el total de experiencias (0 = apagado)
+}
+
+/**
+ * Descuento de paquete: si el huésped eligió `count` experiencias DISTINTAS
+ * (count ≥ min, min mínimo 2 — un descuento por 1 sola no es paquete) se
+ * descuenta pct% del total de experiencias. Redondeado a pesos. Puro.
+ */
+export function calcExperienciasBundleDiscount(
+  experienciasTotal: number,
+  count: number,
+  rule?: ExperienciasBundleRule | null,
+): number {
+  const pct = Math.min(90, Math.max(0, Number(rule?.pct) || 0));
+  const min = Math.max(2, Math.floor(Number(rule?.min) || 2));
+  if (!pct || count < min || experienciasTotal <= 0) return 0;
+  return Math.round(experienciasTotal * (pct / 100));
 }
 
 /** Una experiencia elegida: índice en el catálogo del hotel + cantidad.

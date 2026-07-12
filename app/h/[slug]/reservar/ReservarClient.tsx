@@ -23,6 +23,8 @@ import {
   type AddonRule,
   type ExperienciaSelection,
   experienciaFechasDisponibles,
+  experienciaCupoQty,
+  calcExperienciasBundleDiscount,
   type RatePlan,
   calcRoomStayTotal,
   calcNights,
@@ -37,7 +39,7 @@ import {
   type RecargoFinDeSemana,
 } from "@/lib/booking";
 import { t, localeOf, normalizeLang, LANG_KEY, type Lang } from "@/lib/booking/i18n";
-import { type Experiencia } from "@/lib/mini";
+import { type Experiencia, type ExperienciasBundle } from "@/lib/mini";
 import {
   trackViewItems,
   trackBeginCheckout,
@@ -63,6 +65,7 @@ interface Props {
   demo?: boolean; // hotel de demostración: el pago se simula, nada se cobra
   addons: AddonRule[];
   experiencias: Experiencia[];
+  experienciasBundle?: ExperienciasBundle | null; // descuento de paquete (N+ experiencias → %)
   politicaCancelacion: string | null;
   pagoEnHotel: boolean; // el hotel permite reservar con tarjeta-garantía
   oxxoDisponible: boolean; // la cuenta Stripe del hotel acepta OXXO
@@ -221,6 +224,7 @@ export default function ReservarClient({
   demo = false,
   addons,
   experiencias,
+  experienciasBundle = null,
   politicaCancelacion,
   pagoEnHotel,
   oxxoDisponible,
@@ -328,19 +332,46 @@ export default function ReservarClient({
   // Agenda por experiencia: día elegido dentro de la estancia + horario. Se
   // preselecciona el primer día/horario disponible al elegir la experiencia.
   const [expSched, setExpSched] = useState<Record<number, { fecha?: string; hora?: string }>>({});
+  // Cupo restante por experiencia y día (índice → fecha → lugares). Lo da
+  // check-availability solo para experiencias con cupo; ausente = sin límite.
+  const [expCupo, setExpCupo] = useState<Record<number, Record<string, number>>>({});
   // Días de la estancia (check-in a check-out) en que la experiencia i se ofrece.
   const expFechasDe = (i: number, ci = checkin, co = checkout) =>
     experienciaFechasDisponibles(experiencias[i]?.dias, ci, co);
   // Se pregunta el día salvo cobro "noche" (esa aplica todas las noches).
   const expPideDia = (i: number) => experiencias[i]?.cobro !== "noche";
+  // Cupo restante de la experiencia i en la fecha f (undefined = sin límite).
+  const cupoDe = (i: number, f?: string) => (f ? expCupo[i]?.[f] : undefined);
+  // Lugares que consumiría la selección (unidad→boletos, persona→adultos, estancia→1).
+  const expNeed = (i: number, qty = 1) => {
+    const e = experiencias[i];
+    return e ? experienciaCupoQty(e, qty, adults) : 1;
+  };
+  // Días elegibles: se ofrece ese día Y (si hay cupo) alcanza para la selección mínima.
+  const expFechasElegibles = (i: number) =>
+    expFechasDe(i).filter((f) => {
+      const c = cupoDe(i, f);
+      return c === undefined || c >= expNeed(i, 1);
+    });
   function defaultSched(i: number): { fecha?: string; hora?: string } {
     return {
-      fecha: expPideDia(i) ? expFechasDe(i)[0] : undefined,
+      fecha: expPideDia(i) ? expFechasElegibles(i)[0] : undefined,
       hora: experiencias[i]?.horarios?.[0],
     };
   }
   function setSched(i: number, patch: { fecha?: string; hora?: string }) {
     setExpSched((prev) => ({ ...prev, [i]: { ...prev[i], ...patch } }));
+    // Cambió el día → la cantidad de boletos no debe rebasar el cupo de ese día.
+    if (patch.fecha && experiencias[i]?.cobro === "unidad") {
+      const c = cupoDe(i, patch.fecha);
+      if (c !== undefined) {
+        setExpQty((prev) => {
+          const q = prev[i];
+          if (!q || q <= c) return prev;
+          return { ...prev, [i]: Math.max(1, c) };
+        });
+      }
+    }
   }
   function toggleExp(i: number) {
     const estaba = Boolean(expQty[i]);
@@ -359,7 +390,13 @@ export default function ReservarClient({
   }
   function setExp(i: number, qty: number) {
     const max = experiencias[i]?.cantidadMax;
-    const cap = max && max > 0 ? max : Infinity;
+    let cap = max && max > 0 ? max : Infinity;
+    // Tope adicional: el cupo del día elegido (solo cobro por unidad/boletos).
+    if (experiencias[i]?.cobro === "unidad") {
+      const f = expSched[i]?.fecha ?? (expPideDia(i) ? expFechasElegibles(i)[0] : undefined);
+      const c = cupoDe(i, f);
+      if (c !== undefined) cap = Math.min(cap, Math.max(1, c));
+    }
     const q = Math.min(cap, Math.max(0, Math.floor(qty)));
     setExpQty((prev) => {
       const next = { ...prev };
@@ -442,6 +479,7 @@ export default function ReservarClient({
     setUnavailable([]);
     setAvailableCount(null);
     setFreeByType({});
+    setExpCupo({});
     setCart([]);
     setSearchError("");
   }
@@ -469,6 +507,11 @@ export default function ReservarClient({
       const unav: string[] = Array.isArray(data?.unavailableRooms) ? data.unavailableRooms : [];
       setUnavailable(unav);
       setFreeByType(buildFreeByType(data?.types));
+      setExpCupo(
+        data?.experienciasCupo && typeof data.experienciasCupo === "object"
+          ? (data.experienciasCupo as Record<number, Record<string, number>>)
+          : {},
+      );
       // Urgencia en UNIDADES (no tipos): "solo quedan N".
       setAvailableCount(typeof data?.availableUnits === "number" ? data.availableUnits : null);
       setTotalRooms(typeof data?.totalUnits === "number" ? data.totalUnits : null);
@@ -562,10 +605,17 @@ export default function ReservarClient({
     () => calcExperienciasTotal(experiencias, expSelections, nights, adults),
     [experiencias, expSelections, nights, adults],
   );
+  // Descuento de paquete: N+ experiencias distintas → % sobre las experiencias.
+  const bundlePct = Math.min(90, Math.max(0, Number(experienciasBundle?.pct) || 0));
+  const bundleMin = Math.max(2, Math.floor(Number(experienciasBundle?.min) || 2));
+  const bundleDiscount = useMemo(
+    () => calcExperienciasBundleDiscount(experienciasTotal, expSelections.length, experienciasBundle),
+    [experienciasTotal, expSelections.length, experienciasBundle],
+  );
   // La tarifa No Reembolsable exige prepago: no aplica con "pagar en hotel".
   const esNrf = ratePlan === "nrf" && reglas.nrfActiva && payMode === "online";
   const nrfDiscount = esNrf ? calcNrfDiscount(subtotal, reglas.nrfPct) : 0;
-  const total = Math.max(0, subtotal - nrfDiscount + addonsTotal + experienciasTotal);
+  const total = Math.max(0, subtotal - nrfDiscount + addonsTotal + experienciasTotal - bundleDiscount);
   const deposit = useMemo(
     () =>
       calcDepositAmount(total, nights, {
@@ -703,6 +753,13 @@ export default function ReservarClient({
 
       if (res.status === 409) {
         const data = await res.json().catch(() => ({}));
+        // Cupo de experiencia agotado (otro huésped ganó los lugares): avisar
+        // sin tirar el carrito — el huésped ajusta cantidad o día y reintenta.
+        if (data?.error === "experiencia-cupo") {
+          setPaying(false);
+          setPayError(t(lang, "errExperienciaCupo"));
+          return;
+        }
         const unav: string[] = Array.isArray(data?.unavailableRooms) ? data.unavailableRooms : [];
         setUnavailable(unav);
         setCart((prev) => prev.filter((c) => !unav.includes(findRoom(c.roomId)?.name ?? "")));
@@ -823,6 +880,8 @@ export default function ReservarClient({
     if (fechas.length === 0 && horarios.length === 0) return null;
     const s = expSched[i] ?? {};
     const selCls = "rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs";
+    const fechaSel = s.fecha ?? fechas[0];
+    const restante = cupoDe(i, fechaSel);
     return (
       <div
         className={`flex flex-wrap items-center gap-x-3 gap-y-1.5 ${
@@ -834,14 +893,19 @@ export default function ReservarClient({
             {t(lang, "expDia")}
             <select
               className={selCls}
-              value={s.fecha ?? fechas[0]}
+              value={fechaSel}
               onChange={(ev) => setSched(i, { fecha: ev.target.value })}
             >
-              {fechas.map((f) => (
-                <option key={f} value={f}>
-                  {fmtDiaExp(f)}
-                </option>
-              ))}
+              {fechas.map((f) => {
+                const c = cupoDe(i, f);
+                const agotado = c !== undefined && c < expNeed(i, 1);
+                return (
+                  <option key={f} value={f} disabled={agotado}>
+                    {fmtDiaExp(f)}
+                    {agotado ? ` — ${t(lang, "expAgotadoDia")}` : ""}
+                  </option>
+                );
+              })}
             </select>
           </label>
         )}
@@ -860,6 +924,11 @@ export default function ReservarClient({
               ))}
             </select>
           </label>
+        )}
+        {restante !== undefined && restante <= 5 && (
+          <span className="text-[11px] font-semibold text-amber-700">
+            {t(lang, "expQuedan", { n: String(restante) })}
+          </span>
         )}
       </div>
     );
@@ -1321,7 +1390,11 @@ export default function ReservarClient({
                         const unit = expUnitLabel(e);
                         // Un tour de solo-sábados no se puede tomar en una
                         // estancia mar–jue: la tarjeta se muestra apagada.
+                        // "Agotado": sí se ofrece esos días, pero el cupo de
+                        // TODOS los días de la estancia ya se vendió.
                         const sinFechas = expPideDia(i) && expFechasDe(i).length === 0;
+                        const agotado =
+                          !sinFechas && expPideDia(i) && expFechasElegibles(i).length === 0;
                         return (
                           <div
                             key={i}
@@ -1332,7 +1405,7 @@ export default function ReservarClient({
                                     borderColor: "var(--brand)",
                                     background: "color-mix(in srgb, var(--brand) 7%, white)",
                                   }
-                                : { borderColor: "#e5e7eb", ...(sinFechas ? { opacity: 0.6 } : {}) }
+                                : { borderColor: "#e5e7eb", ...(sinFechas || agotado ? { opacity: 0.6 } : {}) }
                             }
                           >
                             <div className="flex items-center gap-3">
@@ -1352,8 +1425,13 @@ export default function ReservarClient({
                                     {e.dias?.length ? ` · ${t(lang, "expSoloDias", { d: diasLabel(e.dias) })}` : ""}
                                   </p>
                                 )}
+                                {agotado && (
+                                  <p className="text-[11px] font-semibold text-amber-700">
+                                    {t(lang, "expAgotadoFechas")}
+                                  </p>
+                                )}
                               </div>
-                              {sinFechas ? null : esUnidad ? (
+                              {sinFechas || agotado ? null : esUnidad ? (
                                 <div className="flex shrink-0 items-center gap-2">
                                   <button
                                     type="button"
@@ -1417,10 +1495,16 @@ export default function ReservarClient({
                       <span className="tabular-nums">{formatMXN(experienciasTotal)}</span>
                     </div>
                   )}
+                  {bundleDiscount > 0 && (
+                    <div className="flex justify-between" style={{ color: "var(--brand)" }}>
+                      <span>{t(lang, "bundleLinea", { pct: String(bundlePct) })}</span>
+                      <span className="tabular-nums">−{formatMXN(bundleDiscount)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-base font-bold">
                     <span>{t(lang, "totalEstadia")}</span>
                     <span className="tabular-nums" style={{ color: "var(--brand)" }}>
-                      {formatMXN(subtotal + addonsTotal + experienciasTotal)}
+                      {formatMXN(subtotal + addonsTotal + experienciasTotal - bundleDiscount)}
                     </span>
                   </div>
                 </div>
@@ -1567,10 +1651,16 @@ export default function ReservarClient({
                   );
                 })}
               </div>
+              {bundleDiscount > 0 && (
+                <div className="mt-2 flex justify-between text-sm" style={{ color: "var(--brand)" }}>
+                  <span>{t(lang, "bundleLinea", { pct: String(bundlePct) })}</span>
+                  <span className="tabular-nums">−{formatMXN(bundleDiscount)}</span>
+                </div>
+              )}
               <div className="mt-3 flex justify-between border-t border-gray-100 pt-3 text-base font-bold">
                 <span>{t(lang, "totalEstadia")}</span>
                 <span className="tabular-nums" style={{ color: "var(--brand)" }}>
-                  {formatMXN(subtotal + addonsTotal + experienciasTotal)}
+                  {formatMXN(subtotal + addonsTotal + experienciasTotal - bundleDiscount)}
                 </span>
               </div>
             </div>
@@ -1580,12 +1670,20 @@ export default function ReservarClient({
             {(() => {
               const sugeridas = experiencias
                 .map((e, i) => ({ e, i }))
-                .filter(({ i }) => !expQty[i] && (!expPideDia(i) || expFechasDe(i).length > 0))
+                .filter(({ i }) => !expQty[i] && (!expPideDia(i) || expFechasElegibles(i).length > 0))
                 .slice(0, 2);
               if (sugeridas.length === 0) return null;
+              // Hint del paquete: cuántas faltan para ganarse el descuento.
+              const faltan = bundleMin - expSelections.length;
+              const conHint = bundlePct > 0 && faltan > 0 && faltan <= sugeridas.length;
               return (
                 <div className="mt-3 rounded-2xl border border-gray-100 bg-white p-4">
                   <p className="text-sm font-bold">{t(lang, "expNudgeTitulo")}</p>
+                  {conHint && (
+                    <p className="mt-0.5 text-xs font-semibold" style={{ color: "var(--brand)" }}>
+                      {t(lang, "bundleHint", { n: String(faltan), pct: String(bundlePct) })}
+                    </p>
+                  )}
                   <div className="mt-2 space-y-2">
                     {sugeridas.map(({ e, i }) => (
                       <div key={i} className="flex items-center gap-3 rounded-xl border border-gray-100 p-2.5">
@@ -1808,6 +1906,12 @@ export default function ReservarClient({
                   <div className="flex justify-between">
                     <span className="text-kora-muted">{t(lang, "experienciasLinea")}</span>
                     <span className="tabular-nums">{formatMXN(experienciasTotal)}</span>
+                  </div>
+                )}
+                {bundleDiscount > 0 && (
+                  <div className="flex justify-between" style={{ color: "var(--brand)" }}>
+                    <span>{t(lang, "bundleLinea", { pct: String(bundlePct) })}</span>
+                    <span className="tabular-nums">−{formatMXN(bundleDiscount)}</span>
                   </div>
                 )}
                 <div className="flex justify-between border-t border-gray-200 pt-2 text-base font-bold">
