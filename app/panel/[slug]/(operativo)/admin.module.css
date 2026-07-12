@@ -41,8 +41,20 @@
   padding: 32px;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   .shell { flex-direction: column; padding-top: 0; }
   /* padding-top deja espacio al botón hamburguesa fijo (top:12px, height:40px) */
   .content { padding: 64px 16px 20px; }
+}
+
+/* Calendario de disponibilidad: grid de mini-meses; en móvil un mes a lo
+   ancho para que cada celda-día alcance tamaño táctil (~44px). */
+.calGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 1px;
+}
+
+@media (max-width: 640px) {
+  .calGrid { grid-template-columns: 1fr; }
 }
