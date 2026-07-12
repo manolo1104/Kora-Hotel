@@ -21,12 +21,14 @@ import {
   type BookingRoom,
   type CartItem,
   type AddonRule,
+  type ExperienciaSelection,
   type RatePlan,
   calcRoomStayTotal,
   calcNights,
   calcCartSubtotal,
   calcDepositAmount,
   calcAddonsTotal,
+  calcExperienciasTotal,
   calcNrfDiscount,
   calcTaxBreakdown,
   formatMXN,
@@ -34,6 +36,7 @@ import {
   type RecargoFinDeSemana,
 } from "@/lib/booking";
 import { t, localeOf, normalizeLang, LANG_KEY, type Lang } from "@/lib/booking/i18n";
+import { type Experiencia } from "@/lib/mini";
 import {
   trackViewItems,
   trackBeginCheckout,
@@ -58,6 +61,7 @@ interface Props {
   marcaOculta: boolean;
   demo?: boolean; // hotel de demostración: el pago se simula, nada se cobra
   addons: AddonRule[];
+  experiencias: Experiencia[];
   politicaCancelacion: string | null;
   pagoEnHotel: boolean; // el hotel permite reservar con tarjeta-garantía
   oxxoDisponible: boolean; // la cuenta Stripe del hotel acepta OXXO
@@ -215,6 +219,7 @@ export default function ReservarClient({
   marcaOculta,
   demo = false,
   addons,
+  experiencias,
   politicaCancelacion,
   pagoEnHotel,
   oxxoDisponible,
@@ -316,6 +321,27 @@ export default function ReservarClient({
   const [selectedAddons, setSelectedAddons] = useState<number[]>([]);
   function toggleAddon(i: number) {
     setSelectedAddons((s) => (s.includes(i) ? s.filter((x) => x !== i) : [...s, i]));
+  }
+  // Experiencias elegidas: índice → cantidad (≥1 = elegida; ausente = no).
+  const [expQty, setExpQty] = useState<Record<number, number>>({});
+  function toggleExp(i: number) {
+    setExpQty((prev) => {
+      const next = { ...prev };
+      if (next[i]) delete next[i];
+      else next[i] = 1;
+      return next;
+    });
+  }
+  function setExp(i: number, qty: number) {
+    setExpQty((prev) => {
+      const next = { ...prev };
+      const max = experiencias[i]?.cantidadMax;
+      const cap = max && max > 0 ? max : Infinity;
+      const q = Math.min(cap, Math.max(0, Math.floor(qty)));
+      if (q <= 0) delete next[i];
+      else next[i] = q;
+      return next;
+    });
   }
 
   // ── Flujo (3 pasos) ─────────────────────────────────────
@@ -470,10 +496,18 @@ export default function ReservarClient({
     () => calcAddonsTotal(addons, selectedAddons, nights, adults),
     [addons, selectedAddons, nights, adults],
   );
+  const expSelections = useMemo<ExperienciaSelection[]>(
+    () => Object.entries(expQty).map(([i, qty]) => ({ i: Number(i), qty })),
+    [expQty],
+  );
+  const experienciasTotal = useMemo(
+    () => calcExperienciasTotal(experiencias, expSelections, nights, adults),
+    [experiencias, expSelections, nights, adults],
+  );
   // La tarifa No Reembolsable exige prepago: no aplica con "pagar en hotel".
   const esNrf = ratePlan === "nrf" && reglas.nrfActiva && payMode === "online";
   const nrfDiscount = esNrf ? calcNrfDiscount(subtotal, reglas.nrfPct) : 0;
-  const total = Math.max(0, subtotal - nrfDiscount + addonsTotal);
+  const total = Math.max(0, subtotal - nrfDiscount + addonsTotal + experienciasTotal);
   const deposit = useMemo(
     () =>
       calcDepositAmount(total, nights, {
@@ -594,6 +628,7 @@ export default function ReservarClient({
         body: JSON.stringify({
           cart,
           addons: selectedAddons,
+          experiencias: expSelections,
           checkin,
           checkout,
           customerName: name.trim(),
@@ -1142,6 +1177,91 @@ export default function ReservarClient({
                   </div>
                 )}
 
+                {experiencias.length > 0 && (
+                  <div className="mt-4 border-t border-gray-100 pt-4">
+                    <p className="text-sm font-bold">{t(lang, "experienciasTitulo")}</p>
+                    <div className="mt-2 space-y-2">
+                      {experiencias.map((e, i) => {
+                        const qty = expQty[i] ?? 0;
+                        const on = qty > 0;
+                        const esUnidad = e.cobro === "unidad";
+                        const unit =
+                          e.cobro === "noche"
+                            ? t(lang, "unitNoche", { p: formatMXN(e.precio) })
+                            : e.cobro === "persona"
+                              ? t(lang, "unitPersona", { p: formatMXN(e.precio) })
+                              : esUnidad
+                                ? t(lang, "unitUnidad", { p: formatMXN(e.precio) })
+                                : formatMXN(e.precio);
+                        return (
+                          <div
+                            key={i}
+                            className="flex items-center gap-3 rounded-xl border p-3"
+                            style={
+                              on
+                                ? {
+                                    borderColor: "var(--brand)",
+                                    background: "color-mix(in srgb, var(--brand) 7%, white)",
+                                  }
+                                : { borderColor: "#e5e7eb" }
+                            }
+                          >
+                            {e.imagen ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={e.imagen} alt="" className="h-14 w-14 shrink-0 rounded-lg object-cover" />
+                            ) : null}
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-semibold">{e.nombre}</p>
+                              {e.descripcion ? (
+                                <p className="line-clamp-2 text-xs text-kora-muted">{e.descripcion}</p>
+                              ) : null}
+                              <p className="text-xs tabular-nums text-kora-muted">{unit}</p>
+                            </div>
+                            {esUnidad ? (
+                              <div className="flex shrink-0 items-center gap-2">
+                                <button
+                                  type="button"
+                                  aria-label="Quitar uno"
+                                  onClick={() => setExp(i, qty - 1)}
+                                  disabled={qty <= 0}
+                                  className="grid h-7 w-7 place-items-center rounded-full border border-gray-300 text-lg leading-none text-kora-text disabled:opacity-40"
+                                >
+                                  −
+                                </button>
+                                <span className="w-5 text-center text-sm font-semibold tabular-nums">{qty}</span>
+                                <button
+                                  type="button"
+                                  aria-label="Agregar uno"
+                                  onClick={() => setExp(i, qty + 1)}
+                                  className="grid h-7 w-7 place-items-center rounded-full border text-lg leading-none"
+                                  style={{ background: "var(--brand)", borderColor: "var(--brand)", color: "var(--brand-ink)" }}
+                                >
+                                  +
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => toggleExp(i)}
+                                aria-pressed={on}
+                                aria-label={e.nombre}
+                                className="grid h-6 w-6 shrink-0 place-items-center rounded-md border"
+                                style={
+                                  on
+                                    ? { background: "var(--brand)", borderColor: "var(--brand)" }
+                                    : { borderColor: "#d1d5db" }
+                                }
+                              >
+                                {on && <Check size={13} style={{ color: "var(--brand-ink)" }} aria-hidden="true" />}
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 <div className="mt-4 space-y-1.5 border-t border-gray-100 pt-4 text-sm">
                   <div className="flex justify-between">
                     <span className="text-kora-muted">{t(lang, "subtotal")}</span>
@@ -1153,10 +1273,16 @@ export default function ReservarClient({
                       <span className="tabular-nums">{formatMXN(addonsTotal)}</span>
                     </div>
                   )}
+                  {experienciasTotal > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-kora-muted">{t(lang, "experienciasLinea")}</span>
+                      <span className="tabular-nums">{formatMXN(experienciasTotal)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-base font-bold">
                     <span>{t(lang, "totalEstadia")}</span>
                     <span className="tabular-nums" style={{ color: "var(--brand)" }}>
-                      {formatMXN(subtotal + addonsTotal)}
+                      {formatMXN(subtotal + addonsTotal + experienciasTotal)}
                     </span>
                   </div>
                 </div>
@@ -1281,11 +1407,29 @@ export default function ReservarClient({
                     </div>
                   );
                 })}
+                {expSelections.map(({ i, qty }) => {
+                  const e = experiencias[i];
+                  if (!e) return null;
+                  const tt =
+                    e.cobro === "noche"
+                      ? e.precio * Math.max(1, nights)
+                      : e.cobro === "persona"
+                        ? e.precio * Math.max(1, adults)
+                        : e.cobro === "unidad"
+                          ? e.precio * Math.max(1, qty)
+                          : e.precio;
+                  return (
+                    <div key={`e-${i}`} className="flex justify-between text-sm text-kora-muted">
+                      <span>+ {e.nombre}{e.cobro === "unidad" && qty > 1 ? ` × ${qty}` : ""}</span>
+                      <span className="tabular-nums">{formatMXN(tt)}</span>
+                    </div>
+                  );
+                })}
               </div>
               <div className="mt-3 flex justify-between border-t border-gray-100 pt-3 text-base font-bold">
                 <span>{t(lang, "totalEstadia")}</span>
                 <span className="tabular-nums" style={{ color: "var(--brand)" }}>
-                  {formatMXN(subtotal + addonsTotal)}
+                  {formatMXN(subtotal + addonsTotal + experienciasTotal)}
                 </span>
               </div>
             </div>
@@ -1480,6 +1624,12 @@ export default function ReservarClient({
                   <div className="flex justify-between">
                     <span className="text-kora-muted">{t(lang, "extrasLinea")}</span>
                     <span className="tabular-nums">{formatMXN(addonsTotal)}</span>
+                  </div>
+                )}
+                {experienciasTotal > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-kora-muted">{t(lang, "experienciasLinea")}</span>
+                    <span className="tabular-nums">{formatMXN(experienciasTotal)}</span>
                   </div>
                 )}
                 <div className="flex justify-between border-t border-gray-200 pt-2 text-base font-bold">

@@ -15,6 +15,7 @@ export interface ConfirmacionEmailArgs {
   pendiente: number;
   cliente?: string | null;
   ratePlan?: string | null; // 'nrf' = tarifa no reembolsable
+  experiencias?: string[]; // tours/traslados/cena contratados en el motor (con cantidad)
   portalUrl?: string; // link a /reserva/consultar
   brandColor?: string;
   lang?: "es" | "en"; // idioma con el que reservó el huésped (md.lang)
@@ -36,6 +37,7 @@ export function buildConfirmacionEmailHtml(a: ConfirmacionEmailArgs): string {
         saldo: "Balance on arrival",
         tarifa: "Rate",
         nrf: "Non-refundable",
+        experiencias: "Experiences",
         portal: (u: string) => `View or manage your booking at <a href="${u}" style="color:${color};">${u}</a> with your confirmation number and email.`,
       }
     : {
@@ -49,6 +51,7 @@ export function buildConfirmacionEmailHtml(a: ConfirmacionEmailArgs): string {
         saldo: "Saldo al llegar",
         tarifa: "Tarifa",
         nrf: "No reembolsable",
+        experiencias: "Experiencias",
         portal: (u: string) => `Consulta o gestiona tu reserva en <a href="${u}" style="color:${color};">${u}</a> con tu folio y tu correo.`,
       };
   return `<div style="font-family:system-ui,sans-serif;max-width:480px;padding:24px;">
@@ -57,6 +60,7 @@ export function buildConfirmacionEmailHtml(a: ConfirmacionEmailArgs): string {
     <table style="border-collapse:collapse;width:100%;font-size:14px;">
       <tr><td style="padding:6px 0;color:#667;">${t.folio}</td><td style="padding:6px 0;font-weight:600;">${a.confirmacion}</td></tr>
       <tr><td style="padding:6px 0;color:#667;">${t.habitaciones}</td><td style="padding:6px 0;">${a.habitaciones.join(", ")}</td></tr>
+      ${a.experiencias?.length ? `<tr><td style="padding:6px 0;color:#667;">${t.experiencias}</td><td style="padding:6px 0;">${a.experiencias.join(", ")}</td></tr>` : ""}
       <tr><td style="padding:6px 0;color:#667;">${t.llegada}</td><td style="padding:6px 0;">${a.checkin}</td></tr>
       <tr><td style="padding:6px 0;color:#667;">${t.salida}</td><td style="padding:6px 0;">${a.checkout}</td></tr>
       <tr><td style="padding:6px 0;color:#667;">${t.anticipo}</td><td style="padding:6px 0;font-weight:600;color:${color};">${fmt(a.anticipo)}</td></tr>
@@ -168,6 +172,7 @@ export interface AvisoReservaHotelArgs {
   anticipo: number;
   pagoEnHotel?: boolean; // true = tarjeta en garantía, cobra en recepción
   ratePlan?: string | null;
+  experiencias?: string[]; // tours/traslados/cena contratados (para preparar)
 }
 
 export function buildAvisoReservaHotelHtml(a: AvisoReservaHotelArgs): string {
@@ -185,6 +190,7 @@ export function buildAvisoReservaHotelHtml(a: AvisoReservaHotelArgs): string {
       ${a.telefono ? fila("Teléfono", a.telefono) : ""}
       ${a.email ? fila("Correo", a.email) : ""}
       ${fila("Habitación(es)", a.habitaciones.join(", ") || "—")}
+      ${a.experiencias?.length ? fila("Experiencias", a.experiencias.join(", ")) : ""}
       ${fila("Llegada", a.checkin)}
       ${fila("Salida", a.checkout)}
       ${fila("Total", fmt(a.total))}

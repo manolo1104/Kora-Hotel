@@ -247,6 +247,55 @@ export function calcAddonsTotal(
   }, 0);
 }
 
+// ── Experiencias vendibles (tours, traslados, cena, spa) ──────
+// Add-on "rico": igual que AddonRule pero con cobro por "unidad" (cantidad que
+// elige el huésped, p. ej. 2 boletos) y un tope opcional. La versión de datos
+// vive en lib/mini.ts (Experiencia); aquí el tipo es solo lo que el cálculo
+// necesita, para mantener el engine sin dependencias.
+export interface ExperienciaRule {
+  nombre: string;
+  precio: number;
+  cobro: "estancia" | "noche" | "persona" | "unidad";
+  cantidadMax?: number; // tope de unidades (solo cobro="unidad"); 0/undefined = sin tope
+}
+
+/** Una experiencia elegida: índice en el catálogo del hotel + cantidad. */
+export interface ExperienciaSelection {
+  i: number;
+  qty: number; // solo relevante para cobro="unidad"; se ignora en los demás
+}
+
+/**
+ * Total de las experiencias seleccionadas. Multiplicador por cobro:
+ *   estancia → ×1, noche → ×noches, persona → ×huéspedes, unidad → ×qty (topeada
+ *   a cantidadMax). Índices inválidos se ignoran. Igual que en el resto del
+ *   motor, el monto NUNCA se confía al cliente: solo el índice y la cantidad.
+ */
+export function calcExperienciasTotal(
+  catalog: ExperienciaRule[],
+  selections: ExperienciaSelection[],
+  nights: number,
+  guests: number,
+): number {
+  return selections.reduce((sum, sel) => {
+    const e = catalog[sel?.i];
+    if (!e) return sum;
+    const price = Math.max(0, Number(e.precio) || 0);
+    if (e.cobro === "unidad") {
+      const cap = e.cantidadMax && e.cantidadMax > 0 ? Math.floor(e.cantidadMax) : Infinity;
+      const qty = Math.min(cap, Math.max(1, Math.floor(Number(sel?.qty) || 1)));
+      return sum + price * qty;
+    }
+    const mult =
+      e.cobro === "noche"
+        ? Math.max(1, nights)
+        : e.cobro === "persona"
+          ? Math.max(1, guests)
+          : 1; // estancia
+    return sum + price * mult;
+  }, 0);
+}
+
 // ── Estado de reserva (se persiste en sessionStorage) ────────
 export interface BookingState {
   checkin: string;

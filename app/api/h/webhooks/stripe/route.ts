@@ -156,6 +156,22 @@ async function confirmarReserva(
       })
       .filter(Boolean);
 
+    // Extras y experiencias contratados en el motor (metadata "nombre|nombre").
+    // Se guardan en las notas de la reserva (registro durable para el hotelero)
+    // y se listan en los correos de confirmación/aviso.
+    const experiencias = (md.experiencias || "")
+      .split("|")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const addonsList = (md.addons || "")
+      .split("|")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const notasPartes: string[] = [];
+    if (experiencias.length) notasPartes.push(`Experiencias: ${experiencias.join(", ")}`);
+    if (addonsList.length) notasPartes.push(`Extras: ${addonsList.join(", ")}`);
+    const notasReserva = notasPartes.join(" · ") || null;
+
     const hotel = md.slug ? await resolveHotel(md.slug) : null;
     const huespedes = (Number(md.adults) || 0) + (Number(md.children) || 0) || 1;
     const email = md.customerEmail || session.customer_details?.email || "";
@@ -188,6 +204,7 @@ async function confirmarReserva(
         estado: "CONFIRMADA",
         origen: esPagoHotel ? "web-pago-hotel" : "web",
         ratePlan: md.ratePlan === "nrf" ? "nrf" : "flex",
+        notas: notasReserva,
       });
       if (result.ok || !/duplicate key|confirmacion/i.test(result.error ?? "")) break;
     }
@@ -234,6 +251,7 @@ async function confirmarReserva(
         pendiente: Math.max(0, total - anticipo),
         cliente: md.customerName || null,
         ratePlan: md.ratePlan || null,
+        experiencias,
         portalUrl: `${origin}/reserva/consultar`,
         lang: md.lang === "en" ? "en" : "es",
       },
@@ -261,6 +279,7 @@ async function confirmarReserva(
             anticipo,
             pagoEnHotel: esPagoHotel,
             ratePlan: md.ratePlan || null,
+            experiencias,
           });
         }
       } catch (e) {

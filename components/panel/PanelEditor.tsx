@@ -41,6 +41,7 @@ import {
   FORMAS_PAGO,
   IDIOMAS,
   SECCION_LABELS,
+  CATEGORIAS_EXPERIENCIA,
   ordenSecciones,
   type Resena,
   type MiniFaq,
@@ -73,6 +74,17 @@ interface PaqueteForm {
   personas: string;
   precio: string;
   descripcion: string;
+}
+// Experiencia vendible tal como se edita (números como string para los inputs;
+// se convierten al guardar en extras.experiencias).
+interface ExperienciaForm {
+  nombre: string;
+  precio: string;
+  cobro: "estancia" | "noche" | "persona" | "unidad";
+  descripcion: string;
+  imagen: string;
+  categoria: string;
+  cantidadMax: string;
 }
 // Temporada tal como se edita en el formulario (valores como string para los
 // inputs; se convierten a números al guardar en extras.temporadas).
@@ -269,6 +281,42 @@ export function PanelEditor({
     setAddons((a) => a.filter((_, idx) => idx !== i));
   }
 
+  // Experiencias vendibles (tours, traslados, cena, spa) — viven en extras.experiencias
+  const [experiencias, setExperiencias] = useState<ExperienciaForm[]>([]);
+  const [genExpDescIdx, setGenExpDescIdx] = useState<number | null>(null); // experiencia cuya descripción se está generando con IA
+  const [subiendoImgExp, setSubiendoImgExp] = useState<number | null>(null); // experiencia cuya foto se está subiendo
+  function addExperiencia() {
+    setExperiencias((x) => [
+      ...x,
+      { nombre: "", precio: "", cobro: "unidad", descripcion: "", imagen: "", categoria: "tour", cantidadMax: "" },
+    ]);
+  }
+  function updateExperiencia(i: number, campo: keyof ExperienciaForm, valor: string) {
+    setExperiencias((x) => x.map((it, idx) => (idx === i ? { ...it, [campo]: valor } : it)));
+  }
+  function removeExperiencia(i: number) {
+    setExperiencias((x) => x.filter((_, idx) => idx !== i));
+  }
+  // Siembra experiencias desde el catálogo de tours (extras.cotizaciones.tours),
+  // sin duplicar por nombre. Atajo para hoteles que ya cargaron sus tours.
+  function importarToursComoExperiencias() {
+    setExperiencias((prev) => {
+      const existentes = new Set(prev.map((e) => e.nombre.trim().toLowerCase()));
+      const nuevos: ExperienciaForm[] = toursCat
+        .filter((t) => t.nombre.trim() && !existentes.has(t.nombre.trim().toLowerCase()))
+        .map((t) => ({
+          nombre: t.nombre.trim(),
+          precio: t.precio,
+          cobro: "unidad",
+          descripcion: "",
+          imagen: "",
+          categoria: "tour",
+          cantidadMax: "",
+        }));
+      return [...prev, ...nuevos];
+    });
+  }
+
   // Catálogo de Cotizaciones (extras.cotizaciones): paquetes y tours que el
   // hotelero arma para la herramienta de cotizaciones y el alta manual.
   const [paquetesCat, setPaquetesCat] = useState<PaqueteForm[]>([]);
@@ -427,6 +475,20 @@ export function PanelEditor({
         setNotifEmail(ex.notificaciones?.email ?? "");
         setAbandonoActivo(ex.notificaciones?.abandono !== false);
         setAddons(Array.isArray(ex.addons) ? ex.addons : []);
+        setExperiencias(
+          (Array.isArray(ex.experiencias) ? ex.experiencias : []).map((e: Record<string, unknown>) => {
+            const cobro = String(e?.cobro ?? "unidad");
+            return {
+              nombre: String(e?.nombre ?? ""),
+              precio: e?.precio != null ? String(e.precio) : "",
+              cobro: (["estancia", "noche", "persona", "unidad"].includes(cobro) ? cobro : "unidad") as ExperienciaForm["cobro"],
+              descripcion: String(e?.descripcion ?? ""),
+              imagen: String(e?.imagen ?? ""),
+              categoria: String(e?.categoria ?? "otro"),
+              cantidadMax: e?.cantidadMax != null ? String(e.cantidadMax) : "",
+            };
+          }),
+        );
         const cot = (ex.cotizaciones ?? {}) as Record<string, unknown>;
         setPaquetesCat(
           (Array.isArray(cot.paquetes) ? cot.paquetes : []).map((p: Record<string, unknown>) => ({
@@ -597,6 +659,47 @@ export function PanelEditor({
       setError("No se pudo generar la descripción. Revisa tu conexión.");
     } finally {
       setGenDescIdx(null);
+    }
+  }
+
+  // Genera la descripción de la experiencia i con IA (según nombre y categoría).
+  async function generarExpDescripcion(i: number) {
+    if (genExpDescIdx !== null) return;
+    const e = experiencias[i];
+    if (!e?.nombre?.trim()) {
+      setError("Ponle primero un nombre a la experiencia para generar su descripción.");
+      return;
+    }
+    setGenExpDescIdx(i);
+    setError("");
+    try {
+      const res = await fetch("/api/admin/experiencia-descripcion", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nombre: e.nombre, categoria: e.categoria }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (res.ok && d.texto) {
+        updateExperiencia(i, "descripcion", d.texto);
+      } else {
+        setError(d.error || "No se pudo generar la descripción.");
+      }
+    } catch {
+      setError("No se pudo generar la descripción. Revisa tu conexión.");
+    } finally {
+      setGenExpDescIdx(null);
+    }
+  }
+
+  // Sube UNA foto para la experiencia i (reutiliza el mismo Storage de las fotos).
+  async function subirImagenExperiencia(i: number, files: FileList | null) {
+    if (!files || files.length === 0) return;
+    setSubiendoImgExp(i);
+    try {
+      const urls = await subirArchivos(files);
+      if (urls[0]) updateExperiencia(i, "imagen", urls[0]);
+    } finally {
+      setSubiendoImgExp(null);
     }
   }
 
@@ -839,6 +942,22 @@ export function PanelEditor({
       addons: addons
         .filter((a) => (a.nombre ?? "").trim())
         .map((a) => ({ nombre: a.nombre.trim(), precio: Number(a.precio) || 0, tipo: a.tipo })),
+      // Experiencias vendibles en el motor (tours/traslados/cena/spa). El checkout
+      // revalida y recalcula server-side; aquí solo se filtra lo vacío.
+      experiencias: experiencias
+        .filter((e) => e.nombre.trim())
+        .map((e) => {
+          const cm = Math.max(0, Math.round(Number(e.cantidadMax) || 0));
+          return {
+            nombre: e.nombre.trim(),
+            precio: Math.max(0, Number(e.precio) || 0),
+            cobro: e.cobro,
+            ...(e.descripcion.trim() ? { descripcion: e.descripcion.trim() } : {}),
+            ...(e.imagen.trim() ? { imagen: e.imagen.trim() } : {}),
+            ...(e.categoria ? { categoria: e.categoria } : {}),
+            ...(e.cobro === "unidad" && cm > 0 ? { cantidadMax: cm } : {}),
+          };
+        }),
       // Catálogo de Cotizaciones (paquetes + tours). El resolver revalida al leer.
       cotizaciones: {
         paquetes: paquetesCat
@@ -2608,6 +2727,159 @@ export function PanelEditor({
             >
               <Plus size={15} /> Agregar extra
             </button>
+          </div>
+
+          {/* Experiencias vendibles (tours/traslados/cena/spa) → extras.experiencias */}
+          <div className={`${card} space-y-4`}>
+            <div className="flex items-center gap-2">
+              <Sparkles size={18} className="text-kora-primary" />
+              <h2 className="text-lg font-bold text-kora-text">Experiencias vendibles</h2>
+            </div>
+            <p className="text-sm text-kora-muted">
+              Tours, traslados, cenas o spa que el huésped puede sumar a su reserva
+              en tu motor —con foto y descripción. Se cobran junto con la reserva y
+              te avisamos cuáles contrató.
+            </p>
+            <div className="space-y-3">
+              {experiencias.map((e, i) => (
+                <div key={i} className="rounded-xl border border-gray-100 bg-kora-bg/40 p-3 space-y-2">
+                  <div className="flex flex-wrap items-end gap-2">
+                    <div className="flex-1 min-w-[160px]">
+                      <label className="block text-[11px] font-semibold text-kora-muted mb-1">Nombre</label>
+                      <input
+                        className={inputCls}
+                        value={e.nombre}
+                        onChange={(ev) => updateExperiencia(i, "nombre", ev.target.value)}
+                        placeholder="Ej. Tour a la cascada"
+                      />
+                    </div>
+                    <div className="w-40">
+                      <label className="block text-[11px] font-semibold text-kora-muted mb-1">Categoría</label>
+                      <select
+                        className={inputCls}
+                        value={e.categoria}
+                        onChange={(ev) => updateExperiencia(i, "categoria", ev.target.value)}
+                      >
+                        {CATEGORIAS_EXPERIENCIA.map((c) => (
+                          <option key={c.key} value={c.key}>{c.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeExperiencia(i)}
+                      className="btn-press w-9 h-9 rounded-lg border border-gray-200 flex items-center justify-center text-red-600 hover:border-red-300"
+                      aria-label="Quitar experiencia"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap items-end gap-2">
+                    <div className="w-28">
+                      <label className="block text-[11px] font-semibold text-kora-muted mb-1">Precio</label>
+                      <input
+                        type="number"
+                        min={0}
+                        className={inputCls}
+                        value={e.precio}
+                        onChange={(ev) => updateExperiencia(i, "precio", ev.target.value)}
+                      />
+                    </div>
+                    <div className="w-52">
+                      <label className="block text-[11px] font-semibold text-kora-muted mb-1">Cobro</label>
+                      <select
+                        className={inputCls}
+                        value={e.cobro}
+                        onChange={(ev) => updateExperiencia(i, "cobro", ev.target.value)}
+                      >
+                        <option value="unidad">Por unidad (elige cantidad)</option>
+                        <option value="persona">Por persona</option>
+                        <option value="noche">Por noche</option>
+                        <option value="estancia">Por reserva</option>
+                      </select>
+                    </div>
+                    {e.cobro === "unidad" && (
+                      <div className="w-28">
+                        <label className="block text-[11px] font-semibold text-kora-muted mb-1">Máx. (opc.)</label>
+                        <input
+                          type="number"
+                          min={0}
+                          className={inputCls}
+                          value={e.cantidadMax}
+                          onChange={(ev) => updateExperiencia(i, "cantidadMax", ev.target.value)}
+                          placeholder="Sin tope"
+                        />
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-[11px] font-semibold text-kora-muted">Descripción</label>
+                      <button
+                        type="button"
+                        onClick={() => generarExpDescripcion(i)}
+                        disabled={genExpDescIdx !== null}
+                        className="btn-press inline-flex items-center gap-1 text-[11px] font-semibold text-kora-primary hover:underline disabled:opacity-50"
+                      >
+                        {genExpDescIdx === i ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+                        {genExpDescIdx === i ? "Generando…" : "Generar con IA"}
+                      </button>
+                    </div>
+                    <textarea
+                      rows={2}
+                      className={inputCls}
+                      value={e.descripcion}
+                      onChange={(ev) => updateExperiencia(i, "descripcion", ev.target.value)}
+                      placeholder="Qué vivirá el huésped (opcional)"
+                    />
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {e.imagen ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={e.imagen} alt="" className="w-16 h-16 rounded-lg object-cover border border-gray-200" />
+                    ) : null}
+                    <label className="btn-press inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 text-kora-text font-semibold text-xs cursor-pointer hover:border-kora-accent">
+                      {subiendoImgExp === i ? <Loader2 size={13} className="animate-spin" /> : <ImagePlus size={13} />}
+                      {e.imagen ? "Cambiar foto" : "Subir foto"}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        disabled={subiendoImgExp !== null}
+                        onChange={(ev) => void subirImagenExperiencia(i, ev.target.files)}
+                      />
+                    </label>
+                    {e.imagen ? (
+                      <button
+                        type="button"
+                        onClick={() => updateExperiencia(i, "imagen", "")}
+                        className="text-[11px] text-red-600 hover:underline"
+                      >
+                        Quitar foto
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={addExperiencia}
+                className="btn-press inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-gray-200 text-kora-text font-semibold text-sm hover:border-kora-accent transition-colors"
+              >
+                <Plus size={15} /> Agregar experiencia
+              </button>
+              {toursCat.some((t) => t.nombre.trim()) && (
+                <button
+                  type="button"
+                  onClick={importarToursComoExperiencias}
+                  className="btn-press inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-gray-200 text-kora-primary font-semibold text-sm hover:border-kora-accent transition-colors"
+                >
+                  <ArrowRight size={15} /> Importar de mis tours
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Paquetes y tours (catálogo de Cotizaciones → extras.cotizaciones) */}

@@ -10,9 +10,12 @@ import {
   calcNights,
   calcDepositAmount,
   calcAddonsTotal,
+  calcExperienciasTotal,
   calcNrfDiscount,
   type CartItem,
   type AddonRule,
+  type ExperienciaRule,
+  type ExperienciaSelection,
 } from "@/lib/booking";
 import { freeUnitsByType, createTemporaryHold, releaseHold } from "@/lib/db/availability";
 import { accesoDelHotel } from "@/lib/suscripcion";
@@ -38,6 +41,15 @@ const CheckoutBody = z.object({
     .min(1)
     .max(10),
   addons: z.array(z.coerce.number().int().min(0).max(99)).max(20).default([]),
+  experiencias: z
+    .array(
+      z.object({
+        i: z.coerce.number().int().min(0).max(99),
+        qty: z.coerce.number().int().min(1).max(99).default(1),
+      }),
+    )
+    .max(20)
+    .default([]),
   checkin: z.string().regex(FECHA),
   checkout: z.string().regex(FECHA),
   customerName: z.string().trim().min(2).max(120),
@@ -77,7 +89,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   if (!parsed.success) {
     return NextResponse.json({ error: "Datos de reserva inválidos" }, { status: 400 });
   }
-  const { cart, addons, checkin, checkout, customerName, customerEmail, customerPhone, adults, children, ratePlan, payMode, lang } =
+  const { cart, addons, experiencias, checkin, checkout, customerName, customerEmail, customerPhone, adults, children, ratePlan, payMode, lang } =
     parsed.data;
 
   const rooms = hotelRooms(hotel);
@@ -165,7 +177,36 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   const addonNames = selectedAddons.map((i) => hotelAddons[i]?.nombre).filter(Boolean) as string[];
   const addonsTotal = calcAddonsTotal(hotelAddons, selectedAddons, nights, adults);
 
-  const stayTotal = Math.max(0, subtotal - nrfDiscount + addonsTotal);
+  // Experiencias vendibles (tours, traslados, cena): mismo principio que los
+  // add-ons — se recalculan SIEMPRE desde el catálogo del hotel; el cliente solo
+  // manda {índice, cantidad}. El nombre para la reserva incluye la cantidad si
+  // se cobra por unidad (p. ej. "Tour Tamul ×2").
+  const hotelExperiencias = (
+    Array.isArray((hotel.extras as Record<string, unknown>)?.experiencias)
+      ? (hotel.extras as Record<string, unknown>).experiencias
+      : []
+  ) as ExperienciaRule[];
+  const selectedExperiencias: ExperienciaSelection[] = experiencias.filter(
+    (e) => e.i < hotelExperiencias.length,
+  );
+  const experienciaNames = selectedExperiencias
+    .map((sel) => {
+      const e = hotelExperiencias[sel.i];
+      if (!e) return null;
+      const cap = e.cantidadMax && e.cantidadMax > 0 ? Math.floor(e.cantidadMax) : Infinity;
+      const qty =
+        e.cobro === "unidad" ? Math.min(cap, Math.max(1, Math.floor(Number(sel.qty) || 1))) : 1;
+      return qty > 1 ? `${e.nombre} ×${qty}` : e.nombre;
+    })
+    .filter(Boolean) as string[];
+  const experienciasTotal = calcExperienciasTotal(
+    hotelExperiencias,
+    selectedExperiencias,
+    nights,
+    adults,
+  );
+
+  const stayTotal = Math.max(0, subtotal - nrfDiscount + addonsTotal + experienciasTotal);
   const esPagoHotel = payMode === "hotel";
   // "Pagar en el hotel": hoy no se cobra nada; la tarjeta queda como garantía.
   const deposit = esPagoHotel
@@ -220,6 +261,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     slug,
     rooms: roomsMeta,
     addons: addonNames.join("|").slice(0, 200),
+    experiencias: experienciaNames.join("|").slice(0, 480),
     checkin: String(checkin),
     checkout: String(checkout),
     nights: String(nights),
@@ -308,7 +350,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
                 name: `Reserva · ${hotel.nombre}`,
                 description: `${checkin} a ${checkout} · ${nights} noche(s) · ${roomNames.join(", ")}${
                   addonNames.length ? ` · Extras: ${addonNames.join(", ")}` : ""
-                }${esNrf ? " · Tarifa no reembolsable" : ""}`,
+                }${experienciaNames.length ? ` · Experiencias: ${experienciaNames.join(", ")}` : ""}${
+                  esNrf ? " · Tarifa no reembolsable" : ""
+                }`,
               },
             },
             quantity: 1,

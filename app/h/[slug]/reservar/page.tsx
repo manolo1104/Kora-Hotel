@@ -79,6 +79,9 @@ export default async function ReservarPage({
   // Extras vendibles (add-ons) definidos por el hotel.
   const addons = Array.isArray(extras.addons) ? extras.addons : [];
 
+  // Experiencias vendibles (tours/traslados/cena/spa) del hotel.
+  const experiencias = Array.isArray(extras.experiencias) ? extras.experiencias : [];
+
   // Estado Stripe Connect del hotel (cache en BD): decide si se ofrece OXXO y
   // "pagar en hotel" (ambos requieren su cuenta activa).
   const connect = await getConnectState(hotel.id, hotel.stripe_account_id);
@@ -92,6 +95,7 @@ export default async function ReservarPage({
       />
       <ReservarClient
         addons={addons}
+        experiencias={experiencias}
         slug={slug}
         hotelNombre={hotel.nombre}
         whatsapp={hotel.whatsapp}

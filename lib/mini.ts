@@ -74,6 +74,29 @@ export interface Addon {
   tipo: "estancia" | "noche" | "persona"; // cobro: por reserva / por noche / por persona
 }
 
+// Experiencias vendibles en el motor: tours, traslados, cena, spa. Es un add-on
+// "rico": se vende con foto y descripción, y admite cantidad explícita (p. ej.
+// "2 boletos al tour", cobro="unidad"), mientras que Addon multiplica por todos
+// los huéspedes. Vive en extras.experiencias (sin migración de BD).
+export interface Experiencia {
+  nombre: string;
+  precio: number;
+  cobro: "estancia" | "noche" | "persona" | "unidad"; // ×1 / ×noches / ×huéspedes / ×cantidad
+  descripcion?: string;
+  imagen?: string; // URL de foto (Storage del hotel)
+  categoria?: string; // clave de CATEGORIAS_EXPERIENCIA
+  cantidadMax?: number; // tope de unidades (solo cobro="unidad"); 0/undefined = sin tope
+}
+
+// Categorías para agrupar experiencias en el motor y elegir en el panel.
+export const CATEGORIAS_EXPERIENCIA = [
+  { key: "tour", label: "Tour" },
+  { key: "traslado", label: "Traslado" },
+  { key: "gastronomia", label: "Gastronomía" },
+  { key: "spa", label: "Spa / Bienestar" },
+  { key: "otro", label: "Otro" },
+] as const;
+
 export interface MiniExtras {
   demo?: boolean; // hotel de demostración: el motor simula el pago (nada se cobra)
   amenidades?: string[];
@@ -91,6 +114,7 @@ export interface MiniExtras {
   notificaciones?: Notificaciones;
   onboarding?: OnboardingProgreso;
   addons?: Addon[];
+  experiencias?: Experiencia[];
   formasPago?: string[];
   idiomas?: string[];
   premium?: { marcaOculta?: boolean; dominio?: string };
