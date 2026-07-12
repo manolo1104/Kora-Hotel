@@ -257,12 +257,51 @@ export interface ExperienciaRule {
   precio: number;
   cobro: "estancia" | "noche" | "persona" | "unidad";
   cantidadMax?: number; // tope de unidades (solo cobro="unidad"); 0/undefined = sin tope
+  // Agenda: metadatos de validación/anotación (el checkout revisa que la fecha
+  // elegida caiga en un día permitido). NO participan en el cálculo del precio.
+  dias?: number[]; // días de la semana en que se ofrece (0=Dom … 6=Sáb); vacío = todos
+  horarios?: string[]; // horarios de salida; vacío = sin horario fijo
 }
 
-/** Una experiencia elegida: índice en el catálogo del hotel + cantidad. */
+/** Una experiencia elegida: índice en el catálogo del hotel + cantidad.
+ * fecha/hora (agenda) son anotaciones para el hotel; no cambian el precio. */
 export interface ExperienciaSelection {
   i: number;
   qty: number; // solo relevante para cobro="unidad"; se ignora en los demás
+  fecha?: string; // YYYY-MM-DD del día elegido dentro de la estancia
+  hora?: string; // uno de los horarios del hotel
+}
+
+/**
+ * Fechas (YYYY-MM-DD) en las que una experiencia puede tomarse dentro de la
+ * estancia: del check-in al check-out INCLUSIVE (un traslado de salida ocurre el
+ * día del check-out), filtradas por los días de semana en que se ofrece
+ * (0=Dom … 6=Sáb; vacío = todos). Pura y sin zona horaria: las fechas se
+ * descomponen a mano y el día de semana se calcula en UTC.
+ */
+export function experienciaFechasDisponibles(
+  dias: number[] | undefined,
+  checkin: string,
+  checkout: string,
+): string[] {
+  const parse = (f: string) => {
+    const [y, m, d] = f.split("-").map(Number);
+    if (!y || !m || !d) return null;
+    return Date.UTC(y, m - 1, d);
+  };
+  const ini = parse(checkin);
+  const fin = parse(checkout);
+  if (ini == null || fin == null || fin < ini) return [];
+  const permitidos = Array.isArray(dias) && dias.length > 0 ? new Set(dias) : null;
+  const out: string[] = [];
+  const DIA_MS = 86_400_000;
+  // Tope defensivo de 62 días: ninguna estancia real del motor dura más.
+  for (let t = ini, n = 0; t <= fin && n < 62; t += DIA_MS, n++) {
+    const dt = new Date(t);
+    if (permitidos && !permitidos.has(dt.getUTCDay())) continue;
+    out.push(dt.toISOString().slice(0, 10));
+  }
+  return out;
 }
 
 /**

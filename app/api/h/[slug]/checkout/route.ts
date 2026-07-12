@@ -11,6 +11,7 @@ import {
   calcDepositAmount,
   calcAddonsTotal,
   calcExperienciasTotal,
+  experienciaFechasDisponibles,
   calcNrfDiscount,
   type CartItem,
   type AddonRule,
@@ -29,6 +30,17 @@ const OXXO_MAX_CENTS = 10_000_00; // tope de OXXO por transacción ($10,000 MXN)
 
 const FECHA = /^\d{4}-\d{2}-\d{2}$/;
 
+// "2026-07-18" → "sáb 18 jul" (para anotar la agenda de una experiencia en la
+// descripción de Stripe, las notas de la reserva y los correos — es para el
+// hotelero, en español). Día de semana en UTC para no depender de la TZ.
+const DIAS_CORTOS = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
+const MESES_CORTOS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+function fmtFechaCorta(f: string): string {
+  const [y, m, d] = f.split("-").map(Number);
+  const dow = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+  return `${DIAS_CORTOS[dow]} ${d} ${MESES_CORTOS[m - 1] ?? ""}`;
+}
+
 const CheckoutBody = z.object({
   cart: z
     .array(
@@ -46,6 +58,9 @@ const CheckoutBody = z.object({
       z.object({
         i: z.coerce.number().int().min(0).max(99),
         qty: z.coerce.number().int().min(1).max(99).default(1),
+        // Agenda (opcional): día y horario elegidos; se validan contra el catálogo.
+        fecha: z.string().regex(FECHA).optional(),
+        hora: z.string().trim().max(30).optional(),
       }),
     )
     .max(20)
@@ -189,6 +204,19 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   const selectedExperiencias: ExperienciaSelection[] = experiencias.filter(
     (e) => e.i < hotelExperiencias.length,
   );
+  // Agenda: si el huésped eligió día/horario, deben existir en el catálogo del
+  // hotel (un tour de solo-sábados no se puede apartar en martes). Sin fecha se
+  // acepta igual (clientes viejos): queda como pendiente que el hotel coordina.
+  for (const sel of selectedExperiencias) {
+    const e = hotelExperiencias[sel.i];
+    if (!e) continue;
+    if (sel.fecha && !experienciaFechasDisponibles(e.dias, checkin, checkout).includes(sel.fecha)) {
+      return NextResponse.json({ error: "experiencia-agenda" }, { status: 400 });
+    }
+    if (sel.hora && Array.isArray(e.horarios) && e.horarios.length > 0 && !e.horarios.includes(sel.hora)) {
+      return NextResponse.json({ error: "experiencia-agenda" }, { status: 400 });
+    }
+  }
   const experienciaNames = selectedExperiencias
     .map((sel) => {
       const e = hotelExperiencias[sel.i];
@@ -196,7 +224,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       const cap = e.cantidadMax && e.cantidadMax > 0 ? Math.floor(e.cantidadMax) : Infinity;
       const qty =
         e.cobro === "unidad" ? Math.min(cap, Math.max(1, Math.floor(Number(sel.qty) || 1))) : 1;
-      return qty > 1 ? `${e.nombre} ×${qty}` : e.nombre;
+      const base = qty > 1 ? `${e.nombre} ×${qty}` : e.nombre;
+      // El día/horario viaja DENTRO del nombre ("Tour ×2 (sáb 15 jul, 9:00 am)"):
+      // así webhook, notas de la reserva y correos lo muestran sin cambios.
+      // La hora se limpia de "|" porque es el separador del metadata.
+      const agenda = [sel.fecha ? fmtFechaCorta(sel.fecha) : null, sel.hora?.replace(/\|/g, "").trim() || null]
+        .filter(Boolean)
+        .join(", ");
+      return agenda ? `${base} (${agenda})` : base;
     })
     .filter(Boolean) as string[];
   const experienciasTotal = calcExperienciasTotal(

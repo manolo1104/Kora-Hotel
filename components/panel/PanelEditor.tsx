@@ -85,6 +85,8 @@ interface ExperienciaForm {
   imagen: string;
   categoria: string;
   cantidadMax: string;
+  dias: number[]; // días de la semana en que se ofrece (0=Dom … 6=Sáb); vacío = todos
+  horarios: string; // horarios separados por coma, tal como se teclean ("9:00 am, 4:00 pm")
 }
 // Temporada tal como se edita en el formulario (valores como string para los
 // inputs; se convierten a números al guardar en extras.temporadas).
@@ -288,11 +290,30 @@ export function PanelEditor({
   function addExperiencia() {
     setExperiencias((x) => [
       ...x,
-      { nombre: "", precio: "", cobro: "unidad", descripcion: "", imagen: "", categoria: "tour", cantidadMax: "" },
+      { nombre: "", precio: "", cobro: "unidad", descripcion: "", imagen: "", categoria: "tour", cantidadMax: "", dias: [], horarios: "" },
     ]);
   }
-  function updateExperiencia(i: number, campo: keyof ExperienciaForm, valor: string) {
+  function updateExperiencia(i: number, campo: Exclude<keyof ExperienciaForm, "dias">, valor: string) {
     setExperiencias((x) => x.map((it, idx) => (idx === i ? { ...it, [campo]: valor } : it)));
+  }
+  // Días de la semana en que se ofrece la experiencia i (vacío = todos los días).
+  // Con los 7 marcados se guarda vacío; no se permite quitar el último día.
+  function toggleDiaExperiencia(i: number, dia: number) {
+    setExperiencias((x) =>
+      x.map((it, idx) => {
+        if (idx !== i) return it;
+        const activos = it.dias.length ? [...it.dias] : [0, 1, 2, 3, 4, 5, 6];
+        const pos = activos.indexOf(dia);
+        if (pos >= 0) {
+          if (activos.length === 1) return it;
+          activos.splice(pos, 1);
+        } else {
+          activos.push(dia);
+        }
+        activos.sort((a, b) => a - b);
+        return { ...it, dias: activos.length >= 7 ? [] : activos };
+      }),
+    );
   }
   function removeExperiencia(i: number) {
     setExperiencias((x) => x.filter((_, idx) => idx !== i));
@@ -312,6 +333,8 @@ export function PanelEditor({
           imagen: "",
           categoria: "tour",
           cantidadMax: "",
+          dias: [],
+          horarios: "",
         }));
       return [...prev, ...nuevos];
     });
@@ -486,6 +509,10 @@ export function PanelEditor({
               imagen: String(e?.imagen ?? ""),
               categoria: String(e?.categoria ?? "otro"),
               cantidadMax: e?.cantidadMax != null ? String(e.cantidadMax) : "",
+              dias: Array.isArray(e?.dias)
+                ? (e.dias as unknown[]).map(Number).filter((n) => Number.isInteger(n) && n >= 0 && n <= 6)
+                : [],
+              horarios: Array.isArray(e?.horarios) ? (e.horarios as unknown[]).map(String).join(", ") : "",
             };
           }),
         );
@@ -948,6 +975,8 @@ export function PanelEditor({
         .filter((e) => e.nombre.trim())
         .map((e) => {
           const cm = Math.max(0, Math.round(Number(e.cantidadMax) || 0));
+          // Agenda: días vacíos o los 7 = "todos los días" → no se guarda nada.
+          const horarios = e.horarios.split(",").map((h) => h.trim()).filter(Boolean).slice(0, 8);
           return {
             nombre: e.nombre.trim(),
             precio: Math.max(0, Number(e.precio) || 0),
@@ -956,6 +985,8 @@ export function PanelEditor({
             ...(e.imagen.trim() ? { imagen: e.imagen.trim() } : {}),
             ...(e.categoria ? { categoria: e.categoria } : {}),
             ...(e.cobro === "unidad" && cm > 0 ? { cantidadMax: cm } : {}),
+            ...(e.dias.length > 0 && e.dias.length < 7 ? { dias: e.dias } : {}),
+            ...(horarios.length ? { horarios } : {}),
           };
         }),
       // Catálogo de Cotizaciones (paquetes + tours). El resolver revalida al leer.
@@ -2738,7 +2769,8 @@ export function PanelEditor({
             <p className="text-sm text-kora-muted">
               Tours, traslados, cenas o spa que el huésped puede sumar a su reserva
               en tu motor —con foto y descripción. Se cobran junto con la reserva y
-              te avisamos cuáles contrató.
+              te avisamos cuáles contrató. Si defines días u horarios, el huésped
+              elige cuándo tomarla dentro de su estancia y te llega con la reserva.
             </p>
             <div className="space-y-3">
               {experiencias.map((e, i) => (
@@ -2812,6 +2844,45 @@ export function PanelEditor({
                       </div>
                     )}
                   </div>
+                  {/* Agenda: el huésped elige día (y horario) dentro de su estancia */}
+                  {e.cobro !== "noche" && (
+                    <div className="flex flex-wrap items-end gap-3">
+                      <div>
+                        <label className="block text-[11px] font-semibold text-kora-muted mb-1">Días en que se ofrece</label>
+                        <div className="flex gap-1">
+                          {["D", "L", "M", "M", "J", "V", "S"].map((d, dIdx) => {
+                            const activos = e.dias.length ? e.dias : [0, 1, 2, 3, 4, 5, 6];
+                            const on = activos.includes(dIdx);
+                            return (
+                              <button
+                                key={dIdx}
+                                type="button"
+                                onClick={() => toggleDiaExperiencia(i, dIdx)}
+                                title={["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"][dIdx]}
+                                aria-pressed={on}
+                                className={`btn-press h-8 w-8 rounded-lg border text-[11px] font-bold transition-colors ${
+                                  on
+                                    ? "border-kora-primary bg-kora-primary text-white"
+                                    : "border-gray-200 text-kora-muted hover:border-kora-accent"
+                                }`}
+                              >
+                                {d}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      <div className="flex-1 min-w-[210px]">
+                        <label className="block text-[11px] font-semibold text-kora-muted mb-1">Horarios de salida (opc.)</label>
+                        <input
+                          className={inputCls}
+                          value={e.horarios}
+                          onChange={(ev) => updateExperiencia(i, "horarios", ev.target.value)}
+                          placeholder="Ej. 9:00 am, 4:00 pm (separados por coma)"
+                        />
+                      </div>
+                    </div>
+                  )}
                   <div>
                     <div className="flex items-center justify-between mb-1">
                       <label className="block text-[11px] font-semibold text-kora-muted">Descripción</label>

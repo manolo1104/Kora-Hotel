@@ -86,6 +86,10 @@ export interface Experiencia {
   imagen?: string; // URL de foto (Storage del hotel)
   categoria?: string; // clave de CATEGORIAS_EXPERIENCIA
   cantidadMax?: number; // tope de unidades (solo cobro="unidad"); 0/undefined = sin tope
+  // Agenda (Sprint 2): en el motor el huésped elige día (y horario) dentro de su
+  // estancia. No afectan el precio; viajan como anotación al hotel.
+  dias?: number[]; // días de la semana en que se ofrece (0=Dom … 6=Sáb); vacío/ausente = todos
+  horarios?: string[]; // horarios de salida (texto libre, ej. "9:00 am"); ausente = sin horario fijo
 }
 
 // Categorías para agrupar experiencias en el motor y elegir en el panel.

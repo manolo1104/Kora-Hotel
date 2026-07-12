@@ -22,6 +22,7 @@ import {
   type CartItem,
   type AddonRule,
   type ExperienciaSelection,
+  experienciaFechasDisponibles,
   type RatePlan,
   calcRoomStayTotal,
   calcNights,
@@ -324,24 +325,74 @@ export default function ReservarClient({
   }
   // Experiencias elegidas: índice → cantidad (≥1 = elegida; ausente = no).
   const [expQty, setExpQty] = useState<Record<number, number>>({});
+  // Agenda por experiencia: día elegido dentro de la estancia + horario. Se
+  // preselecciona el primer día/horario disponible al elegir la experiencia.
+  const [expSched, setExpSched] = useState<Record<number, { fecha?: string; hora?: string }>>({});
+  // Días de la estancia (check-in a check-out) en que la experiencia i se ofrece.
+  const expFechasDe = (i: number, ci = checkin, co = checkout) =>
+    experienciaFechasDisponibles(experiencias[i]?.dias, ci, co);
+  // Se pregunta el día salvo cobro "noche" (esa aplica todas las noches).
+  const expPideDia = (i: number) => experiencias[i]?.cobro !== "noche";
+  function defaultSched(i: number): { fecha?: string; hora?: string } {
+    return {
+      fecha: expPideDia(i) ? expFechasDe(i)[0] : undefined,
+      hora: experiencias[i]?.horarios?.[0],
+    };
+  }
+  function setSched(i: number, patch: { fecha?: string; hora?: string }) {
+    setExpSched((prev) => ({ ...prev, [i]: { ...prev[i], ...patch } }));
+  }
   function toggleExp(i: number) {
+    const estaba = Boolean(expQty[i]);
     setExpQty((prev) => {
       const next = { ...prev };
       if (next[i]) delete next[i];
       else next[i] = 1;
       return next;
     });
+    setExpSched((prev) => {
+      const next = { ...prev };
+      if (estaba) delete next[i];
+      else next[i] = defaultSched(i);
+      return next;
+    });
   }
   function setExp(i: number, qty: number) {
+    const max = experiencias[i]?.cantidadMax;
+    const cap = max && max > 0 ? max : Infinity;
+    const q = Math.min(cap, Math.max(0, Math.floor(qty)));
     setExpQty((prev) => {
       const next = { ...prev };
-      const max = experiencias[i]?.cantidadMax;
-      const cap = max && max > 0 ? max : Infinity;
-      const q = Math.min(cap, Math.max(0, Math.floor(qty)));
       if (q <= 0) delete next[i];
       else next[i] = q;
       return next;
     });
+    setExpSched((prev) => {
+      const next = { ...prev };
+      if (q <= 0) delete next[i];
+      else if (!next[i]) next[i] = defaultSched(i);
+      return next;
+    });
+  }
+  // Al cambiar las fechas de la estancia, la agenda elegida puede quedar fuera:
+  // se recorre al primer día disponible, y si la experiencia ya no se ofrece en
+  // las nuevas fechas se quita de la selección.
+  function reajustarAgendaExp(ci: string, co: string) {
+    const qtyNext: Record<number, number> = {};
+    const schedNext: Record<number, { fecha?: string; hora?: string }> = {};
+    for (const [k, q] of Object.entries(expQty)) {
+      const i = Number(k);
+      const fechas = expPideDia(i) ? expFechasDe(i, ci, co) : [];
+      if (expPideDia(i) && fechas.length === 0) continue;
+      const s = expSched[i] ?? {};
+      qtyNext[i] = q;
+      schedNext[i] = {
+        ...s,
+        fecha: expPideDia(i) ? (s.fecha && fechas.includes(s.fecha) ? s.fecha : fechas[0]) : undefined,
+      };
+    }
+    setExpQty(qtyNext);
+    setExpSched(schedNext);
   }
 
   // ── Flujo (3 pasos) ─────────────────────────────────────
@@ -399,6 +450,7 @@ export default function ReservarClient({
     setCheckin(ci);
     setCheckout(co);
     resetSearch();
+    reajustarAgendaExp(ci, co);
   }
 
   // ── Buscar disponibilidad ──────────────────────────────
@@ -497,8 +549,14 @@ export default function ReservarClient({
     [addons, selectedAddons, nights, adults],
   );
   const expSelections = useMemo<ExperienciaSelection[]>(
-    () => Object.entries(expQty).map(([i, qty]) => ({ i: Number(i), qty })),
-    [expQty],
+    () =>
+      Object.entries(expQty).map(([i, qty]) => ({
+        i: Number(i),
+        qty,
+        fecha: expSched[Number(i)]?.fecha,
+        hora: expSched[Number(i)]?.hora,
+      })),
+    [expQty, expSched],
   );
   const experienciasTotal = useMemo(
     () => calcExperienciasTotal(experiencias, expSelections, nights, adults),
@@ -570,7 +628,7 @@ export default function ReservarClient({
         email: e,
         nombre: currentName?.trim() || undefined,
         lang,
-        payload: { checkin, checkout, adults, children, cart, addons: selectedAddons },
+        payload: { checkin, checkout, adults, children, cart, addons: selectedAddons, experiencias: expSelections },
       }),
     }).catch(() => {});
   }
@@ -721,6 +779,7 @@ export default function ReservarClient({
   function errorMsg(code: string): string {
     if (code === "hotel-no-encontrado") return t(lang, "errHotel");
     if (code === "no-disponible") return t(lang, "errNoDisponible");
+    if (code === "experiencia-agenda") return t(lang, "errExperienciaAgenda");
     return code;
   }
 
@@ -731,6 +790,80 @@ export default function ReservarClient({
 
   const fmtFecha = (d: string) =>
     new Date(`${d}T12:00:00`).toLocaleDateString(localeOf(lang), { day: "numeric", month: "short" });
+  const fmtDiaExp = (d: string) =>
+    new Date(`${d}T12:00:00`).toLocaleDateString(localeOf(lang), {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+    });
+
+  // ── Experiencias: etiquetas y agenda ────────────────────
+  const diasCortos =
+    lang === "en"
+      ? ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+      : ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
+  const diasLabel = (dias?: number[]) =>
+    (dias ?? []).map((d) => diasCortos[d]).filter(Boolean).join(", ");
+  const expUnitLabel = (e: Experiencia) =>
+    e.cobro === "noche"
+      ? t(lang, "unitNoche", { p: formatMXN(e.precio) })
+      : e.cobro === "persona"
+        ? t(lang, "unitPersona", { p: formatMXN(e.precio) })
+        : e.cobro === "unidad"
+          ? t(lang, "unitUnidad", { p: formatMXN(e.precio) })
+          : formatMXN(e.precio);
+
+  // Selectores de día/horario de una experiencia elegida (compact = dentro del
+  // resumen del paso de datos, sin borde superior).
+  function renderAgendaExp(i: number, compact = false) {
+    const e = experiencias[i];
+    if (!e) return null;
+    const fechas = expPideDia(i) ? expFechasDe(i) : [];
+    const horarios = e.horarios ?? [];
+    if (fechas.length === 0 && horarios.length === 0) return null;
+    const s = expSched[i] ?? {};
+    const selCls = "rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs";
+    return (
+      <div
+        className={`flex flex-wrap items-center gap-x-3 gap-y-1.5 ${
+          compact ? "mt-1" : "mt-2 border-t border-gray-100 pt-2"
+        }`}
+      >
+        {fechas.length > 0 && (
+          <label className="flex items-center gap-1.5 text-[11px] text-kora-muted">
+            {t(lang, "expDia")}
+            <select
+              className={selCls}
+              value={s.fecha ?? fechas[0]}
+              onChange={(ev) => setSched(i, { fecha: ev.target.value })}
+            >
+              {fechas.map((f) => (
+                <option key={f} value={f}>
+                  {fmtDiaExp(f)}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+        {horarios.length > 0 && (
+          <label className="flex items-center gap-1.5 text-[11px] text-kora-muted">
+            {t(lang, "expHorario")}
+            <select
+              className={selCls}
+              value={s.hora ?? horarios[0]}
+              onChange={(ev) => setSched(i, { hora: ev.target.value })}
+            >
+              {horarios.map((h) => (
+                <option key={h} value={h}>
+                  {h}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+      </div>
+    );
+  }
 
   // Texto de política de cancelación (custom del hotel o default estructurado).
   const politicaFlex =
@@ -1185,76 +1318,81 @@ export default function ReservarClient({
                         const qty = expQty[i] ?? 0;
                         const on = qty > 0;
                         const esUnidad = e.cobro === "unidad";
-                        const unit =
-                          e.cobro === "noche"
-                            ? t(lang, "unitNoche", { p: formatMXN(e.precio) })
-                            : e.cobro === "persona"
-                              ? t(lang, "unitPersona", { p: formatMXN(e.precio) })
-                              : esUnidad
-                                ? t(lang, "unitUnidad", { p: formatMXN(e.precio) })
-                                : formatMXN(e.precio);
+                        const unit = expUnitLabel(e);
+                        // Un tour de solo-sábados no se puede tomar en una
+                        // estancia mar–jue: la tarjeta se muestra apagada.
+                        const sinFechas = expPideDia(i) && expFechasDe(i).length === 0;
                         return (
                           <div
                             key={i}
-                            className="flex items-center gap-3 rounded-xl border p-3"
+                            className="rounded-xl border p-3"
                             style={
                               on
                                 ? {
                                     borderColor: "var(--brand)",
                                     background: "color-mix(in srgb, var(--brand) 7%, white)",
                                   }
-                                : { borderColor: "#e5e7eb" }
+                                : { borderColor: "#e5e7eb", ...(sinFechas ? { opacity: 0.6 } : {}) }
                             }
                           >
-                            {e.imagen ? (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img src={e.imagen} alt="" className="h-14 w-14 shrink-0 rounded-lg object-cover" />
-                            ) : null}
-                            <div className="min-w-0 flex-1">
-                              <p className="text-sm font-semibold">{e.nombre}</p>
-                              {e.descripcion ? (
-                                <p className="line-clamp-2 text-xs text-kora-muted">{e.descripcion}</p>
+                            <div className="flex items-center gap-3">
+                              {e.imagen ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img src={e.imagen} alt="" className="h-14 w-14 shrink-0 rounded-lg object-cover" />
                               ) : null}
-                              <p className="text-xs tabular-nums text-kora-muted">{unit}</p>
-                            </div>
-                            {esUnidad ? (
-                              <div className="flex shrink-0 items-center gap-2">
-                                <button
-                                  type="button"
-                                  aria-label="Quitar uno"
-                                  onClick={() => setExp(i, qty - 1)}
-                                  disabled={qty <= 0}
-                                  className="grid h-7 w-7 place-items-center rounded-full border border-gray-300 text-lg leading-none text-kora-text disabled:opacity-40"
-                                >
-                                  −
-                                </button>
-                                <span className="w-5 text-center text-sm font-semibold tabular-nums">{qty}</span>
-                                <button
-                                  type="button"
-                                  aria-label="Agregar uno"
-                                  onClick={() => setExp(i, qty + 1)}
-                                  className="grid h-7 w-7 place-items-center rounded-full border text-lg leading-none"
-                                  style={{ background: "var(--brand)", borderColor: "var(--brand)", color: "var(--brand-ink)" }}
-                                >
-                                  +
-                                </button>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm font-semibold">{e.nombre}</p>
+                                {e.descripcion ? (
+                                  <p className="line-clamp-2 text-xs text-kora-muted">{e.descripcion}</p>
+                                ) : null}
+                                <p className="text-xs tabular-nums text-kora-muted">{unit}</p>
+                                {sinFechas && (
+                                  <p className="text-[11px] font-semibold text-amber-700">
+                                    {t(lang, "expNoDisponibleFechas")}
+                                    {e.dias?.length ? ` · ${t(lang, "expSoloDias", { d: diasLabel(e.dias) })}` : ""}
+                                  </p>
+                                )}
                               </div>
-                            ) : (
-                              <button
-                                type="button"
-                                onClick={() => toggleExp(i)}
-                                aria-pressed={on}
-                                aria-label={e.nombre}
-                                className="grid h-6 w-6 shrink-0 place-items-center rounded-md border"
-                                style={
-                                  on
-                                    ? { background: "var(--brand)", borderColor: "var(--brand)" }
-                                    : { borderColor: "#d1d5db" }
-                                }
-                              >
-                                {on && <Check size={13} style={{ color: "var(--brand-ink)" }} aria-hidden="true" />}
-                              </button>
-                            )}
+                              {sinFechas ? null : esUnidad ? (
+                                <div className="flex shrink-0 items-center gap-2">
+                                  <button
+                                    type="button"
+                                    aria-label="Quitar uno"
+                                    onClick={() => setExp(i, qty - 1)}
+                                    disabled={qty <= 0}
+                                    className="grid h-7 w-7 place-items-center rounded-full border border-gray-300 text-lg leading-none text-kora-text disabled:opacity-40"
+                                  >
+                                    −
+                                  </button>
+                                  <span className="w-5 text-center text-sm font-semibold tabular-nums">{qty}</span>
+                                  <button
+                                    type="button"
+                                    aria-label="Agregar uno"
+                                    onClick={() => setExp(i, qty + 1)}
+                                    className="grid h-7 w-7 place-items-center rounded-full border text-lg leading-none"
+                                    style={{ background: "var(--brand)", borderColor: "var(--brand)", color: "var(--brand-ink)" }}
+                                  >
+                                    +
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => toggleExp(i)}
+                                  aria-pressed={on}
+                                  aria-label={e.nombre}
+                                  className="grid h-6 w-6 shrink-0 place-items-center rounded-md border"
+                                  style={
+                                    on
+                                      ? { background: "var(--brand)", borderColor: "var(--brand)" }
+                                      : { borderColor: "#d1d5db" }
+                                  }
+                                >
+                                  {on && <Check size={13} style={{ color: "var(--brand-ink)" }} aria-hidden="true" />}
+                                </button>
+                              )}
+                            </div>
+                            {on ? renderAgendaExp(i) : null}
                           </div>
                         );
                       })}
@@ -1419,9 +1557,12 @@ export default function ReservarClient({
                           ? e.precio * Math.max(1, qty)
                           : e.precio;
                   return (
-                    <div key={`e-${i}`} className="flex justify-between text-sm text-kora-muted">
-                      <span>+ {e.nombre}{e.cobro === "unidad" && qty > 1 ? ` × ${qty}` : ""}</span>
-                      <span className="tabular-nums">{formatMXN(tt)}</span>
+                    <div key={`e-${i}`}>
+                      <div className="flex justify-between text-sm text-kora-muted">
+                        <span>+ {e.nombre}{e.cobro === "unidad" && qty > 1 ? ` × ${qty}` : ""}</span>
+                        <span className="tabular-nums">{formatMXN(tt)}</span>
+                      </div>
+                      {renderAgendaExp(i, true)}
                     </div>
                   );
                 })}
@@ -1433,6 +1574,43 @@ export default function ReservarClient({
                 </span>
               </div>
             </div>
+
+            {/* Cross-sell: hasta 2 experiencias no elegidas y disponibles en las
+                fechas — un toque las agrega con día/horario preseleccionados. */}
+            {(() => {
+              const sugeridas = experiencias
+                .map((e, i) => ({ e, i }))
+                .filter(({ i }) => !expQty[i] && (!expPideDia(i) || expFechasDe(i).length > 0))
+                .slice(0, 2);
+              if (sugeridas.length === 0) return null;
+              return (
+                <div className="mt-3 rounded-2xl border border-gray-100 bg-white p-4">
+                  <p className="text-sm font-bold">{t(lang, "expNudgeTitulo")}</p>
+                  <div className="mt-2 space-y-2">
+                    {sugeridas.map(({ e, i }) => (
+                      <div key={i} className="flex items-center gap-3 rounded-xl border border-gray-100 p-2.5">
+                        {e.imagen ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={e.imagen} alt="" className="h-11 w-11 shrink-0 rounded-lg object-cover" />
+                        ) : null}
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-semibold">{e.nombre}</p>
+                          <p className="text-xs tabular-nums text-kora-muted">{expUnitLabel(e)}</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => toggleExp(i)}
+                          className="btn-press shrink-0 rounded-full px-3.5 py-1.5 text-xs font-bold"
+                          style={{ background: "var(--brand)", color: "var(--brand-ink)" }}
+                        >
+                          + {t(lang, "expNudgeAgregar")}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
 
             {payError && (
               <p className="mt-3 flex items-start gap-1.5 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700" role="alert">
