@@ -15,6 +15,7 @@ import {
   formatMXN,
 } from "@/lib/booking";
 import { checkAvailability } from "@/lib/db/availability";
+import { logAgentActivity } from "@/lib/db/admin";
 import type { HotelRow } from "@/lib/tenant";
 
 export const dynamic = "force-dynamic";
@@ -33,7 +34,13 @@ async function hotelPorToken(token: string): Promise<HotelRow | null> {
 }
 
 export async function POST(req: Request) {
-  let body: { token?: string; action?: string; checkin?: string; checkout?: string };
+  let body: {
+    token?: string;
+    action?: string;
+    checkin?: string;
+    checkout?: string;
+    conv?: string; // id de la conversación (teléfono/chat) para métricas sin doble conteo
+  };
   try {
     body = await req.json();
   } catch {
@@ -41,6 +48,17 @@ export async function POST(req: Request) {
   }
   const hotel = await hotelPorToken(body.token ?? "");
   if (!hotel) return NextResponse.json({ error: "token-invalido" }, { status: 401 });
+
+  // Métricas del foso (dashboard "Agentes"): cada consulta del bot cuenta. Si
+  // el bot manda `conv`, se dedupe por día → conversaciones reales; sin conv se
+  // registra la consulta tal cual. Fail-safe: nunca afecta la respuesta al bot.
+  const conv = typeof body.conv === "string" && body.conv.trim() ? body.conv.trim().slice(0, 80) : "";
+  await logAgentActivity(
+    hotel.id,
+    "whatsapp_conv",
+    conv ? `conv:${conv}` : body.action === "availability" ? "availability" : "knowledge",
+    Boolean(conv),
+  );
 
   const extras = (hotel.extras ?? {}) as Record<string, unknown>;
   const rooms = hotelRooms(hotel);

@@ -1049,7 +1049,7 @@ export async function setBotStatus(hotelId: string, enabled: boolean): Promise<v
   if (updErr) console.error("setBotStatus write error:", updErr.message);
 }
 
-// ── AGENT METRICS (sin tabla aún) ──────────────────────────────────────────────
+// ── AGENT METRICS (tabla agent_activity — sql/kora-agent-activity.sql) ────────
 
 export type AgentActivityType =
   | "whatsapp_conv"
@@ -1065,20 +1065,70 @@ export interface AgentMetric {
   detalle: string;
 }
 
-// TODO Fase 6: tabla agent_activity. Por ahora no-op / vacío.
-export async function logAgentActivity(
-  _hotelId: string,
-  _tipo: AgentActivityType,
-  _detalle = "",
-): Promise<void> {
-  // TODO Fase 6: tabla agent_activity — insertar { hotel_id, fecha, tipo, detalle }.
-  return;
+/** Día actual en zona México — las métricas de agentes se agrupan por día local. */
+function hoyMX(): string {
+  return new Date().toLocaleDateString("en-CA", { timeZone: "America/Mexico_City" });
 }
 
-// TODO Fase 6: tabla agent_activity. Por ahora devuelve lista vacía.
-export async function getAgentMetrics(_hotelId: string): Promise<AgentMetric[]> {
-  // TODO Fase 6: tabla agent_activity — SELECT por hotel_id.
-  return [];
+// Registra una actividad de agente. FAIL-SAFE por diseño: una métrica nunca
+// debe tumbar el flujo que la emite — si la tabla no existe todavía (ver
+// sql/kora-agent-activity.sql) solo se registra el error y se sigue.
+// `dedupe` evita contar dos veces el mismo detalle el mismo día (p. ej. la
+// misma conversación de WhatsApp consultando el API varias veces).
+export async function logAgentActivity(
+  hotelId: string,
+  tipo: AgentActivityType,
+  detalle = "",
+  dedupe = false,
+): Promise<void> {
+  try {
+    const supabase = createAdminClient();
+    const fecha = hoyMX();
+    if (dedupe && detalle) {
+      const { data } = await supabase
+        .from("agent_activity")
+        .select("id")
+        .eq("hotel_id", hotelId)
+        .eq("tipo", tipo)
+        .eq("fecha", fecha)
+        .eq("detalle", detalle)
+        .limit(1);
+      if (data && data.length > 0) return;
+    }
+    const { error } = await supabase
+      .from("agent_activity")
+      .insert({ hotel_id: hotelId, tipo, fecha, detalle });
+    if (error) console.error("logAgentActivity:", error.message);
+  } catch (e) {
+    console.error("logAgentActivity:", e);
+  }
+}
+
+// Actividad del último año (tope defensivo de filas). FAIL-SAFE: sin tabla → [].
+export async function getAgentMetrics(hotelId: string): Promise<AgentMetric[]> {
+  try {
+    const supabase = createAdminClient();
+    const desde = new Date(Date.now() - 366 * 86_400_000).toISOString().slice(0, 10);
+    const { data, error } = await supabase
+      .from("agent_activity")
+      .select("tipo, fecha, detalle")
+      .eq("hotel_id", hotelId)
+      .gte("fecha", desde)
+      .order("fecha", { ascending: false })
+      .limit(5000);
+    if (error) {
+      console.error("getAgentMetrics:", error.message);
+      return [];
+    }
+    return (data ?? []).map((r) => ({
+      tipo: String(r.tipo ?? ""),
+      fecha: String(r.fecha ?? ""),
+      detalle: String(r.detalle ?? ""),
+    }));
+  } catch (e) {
+    console.error("getAgentMetrics:", e);
+    return [];
+  }
 }
 
 // ── MÉTRICAS REDES (sin tabla aún) ─────────────────────────────────────────────

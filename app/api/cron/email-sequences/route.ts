@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import { createAdminClient, adminEnvReady } from "@/lib/supabase/admin";
-import { getAllBookings, type AdminBooking } from "@/lib/db/admin";
+import { getAllBookings, logAgentActivity, type AdminBooking } from "@/lib/db/admin";
 import {
   buildSurveyEmailHtml,
   buildReviewEmailHtml,
@@ -42,6 +42,7 @@ interface HotelRow {
   ubicacion: string | null;
   config: Record<string, unknown> | null;
   guia: Record<string, unknown> | null;
+  extras: Record<string, unknown> | null;
 }
 
 // ── HELPERS DE FECHA (zona MX, espejo del origen) ───────────────────────────
@@ -80,6 +81,9 @@ function promoExpiry(): string {
 // ── BRANDING: fila `hoteles` → HotelBrand para las plantillas ───────────────
 function brandFromHotel(h: HotelRow): HotelBrand {
   const config = h.config ?? {};
+  // El hotelero edita reviewUrl/mapsUrl en su panel (extras); config.* queda
+  // como respaldo legado para hoteles configurados a mano.
+  const extras = h.extras ?? {};
   const str = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : undefined);
   return {
     nombre: h.nombre || "el hotel",
@@ -88,8 +92,8 @@ function brandFromHotel(h: HotelRow): HotelBrand {
     telefono: str(config.telefono) || (h.whatsapp ?? undefined),
     whatsapp: (h.whatsapp ?? undefined) || str(config.whatsapp),
     email: str(config.email_from) || str(config.email),
-    reviewUrl: str(config.review_url),
-    mapsUrl: str(config.maps_url),
+    reviewUrl: str(extras.reviewUrl) || str(config.review_url),
+    mapsUrl: str(extras.mapsUrl) || str(config.maps_url),
     promoCode: str(config.promo_code),
     promoDiscount: str(config.promo_discount),
   };
@@ -122,7 +126,7 @@ export async function GET(req: Request) {
   // ── Todos los hoteles ──
   const { data: hotelesRaw, error: hotelesErr } = await admin
     .from("hoteles")
-    .select("id, nombre, slug, whatsapp, ubicacion, config, guia");
+    .select("id, nombre, slug, whatsapp, ubicacion, config, guia, extras");
   if (hotelesErr) {
     console.error("[cron/email-sequences] error leyendo hoteles:", hotelesErr.message);
     return NextResponse.json({ ok: false, error: hotelesErr.message }, { status: 500 });
@@ -218,6 +222,13 @@ export async function GET(req: Request) {
         if (res.error) throw new Error(res.error.message);
         // 3) Guardar el resend_id en la marca.
         await admin.from("email_log").update({ resend_id: res.data?.id ?? null }).eq("id", logId);
+        // Métrica de agentes (dashboard Insights): correo del ciclo de estancia
+        // enviado. Fail-safe: si la tabla no existe, no afecta el envío.
+        await logAgentActivity(
+          hotel.id,
+          emailType.startsWith("pre_") ? "email_preestancia" : "email_postestancia",
+          `${emailType}:${b.confirmacion}`,
+        );
         hres.sent++;
         totals.sent++;
       } catch (e) {

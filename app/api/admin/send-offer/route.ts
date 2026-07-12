@@ -18,6 +18,8 @@ export const dynamic = "force-dynamic";
 // Fila `hoteles` → HotelBrand (espejo de brandFromHotel del cron email-sequences).
 function brandFromHotel(h: HotelRow): HotelBrand {
   const config = (h.config ?? {}) as Record<string, unknown>;
+  // reviewUrl/mapsUrl: primero lo editable del panel (extras); config.* legado.
+  const extras = (h.extras ?? {}) as Record<string, unknown>;
   const str = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : undefined);
   return {
     nombre: h.nombre || "el hotel",
@@ -26,8 +28,8 @@ function brandFromHotel(h: HotelRow): HotelBrand {
     telefono: str(config.telefono) || (h.whatsapp ?? undefined),
     whatsapp: (h.whatsapp ?? undefined) || str(config.whatsapp),
     email: str(config.email_from) || str(config.email),
-    reviewUrl: str(config.review_url),
-    mapsUrl: str(config.maps_url),
+    reviewUrl: str(extras.reviewUrl) || str(config.review_url),
+    mapsUrl: str(extras.mapsUrl) || str(config.maps_url),
     promoCode: str(config.promo_code),
     promoDiscount: str(config.promo_discount),
   };

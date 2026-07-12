@@ -231,6 +231,35 @@ export function PanelEditor({
   const [instagram, setInstagram] = useState("");
   const [facebook, setFacebook] = useState("");
   const [mapsUrl, setMapsUrl] = useState("");
+  const [reviewUrl, setReviewUrl] = useState(""); // link "escribir reseña" de Google (email día 7)
+
+  // Token del bot de WhatsApp (config.agent_token). Se pide al backend solo
+  // cuando el dueño quiere verlo (el endpoint lo genera la primera vez).
+  const [agentToken, setAgentToken] = useState("");
+  const [agentTokenCargando, setAgentTokenCargando] = useState(false);
+  const [agentTokenCopiado, setAgentTokenCopiado] = useState(false);
+  async function verTokenAgente() {
+    setAgentTokenCargando(true);
+    try {
+      const res = await fetch("/api/admin/agent-token");
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok || !d?.token) throw new Error(typeof d?.error === "string" ? d.error : "No se pudo obtener el token.");
+      setAgentToken(String(d.token));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudo obtener el token.");
+    } finally {
+      setAgentTokenCargando(false);
+    }
+  }
+  async function copiarTokenAgente() {
+    try {
+      await navigator.clipboard.writeText(agentToken);
+      setAgentTokenCopiado(true);
+      setTimeout(() => setAgentTokenCopiado(false), 2000);
+    } catch {
+      /* clipboard bloqueado: el texto queda seleccionable a mano */
+    }
+  }
   const [mapEmbedUrl, setMapEmbedUrl] = useState("");
 
   // Diseño
@@ -468,6 +497,7 @@ export function PanelEditor({
         setInstagram(ex.instagram ?? "");
         setFacebook(ex.facebook ?? "");
         setMapsUrl(ex.mapsUrl ?? "");
+        setReviewUrl(ex.reviewUrl ?? "");
         setMapEmbedUrl(ex.mapEmbedUrl ?? "");
         const d = ex.diseno ?? {};
         setColor(d.color ?? "");
@@ -932,6 +962,7 @@ export function PanelEditor({
       instagram: instagram.trim(),
       facebook: facebook.trim(),
       mapsUrl: mapsUrl.trim(),
+      reviewUrl: reviewUrl.trim(),
       mapEmbedUrl: mapEmbedUrl.trim(),
       diseno: {
         color: color.trim(),
@@ -2155,6 +2186,28 @@ export function PanelEditor({
       {/* ─── RESEÑAS Y FAQ ─── */}
       {tab === "resenas" && (
         <div className="space-y-6">
+          {/* Link directo "escribir reseña" (lo usa el correo automático del día 7) */}
+          <div className={card}>
+            <div className="flex items-center gap-2 mb-1">
+              <ExternalLink size={18} className="text-kora-primary" />
+              <h2 className="text-lg font-bold text-kora-text">Tu link para reseñas de Google</h2>
+            </div>
+            <p className="text-sm text-kora-muted mb-3">
+              7 días después del check-out, Kora le manda a tu huésped un correo
+              pidiéndole una reseña. Pega aquí el enlace directo de tu ficha de
+              Google para que caiga exactamente en “escribir reseña” de TU hotel
+              (sin él, el correo lleva a una búsqueda genérica). Lo encuentras en
+              tu Perfil de Empresa de Google → “Solicitar reseñas” → copiar enlace.
+            </p>
+            <input
+              className={inputCls}
+              value={reviewUrl}
+              onChange={(e) => setReviewUrl(e.target.value)}
+              placeholder="https://g.page/r/…/review"
+              inputMode="url"
+            />
+          </div>
+
           <div className={card}>
             <div className="flex items-center gap-2 mb-1">
               <Star size={18} className="text-kora-primary" />
@@ -2686,6 +2739,55 @@ export function PanelEditor({
               </div>
             </div>
           </div>
+
+          {/* Agente de WhatsApp: token para conectar el bot del hotel */}
+          {hotelId && (
+            <div className={`${card} space-y-3`}>
+              <div className="flex items-center gap-2">
+                <MessageCircle size={18} className="text-kora-primary" />
+                <h2 className="text-lg font-bold text-kora-text">Agente de WhatsApp</h2>
+              </div>
+              <p className="text-sm text-kora-muted">
+                Tu bot de WhatsApp responde a los huéspedes con datos reales de tu
+                hotel (habitaciones, precios y disponibilidad en vivo) consultando
+                a Kora con un token secreto. Las conversaciones que atienda
+                aparecen en Insights → Agentes.
+              </p>
+              {agentToken ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  <input
+                    readOnly
+                    className={`${inputCls} flex-1 min-w-[220px] font-mono text-xs`}
+                    value={agentToken}
+                    onFocus={(e) => e.currentTarget.select()}
+                  />
+                  <button
+                    type="button"
+                    onClick={copiarTokenAgente}
+                    className="btn-press inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-gray-200 text-kora-text font-semibold text-sm hover:border-kora-accent transition-colors"
+                  >
+                    {agentTokenCopiado ? <Check size={15} /> : <Copy size={15} />}
+                    {agentTokenCopiado ? "Copiado" : "Copiar"}
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={verTokenAgente}
+                  disabled={agentTokenCargando}
+                  className="btn-press inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-gray-200 text-kora-primary font-semibold text-sm hover:border-kora-accent transition-colors disabled:opacity-50"
+                >
+                  {agentTokenCargando ? <Loader2 size={15} className="animate-spin" /> : <Eye size={15} />}
+                  Ver mi token del bot
+                </button>
+              )}
+              <p className="text-xs text-kora-muted">
+                Trátalo como una contraseña: quien lo tenga puede consultar los
+                datos de tu hotel. Tu bot lo manda en cada consulta a{" "}
+                <code className="font-mono">kora-hotel.com/api/agent</code>.
+              </p>
+            </div>
+          )}
 
           {/* Extras vendibles (add-ons) */}
           <div className={`${card} space-y-4`}>

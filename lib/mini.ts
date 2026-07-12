@@ -108,6 +108,7 @@ export interface MiniExtras {
   facebook?: string;
   mapsUrl?: string;
   mapEmbedUrl?: string;
+  reviewUrl?: string; // link directo "escribir reseña" de Google (lo usa el email del día 7)
   diseno?: Diseno;
   resenas?: Resena[];
   faqs?: MiniFaq[];
