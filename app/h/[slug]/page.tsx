@@ -24,6 +24,7 @@ import {
 } from "@/lib/mini";
 import { SUPABASE_URL, SUPABASE_ANON_KEY, supabaseEnvReady } from "@/lib/supabase/env";
 import { ownerTienePlanActivo } from "@/lib/suscripcion";
+import { getResenasPublicadas } from "@/lib/db/reviews";
 
 export const dynamic = "force-dynamic";
 
@@ -40,6 +41,7 @@ interface Habitacion {
   tarifas?: Tarifa[];
 }
 interface Hotel {
+  id: string;
   slug: string;
   owner_id: string;
   nombre: string;
@@ -54,7 +56,7 @@ interface Hotel {
 async function getHotel(slug: string, preview: boolean): Promise<Hotel | null> {
   if (!supabaseEnvReady) return null;
   const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  const base = "slug, owner_id, nombre, ubicacion, descripcion, whatsapp, habitaciones, fotos";
+  const base = "id, slug, owner_id, nombre, ubicacion, descripcion, whatsapp, habitaciones, fotos";
   const run = (cols: string) => {
     let q = supabase.from("hoteles").select(cols).eq("slug", slug);
     if (!preview) q = q.eq("publicado", true);
@@ -159,11 +161,41 @@ export default async function MiniPagina({
   const igUrl = urlRed("https://instagram.com/", extras.instagram);
   const fbUrl = urlRed("https://facebook.com/", extras.facebook);
 
-  const resenas = (extras.resenas ?? []).filter((r) => (r.texto ?? "").trim());
-  const conEstrellas = resenas.filter((r) => r.estrellas >= 1 && r.estrellas <= 5);
+  // Reseñas: las CAPTURADAS (verificadas, tabla reviews — solo huéspedes reales)
+  // primero, luego las tecleadas a mano (extras.resenas, compat). El
+  // aggregateRating honesto cuenta todas las que tienen estrellas válidas.
+  // Fail-safe: sin la tabla reviews, capturadas = [] → idéntico a antes.
+  const capturadas = await getResenasPublicadas(hotel.id);
+  const resenasHT = (extras.resenas ?? [])
+    .filter((r) => (r.texto ?? "").trim())
+    .map((r) => ({
+      estrellas: Number(r.estrellas) || 0,
+      texto: r.texto ?? "",
+      autor: r.autor || "Huésped",
+      fecha: r.fecha || "",
+      verificada: false,
+      respuesta: null as string | null,
+    }));
+  const resenas = [
+    ...capturadas
+      .filter((r) => r.texto.trim())
+      .map((r) => ({
+        estrellas: r.estrellas,
+        texto: r.texto,
+        autor: r.cliente,
+        fecha: r.fecha,
+        verificada: true,
+        respuesta: r.respuesta,
+      })),
+    ...resenasHT,
+  ];
+  const ratingItems = [
+    ...capturadas.filter((r) => r.estrellas >= 1 && r.estrellas <= 5),
+    ...resenasHT.filter((r) => r.estrellas >= 1 && r.estrellas <= 5),
+  ];
   const rating =
-    conEstrellas.length > 0
-      ? conEstrellas.reduce((s, r) => s + r.estrellas, 0) / conEstrellas.length
+    ratingItems.length > 0
+      ? ratingItems.reduce((s, r) => s + r.estrellas, 0) / ratingItems.length
       : null;
 
   const faqs = (extras.faqs ?? []).filter((f) => (f.pregunta ?? "").trim());
@@ -253,7 +285,7 @@ export default async function MiniPagina({
           aggregateRating: {
             "@type": "AggregateRating",
             ratingValue: rating.toFixed(1),
-            reviewCount: conEstrellas.length,
+            reviewCount: ratingItems.length,
             bestRating: 5,
           },
         }
@@ -440,14 +472,29 @@ export default async function MiniPagina({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {resenas.map((r, i) => (
               <div key={i} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-                {r.estrellas >= 1 && r.estrellas <= 5 && (
-                  <Estrellas valor={r.estrellas} size={14} />
-                )}
+                <div className="flex items-center justify-between gap-2">
+                  {r.estrellas >= 1 && r.estrellas <= 5 && (
+                    <Estrellas valor={r.estrellas} size={14} />
+                  )}
+                  {r.verificada && (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600">
+                      <ShieldCheck size={12} /> Verificada
+                    </span>
+                  )}
+                </div>
                 <p className="mt-2 text-sm text-kora-text leading-relaxed">“{r.texto}”</p>
                 <p className="mt-2 text-xs font-semibold text-kora-muted">
                   — {r.autor || "Huésped"}
                   {r.fecha ? ` · ${r.fecha}` : ""}
                 </p>
+                {r.respuesta && (
+                  <div className="mt-3 rounded-xl bg-gray-50 p-3">
+                    <p className="text-[11px] font-semibold text-kora-muted">
+                      Respuesta de {hotel.nombre}
+                    </p>
+                    <p className="mt-1 text-sm text-kora-text leading-relaxed">{r.respuesta}</p>
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -694,7 +741,7 @@ export default async function MiniPagina({
                   <Estrellas valor={rating} />
                   {rating.toFixed(1)}
                   <span className="font-normal text-kora-muted">
-                    ({conEstrellas.length})
+                    ({ratingItems.length})
                   </span>
                 </p>
               )}

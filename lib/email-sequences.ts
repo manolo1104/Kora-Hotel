@@ -206,28 +206,33 @@ export function buildSurveyEmailHtml(data: {
   return wrap(b, `${first}, ¿cómo fue tu estancia en ${b.nombre}?`, body);
 }
 
-// ── 2. Post-stay +7 días: Invitación Google Maps ───────────────────────────
+// ── 2. Post-stay +7 días: Invitación a dejar reseña ────────────────────────
+// El CTA va a la PÁGINA DE CAPTURA de Kora (resenaUrl, atada al folio) en vez de
+// directo a Google: ahí el huésped califica, Kora guarda la reseña real, y luego
+// se le invita a Google. Sin resenaUrl (compat), cae al link de Google directo.
 export function buildReviewEmailHtml(data: {
   hotel: HotelBrand;
   customerName: string;
   confirmacion: string;
   checkin: string;
+  resenaUrl?: string;
 }): string {
   const b = brandDefaults(data.hotel);
   const first = data.customerName.trim().split(" ")[0];
+  const cta = data.resenaUrl || b.reviewUrl;
   const body = `
-    ${hero("Una semana después", "Tu opinión llega más lejos de lo que imaginas.", `Hace 7 días dejaste ${b.nombre}. ¿Nos dejas una reseña en Google?`)}
+    ${hero("Una semana después", "Tu opinión llega más lejos de lo que imaginas.", `Hace 7 días dejaste ${b.nombre}. ¿Nos dejas una reseña?`)}
     <tr><td class="mplg" style="background-color:#faf8f5;padding:52px 48px;">
       ${greeting(data.customerName)}
       <p style="margin:16px 0 32px;font-family:'Jost','Helvetica Neue',Arial;font-size:15px;font-weight:300;color:#4a3f30;line-height:1.85;">
-        Hace una semana te despediste de ${b.nombre}. Tu opinión en Google ayuda a que otros viajeros encuentren su próximo destino — y solo toma 2 minutos. 🙏
+        Hace una semana te despediste de ${b.nombre}. Tu opinión ayuda a que otros viajeros encuentren su próximo destino — y solo toma 2 minutos. 🙏
       </p>
-      ${ctaButton("Dejar mi reseña en Google ★", b.reviewUrl)}
+      ${ctaButton("Dejar mi reseña ★", cta)}
       <p style="font-family:'Cormorant Garamond',Georgia,serif;font-size:17px;font-style:italic;color:#5a4e3c;text-align:center;line-height:1.7;margin:32px 0 0;">
         "Cada reseña es una historia que llega a quienes todavía no nos descubren."
       </p>
     </td></tr>`;
-  return wrap(b, `${first}, ¿nos dejas una reseña en Google?`, body);
+  return wrap(b, `${first}, ¿nos dejas una reseña?`, body);
 }
 
 // ── 3. Post-stay +30 días: Oferta de regreso ──────────────────────────────

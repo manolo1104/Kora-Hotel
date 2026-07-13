@@ -33,6 +33,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { deriveUnidades } from "@/lib/booking";
 import { AMENIDADES, AMENIDADES_HAB } from "@/lib/amenidades";
+import { ResenasCapturadas } from "@/components/panel/ResenasCapturadas";
 import {
   FUENTES,
   fontStack,
@@ -2226,14 +2227,21 @@ export function PanelEditor({
             />
           </div>
 
+          {/* Reseñas VERIFICADAS: las que dejan tus huéspedes reales desde el correo
+              del día 7 (tabla reviews). Se gestionan aquí (responder/ocultar). */}
+          <div className={card}>
+            <ResenasCapturadas />
+          </div>
+
           <div className={card}>
             <div className="flex items-center gap-2 mb-1">
               <Star size={18} className="text-kora-primary" />
-              <h2 className="text-lg font-bold text-kora-text">Reseñas de huéspedes</h2>
+              <h2 className="text-lg font-bold text-kora-text">Reseñas manuales</h2>
             </div>
             <p className="text-sm text-kora-muted mb-4">
-              Agrega reseñas reales de tus huéspedes. Se muestran con su calificación y
-              suman al rating de tu página.
+              Reseñas que agregas tú a mano. Útiles al empezar, pero las{" "}
+              <strong>verificadas</strong> (arriba) generan más confianza porque vienen de
+              huéspedes reales. Se muestran con su calificación y suman al rating de tu página.
             </p>
             <div className="space-y-3">
               {resenas.map((r, i) => (
