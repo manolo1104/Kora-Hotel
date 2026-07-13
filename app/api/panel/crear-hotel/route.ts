@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { supabaseEnvReady } from "@/lib/supabase/env";
+import { enviarEmail, NOTIFY_EMAIL } from "@/lib/email/resend";
+import { emailHotelNuevo } from "@/lib/email/templates";
 
 export const dynamic = "force-dynamic";
 
@@ -160,6 +162,19 @@ export async function POST(req: Request) {
       : "No se pudo generar una dirección para tu hotel. Prueba con otro nombre.";
     return NextResponse.json({ ok: false, error: msg }, { status: 400 });
   }
+
+  // Aviso instantáneo a Kora cada vez que se registra un hotel nuevo.
+  // Best-effort: el hotel ya quedó guardado, el correo nunca tumba el alta.
+  enviarEmail({
+    to: NOTIFY_EMAIL || "daftpunkmanolo@gmail.com",
+    ...emailHotelNuevo({
+      hotel: (body.nombre || "").trim() || creado.slug,
+      ubicacion: body.ubicacion,
+      whatsapp: body.whatsapp,
+      email: user.email,
+      slug: creado.slug,
+    }),
+  }).catch(() => {});
 
   return NextResponse.json({ ok: true, slug: creado.slug });
 }

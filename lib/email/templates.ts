@@ -53,6 +53,39 @@ export function emailBienvenida({ plan, precio }: { plan: string; precio: number
   };
 }
 
+// ─── Aviso interno: hotel nuevo registrado ───────────────────────────────────
+export function emailHotelNuevo({
+  hotel,
+  ubicacion,
+  whatsapp,
+  email,
+  slug,
+}: {
+  hotel: string;
+  ubicacion?: string | null;
+  whatsapp?: string | null;
+  email?: string | null;
+  slug: string;
+}) {
+  const wa = (whatsapp || "").replace(/\D/g, "");
+  const fila = (k: string, v: string) =>
+    `<tr><td style="padding:5px 12px 5px 0;color:#8a948f;white-space:nowrap;vertical-align:top;">${k}</td><td style="padding:5px 0;color:#1f2823;">${v}</td></tr>`;
+  return {
+    subject: `🏨 Hotel nuevo en Kora: ${esc(hotel)}`,
+    html: layout(`
+      <h1 style="margin:0 0 12px;font-size:20px;color:#1f2823;">Se registró un hotel nuevo 🎉</h1>
+      <p style="color:#5a645f;font-size:14px;line-height:1.6;margin:0 0 14px;">Alguien acaba de crear su hotel en Kora:</p>
+      <table style="border-collapse:collapse;width:100%;font-size:14px;">
+        ${fila("Hotel", esc(hotel))}
+        ${ubicacion ? fila("Ubicación", esc(ubicacion)) : ""}
+        ${email ? fila("Cuenta", esc(email)) : ""}
+        ${wa ? fila("WhatsApp", `<a href="https://wa.me/${wa}" style="color:${VERDE};">${esc(whatsapp || "")}</a>`) : ""}
+      </table>
+      <div style="text-align:center;margin:18px 0 6px;">${boton(`${SITE}/h/${esc(slug)}/reservar`, "Ver su página")}</div>
+    `),
+  };
+}
+
 // ─── Aviso interno: lead nuevo ────────────────────────────────────────────────
 export function emailLeadNuevo({
   nombre,
