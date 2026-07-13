@@ -300,15 +300,22 @@ export async function GET(req: Request) {
 
         // post_day7: checkout+7 <= hoy
         if (shiftDate(checkout, 7) <= today) {
+          // Link a la página de captura de Kora (atada al folio por el id de la
+          // reserva). Canónico kora-hotel.com para que la ruta /h/[slug]/resena
+          // resuelva siempre. Sin slug, el correo cae al Google directo.
+          const resenaUrl = hotel.slug
+            ? `https://kora-hotel.com/h/${hotel.slug}/resena?r=${b.id}&lang=es`
+            : undefined;
           await sendOnce(
             b,
             "post_day7",
-            `${first}, ¿nos dejas una reseña en Google?`,
+            `${first}, ¿nos dejas una reseña?`,
             buildReviewEmailHtml({
               hotel: brand,
               customerName: b.cliente,
               confirmacion: b.confirmacion,
               checkin,
+              resenaUrl,
             }),
           );
         }

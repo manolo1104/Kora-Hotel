@@ -56,6 +56,7 @@ export interface AdminBooking {
   estado: "CONFIRMADA" | "CANCELADA" | "MANUAL";
   comoNosConocio: string;
   anticipo: number;
+  origen: string; // "web" | "bot" | "manual" | "web-pago-hotel" | ...
 }
 
 export interface AdminQuote {
@@ -195,6 +196,7 @@ function mapBooking(r: BookingRow): AdminBooking {
     comoNosConocio: r.como_nos_conocio ?? "",
     anticipo: parseTotal(r.anticipo),
     estado,
+    origen: r.origen ?? "",
   };
 }
 
@@ -1053,6 +1055,8 @@ export async function setBotStatus(hotelId: string, enabled: boolean): Promise<v
 
 export type AgentActivityType =
   | "whatsapp_conv"
+  | "whatsapp_reserva"
+  | "resena_capturada"
   | "email_confirmacion"
   | "email_preestancia"
   | "email_postestancia"

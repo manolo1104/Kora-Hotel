@@ -164,6 +164,7 @@ export function calcInsights(
   // ── ORIGEN DE RESERVAS (mes actual) ──────────────────────────────────
   const origenMap: Record<string, { count: number; ingresos: number }> = {
     Web: { count: 0, ingresos: 0 },
+    'Camila (bot)': { count: 0, ingresos: 0 },
     WhatsApp: { count: 0, ingresos: 0 },
     Manual: { count: 0, ingresos: 0 },
   };
@@ -173,6 +174,10 @@ export function calcInsights(
     if (b.estado === 'MANUAL') {
       origenMap['Manual'].count++;
       origenMap['Manual'].ingresos += total;
+    } else if (b.origen === 'bot') {
+      // Reserva CERRADA por el bot de WhatsApp (Camila): el foso vendiendo solo.
+      origenMap['Camila (bot)'].count++;
+      origenMap['Camila (bot)'].ingresos += total;
     } else if (b.notas?.toLowerCase().includes('whatsapp') || b.comoNosConocio?.toLowerCase().includes('whatsapp')) {
       origenMap['WhatsApp'].count++;
       origenMap['WhatsApp'].ingresos += total;
@@ -184,6 +189,7 @@ export function calcInsights(
 
   const ORIGIN_COLORS: Record<string, string> = {
     Web: '#C9A97A',
+    'Camila (bot)': '#2dd4bf',
     WhatsApp: '#4ade80',
     Manual: '#93c5fd',
   };

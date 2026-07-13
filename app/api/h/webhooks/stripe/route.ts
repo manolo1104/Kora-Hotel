@@ -205,7 +205,8 @@ async function confirmarReserva(
         huespedes,
         paymentIntentId: paymentRef || null,
         estado: "CONFIRMADA",
-        origen: esPagoHotel ? "web-pago-hotel" : "web",
+        // origen "bot" = reserva cerrada por Camila (WhatsApp); si no, motor web.
+        origen: esPagoHotel ? "web-pago-hotel" : md.origen === "bot" ? "bot" : "web",
         ratePlan: md.ratePlan === "nrf" ? "nrf" : "flex",
         notas: notasReserva,
       });
