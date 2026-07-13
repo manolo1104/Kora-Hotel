@@ -1,0 +1,18 @@
+{
+  "name": "camila-kora",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Camila — agente de WhatsApp con IA multi-tenant para los hoteles de Kora. Un número por hotel; habla con /api/agent para datos reales y cierra reservas con link de pago.",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js",
+    "check": "node --check index.js && node --check brain.js && node --check kora.js && node --check fleet.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.111.0",
+    "dotenv": "^16.4.5",
+    "qrcode": "^1.5.4",
+    "qrcode-terminal": "^0.12.0",
+    "whatsapp-web.js": "^1.26.0"
+  }
+}

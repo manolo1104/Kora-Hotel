@@ -364,6 +364,11 @@ summary:focus-visible {
 
 @layer components {
 
+  /* Campo de formulario reutilizable (panel de Camila, etc.) */
+  .input-kora {
+    @apply w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm text-kora-text placeholder:text-kora-muted/60 focus:outline-none focus:ring-2 focus:ring-kora-primary/30 focus:border-kora-primary transition-colors;
+  }
+
   /* TL;DR / resumen al inicio */
   .callout-summary {
     @apply bg-[#FAFAF8] border-l-4 border-[#52B788] rounded-r-2xl p-5 my-8;

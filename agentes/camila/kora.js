@@ -1,0 +1,74 @@
+// kora.js — cliente de la plataforma Kora para UN hotel.
+//
+// Todo lo específico del hotel (cuartos, precios, disponibilidad, cobro) vive en
+// Kora, no aquí. Este módulo es la única puerta a `/api/agent`: con el token del
+// hotel pide conocimiento, checa disponibilidad y cierra reservas (link de pago
+// de Stripe). El cerebro (brain.js) nunca inventa datos: siempre pasa por aquí.
+
+const KORA_BASE = (process.env.KORA_BASE_URL || "https://kora-hotel.com").replace(/\/+$/, "");
+const KNOWLEDGE_TTL_MS = Number(process.env.KORA_KNOWLEDGE_TTL_MS || 15 * 60 * 1000); // 15 min
+
+export class KoraHotel {
+  /** @param {{ id?: string, slug: string, nombre: string, token: string, lang?: "es"|"en" }} hotel */
+  constructor(hotel) {
+    this.id = hotel.id || hotel.slug;
+    this.slug = hotel.slug;
+    this.nombre = hotel.nombre;
+    this.token = hotel.token;
+    this.lang = hotel.lang === "en" ? "en" : "es";
+    this._knowledge = null;
+    this._knowledgeAt = 0;
+  }
+
+  // POST base a /api/agent. `conv` (teléfono/chat) alimenta las métricas del
+  // panel sin doble conteo. Devuelve el JSON o lanza si la red/servidor falla.
+  async _post(body) {
+    const res = await fetch(`${KORA_BASE}/api/agent`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ token: this.token, ...body }),
+    });
+    let data = null;
+    try {
+      data = await res.json();
+    } catch {
+      /* respuesta no-JSON */
+    }
+    if (!res.ok) {
+      // 401 (token inválido) / 4xx-5xx: lo propagamos con el código para diagnóstico.
+      const err = new Error(`kora ${res.status}: ${(data && data.error) || "error"}`);
+      err.status = res.status;
+      err.data = data;
+      throw err;
+    }
+    return data ?? {};
+  }
+
+  /** Conocimiento del hotel (cuartos, precios "desde", amenidades, FAQs, guía).
+   *  Se cachea `KNOWLEDGE_TTL_MS` para no golpear la API en cada mensaje. */
+  async knowledge({ conv } = {}) {
+    const fresh = this._knowledge && Date.now() - this._knowledgeAt < KNOWLEDGE_TTL_MS;
+    if (fresh) return this._knowledge;
+    const data = await this._post(conv ? { conv } : {});
+    this._knowledge = data;
+    this._knowledgeAt = Date.now();
+    return data;
+  }
+
+  /** Disponibilidad real por fechas (YYYY-MM-DD). Devuelve cuartos con id,
+   *  nombre, capacidad y total de la estancia. */
+  async availability(checkin, checkout, { conv } = {}) {
+    return this._post({ action: "availability", checkin, checkout, ...(conv ? { conv } : {}) });
+  }
+
+  /** Cierra la reserva: aparta el cuarto y genera link de pago. `ok:false` trae
+   *  un código de error de negocio que el cerebro traduce al huésped. */
+  async reservar(params, { conv } = {}) {
+    return this._post({
+      action: "reservar",
+      lang: this.lang,
+      ...params,
+      ...(conv ? { conv } : {}),
+    });
+  }
+}
