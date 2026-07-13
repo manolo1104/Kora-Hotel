@@ -19,6 +19,7 @@ import {
   sendPagoSinCuartoHotel,
   type PagoSinCuartoArgs,
 } from "@/lib/email/reserva";
+import { bookingBrandFromHotel } from "@/lib/email/booking-branded";
 import { NOTIFY_EMAIL } from "@/lib/email/resend";
 import { deriveConnectState, upsertConnectState } from "@/lib/stripe/connect";
 
@@ -271,10 +272,13 @@ async function confirmarReserva(
         anticipo,
         pendiente: Math.max(0, total - anticipo),
         cliente: md.customerName || null,
+        huespedes,
         ratePlan: md.ratePlan || null,
         experiencias,
         portalUrl: `${origin}/reserva/consultar`,
         lang: md.lang === "en" ? "en" : "es",
+        // Correo PREMIUM con logo + color del hotel (antes era básico).
+        brand: hotel ? bookingBrandFromHotel(hotel) : undefined,
       },
       (hotel?.config?.email_from as string) || null,
     );

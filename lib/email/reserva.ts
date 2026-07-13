@@ -4,6 +4,19 @@
 //  - Recordatorio de reserva incompleta (cron /api/cron/abandono).
 
 import { createAdminClient, adminEnvReady } from "@/lib/supabase/admin";
+import {
+  buildBrandedBookingEmailHtml,
+  buildBrandedRecoveryEmailHtml,
+  type BookingBrand,
+} from "@/lib/email/booking-branded";
+
+/** Noches entre dos fechas YYYY-MM-DD (mínimo 1). */
+function calcNoches(checkin: string, checkout: string): number {
+  const a = Date.parse(checkin);
+  const b = Date.parse(checkout);
+  if (Number.isNaN(a) || Number.isNaN(b)) return 1;
+  return Math.max(1, Math.round((b - a) / 86_400_000));
+}
 
 export interface ConfirmacionEmailArgs {
   hotelNombre: string;
@@ -14,14 +27,37 @@ export interface ConfirmacionEmailArgs {
   anticipo: number;
   pendiente: number;
   cliente?: string | null;
+  huespedes?: number;
   ratePlan?: string | null; // 'nrf' = tarifa no reembolsable
   experiencias?: string[]; // tours/traslados/cena contratados en el motor (con cantidad)
   portalUrl?: string; // link a /reserva/consultar
   brandColor?: string;
   lang?: "es" | "en"; // idioma con el que reservó el huésped (md.lang)
+  brand?: BookingBrand; // si viene, se usa el correo PREMIUM con logo+color del hotel
 }
 
 export function buildConfirmacionEmailHtml(a: ConfirmacionEmailArgs): string {
+  // Con marca del hotel → correo premium branded (logo + color). Sin ella,
+  // fallback al diseño básico de abajo.
+  if (a.brand) {
+    return buildBrandedBookingEmailHtml(a.brand, {
+      kind: "reserva",
+      lang: a.lang,
+      confirmacion: a.confirmacion,
+      cliente: a.cliente || "",
+      suites: a.habitaciones,
+      checkin: a.checkin,
+      checkout: a.checkout,
+      noches: calcNoches(a.checkin, a.checkout),
+      huespedes: a.huespedes ?? 0,
+      total: (a.anticipo || 0) + (a.pendiente || 0),
+      anticipo: a.anticipo,
+      restante: a.pendiente,
+      experiencias: a.experiencias,
+      portalUrl: a.portalUrl,
+      nrf: a.ratePlan === "nrf",
+    });
+  }
   const color = a.brandColor || "#1B4332";
   const fmt = (n: number) => `$${Math.round(n).toLocaleString("es-MX")} MXN`;
   const en = a.lang === "en";
@@ -363,9 +399,19 @@ export interface AbandonoEmailArgs {
   reanudarUrl: string; // /h/{slug}/reservar con fechas/huéspedes prefijados
   lang?: "es" | "en";
   brandColor?: string;
+  brand?: BookingBrand; // si viene, correo PREMIUM branded (logo + color del hotel)
 }
 
 export function buildAbandonoEmailHtml(a: AbandonoEmailArgs): string {
+  if (a.brand) {
+    return buildBrandedRecoveryEmailHtml(a.brand, {
+      lang: a.lang,
+      nombre: a.nombre,
+      checkin: a.checkin,
+      checkout: a.checkout,
+      reanudarUrl: a.reanudarUrl,
+    });
+  }
   const color = a.brandColor || "#1B4332";
   const en = a.lang === "en";
   const fechas =

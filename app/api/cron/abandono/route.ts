@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient, adminEnvReady } from "@/lib/supabase/admin";
 import { sendRecordatorioAbandono } from "@/lib/email/reserva";
+import { bookingBrandFromHotel } from "@/lib/email/booking-branded";
 import type { MiniExtras } from "@/lib/mini";
 
 export const runtime = "nodejs";
@@ -153,6 +154,8 @@ export async function GET(req: Request) {
         reanudarUrl: `${base}/reservar?${qs.toString()}`,
         lang,
         brandColor: extras.diseno?.color,
+        // Correo PREMIUM con logo + color del hotel (antes era básico).
+        brand: bookingBrandFromHotel(hotel),
       },
       fromCfg || null,
     );
