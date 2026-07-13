@@ -34,6 +34,8 @@ export interface ConfirmacionEmailArgs {
   brandColor?: string;
   lang?: "es" | "en"; // idioma con el que reservó el huésped (md.lang)
   brand?: BookingBrand; // si viene, se usa el correo PREMIUM con logo+color del hotel
+  checkinTime?: string; // hora de entrada (de la guía del hotel)
+  checkoutTime?: string; // hora de salida
 }
 
 export function buildConfirmacionEmailHtml(a: ConfirmacionEmailArgs): string {
@@ -56,6 +58,8 @@ export function buildConfirmacionEmailHtml(a: ConfirmacionEmailArgs): string {
       experiencias: a.experiencias,
       portalUrl: a.portalUrl,
       nrf: a.ratePlan === "nrf",
+      checkinTime: a.checkinTime,
+      checkoutTime: a.checkoutTime,
     });
   }
   const color = a.brandColor || "#1B4332";
@@ -400,6 +404,10 @@ export interface AbandonoEmailArgs {
   lang?: "es" | "en";
   brandColor?: string;
   brand?: BookingBrand; // si viene, correo PREMIUM branded (logo + color del hotel)
+  suites?: string[]; // cuarto(s) del carrito abandonado
+  huespedes?: number;
+  noches?: number;
+  total?: number; // total estimado del carrito
 }
 
 export function buildAbandonoEmailHtml(a: AbandonoEmailArgs): string {
@@ -410,6 +418,10 @@ export function buildAbandonoEmailHtml(a: AbandonoEmailArgs): string {
       checkin: a.checkin,
       checkout: a.checkout,
       reanudarUrl: a.reanudarUrl,
+      suites: a.suites,
+      huespedes: a.huespedes,
+      noches: a.noches,
+      total: a.total,
     });
   }
   const color = a.brandColor || "#1B4332";

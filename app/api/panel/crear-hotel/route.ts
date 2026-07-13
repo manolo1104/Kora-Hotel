@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { supabaseEnvReady } from "@/lib/supabase/env";
 import { enviarEmail, NOTIFY_EMAIL } from "@/lib/email/resend";
 import { emailHotelNuevo } from "@/lib/email/templates";
@@ -165,6 +166,18 @@ export async function POST(req: Request) {
 
   // Aviso instantáneo a Kora cada vez que se registra un hotel nuevo.
   // Best-effort: el hotel ya quedó guardado, el correo nunca tumba el alta.
+  const meta = (user.user_metadata ?? {}) as Record<string, unknown>;
+  const usuario =
+    typeof meta.name === "string" ? meta.name : typeof meta.full_name === "string" ? meta.full_name : null;
+  let count: number | null = null;
+  try {
+    const { count: n } = await createAdminClient()
+      .from("hoteles")
+      .select("id", { count: "exact", head: true });
+    count = typeof n === "number" ? n : null;
+  } catch {
+    /* el conteo es opcional (solo el badge) */
+  }
   enviarEmail({
     to: NOTIFY_EMAIL || "daftpunkmanolo@gmail.com",
     ...emailHotelNuevo({
@@ -173,6 +186,8 @@ export async function POST(req: Request) {
       whatsapp: body.whatsapp,
       email: user.email,
       slug: creado.slug,
+      usuario,
+      count,
     }),
   }).catch(() => {});
 

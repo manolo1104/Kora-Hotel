@@ -277,8 +277,10 @@ async function confirmarReserva(
         experiencias,
         portalUrl: `${origin}/reserva/consultar`,
         lang: md.lang === "en" ? "en" : "es",
-        // Correo PREMIUM con logo + color del hotel (antes era básico).
+        // Correo PREMIUM con marca del hotel + horas de check-in/out de su guía.
         brand: hotel ? bookingBrandFromHotel(hotel) : undefined,
+        checkinTime: typeof hotel?.guia?.checkin === "string" ? hotel.guia.checkin : undefined,
+        checkoutTime: typeof hotel?.guia?.checkout === "string" ? hotel.guia.checkout : undefined,
       },
       (hotel?.config?.email_from as string) || null,
     );
