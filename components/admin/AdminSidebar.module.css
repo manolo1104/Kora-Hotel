@@ -172,7 +172,7 @@
   z-index: 99;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   .mobileToggle { display: flex; }
   .overlay { display: block; }
   .sidebar {

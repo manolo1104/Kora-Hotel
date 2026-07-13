@@ -156,7 +156,7 @@ export function DateRangeCalendar({ checkin, checkout, onChange, fullDates, minN
                 disabled={disabled}
                 aria-label={soldOut ? `${label} — ${t(lang, "leyendaNoDisponible")}` : label}
                 aria-pressed={isStart || isEnd}
-                className={`mx-auto grid h-9 w-9 place-items-center rounded-full text-sm tabular-nums transition-colors ${
+                className={`mx-auto grid h-9 w-9 min-[380px]:h-10 min-[380px]:w-10 place-items-center rounded-full text-sm tabular-nums transition-colors ${
                   disabled ? "cursor-not-allowed" : "hover:ring-1 hover:ring-[var(--brand)]"
                 }`}
                 style={

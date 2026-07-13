@@ -237,6 +237,11 @@
 .roomRow { display: grid; grid-template-columns: 1fr auto auto auto; gap: 8px; align-items: center; }
 .roomRowSelect { padding: 8px 10px; border: 1px solid #d4cec7; border-radius: 4px; font-size: 0.875rem; font-family: var(--font-jost), sans-serif; background: #fff; color: var(--ink); outline: none; }
 .roomRowSelect:focus { border-color: var(--forest); }
+@media (max-width: 480px) {
+  /* En pantallas chicas la fila colapsa: la suite toma su propia fila */
+  .roomRow { grid-template-columns: 1fr auto; row-gap: 6px; }
+  .roomRow > select:first-child { grid-column: 1 / -1; }
+}
 .removeRoomBtn { background: none; border: 1px solid #e4ddd3; border-radius: 4px; padding: 7px; cursor: pointer; color: #c9484a; display: flex; align-items: center; }
 .removeRoomBtn:hover { background: #fdf0f0; border-color: #c9484a; }
 .roomsTotal { font-size: 0.75rem; color: var(--sage); margin: 0; text-align: right; }

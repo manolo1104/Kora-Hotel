@@ -4,10 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   motion,
-  AnimatePresence,
   useInView,
   useScroll,
   useSpring,
+  useTransform,
   useReducedMotion,
 } from "motion/react";
 import { Globe, LayoutDashboard, BarChart2, ArrowRight } from "lucide-react";
@@ -21,7 +21,9 @@ const EASE = [0.23, 1, 0.32, 1] as const;
 
 // Tour de producto scroll-driven (patrón Stripe/Linear): en desktop el mockup
 // queda fijo mientras los pasos hacen scroll y un rail de progreso sigue al
-// usuario. En móvil cae a la versión apilada (paso → mockup).
+// usuario. En móvil cae a la versión apilada (mockup pegajoso → pasos).
+// Ambas variantes viven en el DOM y se eligen por CSS (hidden lg:block): así
+// SSR y cliente pintan lo mismo y no hay remount al hidratar.
 
 const PASOS = [
   {
@@ -56,17 +58,130 @@ const PASOS = [
   },
 ];
 
+/** Los 3 mockups apilados en la misma celda de grid: nunca se desmontan (sus
+    micro-loops internos siguen vivos) y el contenedor mide siempre el más
+    alto, así el cambio de paso no salta de altura bajo el sticky. El inactivo
+    sale con profundidad (y + scale + rotateX) hacia donde ya pasó el scroll. */
+function EscenarioMockups({ activo }: { activo: number }) {
+  const reduce = useReducedMotion();
+  return (
+    <div className="relative grid" style={{ perspective: 1200 }}>
+      {/* Halo ambiental que acompaña al paso (el blur es CSS estático;
+          solo se animan transform y opacity) */}
+      <motion.div
+        aria-hidden="true"
+        className="absolute -inset-6 -z-10 rounded-[2rem] bg-gradient-to-br from-kora-accent/25 via-kora-primary/10 to-transparent blur-2xl"
+        initial={false}
+        animate={
+          reduce
+            ? { opacity: 0.5 }
+            : { opacity: 0.45 + activo * 0.12, x: (activo - 1) * 18, rotate: (activo - 1) * 2 }
+        }
+        transition={{ duration: 0.8, ease: EASE }}
+      />
+      {PASOS.map((p, i) => {
+        const esActivo = i === activo;
+        // Lo ya recorrido sale hacia arriba; lo que viene espera abajo.
+        const dir = i < activo ? -1 : 1;
+        return (
+          <motion.div
+            key={p.id}
+            className={`[grid-area:1/1] ${esActivo ? "" : "pointer-events-none"}`}
+            style={{ transformStyle: "preserve-3d" }}
+            initial={false}
+            animate={
+              reduce
+                ? { opacity: esActivo ? 1 : 0 }
+                : {
+                    opacity: esActivo ? 1 : 0,
+                    y: esActivo ? 0 : dir * 28,
+                    scale: esActivo ? 1 : 0.96,
+                    rotateX: esActivo ? 0 : dir * -5,
+                  }
+            }
+            transition={{ duration: 0.55, ease: EASE }}
+            aria-hidden={!esActivo}
+          >
+            <p.Mockup />
+          </motion.div>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Tabs con píldora deslizante: indican el paso activo y navegan hacia él. */
+function TourTabs({
+  activo,
+  idPrefix,
+  className = "mt-5",
+  scrollBlock = "center",
+}: {
+  activo: number;
+  idPrefix: string;
+  className?: string;
+  scrollBlock?: ScrollLogicalPosition;
+}) {
+  const reduce = useReducedMotion();
+  return (
+    <div className={`flex justify-center ${className}`}>
+      <div
+        role="tablist"
+        aria-label="Pasos del tour"
+        className="flex items-center gap-1 rounded-full border border-kora-primary/10 bg-white/70 p-1 backdrop-blur-sm"
+      >
+        {PASOS.map((p, i) => {
+          const on = i === activo;
+          return (
+            <button
+              key={p.id}
+              type="button"
+              role="tab"
+              aria-selected={on}
+              onClick={() =>
+                document
+                  .getElementById(`tour-paso-${idPrefix}-${p.id}`)
+                  ?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: scrollBlock })
+              }
+              className={`relative rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+                on ? "text-white" : "text-kora-muted hover:text-kora-text"
+              }`}
+            >
+              {on && (
+                <motion.span
+                  layoutId={`tour-tab-${idPrefix}`}
+                  aria-hidden="true"
+                  className="absolute inset-0 rounded-full bg-kora-primary"
+                  transition={
+                    reduce ? { duration: 0 } : { type: "spring", stiffness: 400, damping: 32 }
+                  }
+                />
+              )}
+              <span className="relative z-10 tabular-nums">
+                {p.num} · {p.label}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 /** Un paso de la columna izquierda: avisa cuando cruza el centro del viewport. */
 function Paso({
   paso,
+  idDom,
   activo,
   onActivo,
 }: {
   paso: (typeof PASOS)[number];
+  idDom: string;
   activo: boolean;
   onActivo: () => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  const reduce = useReducedMotion();
   // Franja de detección: el centro exacto del viewport (sin scroll listeners).
   const enCentro = useInView(ref, { margin: "-50% 0px -50% 0px" });
 
@@ -75,21 +190,29 @@ function Paso({
   }, [enCentro, onActivo]);
 
   return (
-    <div
+    <motion.div
       ref={ref}
-      className={`min-h-[70vh] flex items-center transition-opacity duration-300 ${
-        activo ? "opacity-100" : "opacity-40"
-      }`}
+      id={idDom}
+      className="min-h-[70vh] flex items-center"
+      initial={false}
+      animate={{ opacity: activo ? 1 : 0.35, x: activo || reduce ? 0 : -6 }}
+      transition={{ duration: 0.4, ease: EASE }}
     >
       <div className="pl-14 relative">
-        <span
-          className={`absolute left-0 top-1 text-sm font-bold tabular-nums transition-colors duration-300 ${
-            activo ? "text-kora-accent" : "text-kora-muted/50"
-          }`}
+        {/* El número es el nodo del rail: un chip circular sobre la línea */}
+        <motion.span
+          className="absolute left-0 top-0 grid h-9 w-9 place-items-center rounded-full border bg-kora-bg text-sm font-bold tabular-nums"
+          initial={false}
+          animate={{
+            scale: reduce ? 1 : activo ? 1.08 : 1,
+            color: activo ? "#52B788" : "rgba(107,114,128,0.6)",
+            borderColor: activo ? "rgba(82,183,136,0.6)" : "rgba(27,67,50,0.12)",
+          }}
+          transition={reduce ? { duration: 0 } : { type: "spring", stiffness: 380, damping: 26 }}
           aria-hidden="true"
         >
           {paso.num}
-        </span>
+        </motion.span>
         <p className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-kora-primary/70 mb-3">
           <paso.Icon size={14} className="text-kora-primary" aria-hidden="true" />
           {paso.label}
@@ -117,7 +240,7 @@ function Paso({
           </Link>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -132,8 +255,11 @@ function TourDesktop() {
     offset: ["start center", "end center"],
   });
   const progreso = useSpring(scrollYProgress, { stiffness: 140, damping: 28 });
-
-  const { Mockup } = PASOS[activo];
+  // Punta luminosa que recorre el rail (un solo nodo absoluto).
+  const puntaTop = useTransform(progreso, (v) => `${Math.min(100, Math.max(0, v * 100))}%`);
+  // El escenario "flota" con el scroll dentro del sticky (profundidad Apple).
+  const yFloat = useTransform(scrollYProgress, [0, 1], [24, -24]);
+  const tilt = useTransform(scrollYProgress, [0, 1], [2.5, -2.5]);
 
   return (
     <div ref={containerRef} className="relative grid grid-cols-2 gap-16">
@@ -145,8 +271,21 @@ function TourDesktop() {
           style={{ scaleY: reduce ? 1 : progreso }}
           aria-hidden="true"
         />
+        {!reduce && (
+          <motion.div
+            className="absolute left-[18px] -ml-1 h-2 w-2 rounded-full bg-kora-accent shadow-[0_0_12px_rgba(82,183,136,0.9)]"
+            style={{ top: puntaTop }}
+            aria-hidden="true"
+          />
+        )}
         {PASOS.map((p, i) => (
-          <Paso key={p.id} paso={p} activo={i === activo} onActivo={() => setActivo(i)} />
+          <Paso
+            key={p.id}
+            paso={p}
+            idDom={`tour-paso-d-${p.id}`}
+            activo={i === activo}
+            onActivo={() => setActivo(i)}
+          />
         ))}
       </div>
 
@@ -154,32 +293,12 @@ function TourDesktop() {
       <div className="relative">
         <div className="sticky top-28 flex items-center" style={{ minHeight: "calc(100vh - 14rem)" }}>
           <div className="w-full max-w-md mx-auto">
-            {reduce ? (
-              <Mockup />
-            ) : (
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={activo}
-                  initial={{ opacity: 0, y: 10, scale: 0.98 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -8, scale: 0.98 }}
-                  transition={{ duration: 0.35, ease: EASE }}
-                >
-                  <Mockup />
-                </motion.div>
-              </AnimatePresence>
-            )}
-            {/* Indicador de pasos bajo el mockup */}
-            <div className="mt-5 flex items-center justify-center gap-2" aria-hidden="true">
-              {PASOS.map((p, i) => (
-                <span
-                  key={p.id}
-                  className={`h-1.5 rounded-full transition-all duration-300 ${
-                    i === activo ? "w-6 bg-kora-primary" : "w-1.5 bg-kora-primary/20"
-                  }`}
-                />
-              ))}
-            </div>
+            <motion.div
+              style={reduce ? undefined : { y: yFloat, rotateX: tilt, transformPerspective: 1200 }}
+            >
+              <EscenarioMockups activo={activo} />
+            </motion.div>
+            <TourTabs activo={activo} idPrefix="d" />
           </div>
         </div>
       </div>
@@ -190,10 +309,12 @@ function TourDesktop() {
 /** Paso de texto en móvil: detecta cuándo cruza la franja de lectura. */
 function PasoMovilTexto({
   paso,
+  idDom,
   activo,
   onActivo,
 }: {
   paso: (typeof PASOS)[number];
+  idDom: string;
   activo: boolean;
   onActivo: () => void;
 }) {
@@ -206,11 +327,13 @@ function PasoMovilTexto({
   }, [enCentro, onActivo]);
 
   return (
-    <div
+    <motion.div
       ref={ref}
-      className={`min-h-[45vh] flex items-center transition-opacity duration-300 ${
-        activo ? "opacity-100" : "opacity-40"
-      }`}
+      id={idDom}
+      className="min-h-[45vh] flex items-center"
+      initial={false}
+      animate={{ opacity: activo ? 1 : 0.4 }}
+      transition={{ duration: 0.3, ease: EASE }}
     >
       <div>
         <p className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-kora-primary/70 mb-2">
@@ -243,14 +366,12 @@ function PasoMovilTexto({
           </Link>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
 function TourMovil() {
   const [activo, setActivo] = useState(0);
-  const reduce = useReducedMotion();
-  const { Mockup } = PASOS[activo];
 
   return (
     <div>
@@ -258,39 +379,23 @@ function TourMovil() {
           El fondo con blur tapa el contenido que pasa por detrás. */}
       <div className="sticky top-16 z-20 -mx-4 px-4 sm:-mx-6 sm:px-6 pt-3 pb-3 bg-kora-bg/95 backdrop-blur-sm">
         <div className="max-w-[330px] sm:max-w-[380px] mx-auto">
-          {reduce ? (
-            <Mockup />
-          ) : (
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={activo}
-                initial={{ opacity: 0, y: 8, scale: 0.98 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -6, scale: 0.98 }}
-                transition={{ duration: 0.3, ease: EASE }}
-              >
-                <Mockup />
-              </motion.div>
-            </AnimatePresence>
-          )}
+          <EscenarioMockups activo={activo} />
         </div>
-        {/* Indicador de pasos */}
-        <div className="mt-2.5 flex items-center justify-center gap-2" aria-hidden="true">
-          {PASOS.map((p, i) => (
-            <span
-              key={p.id}
-              className={`h-1.5 rounded-full transition-all duration-300 ${
-                i === activo ? "w-6 bg-kora-primary" : "w-1.5 bg-kora-primary/20"
-              }`}
-            />
-          ))}
-        </div>
+        {/* Con el mockup pegado arriba, el paso tocado debe quedar en la franja
+            de lectura (mitad inferior) → block: "end". */}
+        <TourTabs activo={activo} idPrefix="m" className="mt-2.5" scrollBlock="end" />
       </div>
 
       {/* Los pasos pasan por debajo del mockup */}
       <div className="pt-2">
         {PASOS.map((p, i) => (
-          <PasoMovilTexto key={p.id} paso={p} activo={i === activo} onActivo={() => setActivo(i)} />
+          <PasoMovilTexto
+            key={p.id}
+            paso={p}
+            idDom={`tour-paso-m-${p.id}`}
+            activo={i === activo}
+            onActivo={() => setActivo(i)}
+          />
         ))}
       </div>
     </div>
@@ -298,17 +403,17 @@ function TourMovil() {
 }
 
 export function ProductTour() {
-  // Render móvil por default (coincide con SSR); tras montar, desktop si aplica.
-  // La sección vive bajo el fold, así que el swap no produce CLS visible.
-  const [esDesktop, setEsDesktop] = useState(false);
-
-  useEffect(() => {
-    const mq = window.matchMedia("(min-width: 1024px)");
-    const update = () => setEsDesktop(mq.matches);
-    update();
-    mq.addEventListener("change", update);
-    return () => mq.removeEventListener("change", update);
-  }, []);
-
-  return esDesktop ? <TourDesktop /> : <TourMovil />;
+  // Variantes desktop/móvil elegidas por CSS: cero JS de breakpoint, cero
+  // remount al hidratar. El árbol oculto queda inerte (useInView no
+  // intersecta elementos con display:none).
+  return (
+    <>
+      <div className="hidden lg:block">
+        <TourDesktop />
+      </div>
+      <div className="lg:hidden">
+        <TourMovil />
+      </div>
+    </>
+  );
 }

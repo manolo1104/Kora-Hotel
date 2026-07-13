@@ -8,11 +8,19 @@ import {
   useTransform,
   useReducedMotion,
 } from "motion/react";
-import { ArrowRight, Gift, Lock, FileCheck, Database } from "lucide-react";
+import { ArrowRight, Gift } from "lucide-react";
 import { BookingEngineMockup } from "@/components/landing/ProductMockups";
 import { trackCta } from "@/lib/analytics";
 
 const EASE = [0.23, 1, 0.32, 1] as const;
+
+// Los 4 datos que el hotelero necesita para decidir, sin scrollear.
+const DATOS_CLAVE = [
+  { label: "Precio mensual", valor: "$550", nota: "MXN/mes, todo incluido" },
+  { label: "Comisión por reserva", valor: "0%", nota: "comisión por reserva" },
+  { label: "Prueba gratis", valor: "30 días", nota: "gratis, sin tarjeta" },
+  { label: "Habitaciones", valor: "Ilimitadas", nota: "habitaciones, un solo plan" },
+];
 
 function item(delay: number) {
   return {
@@ -69,7 +77,7 @@ export function Hero() {
                 {...item(0)}
                 className="text-xs sm:text-sm font-bold uppercase tracking-widest text-kora-primary/70"
               >
-                Reservas directas, sin comisión
+                El sistema todo-en-uno para tu hotel
               </motion.p>
 
               {/* Headline palabra por palabra con blur que se enfoca (Linear/Apple).
@@ -105,9 +113,9 @@ export function Hero() {
               </h1>
 
               <motion.p {...item(0.12)} className="text-base sm:text-lg text-kora-muted leading-relaxed max-w-[52ch]">
-                Tu propia página de reservas con 0% de comisión, y cuando entra la
-                reserva, Kora opera el resto: todo tu hotel en una sola pantalla.
-                En español, con CFDI.
+                Kora es el sistema todo-en-uno para tu hotel: motor de reservas
+                con 0% de comisión, panel para operar tu día a día y Camila, tu
+                recepcionista de WhatsApp con IA. En español y con CFDI.
               </motion.p>
 
               <motion.div {...item(0.2)} className="flex flex-col sm:flex-row gap-3">
@@ -138,26 +146,6 @@ export function Hero() {
                 <ArrowRight size={15} aria-hidden="true" />
               </motion.a>
 
-              {/* Señales de confianza honestas (tipo Stripe) */}
-              <motion.ul
-                {...item(0.24)}
-                className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] text-kora-muted"
-                aria-label="Señales de confianza"
-              >
-                <li className="inline-flex items-center gap-1.5">
-                  <Lock size={12} className="text-kora-primary" aria-hidden="true" />
-                  Pagos seguros con Stripe
-                </li>
-                <li className="inline-flex items-center gap-1.5">
-                  <FileCheck size={12} className="text-kora-primary" aria-hidden="true" />
-                  CFDI 4.0 con el SAT
-                </li>
-                <li className="inline-flex items-center gap-1.5">
-                  <Database size={12} className="text-kora-primary" aria-hidden="true" />
-                  Tus datos son tuyos, exportables
-                </li>
-              </motion.ul>
-
               {/* Oferta secundaria: servicio de sitio web (degradada, debajo de los CTAs) */}
               <motion.a
                 {...item(0.26)}
@@ -171,22 +159,26 @@ export function Hero() {
                 </span>
               </motion.a>
 
-              <motion.div {...item(0.32)} className="space-y-3 pt-1">
-                <p className="text-sm text-kora-muted">
+              {/* Franja de datos duros (tipo Stripe): lo que hay que saber sin scrollear */}
+              <motion.div {...item(0.28)} className="space-y-3 pt-1">
+                <dl className="grid grid-cols-2 gap-y-4 border-t border-kora-primary/10 pt-5 sm:flex sm:items-center sm:gap-0 sm:divide-x sm:divide-kora-primary/10">
+                  {DATOS_CLAVE.map((d) => (
+                    <div key={d.valor} className="sm:px-5 sm:first:pl-0">
+                      <dt className="sr-only">{d.label}</dt>
+                      <dd>
+                        <span className="block text-xl font-bold tracking-tight text-kora-text tabular-nums">
+                          {d.valor}
+                        </span>
+                        <span className="mt-0.5 block text-xs text-kora-muted">{d.nota}</span>
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+                <p className="text-xs text-kora-muted">
                   Ya usado en{" "}
-                  <span className="font-semibold text-kora-text">
-                    Hotel Paraíso Encantado
-                  </span>{" "}
+                  <span className="font-semibold text-kora-text">Hotel Paraíso Encantado</span>{" "}
                   · Xilitla, SLP
                 </p>
-                <p className="text-xs text-kora-muted">
-                  30 días gratis y sin tarjeta: carga tu hotel y pruébalo todo.
-                  Si te convence, activas tu plan; si no, no pagas nada.
-                </p>
-                <div className="animate-pulse-ring inline-flex items-center gap-2 bg-[#1B4332]/8 text-kora-primary px-4 py-2 rounded-full text-sm font-medium">
-                  <span className="text-kora-accent font-bold text-base leading-none">★</span>
-                  Ahorra hasta $12,000 MXN/mes en comisiones de OTAs
-                </div>
               </motion.div>
             </div>
 

@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight, Lock, Unlock, RefreshCw, Loader2, X, Calenda
 import type { AdminBooking } from '@/lib/admin/sheets-admin';
 import type { BookingRoom } from '@/lib/booking';
 import ReservationModal from '@/components/admin/ReservationModal';
+import panelStyles from '../admin.module.css';
 
 const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const DOW = ['D','L','M','M','J','V','S'];
@@ -172,11 +173,9 @@ export default function AvailabilityCalendar({ slug, bookings, rooms, roomPrices
         </div>
       </div>
 
-      {/* Grid of mini-calendars */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))',
-        gap: 1,
+      {/* Grid of mini-calendars: en móvil un mes ocupa todo el ancho para que
+          cada día sea táctil (~44px) */}
+      <div className={panelStyles.calGrid} style={{
         background: '#e5e7eb',
         border: '1px solid #e5e7eb',
         borderRadius: 8,
@@ -231,7 +230,7 @@ export default function AvailabilityCalendar({ slug, bookings, rooms, roomPrices
                       style={{
                         aspectRatio: '1',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 11, borderRadius: 4,
+                        fontSize: 13, borderRadius: 4,
                         cursor: isPast ? 'default' : 'pointer',
                         background: bg, color,
                         outline: isToday ? '2px solid #2d7a34' : undefined,
@@ -272,7 +271,7 @@ export default function AvailabilityCalendar({ slug, bookings, rooms, roomPrices
           style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
           onClick={e => { if (e.target === e.currentTarget) { setClicked(null); setSaveError(''); } }}
         >
-          <div style={{ background: '#f9fafb', borderRadius: 8, width: 320, boxShadow: '0 20px 60px rgba(0,0,0,0.25)', overflow: 'hidden' }}>
+          <div style={{ background: '#f9fafb', borderRadius: 8, width: 'min(92vw, 340px)', maxHeight: '85dvh', boxShadow: '0 20px 60px rgba(0,0,0,0.25)', overflow: 'hidden auto' }}>
             {/* Modal header */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', borderBottom: '1px solid #e5e7eb' }}>
               <span style={{ fontSize: 14, fontWeight: 600, color: '#1a1a1a', fontFamily: 'var(--font-jost,sans-serif)' }}>

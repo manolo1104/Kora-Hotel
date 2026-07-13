@@ -2,7 +2,7 @@ import { Check, FileCheck, ShieldCheck, Lock } from "lucide-react";
 
 // Franja de confianza con datos 100% reales (nada inventado).
 const items = [
-  "0% comisión en reservas directas",
+  "Ahorra hasta $12,000 MXN/mes en comisiones de OTAs",
   "Respuesta en segundos por WhatsApp",
   "CFDI 4.0 con el SAT",
   "Te quedas con el 100% del pago",
