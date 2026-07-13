@@ -458,7 +458,14 @@ export function BookingEngineMockup() {
           {/* Tarjeta de cuarto */}
           <div className="rounded-xl border border-gray-100 overflow-hidden">
             <div className="flex">
-              <div className="w-20 sm:w-24 bg-gradient-to-br from-kora-primary/80 to-kora-accent flex-shrink-0" />
+              {/* Foto de la habitación (Suite Jardín — selva de Xilitla) */}
+              <div className="w-20 sm:w-24 flex-shrink-0 overflow-hidden bg-kora-primary/5">
+                <img
+                  src="/suite-jungla.jpg"
+                  alt="Suite Jardín"
+                  className="w-full h-full object-cover object-[65%_50%]"
+                />
+              </div>
               <div className="flex-1 p-3">
                 <div className="flex items-start justify-between gap-2">
                   <div>
