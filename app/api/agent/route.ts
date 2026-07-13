@@ -6,18 +6,12 @@
 
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import {
-  hotelRooms,
-  roomNamesOf,
-  nightOpts,
-  calcRoomStayTotal,
-  getRoomBasePrice,
-  formatMXN,
-} from "@/lib/booking";
-import { checkAvailability } from "@/lib/db/availability";
 import { logAgentActivity } from "@/lib/db/admin";
 import { accesoDelHotel } from "@/lib/suscripcion";
 import { crearLinkReservaAgente } from "@/lib/agent-booking";
+import { buildBotSystemPrompt } from "@/lib/bot/prompt";
+import { buildHotelKnowledge } from "@/lib/bot/knowledge";
+import { botAvailability } from "@/lib/bot/tools";
 import type { HotelRow } from "@/lib/tenant";
 
 export const dynamic = "force-dynamic";
@@ -73,33 +67,13 @@ export async function POST(req: Request) {
     Boolean(conv),
   );
 
-  const extras = (hotel.extras ?? {}) as Record<string, unknown>;
-  const rooms = hotelRooms(hotel);
-
   if (body.action === "availability") {
     const { checkin, checkout } = body;
     if (!checkin || !checkout) {
       return NextResponse.json({ error: "fechas-requeridas" }, { status: 400 });
     }
-    const result = await checkAvailability(hotel.id, checkin, checkout, roomNamesOf(hotel));
-    const opts = nightOpts(hotel);
-    const disponibles = rooms
-      .filter((r) => !result.unavailableRooms.includes(r.name))
-      .map((r) => ({
-        id: r.id, // referencia estable para cerrar la reserva (action:"reservar")
-        nombre: r.name,
-        maxHuespedes: r.maxGuests,
-        total: calcRoomStayTotal(r, r.maxGuests, checkin, checkout, opts),
-        totalTexto: formatMXN(calcRoomStayTotal(r, r.maxGuests, checkin, checkout, opts)),
-      }));
-    return NextResponse.json({
-      hotel: hotel.nombre,
-      checkin,
-      checkout,
-      hayDisponibilidad: disponibles.length > 0,
-      disponibles,
-      linkReserva: `/h/${hotel.slug}/reservar`,
-    });
+    // Disponibilidad real (helper compartido con el chat de prueba del panel).
+    return NextResponse.json(await botAvailability(hotel, checkin, checkout));
   }
 
   // Acción "reservar": el bot CIERRA la reserva. Apartamos el cuarto y devolvemos
@@ -149,22 +123,13 @@ export async function POST(req: Request) {
   }
 
   // Por defecto: conocimiento del hotel (para que el bot responda preguntas).
+  // El `systemPrompt` (cerebro de Camila) se arma del lado servidor con los datos
+  // REALES del hotel + su entrenamiento (extras.bot) — fuente única que consumen
+  // el runtime de WhatsApp y el chat de prueba del panel.
+  const knowledge = buildHotelKnowledge(hotel);
   return NextResponse.json({
-    nombre: hotel.nombre,
-    ubicacion: hotel.ubicacion,
-    descripcion: hotel.descripcion,
-    whatsapp: hotel.whatsapp,
+    ...knowledge,
     linkReserva: `/h/${hotel.slug}/reservar`,
-    habitaciones: rooms.map((r) => ({
-      nombre: r.name,
-      descripcion: r.description ?? "",
-      desde: getRoomBasePrice(r, 2),
-      desdeTexto: formatMXN(getRoomBasePrice(r, 2)),
-      maxHuespedes: r.maxGuests,
-    })),
-    amenidades: extras.amenidades ?? [],
-    faqs: extras.faqs ?? [],
-    politicas: extras.politicas ?? {},
-    guia: hotel.guia ?? {},
+    systemPrompt: buildBotSystemPrompt(knowledge),
   });
 }

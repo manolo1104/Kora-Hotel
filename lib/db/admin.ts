@@ -1051,6 +1051,54 @@ export async function setBotStatus(hotelId: string, enabled: boolean): Promise<v
   if (updErr) console.error("setBotStatus write error:", updErr.message);
 }
 
+/** Entrenamiento de Camila que el hotel edita en el panel (vive en extras.bot). */
+export interface BotTrainingInput {
+  nombre?: string;
+  tono?: string;
+  saludo?: string;
+  instrucciones?: string;
+  escalarWhatsapp?: string;
+  faqs?: { q: string; a: string }[];
+}
+
+/**
+ * Guarda la configuración/entrenamiento del bot: on/off e idioma en la columna
+ * `config`, y el entrenamiento en `extras.bot`. Relee fresco justo antes de
+ * escribir y hace merge no-destructivo para no pisar otras claves del panel.
+ */
+export async function saveBotConfig(
+  hotelId: string,
+  input: { enabled?: boolean; lang?: "es" | "en"; bot?: BotTrainingInput },
+): Promise<void> {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("hoteles")
+    .select("config, extras")
+    .eq("id", hotelId)
+    .maybeSingle();
+  if (error) {
+    console.error("saveBotConfig read error:", error.message);
+    return;
+  }
+  const row = data as {
+    config: Record<string, unknown> | null;
+    extras: Record<string, unknown> | null;
+  } | null;
+  const config = { ...(row?.config ?? {}) };
+  const extras = { ...(row?.extras ?? {}) };
+  if (input.enabled !== undefined) config.bot_enabled = input.enabled;
+  if (input.lang) config.bot_lang = input.lang;
+  if (input.bot) {
+    const prev = (extras.bot as Record<string, unknown>) ?? {};
+    extras.bot = { ...prev, ...input.bot, entrenadoAt: new Date().toISOString() };
+  }
+  const { error: updErr } = await supabase
+    .from("hoteles")
+    .update({ config, extras })
+    .eq("id", hotelId);
+  if (updErr) console.error("saveBotConfig write error:", updErr.message);
+}
+
 // ── AGENT METRICS (tabla agent_activity — sql/kora-agent-activity.sql) ────────
 
 export type AgentActivityType =

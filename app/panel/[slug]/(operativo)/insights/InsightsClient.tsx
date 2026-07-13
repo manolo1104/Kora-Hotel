@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect, useState, useRef, useCallback } from 'react';
+import { useParams } from 'next/navigation';
 import {
   BedDouble, TrendingUp, CalendarCheck, DollarSign,
   MessageCircle, Mail, PenSquare, PhoneCall, Send, Sparkles,
-  LogIn, LogOut, RefreshCw, ChevronRight, Trash2,
+  LogIn, LogOut, RefreshCw, ChevronRight, Trash2, Bot,
 } from 'lucide-react';
 import type { InsightsData, DayForecast, OriginBreakdown } from '@/lib/admin/insights';
 import styles from './insights.module.css';
@@ -45,6 +46,8 @@ function saveChatHistory(msgs: ChatMsg[]) {
 }
 
 export default function InsightsClient() {
+  const params = useParams<{ slug: string }>();
+  const slug = params?.slug ?? '';
   const [data, setData] = useState<InsightsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [chatMessages, setChatMessages] = useState<ChatMsg[]>([]);
@@ -174,6 +177,32 @@ export default function InsightsClient() {
           Actualizar
         </button>
       </div>
+
+      {/* ── CTA: configurar y entrenar a Camila (el bot) ──────────── */}
+      <a
+        href={`/panel/${slug}/camila`}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 14,
+          background: FOREST, color: '#fff', borderRadius: 18,
+          padding: '16px 20px', margin: '0 0 20px', textDecoration: 'none',
+        }}
+      >
+        <span style={{
+          display: 'grid', placeItems: 'center', width: 44, height: 44,
+          borderRadius: 12, background: 'rgba(255,255,255,0.15)', flexShrink: 0,
+        }}>
+          <Bot size={22} />
+        </span>
+        <span style={{ flex: 1, minWidth: 0 }}>
+          <span style={{ display: 'block', fontWeight: 700, fontSize: 15 }}>
+            Configura y entrena a Camila
+          </span>
+          <span style={{ display: 'block', fontSize: 13, opacity: 0.85 }}>
+            Tu asistente de WhatsApp que contesta y reserva con los datos de tu hotel.
+          </span>
+        </span>
+        <ChevronRight size={20} style={{ opacity: 0.9, flexShrink: 0 }} />
+      </a>
 
       {/* ── KPI CARDS ─────────────────────────────────────────── */}
       <div className={styles.kpiGrid}>
