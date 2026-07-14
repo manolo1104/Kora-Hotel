@@ -214,6 +214,110 @@ export const glosario: TerminoGlosario[] = [
       href: "/herramientas/calculadora-tarifa",
     },
   },
+  {
+    slug: "reservas-directas",
+    termino: "Reservas directas",
+    pregunta: "¿Qué son las reservas directas de un hotel?",
+    resumen: "Las reservas que el huésped hace contigo, sin pasar por una OTA ni pagar comisión.",
+    definicion:
+      "Una reserva directa es la que el huésped hace directamente con el hotel —por su página web, WhatsApp, teléfono o en recepción— sin pasar por una OTA como Booking o Airbnb. Al no haber intermediario, el hotel no paga comisión y se queda con el 100% del ingreso y con los datos del huésped.",
+    cuerpo: [
+      "Cada reserva directa le ahorra al hotel el 15%–20% que cobraría una OTA, y le devuelve la relación con el huésped: su correo y teléfono para invitarlo a volver sin intermediario. Por eso las reservas directas son el canal más rentable de un hotel.",
+      "El reto no es querer reservas directas, es tener cómo captarlas: una página con motor de reservas, una forma de cobrar el anticipo y alguien que conteste rápido. Un sistema como Kora reúne esas tres piezas para que el hotel construya su canal directo sin renunciar a la visibilidad de las OTAs.",
+    ],
+    faqs: [
+      {
+        q: "¿Cómo consigo más reservas directas?",
+        a: "Con un motor de reservas en tu web o redes, respuesta rápida por WhatsApp (idealmente con IA 24/7) y un motivo para reservar contigo (mejor precio o valor que en la OTA). Kora reúne todo eso en un solo sistema.",
+      },
+      {
+        q: "¿Las reservas directas reemplazan a las OTAs?",
+        a: "No necesariamente. Lo sano es reducir la dependencia: usar las OTAs para captar huéspedes nuevos y mover a directo todo lo que se pueda para bajar la comisión promedio.",
+      },
+    ],
+    relacionado: {
+      texto: "Calcula cuánto pagas en comisiones",
+      href: "/herramientas/calculadora-comisiones",
+    },
+  },
+  {
+    slug: "comision-ota",
+    termino: "Comisión de OTA",
+    pregunta: "¿Cuánto es la comisión de una OTA como Booking o Airbnb?",
+    resumen: "El porcentaje que una OTA cobra al hotel por cada reserva, típicamente 15%–20%.",
+    definicion:
+      "La comisión de una OTA (agencia de viajes en línea, como Booking, Expedia o Airbnb) es el porcentaje que la plataforma le cobra al hotel por cada reserva que le trae. En México suele ir del 15% al 25% según la plataforma y el acuerdo. Es el costo de la visibilidad y el tráfico que aporta la OTA.",
+    cuerpo: [
+      "La comisión se calcula sobre el total de la reserva, así que crece con tu tarifa y tu ocupación. Un hotel que factura $80,000 al mes por OTAs y paga 18% le entrega unos $14,400 mensuales a las plataformas: dinero que ya ganó y que no vuelve.",
+      "La comisión no es 'mala' por sí sola —paga la visibilidad ante viajeros que no te conocen—, pero depender solo de las OTAs erosiona el margen. La estrategia sana es mover a reservas directas las que de todos modos te buscarían, para bajar tu comisión promedio.",
+    ],
+    faqs: [
+      {
+        q: "¿Puedo negociar la comisión con Booking o Expedia?",
+        a: "En parte: hay programas que dan más visibilidad a cambio de más comisión, pero el piso rara vez baja mucho. La palanca real de ahorro es hacer crecer tu canal directo sin comisión.",
+      },
+      {
+        q: "¿Cómo sé cuánto pago de comisión al año?",
+        a: "Multiplica tu facturación por OTAs por tu comisión promedio. Puedes estimarlo rápido con la calculadora de comisiones gratis de Kora.",
+      },
+    ],
+    relacionado: {
+      texto: "Calcula cuánto pagas en comisiones",
+      href: "/herramientas/calculadora-comisiones",
+    },
+  },
+  {
+    slug: "tarifa-paritaria",
+    termino: "Tarifa paritaria (rate parity)",
+    pregunta: "¿Qué es la tarifa paritaria o rate parity?",
+    resumen: "La regla de las OTAs de mantener el mismo precio en todos los canales, incluida tu web.",
+    definicion:
+      "La tarifa paritaria (rate parity) es la cláusula por la que una OTA te pide mantener en tu propia web el mismo precio (o no menor) que publicas en su plataforma. Busca evitar que el hotel use la visibilidad de la OTA y luego venda más barato por su cuenta. Su alcance depende del contrato y de la regulación local.",
+    cuerpo: [
+      "La paridad limita competir por precio en tu canal directo, pero no te impide ganar el directo por otras vías: valor añadido (late check-out, un extra, atención por WhatsApp), condiciones (anticipo flexible) o simplemente cerrando la reserva en el momento en que el huésped te escribe.",
+      "Además, en muchos mercados la 'paridad amplia' se ha ido flexibilizando, y siempre puedes ofrecer beneficios no publicados a quien reserva directo. La clave es tener el canal directo listo para capturar la reserva sin pelear solo por precio.",
+    ],
+    faqs: [
+      {
+        q: "¿La tarifa paritaria me impide dar mejor precio en mi web?",
+        a: "Puede limitar publicar un precio menor, pero no impide dar valor extra o condiciones mejores a quien reserva directo. Consulta tu contrato con cada OTA.",
+      },
+      {
+        q: "¿Cómo gano reservas directas con paridad de tarifas?",
+        a: "Compitiendo en valor y rapidez: contestar al instante, cobrar fácil, ofrecer un extra y cerrar la reserva cuando el huésped te busca por WhatsApp o redes.",
+      },
+    ],
+    relacionado: {
+      texto: "Conoce el motor de reservas de Kora",
+      href: "/caracteristicas",
+    },
+  },
+  {
+    slug: "no-show",
+    termino: "No-show",
+    pregunta: "¿Qué es un no-show en un hotel?",
+    resumen: "Cuando un huésped con reserva confirmada no llega ni cancela, dejando la habitación vacía.",
+    definicion:
+      "Un no-show ocurre cuando un huésped con reserva confirmada no se presenta ni avisa. La habitación queda vacía y, si no se cobró anticipo ni había política de garantía, el hotel pierde el ingreso de esa noche. Es especialmente costoso en destinos de temporada, donde esa noche pudo venderse a otro.",
+    cuerpo: [
+      "La mejor defensa contra los no-shows es cobrar un anticipo al confirmar la reserva y tener una política clara de cancelación. Un huésped que ya puso dinero es mucho menos probable que no aparezca, y si lo hace, el hotel no pierde todo.",
+      "En reservas directas, un motor que cobra el anticipo con tarjeta al instante reduce los no-shows sin fricción. En Kora, el motor de reservas puede pedir anticipo al confirmar, para asegurar la reserva desde el primer momento.",
+    ],
+    faqs: [
+      {
+        q: "¿Cómo reduzco los no-shows en mi hotel?",
+        a: "Cobrando un anticipo al reservar, con una política de cancelación clara y recordatorios previos a la llegada. El motor de reservas de Kora cobra anticipo con tarjeta al confirmar.",
+      },
+      {
+        q: "¿Puedo cobrar anticipo también en reservas directas?",
+        a: "Sí. En reservas directas con Kora, el motor pide el anticipo al confirmar, igual que esperarías de una plataforma profesional.",
+      },
+    ],
+    relacionado: {
+      texto: "Conoce el motor de reservas de Kora",
+      href: "/caracteristicas",
+    },
+  },
 ];
 
 export function getTermino(slug: string): TerminoGlosario | undefined {

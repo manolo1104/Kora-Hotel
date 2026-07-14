@@ -11,6 +11,7 @@ const navLinks = [
   { label: "Precios", href: "/precios" },
   { label: "Para hoteles boutique", href: "/para/hoteles-boutique" },
   { label: "Para hoteles pequeños", href: "/para/hoteles-pequenos" },
+  { label: "Hoteles en la Huasteca", href: "/hoteles-en" },
   { label: "Comparativas (OTAs)", href: "/comparativas" },
   { label: "Glosario hotelero", href: "/glosario" },
   { label: "Blog", href: "/blog" },
