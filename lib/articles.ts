@@ -446,6 +446,124 @@ export const articles: Article[] = [
 </div>
     `,
   },
+  {
+    slug: "cuanto-le-pagas-a-booking-al-ano",
+    title: "Cuánto le pagas a Booking al año (y cómo empezar a recuperarlo)",
+    excerpt:
+      "La comisión de las OTAs parece pequeña por reserva, pero al año es una de tus cuentas más grandes. Aquí está la cuenta real y cómo recuperar parte sin salirte de Booking.",
+    author: "Manolo Covarrubias",
+    date: "10 de julio, 2026",
+    publishedIso: "2026-07-10",
+    readTime: "5 min",
+    category: "Distribución hotelera",
+    tags: ["comisiones", "OTAs", "Booking", "reservas directas"],
+    image: "/blog/revenue-management.jpg",
+    imageAlt: "Dueño de hotel revisando sus números en una laptop",
+    content: `
+<div class="callout-summary">
+  <p class="callout-summary-title">Lo más importante</p>
+  <ul>
+    <li>La comisión de las OTAs (15%–20%) parece chica por reserva, pero al año suele ser una de las cuentas más grandes de un hotel.</li>
+    <li>Un hotel que factura $80,000/mes por OTAs y paga 18% le entrega más de <strong>$170,000 al año</strong> a las plataformas.</li>
+    <li>No se trata de salirte de Booking, sino de mover a directo lo que de todos modos te buscaría, para bajar tu comisión promedio.</li>
+  </ul>
+</div>
+
+<p>Cuando reservan una noche en tu hotel a través de Booking, la comisión se siente pequeña: unos cuantos cientos de pesos. El problema es que esa mordida se repite en <strong>cada reserva, todo el año</strong>. Y cuando sacas la cuenta completa, casi siempre sorprende.</p>
+
+<h2 id="la-cuenta">La cuenta que casi ningún hotel hace</h2>
+<p>Toma tu facturación mensual por OTAs y multiplícala por tu comisión promedio. Es una cuenta simple, pero pocos hoteleros la hacen porque la comisión nunca llega como una factura: se descuenta sola, reserva por reserva.</p>
+
+<div class="callout-stat">
+  <span class="callout-stat-number">$172,800</span>
+  <span class="callout-stat-label">al año en comisiones si facturas $80,000/mes por OTAs y pagas 18%</span>
+</div>
+
+<p>Ese número es dinero que <em>ya ganaste</em> —el huésped ya pagó su noche— y que se va a la plataforma. Para un hotel boutique, suele ser más de lo que gasta en varias de sus otras cuentas juntas.</p>
+
+<h2 id="por-que-pesa">Por qué la comisión pesa más de lo que parece</h2>
+<p>La comisión se calcula sobre el total de la reserva, así que crece con tu tarifa y con tu ocupación: mientras mejor te va, más pagas. Y como se concentra en tus mejores fechas —temporada alta, puentes— justo te cuesta más cuando más deberías estar ganando.</p>
+<p>No es que las OTAs sean el enemigo: te dan visibilidad ante viajeros que no te conocen, y eso vale. El problema es <strong>depender solo de ellas</strong>, incluso para los huéspedes que ya te habrían encontrado.</p>
+
+<h2 id="como-recuperarlo">Cómo empezar a recuperarlo (sin salirte de Booking)</h2>
+<p>La estrategia sana no es cerrar Booking, es reducir tu dependencia. Estos son los primeros pasos:</p>
+<ol>
+  <li><strong>Ten un motor de reservas propio.</strong> Una página (o tu Instagram) donde el huésped pueda ver disponibilidad y reservar directo, sin pasar por la OTA.</li>
+  <li><strong>Contesta rápido, siempre.</strong> Muchas reservas directas se pierden de noche o entre semana porque nadie contesta el WhatsApp a tiempo. Un asistente de IA 24/7 cierra esa fuga.</li>
+  <li><strong>Cobra el anticipo directo.</strong> Un motor que cobra con tarjeta al confirmar te da la misma confianza que una plataforma, y baja los <a href="/glosario/no-show">no-shows</a>.</li>
+  <li><strong>Dale un motivo para reservar contigo.</strong> Un extra, mejor atención o condiciones más flexibles: algo que la OTA no puede copiar.</li>
+</ol>
+
+<div class="callout-tip">
+  <p class="callout-tip-title">Empieza por medir</p>
+  <p>Antes de cambiar nada, saca tu número con la <a href="/herramientas/calculadora-comisiones">calculadora de comisiones gratis</a>. Ver cuánto pagas al año es lo que convence a la mayoría de hoteleros de construir su canal directo.</p>
+</div>
+
+<h2 id="que-pasa">Qué pasa cuando lo haces bien</h2>
+<p>No hace falta salir de las OTAs para notar la diferencia: basta con mover una parte de las reservas a directo. El <a href="/casos/paraiso-encantado">Hotel Paraíso Encantado</a>, en Xilitla, recibió <strong>$120,000 en reservas directas en sus primeros 3 meses</strong> operando con Kora, sin dejar de aparecer en Booking. Cada una de esas reservas se quedó completa en el hotel.</p>
+<p>Puedes ver el detalle de qué cedes y qué ganas con cada plataforma en nuestras <a href="/comparativas">comparativas de OTAs vs reservas directas</a>.</p>
+
+<div class="callout-cta">
+  <strong>¿Cuánto le pagas tú a Booking al año?</strong>
+  <p>Montamos tu motor de reservas directas y tu recepcionista de IA en 48 horas. Pruébalo 30 días gratis, sin tarjeta.</p>
+  <a href="/#contacto">Quiero recuperar mis comisiones →</a>
+</div>
+`,
+  },
+  {
+    slug: "llenar-hotel-temporada-baja",
+    title: "Cómo llenar tu hotel en temporada baja sin regalar tu tarifa",
+    excerpt:
+      "Bajar el precio no es la única forma de llenar en temporada baja — y muchas veces es la peor. 6 estrategias que cuidan tu margen y tu marca.",
+    author: "Manolo Covarrubias",
+    date: "11 de julio, 2026",
+    publishedIso: "2026-07-11",
+    readTime: "6 min",
+    category: "Distribución hotelera",
+    tags: ["temporada baja", "ocupación", "reservas directas", "revenue"],
+    image: "/blog/reservas-directas.jpg",
+    imageAlt: "Recepción de hotel boutique tranquila en temporada baja",
+    content: `
+<div class="callout-summary">
+  <p class="callout-summary-title">Lo más importante</p>
+  <ul>
+    <li>Bajar la tarifa llena cuartos, pero erosiona tu margen y le enseña al huésped a esperar descuentos.</li>
+    <li>En temporada baja, el canal directo y la base de huéspedes que ya conoces valen más que un precio bajo en las OTAs.</li>
+    <li>Reactivar a quien ya se hospedó contigo suele ser lo más rentable de toda la temporada baja.</li>
+  </ul>
+</div>
+
+<p>Cuando la ocupación cae, la reacción más común es bajar el precio en las OTAs. Funciona a corto plazo, pero tiene un costo escondido: pagas comisión sobre una tarifa ya baja, y acostumbras a los viajeros a esperar descuentos. Hay mejores formas de llenar sin regalar tu tarifa.</p>
+
+<h2 id="bajar-precio">Por qué bajar el precio no es la solución</h2>
+<p>Un descuento agresivo en la OTA te llena, sí, pero con el huésped menos rentable: el que solo va por precio, paga poco, no regresa y encima te dejó comisión. Y una vez que tu tarifa "de remate" queda registrada, cuesta subirla de nuevo.</p>
+
+<h2 id="seis-formas">6 formas de llenar en temporada baja</h2>
+<ol>
+  <li><strong>Reactiva a tus huéspedes anteriores.</strong> Quien ya se hospedó contigo y la pasó bien es tu venta más fácil. Un correo o WhatsApp con una razón para volver (no solo un descuento) suele rendir más que cualquier campaña.</li>
+  <li><strong>Empuja el canal directo.</strong> En temporada baja cada peso de margen cuenta: mover reservas a directo te ahorra la comisión justo cuando más lo necesitas.</li>
+  <li><strong>Arma paquetes, no descuentos.</strong> En vez de bajar la noche, agrega valor: dos noches con desayuno, late check-out, una experiencia local. El huésped percibe más por su dinero y tú cuidas tu tarifa.</li>
+  <li><strong>Contesta al instante.</strong> En temporada baja hay menos consultas, así que perder una duele el doble. Responder rápido —de día o de madrugada— convierte más de las pocas que llegan.</li>
+  <li><strong>Cuida tus reseñas.</strong> Con menos ocupación tienes tiempo de pedir y responder reseñas. La reputación es lo que te llena cuando vuelve la demanda.</li>
+  <li><strong>Ajusta precios con cabeza, no a ciegas.</strong> Mueve la tarifa por fecha (entre semana vs fin de semana) en lugar de un descuento plano a todo. Así llenas los días flojos sin regalar los buenos.</li>
+</ol>
+
+<div class="callout-tip">
+  <p class="callout-tip-title">Tu activo más valioso en temporada baja</p>
+  <p>Son los datos de tus huéspedes. Si reservan directo, te quedas con su correo y teléfono para invitarlos a volver. Si reservan por OTA, ese contacto se queda en la plataforma. Por eso el <a href="/glosario/reservas-directas">canal directo</a> importa aún más cuando la demanda baja.</p>
+</div>
+
+<h2 id="canal-directo">El canal directo es tu mejor aliado en temporada baja</h2>
+<p>Un motor de reservas propio, un asistente que conteste 24/7 y un CRM para reactivar huéspedes te dan, juntos, lo que ninguna OTA te da en temporada baja: margen completo y una relación directa con quien ya te conoce. Es exactamente lo que Kora reúne en un solo sistema, montado llave en mano.</p>
+<p>Si tu hotel está en la Huasteca, mira cómo funciona en tu zona en nuestras páginas de <a href="/hoteles-en">reservas directas por ciudad</a>.</p>
+
+<div class="callout-cta">
+  <strong>Llena tu temporada baja sin regalar tu tarifa.</strong>
+  <p>Motor de reservas directas, WhatsApp con IA y CRM para reactivar huéspedes. Pruébalo 30 días gratis, sin tarjeta.</p>
+  <a href="/#contacto">Quiero más reservas directas →</a>
+</div>
+`,
+  },
 ];
 
 // ─── Utilities ────────────────────────────────────────────────────────────────

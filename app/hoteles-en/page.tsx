@@ -1,0 +1,91 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { ciudades } from "@/lib/ciudades";
+import { Reveal } from "@/components/shared/Reveal";
+import { BarraCTA } from "@/components/shared/BarraCTA";
+import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
+
+export const metadata: Metadata = {
+  title: "Sistema de reservas para hoteles en la Huasteca Potosina | Kora",
+  description:
+    "Reservas directas sin comisión, WhatsApp con IA y operación simple para hoteles, cabañas y ecolodges en Xilitla, Ciudad Valles, Aquismón, Tamasopo y toda la Huasteca.",
+  alternates: { canonical: "/hoteles-en" },
+};
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
+
+const itemListJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "ItemList",
+  name: "Sistema de reservas para hoteles por ciudad — Huasteca Potosina",
+  itemListElement: ciudades.map((c, i) => ({
+    "@type": "ListItem",
+    position: i + 1,
+    name: `Hoteles en ${c.ciudad}`,
+    url: `${SITE_URL}/hoteles-en/${c.slug}`,
+  })),
+};
+
+export default function HotelesEnPage() {
+  return (
+    <main className="pt-16">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }}
+      />
+      <section className="py-16 sm:py-20 bg-kora-primary text-white">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <Reveal>
+            <p className="text-kora-accent text-sm font-semibold uppercase tracking-widest mb-4">
+              Hoteles en México
+            </p>
+          </Reveal>
+          <Reveal delay={0.1}>
+            <h1 className="text-3xl sm:text-5xl font-bold tracking-tight leading-tight">
+              Reservas directas para tu hotel en la Huasteca Potosina
+            </h1>
+          </Reveal>
+          <Reveal delay={0.2}>
+            <p className="mt-5 text-white/70 text-base sm:text-lg leading-relaxed max-w-xl mx-auto">
+              Motor de reservas sin comisión, WhatsApp con IA y operación en una sola
+              pantalla. Elige tu destino para ver cómo funciona en tu zona.
+            </p>
+          </Reveal>
+        </div>
+      </section>
+
+      <section className="py-14 sm:py-20 bg-kora-bg">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="mb-8">
+            <Breadcrumbs
+              items={[
+                { name: "Inicio", href: "/" },
+                { name: "Hoteles en México", href: "/hoteles-en" },
+              ]}
+            />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {ciudades.map((c, i) => (
+              <Reveal key={c.slug} delay={0.05 + i * 0.06}>
+                <Link
+                  href={`/hoteles-en/${c.slug}`}
+                  className="group block h-full bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:border-kora-primary/20 transition-colors"
+                >
+                  <h2 className="font-bold text-kora-text text-lg group-hover:text-kora-primary transition-colors">
+                    Hoteles en {c.ciudad}
+                  </h2>
+                  <p className="mt-2 text-sm text-kora-muted leading-relaxed">{c.resumen}</p>
+                  <span className="mt-3 inline-block text-sm font-semibold text-kora-primary">
+                    Ver cómo funciona →
+                  </span>
+                </Link>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <BarraCTA />
+    </main>
+  );
+}

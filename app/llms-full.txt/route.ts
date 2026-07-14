@@ -3,6 +3,7 @@ import { herramientasDisponibles } from "@/lib/herramientas";
 import { glosario } from "@/lib/glosario";
 import { comparativas } from "@/lib/comparativas";
 import { personas } from "@/lib/personas";
+import { ciudades } from "@/lib/ciudades";
 import { AYUDA } from "@/lib/ayuda";
 import { faqs } from "@/lib/faqs";
 import { PRECIO_DESDE } from "@/lib/oferta";
@@ -46,6 +47,12 @@ function buildFull(): string {
   L.push(`## Páginas por tipo de hotel (${personas.length})`);
   personas.forEach((p) => {
     L.push(`- ${p.titulo} — ${p.resumen} — ${BASE}/para/${p.slug}`);
+  });
+  L.push("");
+
+  L.push(`## Reservas directas por ciudad — Huasteca Potosina (${ciudades.length})`);
+  ciudades.forEach((c) => {
+    L.push(`- ${c.titulo} — ${c.resumen} — ${BASE}/hoteles-en/${c.slug}`);
   });
   L.push("");
 

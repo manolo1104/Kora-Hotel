@@ -109,6 +109,90 @@ export const comparativas: Comparativa[] = [
       },
     ],
   },
+  {
+    slug: "expedia",
+    competidor: "Expedia",
+    titulo: "Expedia vs reservas directas para tu hotel",
+    pregunta: "¿Conviene depender de Expedia o tomar reservas directas?",
+    resumen:
+      "Qué ganas y qué cedes al vender por Expedia frente a captar reservas directas sin comisión.",
+    intro:
+      "Expedia (y su red: Hotels.com, Vrbo) te da alcance ante viajeros internacionales y de paquetes, a cambio de comisiones por reserva y de operar bajo sus reglas y su modelo de pago. Captar reservas directas con tu propio motor elimina la comisión y te devuelve el control de precios y la relación con el huésped. Lo ideal es combinar ambos.",
+    cuerpo: [
+      "Expedia funciona bien para llegar a viajeros que reservan hotel dentro de un paquete (vuelo + hotel) o que comparan en su buscador, sobre todo del extranjero. El costo es una comisión que suele ir del 15% al 25%, y que los precios, la comunicación y los datos del huésped vivan dentro de su ecosistema.",
+      "Además, Expedia maneja modelos de cobro (comisionable o de mercado) y tiempos de pago que a un hotel pequeño le complican el flujo de efectivo. Cada reserva que logras mover a directo no solo te ahorra la comisión: te paga al momento y te deja el contacto del huésped para que regrese.",
+      "Con Kora tomas reservas directas desde tu web o WhatsApp, cobras el anticipo con tarjeta al instante y respondes 24/7 con IA. No se trata de salir de Expedia, sino de no depender solo de ella: bajas tu comisión promedio sin perder el alcance que aporta.",
+    ],
+    tabla: [
+      { aspecto: "Comisión por reserva", ota: "15%–25% aprox.", kora: "$0 (reserva directa)" },
+      { aspecto: "Tiempo de pago al hotel", ota: "Según el modelo de Expedia", kora: "Anticipo inmediato con tarjeta" },
+      { aspecto: "Datos del huésped", ota: "Limitados", kora: "Tuyos" },
+      { aspecto: "Control de precios y reglas", ota: "Dentro de la plataforma", kora: "100% tuyo" },
+      { aspecto: "Atención al huésped", ota: "Reglas de Expedia", kora: "WhatsApp con IA 24/7" },
+    ],
+    cuandoOta: [
+      "Quieres alcance ante viajeros internacionales y de paquetes.",
+      "Buscas visibilidad en un buscador grande sin invertir en marketing propio.",
+      "Estás validando demanda para temporadas o mercados nuevos.",
+    ],
+    cuandoKora: [
+      "Quieres quedarte con la comisión de las reservas que ya eran tuyas.",
+      "Necesitas que te paguen al momento, no en los tiempos de la OTA.",
+      "Quieres los datos del huésped para que vuelva directo.",
+    ],
+    faqs: [
+      {
+        q: "¿Tengo que salirme de Expedia para usar Kora?",
+        a: "No. Kora convive con Expedia y las demás OTAs. La idea es capturar de forma directa (sin comisión) las reservas que hoy se pierden o que de todos modos te buscarían, sin renunciar al alcance de la plataforma.",
+      },
+      {
+        q: "¿Kora evita el overbooking entre Expedia y mis reservas directas?",
+        a: "Sí. Kora sincroniza tu disponibilidad para que no vendas dos veces la misma noche entre tus canales.",
+      },
+    ],
+  },
+  {
+    slug: "vrbo",
+    competidor: "Vrbo",
+    titulo: "Vrbo vs reservas directas para tu hospedaje",
+    pregunta: "¿Conviene depender de Vrbo o tomar reservas directas?",
+    resumen:
+      "Qué ganas y qué cedes al vender por Vrbo frente a captar reservas directas con tu propio motor.",
+    intro:
+      "Vrbo es fuerte para propiedades completas —cabañas, casas y villas— que buscan estancias familiares o de grupo, a cambio de comisiones y de operar bajo sus reglas. Captar reservas directas con tu propio motor elimina la comisión y te da el control de precios y de la relación con el huésped. Lo mejor es combinar ambos canales.",
+    cuerpo: [
+      "Vrbo (parte de Expedia Group) atrae viajeros que quieren rentar una propiedad completa para su familia o grupo, un perfil muy común en cabañas y ecolodges de destinos de naturaleza. El costo es una comisión por reserva y que la comunicación, los precios y las reseñas vivan dentro de la plataforma.",
+      "Para una cabaña o un conjunto de unidades, cada reserva directa vale mucho: además de ahorrarte la comisión, te deja el contacto del huésped y te permite ofrecer estancias más largas o repetidas sin intermediario. El problema suele ser no tener una forma profesional de reservar y cobrar directo.",
+      "Kora te da un motor de reservas propio con cobro de anticipo, sincronía con tus OTAs para evitar overbooking y un asistente de IA que contesta 24/7. Así construyes el canal directo sin renunciar al alcance de Vrbo para el grupo que llega por ahí.",
+    ],
+    tabla: [
+      { aspecto: "Comisión por reserva", ota: "Comisión por reserva", kora: "$0 (reserva directa)" },
+      { aspecto: "Tipo de propiedad", ota: "Propiedad completa", kora: "Cuartos o unidades, como prefieras" },
+      { aspecto: "Datos del huésped", ota: "Limitados", kora: "Tuyos" },
+      { aspecto: "Control de precios y reglas", ota: "Dentro de la plataforma", kora: "100% tuyo" },
+      { aspecto: "Atención al huésped", ota: "Mensajería de Vrbo", kora: "WhatsApp con IA 24/7" },
+    ],
+    cuandoOta: [
+      "Rentas propiedades completas para familias o grupos.",
+      "Quieres alcance ante viajeros que buscan casas y cabañas.",
+      "Estás validando demanda para fechas o unidades nuevas.",
+    ],
+    cuandoKora: [
+      "Quieres quedarte con la comisión de las reservas directas.",
+      "Ofreces estancias repetidas o de grupo y quieres fidelizar sin intermediario.",
+      "Quieres cobrar el anticipo y tener los datos del huésped.",
+    ],
+    faqs: [
+      {
+        q: "¿Kora sirve para cabañas que hoy rento por Vrbo?",
+        a: "Sí. Kora maneja cuartos o unidades ilimitadas y te da un motor de reservas directas con cobro de anticipo, ideal para cabañas y ecolodges. Convive con Vrbo mientras haces crecer tu canal directo.",
+      },
+      {
+        q: "¿Puedo evitar el overbooking entre Vrbo y mis reservas directas?",
+        a: "Sí. Kora sincroniza tu disponibilidad para que no vendas dos veces la misma unidad.",
+      },
+    ],
+  },
 ];
 
 export function getComparativa(slug: string): Comparativa | undefined {

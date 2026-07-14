@@ -100,6 +100,129 @@ export const personas: Persona[] = [
       },
     ],
   },
+  {
+    slug: "hoteles-de-playa",
+    titulo: "Sistema hotelero para hoteles de playa",
+    pregunta: "¿Qué sistema necesita un hotel pequeño de playa?",
+    resumen:
+      "Reservas directas, WhatsApp con IA y tarifas por temporada para hoteles boutique de playa en México.",
+    intro:
+      "Un hotel pequeño de playa vive de temporadas marcadas, puentes y viajeros que planean con ilusión pero preguntan mucho antes de reservar. Necesita captar reservas directas sin comisión, cobrar anticipo para asegurar la fecha y contestar rápido. Kora reúne motor de reservas, IA en WhatsApp y tarifas por temporada en un solo sistema, en español.",
+    dolor: [
+      "La ocupación se concentra en temporada alta y puentes: cada reserva por OTA en esas fechas se lleva 15%–20% justo cuando más pesa.",
+      "El huésped pregunta por disponibilidad, mascotas, alberca o vista a toda hora, y si no le contestas, reserva en otro lado.",
+      "Manejar tarifas distintas por temporada a mano termina en errores y en dejar dinero sobre la mesa.",
+    ],
+    solucion: [
+      {
+        titulo: "Tarifas por temporada automáticas",
+        texto:
+          "Configuras precios por fecha y el motor cobra la tarifa correcta en cada reserva, sin que la cambies a mano en cada puente.",
+      },
+      {
+        titulo: "Anticipo con tarjeta para asegurar la fecha",
+        texto:
+          "El motor cobra el anticipo al confirmar, para bajar los no-shows tan comunes en destinos de temporada.",
+      },
+      {
+        titulo: "WhatsApp con IA que no descansa",
+        texto:
+          "Camila contesta 24/7 las dudas típicas (disponibilidad, qué incluye, cómo llegar) y reúne los datos para cerrar la reserva directa.",
+      },
+    ],
+    faqs: [
+      {
+        q: "¿Kora maneja tarifas de temporada alta y baja?",
+        a: "Sí. Defines precios por fecha (temporada alta, puentes, entre semana) y el motor aplica el correcto automáticamente en cada reserva.",
+      },
+      {
+        q: "¿Puedo cobrar anticipo para reservar?",
+        a: "Sí. El motor cobra el anticipo con tarjeta al confirmar, para asegurar la reserva y reducir cancelaciones de última hora.",
+      },
+    ],
+  },
+  {
+    slug: "cabanas-ecoturismo",
+    titulo: "Sistema de reservas para cabañas y ecoturismo",
+    pregunta: "¿Qué sistema de reservas necesita una cabaña o un ecolodge?",
+    resumen:
+      "Motor de reservas directas, WhatsApp con IA y sincronía con OTAs para cabañas, ecolodges y turismo de naturaleza.",
+    intro:
+      "Las cabañas y ecolodges viven del turismo de naturaleza y de fin de semana, muchas veces en zonas de baja señal y operados por su dueño o familia. Necesitan captar reservas directas sin comisión y no perder las consultas que llegan por WhatsApp. Kora les da motor de reservas, IA 24/7 y sincronía con las OTAs, en un solo sistema.",
+    dolor: [
+      "La mayoría de las reservas llegan por Airbnb, Booking o Vrbo pagando comisión sobre cada noche.",
+      "El huésped pregunta cómo llegar, qué actividades hay y si hay señal, a cualquier hora; sin respuesta rápida, se pierde la reserva.",
+      "Con unidades vendidas en varias plataformas es fácil terminar en overbooking.",
+    ],
+    solucion: [
+      {
+        titulo: "Reservas directas por unidad, sin comisión",
+        texto:
+          "Cada cabaña o unidad se reserva directo desde tu web o WhatsApp, y el ingreso se queda contigo.",
+      },
+      {
+        titulo: "Sincronía con tus OTAs, sin overbooking",
+        texto:
+          "Kora mantiene tu disponibilidad al día entre Airbnb, Booking y tus reservas directas para no vender dos veces la misma noche.",
+      },
+      {
+        titulo: "Camila contesta 24/7",
+        texto:
+          "Responde las dudas de tus visitantes con la información que le cargues (cómo llegar, qué incluye, actividades) y cierra la reserva.",
+      },
+    ],
+    faqs: [
+      {
+        q: "¿Kora sirve si tengo varias cabañas o unidades?",
+        a: "Sí. Maneja unidades ilimitadas en un solo plan, con su propio calendario y disponibilidad sincronizada con tus OTAs.",
+      },
+      {
+        q: "¿Funciona en zonas de poca señal?",
+        a: "El motor y Camila operan en línea, pero Kora tiene modo offline para operaciones básicas (check-in/out) que se sincronizan cuando vuelve la conexión.",
+      },
+    ],
+  },
+  {
+    slug: "hoteles-pueblo-magico",
+    titulo: "Sistema hotelero para hoteles en Pueblos Mágicos",
+    pregunta: "¿Qué sistema necesita un hotel en un Pueblo Mágico?",
+    resumen:
+      "Reservas directas sin comisión, WhatsApp con IA y operación simple para hoteles boutique en Pueblos Mágicos de México.",
+    intro:
+      "Un hotel en un Pueblo Mágico atrae viajeros que buscan experiencia y encanto, y que se concentran en fines de semana y temporadas. Depender de las OTAs le cuesta comisión justo en sus mejores fechas. Kora le da reservas directas 0% comisión, un recepcionista de IA en WhatsApp y toda la operación en una sola pantalla, en español.",
+    dolor: [
+      "El turismo de Pueblo Mágico es de fin de semana y puentes: la comisión de las OTAs pesa el doble en las fechas que sostienen el año.",
+      "El huésped valora el trato personal, pero el dueño no puede estar pegado al WhatsApp mientras atiende el hotel.",
+      "Competir por precio en las OTAs erosiona el margen de un hotel boutique cuyo valor es la experiencia.",
+    ],
+    solucion: [
+      {
+        titulo: "Reservas directas con tu sello",
+        texto:
+          "Tu propia página de reservas con tu marca, para que el huésped reserve directo y viva tu experiencia desde el primer contacto.",
+      },
+      {
+        titulo: "Camila, tu recepcionista de IA 24/7",
+        texto:
+          "Contesta al instante con el tono cercano de tu hotel, cotiza y reúne los datos, aunque estés atendiendo a los huéspedes.",
+      },
+      {
+        titulo: "Todo en una pantalla, en español",
+        texto:
+          "Calendario, PMS, CRM y tarifas por temporada en un solo lugar. Si sabes usar tu celular, sabes usar Kora.",
+      },
+    ],
+    faqs: [
+      {
+        q: "¿Kora sirve para un hotel boutique pequeño en un Pueblo Mágico?",
+        a: "Sí. Está diseñado para hoteles independientes operados por su dueño. Lo instalamos y capacitamos en 48 horas; convive con tus OTAs.",
+      },
+      {
+        q: "¿Me ayuda a fidelizar al huésped?",
+        a: "Sí. Al reservar directo te quedas con los datos del huésped y con un CRM y correos automáticos para invitarlo a volver, sin intermediario.",
+      },
+    ],
+  },
 ];
 
 export function getPersona(slug: string): Persona | undefined {

@@ -1,6 +1,7 @@
 import { herramientasDisponibles } from "@/lib/herramientas";
 import { glosario } from "@/lib/glosario";
 import { personas } from "@/lib/personas";
+import { ciudades } from "@/lib/ciudades";
 import { PRECIO_DESDE } from "@/lib/oferta";
 
 // llms.txt dinámico: se regenera en cada build a partir de los datos de contenido,
@@ -65,7 +66,11 @@ function buildLlms(): string {
   L.push(`- Glosario hotelero (${glosario.length} términos): ${BASE}/glosario`);
   L.push(`- Comparativas — OTAs vs reservas directas: ${BASE}/comparativas`);
   L.push(`- Blog: ${BASE}/blog`);
+  L.push(`- Reservas directas por ciudad (Huasteca Potosina): ${BASE}/hoteles-en`);
   personas.forEach((p) => L.push(`- ${p.titulo}: ${BASE}/para/${p.slug}`));
+  L.push("");
+  L.push("## Cobertura por ciudad (Huasteca Potosina)");
+  ciudades.forEach((c) => L.push(`- Hoteles en ${c.ciudad}: ${BASE}/hoteles-en/${c.slug}`));
   L.push("");
   L.push(`## Detalle completo`);
   L.push(`- Listado exhaustivo de páginas y contenidos: ${BASE}/llms-full.txt`);
