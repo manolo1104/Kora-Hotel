@@ -47,7 +47,7 @@ export function SolutionSection() {
           <p className="mt-10 text-xs text-kora-muted">
             Un solo plan de $550 MXN/mes, todo incluido y con habitaciones
             ilimitadas: motor de reservas, PMS, Camila (WhatsApp con IA, 24/7),
-            dashboard, CRM y facturación CFDI.
+            dashboard y CRM.
           </p>
         </Reveal>
       </div>

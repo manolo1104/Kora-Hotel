@@ -24,7 +24,6 @@ import {
   BedDouble,
   LayoutDashboard,
   Users,
-  Receipt,
   Sparkles,
   BarChart3,
   ArrowRight,
@@ -178,11 +177,6 @@ const KORA_PRO = [
     Icon: Users,
     t: "CRM + emails automáticos",
     d: "Mensajes pre y post estancia que convierten huéspedes en recurrentes.",
-  },
-  {
-    Icon: Receipt,
-    t: "Facturación CFDI 4.0",
-    d: "Genera facturas ante el SAT directo desde cada reserva.",
   },
   {
     Icon: Sparkles,

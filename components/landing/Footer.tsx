@@ -159,7 +159,6 @@ export function Footer() {
                 className="h-4 w-auto opacity-60 brightness-0 invert"
               />
             </span>
-            <span>CFDI 4.0 · SAT</span>
             <span>Tus datos son tuyos, exportables cuando quieras</span>
           </div>
         </Reveal>

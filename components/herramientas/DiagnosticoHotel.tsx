@@ -137,23 +137,6 @@ const PREGUNTAS: Pregunta[] = [
       href: "/#contacto?utm_source=diagnostico",
     },
   },
-  {
-    area: "Facturación (CFDI)",
-    pregunta: "¿Cómo facturas (CFDI) a tus huéspedes?",
-    opciones: [
-      { label: "Batallo, o lo hace alguien más cuando se acuerda", valor: 0 },
-      { label: "En el portal del SAT, a mano, una por una", valor: 50 },
-      { label: "Con un contador o un sistema aparte", valor: 75 },
-      { label: "Se factura solo al confirmar la reserva", valor: 100 },
-    ],
-    recomendacion: {
-      titulo: "Facturar te quita tiempo (y da errores)",
-      texto:
-        "Calcular el IVA y el Impuesto al Hospedaje y emitir el CFDI a mano, una por una, es lento y propenso a errores. Primero asegúrate de cobrar bien los impuestos.",
-      ctaLabel: "Calcular IVA e Impuesto al Hospedaje",
-      href: "/herramientas/calculadora-impuestos",
-    },
-  },
 ];
 
 interface Nivel {
@@ -187,7 +170,7 @@ function nivelPorPuntaje(p: number): Nivel {
       bg: "#FFFBEB",
       koraTitulo: "Estás cerca — Kora te da el empujón que falta",
       koraTexto:
-        "Reservas directas, WhatsApp con IA y facturación sin batallar. Kora junta las piezas que aún operas por separado.",
+        "Reservas directas, WhatsApp con IA y todo tu hotel en una pantalla. Kora junta las piezas que aún operas por separado.",
     };
   }
   return {

@@ -9,7 +9,7 @@ const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
 export const metadata: Metadata = {
   title: "Calculadora de IVA e Impuesto al Hospedaje para hoteles (gratis) | Kora",
   description:
-    "Calcula gratis el IVA y el Impuesto al Hospedaje (ISH) de tus reservas y desglosa cualquier monto. Hecha para hoteles en México que facturan con CFDI 4.0.",
+    "Calcula gratis el IVA y el Impuesto al Hospedaje (ISH) de tus reservas y desglosa cualquier monto. Hecha para hoteles en México.",
   alternates: {
     canonical: "/herramientas/calculadora-impuestos",
   },
@@ -119,15 +119,15 @@ export default function CalculadoraImpuestosPage() {
                 tener claro el desglose y generan confusión con el huésped.
               </p>
               <p>
-                Tener el desglose claro te sirve para tres cosas: cotizar con
-                transparencia, cobrar lo correcto y facturar sin errores. El IVA y
-                el ISH se calculan sobre la tarifa de hospedaje (la base), y deben
-                aparecer separados en tu CFDI.
+                Tener el desglose claro te sirve para dos cosas: cotizar con
+                transparencia y cobrar lo correcto. El IVA y el ISH se calculan
+                sobre la tarifa de hospedaje (la base) y conviene mostrarlos
+                separados en tu cotización.
               </p>
               <p>
                 El reto no es la fórmula —es hacerlo en cada reserva, todos los
-                días, sin equivocarse y emitiendo la factura a tiempo. Ahí es donde
-                automatizar la facturación deja de ser un lujo y se vuelve un alivio.
+                días, sin equivocarse. Ahí es donde tener el desglose automático en
+                cada reserva deja de ser un lujo y se vuelve un alivio.
               </p>
             </div>
           </Reveal>

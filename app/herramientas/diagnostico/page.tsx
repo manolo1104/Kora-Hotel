@@ -9,14 +9,14 @@ const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
 export const metadata: Metadata = {
   title: "Diagnóstico: ¿qué tan dependiente eres de Booking? (gratis) | Kora",
   description:
-    "Responde 7 preguntas y descubre qué tan dependiente es tu hotel de Booking y las OTAs. Recibe un puntaje de salud y un plan de acción gratis, hecho para México.",
+    "Responde 6 preguntas y descubre qué tan dependiente es tu hotel de Booking y las OTAs. Recibe un puntaje de salud y un plan de acción gratis, hecho para México.",
   alternates: {
     canonical: "/herramientas/diagnostico",
   },
   openGraph: {
     title: "Diagnóstico: ¿qué tan dependiente eres de Booking? (gratis)",
     description:
-      "Responde 7 preguntas y descubre qué tan dependiente es tu hotel de las OTAs, con un puntaje y un plan de acción.",
+      "Responde 6 preguntas y descubre qué tan dependiente es tu hotel de las OTAs, con un puntaje y un plan de acción.",
     type: "website",
     locale: "es_MX",
     siteName: "Kora",
@@ -27,7 +27,7 @@ export const metadata: Metadata = {
 const faqs = [
   {
     q: "¿Qué mide este diagnóstico?",
-    a: "Mide qué tan dependiente es tu hotel de las OTAs (Booking, Airbnb, Expedia) y qué tan sano es su control en 7 áreas clave: dependencia de OTAs, reservas directas, respuesta 24/7, precio dinámico, control financiero, gestión de reservas y facturación. Al final recibes un puntaje del 0 al 100 y un plan de qué atacar primero.",
+    a: "Mide qué tan dependiente es tu hotel de las OTAs (Booking, Airbnb, Expedia) y qué tan sano es su control en 6 áreas clave: dependencia de OTAs, reservas directas, respuesta 24/7, precio dinámico, control financiero y gestión de reservas. Al final recibes un puntaje del 0 al 100 y un plan de qué atacar primero.",
   },
   {
     q: "¿Por qué importa no depender tanto de Booking?",
@@ -51,7 +51,7 @@ export default function DiagnosticoPage() {
         url: `${BASE_URL}/herramientas/diagnostico`,
         offers: { "@type": "Offer", price: "0", priceCurrency: "MXN" },
         description:
-          "Test gratuito de 7 preguntas para medir qué tan dependiente es un hotel de las OTAs y dónde mejorar.",
+          "Test gratuito de 6 preguntas para medir qué tan dependiente es un hotel de las OTAs y dónde mejorar.",
       },
       {
         "@type": "FAQPage",
@@ -86,7 +86,7 @@ export default function DiagnosticoPage() {
           </Reveal>
           <Reveal delay={0.22}>
             <p className="mt-5 text-white/70 text-base sm:text-lg leading-relaxed max-w-xl mx-auto">
-              Responde 7 preguntas y descubre el puntaje de salud de tu hotel — y
+              Responde 6 preguntas y descubre el puntaje de salud de tu hotel — y
               exactamente por dónde empezar a depender menos de las OTAs.
             </p>
           </Reveal>

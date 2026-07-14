@@ -1,4 +1,4 @@
-import { UserCheck, Languages, Receipt, LifeBuoy, Percent } from "lucide-react";
+import { UserCheck, Languages, LifeBuoy, Percent } from "lucide-react";
 import { Reveal } from "@/components/shared/Reveal";
 import { GlowCard } from "@/components/shared/GlowCard";
 import { FUNDADOR } from "@/lib/fundador";
@@ -34,13 +34,6 @@ const tiles: Tile[] = [
     Icon: Languages,
     titulo: "100% en español",
     desc: "El sistema, el soporte y la IA, todo en tu idioma.",
-    style: "light",
-    span: "",
-  },
-  {
-    Icon: Receipt,
-    titulo: "CFDI 4.0 con el SAT, incluido",
-    desc: "Factura a tus huéspedes sin pagar software extra.",
     style: "light",
     span: "",
   },

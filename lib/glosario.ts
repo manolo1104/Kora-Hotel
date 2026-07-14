@@ -31,11 +31,11 @@ export const glosario: TerminoGlosario[] = [
     pregunta: "¿Qué es un PMS hotelero?",
     resumen: "El sistema que gestiona habitaciones, reservas y operación del hotel.",
     definicion:
-      "Un PMS (Property Management System) es el software que un hotel usa para gestionar su operación diaria: mapa de habitaciones, reservas, check-in y check-out, tarifas, limpieza (housekeeping) y facturación. Es el cerebro operativo que reemplaza al cuaderno o al Excel y evita errores como el overbooking.",
+      "Un PMS (Property Management System) es el software que un hotel usa para gestionar su operación diaria: mapa de habitaciones, reservas, check-in y check-out, tarifas, limpieza (housekeeping) y cobros. Es el cerebro operativo que reemplaza al cuaderno o al Excel y evita errores como el overbooking.",
     cuerpo: [
       "En un hotel pequeño o boutique, el PMS centraliza lo que normalmente está repartido entre una libreta de recepción, una hoja de cálculo y varios WhatsApps. Desde una sola pantalla ves qué habitaciones están ocupadas, quién llega hoy y quién sale, y registras cobros.",
-      "Los PMS tradicionales suelen estar en inglés y pensados para cadenas grandes, lo que los hace complejos para un hotel operado por su dueño. En México, además, el sistema debe poder emitir CFDI 4.0 (la factura oficial del SAT), algo que la mayoría de los PMS extranjeros no integran de forma nativa.",
-      "Kora incluye un PMS pensado para hoteles boutique mexicanos: mapa de habitaciones, check-in/check-out, housekeeping y facturación CFDI, en español y operable desde el celular.",
+      "Los PMS tradicionales suelen estar en inglés y pensados para cadenas grandes, lo que los hace complejos para un hotel operado por su dueño. Un hotel boutique mexicano necesita algo simple, en español y operable desde el celular.",
+      "Kora incluye un PMS pensado para hoteles boutique mexicanos: mapa de habitaciones, check-in/check-out y housekeeping, en español y operable desde el celular.",
     ],
     faqs: [
       {
@@ -158,33 +158,6 @@ export const glosario: TerminoGlosario[] = [
     relacionado: {
       texto: "Calcula cuánto pagas en comisiones",
       href: "/herramientas/calculadora-comisiones",
-    },
-  },
-  {
-    slug: "cfdi-40",
-    termino: "CFDI 4.0",
-    pregunta: "¿Qué es el CFDI 4.0?",
-    resumen: "La factura electrónica oficial del SAT que tu hotel debe emitir en México.",
-    definicion:
-      "El CFDI 4.0 (Comprobante Fiscal Digital por Internet, versión 4.0) es la factura electrónica oficial que el SAT exige en México. Desde 2022 es la versión obligatoria e incluye datos como el nombre, RFC y régimen fiscal exactos del cliente. Tu hotel debe poder emitirlo cuando un huésped pide factura.",
-    cuerpo: [
-      "Para un hotel, emitir facturas a tiempo y sin errores es parte de operar en regla. El CFDI 4.0 es más estricto que versiones anteriores: los datos fiscales del huésped deben coincidir exactamente con su constancia de situación fiscal, o la factura se rechaza.",
-      "Muchos sistemas hoteleros extranjeros no emiten CFDI de forma nativa, lo que obliga al hotel a usar un sistema de facturación aparte y a capturar todo dos veces.",
-      "Kora integra la facturación CFDI 4.0 directamente con el flujo de reservas, para que factures sin salir del sistema ni duplicar la captura.",
-    ],
-    faqs: [
-      {
-        q: "¿Es obligatorio el CFDI 4.0?",
-        a: "Sí. Es la versión vigente y obligatoria del comprobante fiscal en México. Todo negocio que emita facturas, incluidos los hoteles, debe usarla.",
-      },
-      {
-        q: "¿Kora emite CFDI?",
-        a: "Sí, Kora integra la emisión de CFDI 4.0 con el SAT dentro del mismo sistema, vinculada a tus reservas.",
-      },
-    ],
-    relacionado: {
-      texto: "Conoce las características de Kora",
-      href: "/caracteristicas",
     },
   },
   {

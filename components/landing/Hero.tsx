@@ -113,9 +113,9 @@ export function Hero() {
               </h1>
 
               <motion.p {...item(0.12)} className="text-base sm:text-lg text-kora-muted leading-relaxed max-w-[52ch]">
-                Motor de reservas con 0% de comisión, Camila —tu recepcionista
-                de IA en WhatsApp 24/7— y facturación CFDI. En español y montado
-                en 48 horas: nosotros cargamos tu hotel, tú recibes las reservas.
+                Motor de reservas con 0% de comisión y Camila, tu recepcionista
+                de IA en WhatsApp 24/7. En español y montado en 48 horas:
+                nosotros cargamos tu hotel, tú recibes las reservas.
               </motion.p>
 
               <motion.div {...item(0.2)} className="flex flex-col sm:flex-row gap-3">

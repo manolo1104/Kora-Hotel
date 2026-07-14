@@ -14,7 +14,7 @@ export const faqs: Faq[] = [
   {
     question: "¿Cuánto cuesta y qué incluye?",
     answer:
-      "Hay un solo plan de $550 MXN/mes, mes a mes y sin permanencia, con habitaciones ilimitadas y todo incluido: el motor de reservas directo (0% de comisión), el PMS completo, Camila (agente de WhatsApp con IA 24/7), el dashboard con tus reservas y métricas, el CRM de huéspedes con emails automáticos y la facturación CFDI 4.0. Lo pruebas 30 días gratis y sin tarjeta; activas tu plan solo si te convence.",
+      "Hay un solo plan de $550 MXN/mes, mes a mes y sin permanencia, con habitaciones ilimitadas y todo incluido: el motor de reservas directo (0% de comisión), el PMS completo, Camila (agente de WhatsApp con IA 24/7), el dashboard con tus reservas y métricas, y el CRM de huéspedes con emails automáticos. Lo pruebas 30 días gratis y sin tarjeta; activas tu plan solo si te convence.",
   },
   {
     question: "¿Necesito tarjeta para empezar?",
@@ -52,11 +52,6 @@ export const faqs: Faq[] = [
       "Sí. Kora tiene modo offline para operaciones básicas (check-in, check-out) que se sincronizan cuando regresa la conexión.",
   },
   {
-    question: "¿Incluye la facturación electrónica (CFDI)?",
-    answer:
-      "Sí, Kora genera CFDI 4.0 directamente desde cada reserva, integrado con el SAT.",
-  },
-  {
     question: "¿Puedo exportar todos mis datos si cancelo?",
     answer:
       "Sí. Tus datos son tuyos. Antes de cancelar puedes exportar todo: reservas, huéspedes, historial de pagos e informes en formato CSV y PDF. Nunca quedarás rehén del sistema.",
@@ -69,7 +64,7 @@ export const faqs: Faq[] = [
   {
     question: "¿Tienen API para conectar otros sistemas que ya uso?",
     answer:
-      "Sí. Kora tiene API REST documentada para integrarse con tu channel manager, sistema de facturación o cualquier herramienta externa. Si lo necesitas, te ayudamos con la integración.",
+      "Sí. Kora tiene API REST documentada para integrarse con tu channel manager o cualquier herramienta externa. Si lo necesitas, te ayudamos con la integración.",
   },
   {
     question: "¿Qué pasa si necesito ayuda a las 11 de la noche?",

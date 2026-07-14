@@ -28,7 +28,7 @@ export const AYUDA: ArticuloAyuda[] = [
     resumen: "Cuánto cuesta y qué incluye el plan.",
     contenido: [
       "Hay un solo plan de $550 MXN/mes, mes a mes y sin permanencia, con habitaciones ilimitadas.",
-      "Incluye todo: el motor de reservas directo (0% de comisión), el PMS completo, Camila (agente de WhatsApp con IA 24/7), el dashboard con métricas, el CRM de huéspedes con emails automáticos y la facturación CFDI 4.0.",
+      "Incluye todo: el motor de reservas directo (0% de comisión), el PMS completo, Camila (agente de WhatsApp con IA 24/7), el dashboard con métricas y el CRM de huéspedes con emails automáticos.",
       "Lo pruebas 30 días gratis: no se cobra nada hasta el día 31 y cancelas antes sin pagar.",
       "La mini-página de reservas es gratis para siempre, con o sin plan.",
       "Pagas con tarjeta desde la página de precios; el cobro es mensual y automático. Puedes cambiar de tarjeta, descargar recibos o cancelar tú mismo desde tu panel, en “Administrar mi pago”.",
@@ -52,7 +52,6 @@ export const AYUDA: ArticuloAyuda[] = [
       "El cobro de tu plan es mensual y automático con tarjeta, procesado por Stripe (la misma plataforma de pagos que usan Amazon y Google).",
       "En tu panel (kora-hotel.com/panel) está el botón “Administrar mi pago”: ahí cambias tu tarjeta, ves y descargas tus recibos, o cancelas tu suscripción cuando quieras.",
       "Si un cargo no pasa (tarjeta vencida, límite, bloqueo del banco), te avisamos por correo y el sistema reintenta automáticamente. Tu servicio no se corta de inmediato: tienes días de gracia para actualizar tu tarjeta.",
-      "¿Necesitas factura (CFDI)? Escríbenos por WhatsApp con tus datos fiscales y te la emitimos.",
     ],
   },
   {

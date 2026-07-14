@@ -1,7 +1,7 @@
 'use client';
 
 import { usePathname, useRouter } from 'next/navigation';
-import { Calendar, BookOpen, FileText, TrendingUp, Users, BarChart2, LogOut, Menu, X, LayoutDashboard, Receipt, ClipboardCheck, Globe2, CreditCard, Pencil, CalendarCheck, Building2, Bot } from 'lucide-react';
+import { Calendar, BookOpen, FileText, TrendingUp, Users, BarChart2, LogOut, Menu, X, LayoutDashboard, ClipboardCheck, Globe2, CreditCard, Pencil, CalendarCheck, Building2, Bot } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import styles from './AdminSidebar.module.css';
@@ -17,7 +17,6 @@ const NAV = [
   { seg: 'clientes',     label: 'Clientes',       icon: Users },
   { seg: 'operaciones',  label: 'Operaciones',    icon: ClipboardCheck },
   { seg: 'redes',        label: 'Redes Sociales', icon: BarChart2 },
-  { seg: 'facturacion',  label: 'Facturación',    icon: Receipt },
   { seg: 'canales',      label: 'Canales OTA',    icon: Globe2 },
 ];
 

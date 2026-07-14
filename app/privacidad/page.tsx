@@ -59,7 +59,6 @@ export default function PrivacidadPage() {
                 <li>Número de teléfono y WhatsApp</li>
                 <li>Correo electrónico</li>
                 <li>Número de habitaciones del establecimiento</li>
-                <li>Datos de facturación para emisión de CFDI</li>
                 <li>
                   Datos de uso del sistema (actividad, métricas de ocupación)
                 </li>
@@ -80,7 +79,6 @@ export default function PrivacidadPage() {
               <p>Sus datos son utilizados para:</p>
               <ul className="mt-3 space-y-1.5 list-disc list-inside text-kora-muted">
                 <li>Prestar y operar el servicio de Kora</li>
-                <li>Generar comprobantes fiscales (CFDI 4.0)</li>
                 <li>
                   Comunicarnos para soporte técnico y capacitación por WhatsApp
                 </li>
@@ -109,8 +107,7 @@ export default function PrivacidadPage() {
               </p>
               <p className="mt-2">
                 Los proveedores incluyen servicios de hospedaje en la nube,
-                plataformas de comunicación y el Servicio de Administración
-                Tributaria (SAT) para la timbración de CFDI.
+                plataformas de comunicación y procesadores de pago.
               </p>
             </section>
 

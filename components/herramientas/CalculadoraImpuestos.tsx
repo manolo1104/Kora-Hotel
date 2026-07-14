@@ -358,8 +358,8 @@ export function CalculadoraImpuestos() {
         <div className="mt-10">
           <LeadCaptureTool
             herramienta="Calculadora de IVA + ISH"
-            title="Recibe tu guía de facturación para hoteles"
-            subtitle="Te mandamos por WhatsApp cómo facturar correctamente tus reservas con CFDI 4.0 y cómo automatizarlo con Kora."
+            title="Recibe la guía de impuestos para hoteles"
+            subtitle="Te mandamos por WhatsApp cómo calcular bien el IVA y el Impuesto al Hospedaje de tus reservas, y cómo llevarlo sin líos con Kora."
             buttonText="Enviarme la guía"
             hiddenFields={{
               monto: fmtMXN(monto || 0),
@@ -378,16 +378,15 @@ export function CalculadoraImpuestos() {
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-kora-accent/15 mb-4">
             <Sparkles size={14} className="text-kora-accent" aria-hidden="true" />
             <span className="text-xs font-bold text-kora-accent uppercase tracking-widest">
-              Facturación CFDI 4.0 automática
+              Tus impuestos, claros en cada reserva
             </span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight leading-tight">
             Olvídate de calcular impuestos a mano
           </h2>
           <p className="mt-3 text-white/75 text-sm sm:text-base leading-relaxed max-w-xl mx-auto">
-            Kora desglosa el IVA y el Impuesto al Hospedaje en cada reserva y emite
-            tu factura CFDI 4.0 ante el SAT en automático. Sin Excel, sin errores,
-            sin batallar con el portal.
+            Kora desglosa el IVA y el Impuesto al Hospedaje en cada reserva y te
+            muestra tu total neto claro. Sin Excel y sin errores.
           </p>
           <a
             href="/#contacto?utm_source=calculadora-impuestos"

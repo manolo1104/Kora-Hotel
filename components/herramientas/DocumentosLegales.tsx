@@ -264,7 +264,7 @@ export function DocumentosLegales() {
 
   const finalidades: string[] = [];
   if (finReserva) finalidades.push("Gestionar tu reservación y tu estancia.");
-  if (finFactura) finalidades.push("Emitir comprobantes y facturas (CFDI).");
+  if (finFactura) finalidades.push("Emitir comprobantes y facturas cuando las solicites.");
   if (finPromos)
     finalidades.push(
       "Enviarte información y promociones del hotel (puedes pedir que dejemos de hacerlo cuando quieras)."
@@ -449,7 +449,7 @@ export function DocumentosLegales() {
                       </label>
                       <label className="flex items-center gap-3 text-sm text-kora-text cursor-pointer">
                         <input type="checkbox" checked={finFactura} onChange={(e) => setFinFactura(e.target.checked)} className="w-5 h-5 accent-kora-accent" />
-                        Emitir facturas (CFDI)
+                        Emitir comprobantes y facturas
                       </label>
                       <label className="flex items-center gap-3 text-sm text-kora-text cursor-pointer">
                         <input type="checkbox" checked={finPromos} onChange={(e) => setFinPromos(e.target.checked)} className="w-5 h-5 accent-kora-accent" />

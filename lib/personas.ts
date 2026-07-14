@@ -25,7 +25,7 @@ export const personas: Persona[] = [
     resumen:
       "Software pensado para hoteles boutique en México: reservas directas, IA en WhatsApp y operación simple.",
     intro:
-      "Un hotel boutique necesita un sistema que cuide la experiencia personal sin volverse complejo: reservas directas sin comisión, atención rápida por WhatsApp y una operación que se maneje desde el celular. Kora reúne motor de reservas, PMS, CRM y facturación CFDI en una sola pantalla, en español, instalado llave en mano.",
+      "Un hotel boutique necesita un sistema que cuide la experiencia personal sin volverse complejo: reservas directas sin comisión, atención rápida por WhatsApp y una operación que se maneje desde el celular. Kora reúne motor de reservas, PMS y CRM en una sola pantalla, en español, instalado llave en mano.",
     dolor: [
       "Cada reserva por OTA se lleva 15%–20% de comisión, justo cuando el margen del boutique es lo que sostiene la experiencia.",
       "El huésped escribe a deshoras por WhatsApp y, si nadie contesta, se pierde la reserva.",
@@ -45,7 +45,7 @@ export const personas: Persona[] = [
       {
         titulo: "Todo en una pantalla",
         texto:
-          "Calendario, PMS, CRM de huéspedes, precios y CFDI 4.0 en un solo lugar. Si sabes usar tu celular, sabes usar Kora.",
+          "Calendario, PMS, CRM de huéspedes y precios en un solo lugar. Si sabes usar tu celular, sabes usar Kora.",
       },
     ],
     faqs: [
@@ -66,10 +66,10 @@ export const personas: Persona[] = [
     resumen:
       "Sistema todo-en-uno para hoteles pequeños: deja el cuaderno y el Excel sin complicarte.",
     intro:
-      "Un hotel pequeño o independiente necesita dejar atrás el cuaderno y el Excel sin caer en un sistema caro y complicado. Lo esencial: tomar reservas directas, evitar el overbooking, contestar rápido y facturar en regla. Kora junta todo eso en un solo sistema en español, instalado y con soporte por WhatsApp.",
+      "Un hotel pequeño o independiente necesita dejar atrás el cuaderno y el Excel sin caer en un sistema caro y complicado. Lo esencial: tomar reservas directas, evitar el overbooking y contestar rápido. Kora junta todo eso en un solo sistema en español, instalado y con soporte por WhatsApp.",
     dolor: [
       "Llevar las reservas en cuaderno o Excel termina en errores y, tarde o temprano, en overbooking.",
-      "Pagar varias herramientas sueltas (motor, chatbot, facturación) sale caro y no se hablan entre sí.",
+      "Pagar varias herramientas sueltas (motor, chatbot, PMS) sale caro y no se hablan entre sí.",
       "No hay equipo grande: todo lo hace el dueño, así que el sistema tiene que ser simple.",
     ],
     solucion: [
@@ -81,7 +81,7 @@ export const personas: Persona[] = [
       {
         titulo: "Todo-en-uno en lugar de herramientas sueltas",
         texto:
-          "Reservas, atención con IA, PMS, CRM y CFDI por un solo precio, en vez de juntar (y pagar) cinco apps distintas.",
+          "Reservas, atención con IA, PMS y CRM por un solo precio, en vez de juntar (y pagar) varias apps distintas.",
       },
       {
         titulo: "Instalado y con soporte en español",
@@ -96,7 +96,7 @@ export const personas: Persona[] = [
       },
       {
         q: "¿Cuánto cuesta para un hotel pequeño?",
-        a: "Hay un solo plan de $550 MXN/mes, mes a mes y sin permanencia, con habitaciones ilimitadas y todo incluido: el motor de reservas directo (0% de comisión), el PMS, Camila (agente de WhatsApp con IA 24/7), el dashboard, el CRM y la facturación CFDI. Lo pruebas 30 días gratis. Además, si quieres, te creamos tu sitio web profesional con motor de reservas como servicio aparte.",
+        a: "Hay un solo plan de $550 MXN/mes, mes a mes y sin permanencia, con habitaciones ilimitadas y todo incluido: el motor de reservas directo (0% de comisión), el PMS, Camila (agente de WhatsApp con IA 24/7), el dashboard y el CRM. Lo pruebas 30 días gratis. Además, si quieres, te creamos tu sitio web profesional con motor de reservas como servicio aparte.",
       },
     ],
   },
