@@ -32,6 +32,11 @@ export function ProblemSection() {
             <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-kora-text">
               ¿Te suena familiar?
             </h2>
+            <p className="mt-4 text-kora-muted text-base sm:text-lg leading-relaxed max-w-2xl mx-auto">
+              No es justo que le regales tu ganancia a una plataforma extranjera
+              para operar tu propio hotel. El villano tiene nombre:{" "}
+              <span className="font-semibold text-kora-text">la mordida de Booking.</span>
+            </p>
           </div>
         </Reveal>
 

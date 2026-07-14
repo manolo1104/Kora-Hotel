@@ -77,6 +77,12 @@ export function SocialProofSection() {
               <p className="text-sm text-kora-text italic leading-relaxed">"{caso.quote}"</p>
               <footer className="mt-2 text-xs text-kora-muted not-italic">— {caso.autor}</footer>
             </blockquote>
+            {/* Autoridad honesta: admitir una limitación aumenta la confianza + framing miembro fundador */}
+            <p className="mt-5 text-xs text-kora-muted leading-relaxed border-t border-kora-primary/10 pt-4">
+              Seamos claros: Kora no es para cadenas de 200 cuartos. Es para hoteles
+              independientes como el tuyo — y apenas estamos abriéndolo a más hoteles.{" "}
+              <span className="font-semibold text-kora-primary">Estás a tiempo de ser de los primeros de la Huasteca.</span>
+            </p>
           </div>
         </Reveal>
 

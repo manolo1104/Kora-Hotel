@@ -50,6 +50,18 @@ const garantias = [
   },
 ];
 
+// Arranque "llave en mano": los bonos que van GRATIS con el plan (valor en pesos
+// justificable). Cada uno mata una objeción real del hotelero.
+const arranque = [
+  { titulo: "Arranque Llave en Mano (48h)", detalle: "Cargamos cuartos, fotos, tarifas y tu motor", valor: 8000 },
+  { titulo: "Tu página de reservas lista", detalle: "Motor embebido en una página con tu marca", valor: 6000 },
+  { titulo: "Camila entrenada con tu hotel", detalle: "Tus precios, políticas y respuestas", valor: 4000 },
+  { titulo: "Alta CFDI con el SAT", detalle: "La dejamos configurada por ti", valor: 3000 },
+  { titulo: "Migración + sync Booking/Airbnb", detalle: "Sin overbooking, sin líos", valor: 2500 },
+  { titulo: "2 meses de acompañamiento 1-a-1", detalle: "Con el equipo fundador", valor: 3000 },
+];
+const arranqueTotal = arranque.reduce((s, b) => s + b.valor, 0);
+
 // Plan único (fuente única: lib/oferta.ts): todo incluido, sin límite de
 // habitaciones.
 const planes = PLANES.map((p) => ({
@@ -79,8 +91,7 @@ export function PricingSection() {
             {/* Urgencia REAL (capacidad de acompañamiento, no falso countdown) */}
             <p className="mt-4 inline-flex items-center gap-2 rounded-full bg-kora-accent/15 px-4 py-2 text-xs font-semibold text-kora-primary">
               <span className="w-1.5 h-1.5 rounded-full bg-kora-accent animate-pulse" aria-hidden="true" />
-              Cupo limitado: acompañamos personalmente el arranque de pocos
-              hoteles nuevos al mes
+              Solo tomamos 5 hoteles nuevos al mes: montamos cada uno a mano
             </p>
           </div>
         </Reveal>
@@ -129,6 +140,61 @@ export function PricingSection() {
                   </li>
                 ))}
               </ul>
+            </div>
+          </div>
+        </Reveal>
+
+        {/* Arranque Reservas Directas: el stack de valor que va GRATIS con el plan */}
+        <Reveal delay={0.12}>
+          <div className="max-w-2xl mx-auto mb-8 rounded-3xl border-2 border-kora-primary/15 bg-white p-6 sm:p-8">
+            <div className="text-center mb-5">
+              <span className="inline-flex items-center px-3 py-1 rounded-full bg-kora-primary/8 text-kora-primary text-xs font-bold">
+                Arranque Reservas Directas · llave en mano
+              </span>
+              <p className="mt-3 text-sm text-kora-muted">
+                Al activar tu plan, montamos todo por ti. Estos servicios de arranque
+                van <span className="font-semibold text-kora-text">incluidos gratis:</span>
+              </p>
+            </div>
+            <ul className="divide-y divide-gray-100">
+              {arranque.map((b) => (
+                <li key={b.titulo} className="flex items-baseline justify-between gap-3 py-3">
+                  <div className="flex items-start gap-2.5">
+                    <CheckCircle2 size={16} className="flex-shrink-0 text-kora-accent mt-1" aria-hidden="true" />
+                    <div>
+                      <p className="text-sm font-semibold text-kora-text">{b.titulo}</p>
+                      <p className="text-xs text-kora-muted">{b.detalle}</p>
+                    </div>
+                  </div>
+                  <span className="text-sm font-semibold text-kora-muted tabular-nums whitespace-nowrap line-through">
+                    ${b.valor.toLocaleString("es-MX")}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <div className="mt-4 flex items-center justify-between rounded-2xl bg-kora-primary px-5 py-4 text-white">
+              <span className="text-sm">
+                Valor del arranque:{" "}
+                <span className="line-through text-white/60">${arranqueTotal.toLocaleString("es-MX")}</span>
+              </span>
+              <span className="text-lg font-bold text-kora-accent">Gratis</span>
+            </div>
+          </div>
+        </Reveal>
+
+        {/* Garantía que revierte el riesgo (la palanca #1 de la oferta) */}
+        <Reveal delay={0.14}>
+          <div className="max-w-2xl mx-auto mb-8 flex items-start gap-4 rounded-3xl border-2 border-kora-accent/40 bg-kora-accent/8 p-5 sm:p-6">
+            <div className="flex-shrink-0 w-11 h-11 rounded-full bg-kora-accent/25 flex items-center justify-center">
+              <ShieldCheck size={22} className="text-kora-primary" aria-hidden="true" />
+            </div>
+            <div>
+              <p className="text-base font-bold text-kora-text">Garantía Reservas Directas</p>
+              <p className="mt-1 text-sm text-kora-muted leading-relaxed">
+                Pruébalo 30 días gratis, sin tarjeta. Y si en 60 días de usar Kora activo
+                no recuperas tu mensualidad en comisiones ahorradas,{" "}
+                <span className="font-semibold text-kora-text">seguimos trabajando gratis hasta que lo logres.</span>
+              </p>
             </div>
           </div>
         </Reveal>

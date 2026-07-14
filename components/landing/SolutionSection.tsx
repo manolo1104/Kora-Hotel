@@ -20,6 +20,27 @@ export function SolutionSection() {
           </div>
         </Reveal>
 
+        {/* Plan de 3 pasos (StoryBrand: la guía le da un plan claro al héroe) */}
+        <Reveal delay={0.1}>
+          <ol className="mb-14 grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5" aria-label="Cómo empezar en 3 pasos">
+            {[
+              { n: "1", t: "Te montamos tu hotel en 48h", d: "Cargamos tus cuartos, fotos y tarifas. Tú no tocas nada técnico." },
+              { n: "2", t: "Tu motor y Camila, listos 24/7", d: "El motor en tu web o redes y Camila contestando tu WhatsApp." },
+              { n: "3", t: "Recibes reservas directas", d: "Te quedas con el 100% del pago, sin comisión de OTAs." },
+            ].map((p) => (
+              <li key={p.n} className="flex gap-4 p-5 rounded-2xl border border-gray-100 bg-white shadow-sm">
+                <span className="flex-shrink-0 w-9 h-9 rounded-full bg-kora-primary text-white font-bold text-sm flex items-center justify-center">
+                  {p.n}
+                </span>
+                <div>
+                  <p className="font-semibold text-kora-text text-sm sm:text-base">{p.t}</p>
+                  <p className="mt-1 text-xs sm:text-sm text-kora-muted leading-relaxed">{p.d}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </Reveal>
+
         <ProductTour />
 
         <Reveal delay={0.2}>
