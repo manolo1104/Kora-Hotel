@@ -77,13 +77,13 @@ export function Hero() {
                 {...item(0)}
                 className="text-xs sm:text-sm font-bold uppercase tracking-widest text-kora-primary/70"
               >
-                El sistema todo-en-uno para tu hotel
+                El sistema todo-en-uno para tu hotel independiente
               </motion.p>
 
               {/* Headline palabra por palabra con blur que se enfoca (Linear/Apple).
                   La frase shimmer entra como una sola unidad para no romper su gradiente. */}
               <h1 className="text-4xl sm:text-5xl xl:text-[3.5rem] font-bold tracking-tight text-kora-text leading-tight">
-                {["Llena", "tu", "hotel", "con", "reservas", "directas."].map((palabra, i) => (
+                {["Deja", "de", "trabajar", "para", "Booking."].map((palabra, i) => (
                   <motion.span
                     key={palabra}
                     className="inline-block whitespace-pre"
@@ -107,15 +107,15 @@ export function Hero() {
                   transition={{ duration: 0.65, delay: 0.4, ease: EASE }}
                 >
                   <span className="text-shimmer text-kora-primary">
-                    Sin depender de Booking.
+                    Llena tu hotel de reservas directas.
                   </span>
                 </motion.span>
               </h1>
 
               <motion.p {...item(0.12)} className="text-base sm:text-lg text-kora-muted leading-relaxed max-w-[52ch]">
-                Kora es el sistema todo-en-uno para tu hotel: motor de reservas
-                con 0% de comisión, panel para operar tu día a día y Camila, tu
-                recepcionista de WhatsApp con IA. En español y con CFDI.
+                Motor de reservas con 0% de comisión, Camila —tu recepcionista
+                de IA en WhatsApp 24/7— y facturación CFDI. En español y montado
+                en 48 horas: nosotros cargamos tu hotel, tú recibes las reservas.
               </motion.p>
 
               <motion.div {...item(0.2)} className="flex flex-col sm:flex-row gap-3">
