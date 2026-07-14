@@ -5,6 +5,7 @@ import { herramientasDisponibles } from "@/lib/herramientas";
 import { glosario } from "@/lib/glosario";
 import { comparativas } from "@/lib/comparativas";
 import { personas } from "@/lib/personas";
+import { AYUDA } from "@/lib/ayuda";
 import { SUPABASE_URL, SUPABASE_ANON_KEY, supabaseEnvReady } from "@/lib/supabase/env";
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
@@ -76,6 +77,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.8,
   }));
 
+  const ayudaEntries: MetadataRoute.Sitemap = AYUDA.map((a) => ({
+    url: `${BASE_URL}/ayuda/${a.slug}`,
+    lastModified: SITE_UPDATED,
+    changeFrequency: "monthly",
+    priority: 0.5,
+  }));
+
   return [
     {
       url: BASE_URL,
@@ -137,10 +145,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly",
       priority: 0.7,
     },
+    {
+      url: `${BASE_URL}/ayuda`,
+      lastModified: SITE_UPDATED,
+      changeFrequency: "monthly",
+      priority: 0.5,
+    },
     ...herramientaEntries,
     ...glosarioEntries,
     ...comparativaEntries,
     ...personaEntries,
+    ...ayudaEntries,
     ...articleEntries,
     ...hotelEntries,
     {
