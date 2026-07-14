@@ -1,7 +1,7 @@
 import { Reveal } from "@/components/shared/Reveal";
 
 // Logos reales en /public/integraciones (color de marca oficial).
-// Conekta y SAT no tienen logo en la librería: usan insignia de color (abbr).
+// Conekta no tiene logo en la librería: usa insignia de color (abbr).
 // Duplicated for seamless CSS marquee loop
 type Integracion = {
   name: string;
@@ -31,11 +31,6 @@ const integraciones: Integracion[] = [
     name: "Expedia",
     status: "active",
     logo: "/integraciones/expedia.svg",
-  },
-  {
-    name: "SAT / CFDI 4.0",
-    status: "soon",
-    logo: "/integraciones/sat.svg",
   },
   {
     name: "Stripe",

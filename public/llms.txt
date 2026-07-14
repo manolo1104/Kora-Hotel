@@ -1,6 +1,6 @@
 # Kora
 
-> Kora es el sistema hotelero todo-en-uno con IA para hoteles boutique en México: reservas directas sin comisiones, agente de WhatsApp y llamadas 24/7, PMS, pricing dinámico y facturación CFDI 4.0. Todo en español.
+> Kora es el sistema hotelero todo-en-uno con IA para hoteles boutique en México: reservas directas sin comisiones, agente de WhatsApp y llamadas 24/7, PMS y pricing dinámico. Todo en español.
 
 Kora ayuda a hoteles boutique pequeños e independientes en México a llenar sus habitaciones con reservas directas (sin pagar comisiones a OTAs como Booking o Airbnb), a contestar mensajes y llamadas automáticamente con IA las 24 horas, y a operar todo el hotel desde una sola pantalla. Está pensado para dueños de hotel sin conocimientos técnicos. Se instala llave en mano en 48 a 72 horas.
 
@@ -11,7 +11,6 @@ Kora ayuda a hoteles boutique pequeños e independientes en México a llenar sus
 - PMS: mapa de habitaciones, check-in, check-out, housekeeping
 - Pricing dinámico con IA según demanda, eventos y puentes
 - Dashboard con RevPAR, ocupación, canal de origen y forecast de 30 días
-- Facturación CFDI 4.0 integrada con el SAT
 - Emails automáticos pre y post estancia, CRM de huéspedes, API REST
 
 ## Para quién es
@@ -44,7 +43,7 @@ Kora ayuda a hoteles boutique pequeños e independientes en México a llenar sus
 - Para hoteles boutique: https://kora-hotel.com/para/hoteles-boutique
 - Para hoteles pequeños e independientes: https://kora-hotel.com/para/hoteles-pequenos
 - Comparativas OTAs vs reservas directas: https://kora-hotel.com/comparativas (Booking, Airbnb)
-- Glosario hotelero (PMS, RevPAR, CFDI 4.0, channel manager, overbooking, pricing dinámico): https://kora-hotel.com/glosario
+- Glosario hotelero (PMS, RevPAR, channel manager, overbooking, pricing dinámico): https://kora-hotel.com/glosario
 
 ## Contacto
 - Email: hola@korahotel.mx

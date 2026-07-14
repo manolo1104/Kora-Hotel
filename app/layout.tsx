@@ -72,7 +72,6 @@ const orgJsonLd = {
         "Motor de reservas directas",
         "PMS para hoteles",
         "Agente de WhatsApp con IA",
-        "CFDI 4.0",
       ],
       founder: {
         "@type": "Person",

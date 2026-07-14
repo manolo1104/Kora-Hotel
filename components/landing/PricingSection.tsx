@@ -24,7 +24,6 @@ const featuresKora = [
   "Camila: agente de WhatsApp con IA, 24/7",
   "Dashboard con métricas y forecast de 30 días",
   "CRM de huéspedes y emails automáticos",
-  "Facturación CFDI 4.0 integrada con el SAT",
   "Mini-página de reservas y cobro con tarjeta",
   "Soporte directo con el equipo fundador",
 ];
@@ -56,7 +55,6 @@ const arranque = [
   { titulo: "Arranque Llave en Mano (48h)", detalle: "Cargamos cuartos, fotos, tarifas y tu motor", valor: 8000 },
   { titulo: "Tu página de reservas lista", detalle: "Motor embebido en una página con tu marca", valor: 6000 },
   { titulo: "Camila entrenada con tu hotel", detalle: "Tus precios, políticas y respuestas", valor: 4000 },
-  { titulo: "Alta CFDI con el SAT", detalle: "La dejamos configurada por ti", valor: 3000 },
   { titulo: "Migración + sync Booking/Airbnb", detalle: "Sin overbooking, sin líos", valor: 2500 },
   { titulo: "2 meses de acompañamiento 1-a-1", detalle: "Con el equipo fundador", valor: 3000 },
 ];

@@ -45,7 +45,6 @@ export const comparativas: Comparativa[] = [
       { aspecto: "Datos del huésped (correo/teléfono)", ota: "Limitados", kora: "Tuyos" },
       { aspecto: "Visibilidad ante viajeros nuevos", ota: "Alta", kora: "La generas tú" },
       { aspecto: "Atención", ota: "Reglas de la plataforma", kora: "WhatsApp directo con IA 24/7" },
-      { aspecto: "Facturación CFDI 4.0", ota: "Por tu cuenta", kora: "Integrada" },
     ],
     cuandoOta: [
       "Quieres visibilidad ante viajeros que no te conocen.",
@@ -88,7 +87,6 @@ export const comparativas: Comparativa[] = [
       { aspecto: "Relación con el huésped", ota: "La plataforma", kora: "Tu hotel" },
       { aspecto: "Atención al huésped", ota: "Mensajería de Airbnb", kora: "WhatsApp con IA 24/7" },
       { aspecto: "Visibilidad ante viajeros nuevos", ota: "Alta", kora: "La generas tú" },
-      { aspecto: "Facturación CFDI 4.0", ota: "Por tu cuenta", kora: "Integrada" },
     ],
     cuandoOta: [
       "Tu propiedad tiene carácter y encaja con la audiencia de Airbnb.",

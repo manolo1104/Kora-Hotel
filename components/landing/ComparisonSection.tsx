@@ -19,7 +19,6 @@ const koraFeatures = [
   "Dashboard + métricas en tiempo real",
   "Emails pre y post estancia",
   "Soporte en español",
-  "CFDI 4.0 incluido",
 ];
 
 export function ComparisonSection() {
@@ -98,7 +97,7 @@ export function ComparisonSection() {
           <p className="mt-3 text-center text-xs text-white/50 max-w-xl mx-auto leading-relaxed">
             Un solo plan de $550 MXN/mes, todo incluido y con habitaciones
             ilimitadas: motor de reservas, Camila (WhatsApp con IA), PMS,
-            dashboard, CRM y facturación CFDI.
+            dashboard y CRM.
           </p>
         </Reveal>
       </div>

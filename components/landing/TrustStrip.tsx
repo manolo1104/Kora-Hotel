@@ -1,11 +1,10 @@
-import { Check, FileCheck, ShieldCheck, Lock } from "lucide-react";
+import { Check, ShieldCheck, Lock } from "lucide-react";
 
 // Franja de confianza con datos 100% reales (nada inventado).
 const items = [
   "Hecho por un hotelero, no por una software house",
   "Ahorra hasta $12,000 MXN/mes en comisiones de OTAs",
   "Respuesta en segundos por WhatsApp",
-  "CFDI 4.0 con el SAT",
   "Te quedas con el 100% del pago",
   "Todo en español",
 ];
@@ -13,10 +12,6 @@ const items = [
 // Certificaciones y cumplimiento REALES (sin logos oficiales que no nos
 // corresponden): cada claim es verificable tal cual está escrito.
 const certificaciones = [
-  {
-    Icon: FileCheck,
-    texto: "Facturación CFDI 4.0 conforme al SAT, vía PAC autorizado",
-  },
   {
     Icon: ShieldCheck,
     texto: "Pagos procesados por Stripe · certificación PCI DSS Nivel 1",

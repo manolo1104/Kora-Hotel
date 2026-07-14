@@ -65,10 +65,10 @@ export default function TerminosPage() {
                 3. Pagos y cancelación
               </h2>
               <p>
-                El servicio se factura mensualmente. Hay un solo plan de $550
+                El servicio se cobra mensualmente. Hay un solo plan de $550
                 MXN/mes (más IVA), con habitaciones ilimitadas y todo incluido:
-                motor de reservas, PMS, Camila (WhatsApp con IA), dashboard, CRM
-                y facturación CFDI 4.0. El precio se mantiene vigente mientras la
+                motor de reservas, PMS, Camila (WhatsApp con IA), dashboard y
+                CRM. El precio se mantiene vigente mientras la
                 suscripción esté activa. El plan incluye 30 días de prueba
                 gratis; el primer cargo se realiza al finalizar la prueba.
               </p>

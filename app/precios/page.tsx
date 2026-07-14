@@ -10,7 +10,7 @@ import { PLANES } from "@/lib/oferta";
 export const metadata: Metadata = {
   title: "Precios de Kora: sistema hotelero para hoteles boutique · $550 MXN/mes",
   description:
-    "Un solo plan de $550 MXN/mes con habitaciones ilimitadas, mes a mes y sin permanencia: motor de reservas, PMS, Camila (WhatsApp con IA), dashboard, CRM y CFDI 4.0. Prueba 30 días gratis. Sitio web profesional opcional, como servicio aparte.",
+    "Un solo plan de $550 MXN/mes con habitaciones ilimitadas, mes a mes y sin permanencia: motor de reservas, PMS, Camila (WhatsApp con IA), dashboard y CRM. Prueba 30 días gratis. Sitio web profesional opcional, como servicio aparte.",
   alternates: {
     canonical: "/precios",
   },
@@ -26,7 +26,7 @@ const jsonLd = {
       "@type": "Product",
       name: "Kora",
       description:
-        "Sistema hotelero todo-en-uno con IA para hoteles boutique en México: reservas directas sin comisiones, agente de WhatsApp 24/7, PMS, dashboard con CRM y CFDI 4.0.",
+        "Sistema hotelero todo-en-uno con IA para hoteles boutique en México: reservas directas sin comisiones, agente de WhatsApp 24/7, PMS y dashboard con CRM.",
       brand: {
         "@type": "Brand",
         name: "Kora",
@@ -39,7 +39,7 @@ const jsonLd = {
         url: `${SITE_URL}/precios`,
         availability: "https://schema.org/InStock",
         description:
-          "Todo Kora con habitaciones ilimitadas: motor de reservas (0% de comisión), Camila (WhatsApp con IA), facturación CFDI 4.0, PMS, dashboard y CRM. Plan mes a mes, sin permanencia.",
+          "Todo Kora con habitaciones ilimitadas: motor de reservas (0% de comisión), Camila (WhatsApp con IA), PMS, dashboard y CRM. Plan mes a mes, sin permanencia.",
       })),
     },
     {

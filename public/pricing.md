@@ -13,7 +13,7 @@ Moneda: MXN (pesos mexicanos). Facturación mensual. Kora arranca en junio de 20
 
 ### Boutique — 1 a 8 habitaciones
 - Precio: $1,990 MXN/mes
-- Incluye: motor de reservas directo sin comisiones, PMS (habitaciones, check-in/out, housekeeping), dashboard con métricas y forecast, CRM de huéspedes y emails automáticos, facturación CFDI 4.0, soporte en español.
+- Incluye: motor de reservas directo sin comisiones, PMS (habitaciones, check-in/out, housekeeping), dashboard con métricas y forecast, CRM de huéspedes y emails automáticos, soporte en español.
 - No incluye: agente de WhatsApp con IA ni pricing dinámico (disponibles desde el plan Hotel).
 
 ### Hotel — 9 a 20 habitaciones (el más elegido)

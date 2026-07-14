@@ -9,8 +9,8 @@ export const PRECIO_DESDE = 550;
 //
 // Por ahora hay UN SOLO plan:
 //   • Kora ($550/mes) → todo incluido, con habitaciones ilimitadas: motor de
-//     reservas directo, PMS, Camila (WhatsApp con IA), dashboard, CRM y
-//     facturación CFDI. (El pricing dinámico queda fuera por ahora.)
+//     reservas directo, PMS, Camila (WhatsApp con IA), dashboard y CRM.
+//     (El pricing dinámico queda fuera por ahora.)
 
 export type PlanClave = "kora";
 
