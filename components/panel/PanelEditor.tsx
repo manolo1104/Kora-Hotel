@@ -31,7 +31,8 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { deriveUnidades } from "@/lib/booking";
-import { AMENIDADES, AMENIDADES_HAB } from "@/lib/amenidades";
+import { comprimirImagen } from "@/lib/images-client";
+import { AMENIDADES, AMENIDADES_HAB, TIPOS_CAMA } from "@/lib/amenidades";
 import { ResenasCapturadas } from "@/components/panel/ResenasCapturadas";
 import {
   FUENTES,
@@ -55,6 +56,10 @@ interface Tarifa {
   personas: string;
   precio: string;
 }
+interface Cama {
+  tipo: string; // "King", "Queen", … o un tipo propio
+  cantidad: number; // cuántas camas de ese tipo
+}
 interface Habitacion {
   nombre: string;
   precio: string;
@@ -63,6 +68,7 @@ interface Habitacion {
   fotos?: string[];
   tarifas?: Tarifa[];
   features?: string[]; // características de la habitación (etiquetas, chips)
+  camas?: Cama[]; // camas de la habitación (tipo + cantidad)
   cantidad?: number | string; // unidades físicas del tipo (default 1)
   unidades?: string[]; // nombres de cada unidad (solo si cantidad > 1)
 }
@@ -111,33 +117,46 @@ function slugify(s: string): string {
     .slice(0, 40);
 }
 
-// Comprime/redimensiona una imagen EN EL NAVEGADOR antes de subirla: la escala a
-// máx. `maxDim` px por lado y la exporta a WebP. Si algo falla o no es una imagen
-// rasterizable (SVG/GIF), devuelve el archivo original — nunca bloquea la subida.
-// Reduce mucho el peso → el motor de reservas carga más rápido.
-async function comprimirImagen(file: File, maxDim = 1600, quality = 0.82): Promise<Blob> {
-  const t = file.type;
-  if (!t.startsWith("image/") || t === "image/svg+xml" || t === "image/gif") return file;
-  try {
-    const bitmap = await createImageBitmap(file);
-    const escala = Math.min(1, maxDim / Math.max(bitmap.width, bitmap.height));
-    const w = Math.max(1, Math.round(bitmap.width * escala));
-    const h = Math.max(1, Math.round(bitmap.height * escala));
-    const canvas = document.createElement("canvas");
-    canvas.width = w;
-    canvas.height = h;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return file;
-    ctx.drawImage(bitmap, 0, 0, w, h);
-    bitmap.close?.();
-    const blob: Blob | null = await new Promise((res) =>
-      canvas.toBlob((b) => res(b), "image/webp", quality)
-    );
-    // Solo usar la comprimida si de verdad pesa menos (fotos ya pequeñas no ganan).
-    return blob && blob.size > 0 && blob.size < file.size ? blob : file;
-  } catch {
-    return file;
+// Input + botón para agregar un valor propio (un tipo de cama o una característica
+// que no esté en la lista fija). Maneja su propio texto y se limpia al agregar.
+function AgregarChip({
+  placeholder,
+  onAdd,
+}: {
+  placeholder: string;
+  onAdd: (valor: string) => void;
+}) {
+  const [texto, setTexto] = useState("");
+  function agregar() {
+    const v = texto.trim();
+    if (!v) return;
+    onAdd(v);
+    setTexto("");
   }
+  return (
+    <div className="flex items-center gap-2">
+      <input
+        value={texto}
+        onChange={(e) => setTexto(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            agregar();
+          }
+        }}
+        placeholder={placeholder}
+        maxLength={40}
+        className="flex-1 min-w-0 px-3 py-1.5 rounded-lg border border-gray-200 text-xs text-kora-text placeholder:text-kora-muted focus:outline-none focus:ring-2 focus:ring-kora-accent"
+      />
+      <button
+        type="button"
+        onClick={agregar}
+        className="btn-press inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-gray-200 text-kora-primary text-xs font-semibold hover:border-kora-accent"
+      >
+        <Plus size={13} /> Agregar
+      </button>
+    </div>
+  );
 }
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
@@ -210,6 +229,13 @@ export function PanelEditor({
   const [hotelId, setHotelId] = useState<string | null>(null);
   const [slug, setSlug] = useState("");
   const [tab, setTab] = useState<string>("contenido");
+  // Abrir directo en una pestaña vía ?tab= (lo usan los enlaces del diagnóstico de
+  // Camila y del checklist "Primeros pasos"). Solo se aplica una vez, al montar.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const t = new URLSearchParams(window.location.search).get("tab");
+    if (t && TABS.some((x) => x.key === t)) setTab(t);
+  }, []);
   // Wizard de bienvenida (solo cuando aún no existe el hotel)
   const [paso, setPaso] = useState(0);
 
@@ -298,6 +324,7 @@ export function PanelEditor({
 
   // Extras vendibles (add-ons) — viven en extras.addons
   const [addons, setAddons] = useState<Addon[]>([]);
+  const [subiendoImgAddon, setSubiendoImgAddon] = useState<number | null>(null); // add-on cuya foto se está subiendo
   function addAddon() {
     setAddons((a) => [...a, { nombre: "", precio: 0, tipo: "estancia" }]);
   }
@@ -764,6 +791,18 @@ export function PanelEditor({
     }
   }
 
+  // Sube UNA foto para el add-on i (mismo Storage y compresión que todo lo demás).
+  async function subirImagenAddon(i: number, files: FileList | null) {
+    if (!files || files.length === 0) return;
+    setSubiendoImgAddon(i);
+    try {
+      const urls = await subirArchivos(files);
+      if (urls[0]) updateAddon(i, "imagen", urls[0]);
+    } finally {
+      setSubiendoImgAddon(null);
+    }
+  }
+
   // Activa/desactiva una característica (feature) de la habitación i.
   function toggleHabFeature(i: number, label: string) {
     setHabitaciones((h) =>
@@ -774,6 +813,63 @@ export function PanelEditor({
           ? cur.filter((f) => f !== label)
           : [...cur, label];
         return { ...it, features };
+      })
+    );
+  }
+
+  // Agrega una característica PROPIA (que no está en la lista fija) a la habitación i.
+  function addHabFeatureCustom(i: number, label: string) {
+    const l = label.trim();
+    if (!l) return;
+    setHabitaciones((h) =>
+      h.map((it, idx) => {
+        if (idx !== i) return it;
+        const cur = Array.isArray(it.features) ? it.features : [];
+        if (cur.some((f) => f.toLowerCase() === l.toLowerCase())) return it;
+        return { ...it, features: [...cur, l] };
+      })
+    );
+  }
+
+  // ── Camas de la habitación (tipo + cantidad) ──────────────────────────────
+  // Alterna un tipo de cama: al prender lo agrega con cantidad 1; al apagar lo quita.
+  function toggleHabCama(i: number, tipo: string) {
+    setHabitaciones((h) =>
+      h.map((it, idx) => {
+        if (idx !== i) return it;
+        const cur = Array.isArray(it.camas) ? it.camas : [];
+        const existe = cur.find((c) => c.tipo === tipo);
+        const camas = existe
+          ? cur.filter((c) => c.tipo !== tipo)
+          : [...cur, { tipo, cantidad: 1 }];
+        return { ...it, camas };
+      })
+    );
+  }
+  // Cambia cuántas camas de un tipo. Si baja a 0, quita el tipo.
+  function updateHabCamaCantidad(i: number, tipo: string, cantidad: number) {
+    const n = Math.max(0, Math.min(20, Math.round(cantidad) || 0));
+    setHabitaciones((h) =>
+      h.map((it, idx) => {
+        if (idx !== i) return it;
+        const cur = Array.isArray(it.camas) ? it.camas : [];
+        const camas = n <= 0
+          ? cur.filter((c) => c.tipo !== tipo)
+          : cur.map((c) => (c.tipo === tipo ? { ...c, cantidad: n } : c));
+        return { ...it, camas };
+      })
+    );
+  }
+  // Agrega un tipo de cama PROPIO (que no está en TIPOS_CAMA).
+  function addHabCamaCustom(i: number, tipo: string) {
+    const t = tipo.trim();
+    if (!t) return;
+    setHabitaciones((h) =>
+      h.map((it, idx) => {
+        if (idx !== i) return it;
+        const cur = Array.isArray(it.camas) ? it.camas : [];
+        if (cur.some((c) => c.tipo.toLowerCase() === t.toLowerCase())) return it;
+        return { ...it, camas: [...cur, { tipo: t, cantidad: 1 }] };
       })
     );
   }
@@ -1003,7 +1099,12 @@ export function PanelEditor({
       },
       addons: addons
         .filter((a) => (a.nombre ?? "").trim())
-        .map((a) => ({ nombre: a.nombre.trim(), precio: Number(a.precio) || 0, tipo: a.tipo })),
+        .map((a) => ({
+          nombre: a.nombre.trim(),
+          precio: Number(a.precio) || 0,
+          tipo: a.tipo,
+          ...(a.imagen?.trim() ? { imagen: a.imagen.trim() } : {}),
+        })),
       // Experiencias vendibles en el motor (tours/traslados/cena/spa). El checkout
       // revalida y recalcula server-side; aquí solo se filtra lo vacío.
       experiencias: experiencias
@@ -1840,6 +1941,99 @@ export function PanelEditor({
                   </button>
                 </div>
 
+                {/* Camas de la habitación (tipo + cantidad) → habitacion.camas */}
+                <div className="rounded-lg bg-white border border-gray-100 p-3">
+                  <p className="text-xs font-semibold text-kora-text mb-2">
+                    Camas{" "}
+                    <span className="font-normal text-kora-muted">
+                      (elige los tipos y cuántas de cada una)
+                    </span>
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {TIPOS_CAMA.map(({ key, label, Icon }) => {
+                      const cama = (h.camas ?? []).find((c) => c.tipo === label);
+                      const activa = Boolean(cama);
+                      return (
+                        <div
+                          key={key}
+                          className={`flex items-center justify-between gap-2 px-3 py-2 rounded-xl border text-xs font-semibold transition-colors ${
+                            activa
+                              ? "border-kora-accent bg-kora-accent/10 text-kora-primary"
+                              : "border-gray-200 text-kora-muted"
+                          }`}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => toggleHabCama(i, label)}
+                            aria-pressed={activa}
+                            className="btn-press flex items-center gap-2 min-w-0 flex-1 text-left"
+                          >
+                            <Icon size={14} aria-hidden={true} />
+                            <span className="min-w-0 truncate">{label}</span>
+                          </button>
+                          {activa && (
+                            <span className="flex items-center gap-1 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => updateHabCamaCantidad(i, label, (cama?.cantidad ?? 1) - 1)}
+                                aria-label="Menos"
+                                className="grid h-6 w-6 place-items-center rounded-md border border-gray-200 text-kora-text"
+                              >
+                                −
+                              </button>
+                              <span className="w-4 text-center tabular-nums">{cama?.cantidad ?? 1}</span>
+                              <button
+                                type="button"
+                                onClick={() => updateHabCamaCantidad(i, label, (cama?.cantidad ?? 1) + 1)}
+                                aria-label="Más"
+                                className="grid h-6 w-6 place-items-center rounded-md border border-kora-accent text-kora-primary"
+                              >
+                                +
+                              </button>
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {/* Camas de tipo propio (que no están en la lista fija) */}
+                  {(h.camas ?? [])
+                    .filter((c) => !TIPOS_CAMA.some((tc) => tc.label === c.tipo))
+                    .map((c) => (
+                      <div
+                        key={c.tipo}
+                        className="mt-2 flex items-center justify-between gap-2 px-3 py-2 rounded-xl border border-kora-accent bg-kora-accent/10 text-xs font-semibold text-kora-primary"
+                      >
+                        <span className="min-w-0 truncate">{c.tipo}</span>
+                        <span className="flex items-center gap-1 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => updateHabCamaCantidad(i, c.tipo, c.cantidad - 1)}
+                            aria-label="Menos"
+                            className="grid h-6 w-6 place-items-center rounded-md border border-gray-200 text-kora-text"
+                          >
+                            −
+                          </button>
+                          <span className="w-4 text-center tabular-nums">{c.cantidad}</span>
+                          <button
+                            type="button"
+                            onClick={() => updateHabCamaCantidad(i, c.tipo, c.cantidad + 1)}
+                            aria-label="Más"
+                            className="grid h-6 w-6 place-items-center rounded-md border border-kora-accent text-kora-primary"
+                          >
+                            +
+                          </button>
+                        </span>
+                      </div>
+                    ))}
+                  <div className="mt-2">
+                    <AgregarChip
+                      placeholder="Agregar otro tipo de cama (ej. Cuna)"
+                      onAdd={(v) => addHabCamaCustom(i, v)}
+                    />
+                  </div>
+                </div>
+
                 {/* Características de la habitación (chips → habitacion.features) */}
                 <div className="rounded-lg bg-white border border-gray-100 p-3">
                   <p className="text-xs font-semibold text-kora-text mb-2">
@@ -1868,6 +2062,35 @@ export function PanelEditor({
                         </button>
                       );
                     })}
+                  </div>
+                  {/* Características propias (las que no están en la lista fija) */}
+                  {(h.features ?? []).filter((f) => !AMENIDADES_HAB.some((a) => a.label === f)).length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {(h.features ?? [])
+                        .filter((f) => !AMENIDADES_HAB.some((a) => a.label === f))
+                        .map((f) => (
+                          <span
+                            key={f}
+                            className="inline-flex items-center gap-1 rounded-full border border-kora-accent bg-kora-accent/10 px-2.5 py-1 text-[11px] font-semibold text-kora-primary"
+                          >
+                            {f}
+                            <button
+                              type="button"
+                              onClick={() => toggleHabFeature(i, f)}
+                              aria-label={`Quitar ${f}`}
+                              className="text-kora-primary/70 hover:text-red-600"
+                            >
+                              ×
+                            </button>
+                          </span>
+                        ))}
+                    </div>
+                  )}
+                  <div className="mt-2">
+                    <AgregarChip
+                      placeholder="Agregar otra característica (ej. Jacuzzi privado)"
+                      onAdd={(v) => addHabFeatureCustom(i, v)}
+                    />
                   </div>
                 </div>
 
@@ -2861,6 +3084,33 @@ export function PanelEditor({
                       <option value="noche">Por noche</option>
                       <option value="persona">Por persona</option>
                     </select>
+                  </div>
+                  {/* Foto opcional del extra (se muestra en el motor de reservas) */}
+                  <div className="flex items-center gap-2">
+                    {a.imagen ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={a.imagen} alt="" className="w-11 h-11 rounded-lg object-cover border border-gray-200" />
+                    ) : null}
+                    <label className="btn-press inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 text-kora-text font-semibold text-xs cursor-pointer hover:border-kora-accent">
+                      {subiendoImgAddon === i ? <Loader2 size={13} className="animate-spin" /> : <ImagePlus size={13} />}
+                      {a.imagen ? "Cambiar" : "Foto"}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        disabled={subiendoImgAddon !== null}
+                        onChange={(ev) => void subirImagenAddon(i, ev.target.files)}
+                      />
+                    </label>
+                    {a.imagen ? (
+                      <button
+                        type="button"
+                        onClick={() => updateAddon(i, "imagen", "")}
+                        className="text-[11px] text-red-600 hover:underline"
+                      >
+                        Quitar
+                      </button>
+                    ) : null}
                   </div>
                   <button
                     type="button"

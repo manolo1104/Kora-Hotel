@@ -61,6 +61,7 @@ export default function AdminSidebar({ slug, hotelName }: { slug: string; hotelN
               <a
                 key={seg}
                 href={href}
+                data-tour={`nav-${seg}`}
                 className={`${styles.navItem} ${pathname === href ? styles.active : ''}`}
                 onClick={() => setOpen(false)}
               >
@@ -74,6 +75,7 @@ export default function AdminSidebar({ slug, hotelName }: { slug: string; hotelN
           <p className={styles.navGroupLabel}>Mi sitio</p>
           <a
             href={`${base}/sitio`}
+            data-tour="nav-sitio"
             className={`${styles.navItem} ${pathname === `${base}/sitio` ? styles.active : ''}`}
             onClick={() => setOpen(false)}
           >
@@ -84,6 +86,7 @@ export default function AdminSidebar({ slug, hotelName }: { slug: string; hotelN
             href={`/h/${slug}/reservar`}
             target="_blank"
             rel="noopener noreferrer"
+            data-tour="nav-motor"
             className={styles.navItem}
             onClick={() => setOpen(false)}
           >

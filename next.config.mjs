@@ -6,6 +6,13 @@ const nextConfig = {
       { protocol: "https", hostname: "*.supabase.co" },
       { protocol: "https", hostname: "*.supabase.in" },
     ],
+    // Servir WebP/AVIF. Cache larga (31 días) para NO regenerar la misma foto una
+    // y otra vez, y un juego ACOTADO de tamaños para limitar el nº de
+    // transformaciones (protege la cuota de Vercel Hobby ~5k/mes).
+    formats: ["image/avif", "image/webp"],
+    minimumCacheTTL: 2678400,
+    deviceSizes: [360, 640, 828, 1080, 1200],
+    imageSizes: [56, 96, 200],
   },
 
   // 301 del dominio de Vercel duplicado → dominio canónico (evita contenido duplicado en SEO).

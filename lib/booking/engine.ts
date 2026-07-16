@@ -16,6 +16,7 @@ export interface BookingRoom {
   image?: string;
   images?: string[];
   features?: string[];
+  camas?: { tipo: string; cantidad: number }[]; // camas del tipo (tipo + cuántas)
   // Inventario: un tipo puede tener N unidades físicas. cantidad=1 (default) =
   // comportamiento previo. `unidades` son los nombres reales que usan blocks/iCal.
   cantidad: number;
@@ -228,6 +229,7 @@ export interface AddonRule {
   nombre: string;
   precio: number;
   tipo: "estancia" | "noche" | "persona";
+  imagen?: string; // foto opcional para mostrar en el motor (no afecta el precio)
 }
 
 /** Total de los extras seleccionados (por índice en la lista del hotel). */

@@ -29,8 +29,23 @@ interface HabitacionRaw {
   images?: string[];
   image?: string;
   features?: string[];
+  camas?: Array<{ tipo?: string; cantidad?: number | string }>; // camas del tipo
   cantidad?: number | string; // unidades físicas del tipo (default 1)
   unidades?: string[]; // nombres explícitos de cada unidad (opcional)
+}
+
+/** Normaliza las camas jsonb a {tipo, cantidad}[] válidas (descarta basura). */
+function parseCamas(raw: unknown): { tipo: string; cantidad: number }[] {
+  if (!Array.isArray(raw)) return [];
+  const out: { tipo: string; cantidad: number }[] = [];
+  for (const c of raw) {
+    if (!c || typeof c !== "object") continue;
+    const o = c as Record<string, unknown>;
+    const tipo = String(o.tipo ?? "").trim();
+    const cantidad = Math.max(1, Math.min(20, Math.round(Number(o.cantidad) || 0)));
+    if (tipo && cantidad > 0) out.push({ tipo, cantidad });
+  }
+  return out;
 }
 
 interface HotelLike {
@@ -105,6 +120,7 @@ export function hotelRooms(hotel: HotelLike): BookingRoom[] {
       image: h.image ?? images?.[0],
       images,
       features: h.features,
+      camas: parseCamas(h.camas),
       cantidad,
       unidades,
     };
@@ -198,6 +214,12 @@ function parseRecargoFinDeSemana(raw: unknown): RecargoFinDeSemana | undefined {
     ? o.dias.map(Number).filter((n) => Number.isInteger(n) && n >= 0 && n <= 6)
     : [];
   return { activo: true, dias: dias.length ? dias : [5, 6], ajuste };
+}
+
+/** Temporadas válidas del hotel (extras.temporadas), ya parseadas y clampadas. */
+export function temporadasDe(hotel: HotelLike): Temporada[] {
+  const extras = (hotel.extras ?? {}) as Record<string, unknown>;
+  return parseTemporadas(extras.temporadas);
 }
 
 /** Opciones de precio por noche derivadas de la config del hotel. */

@@ -72,6 +72,7 @@ export interface Addon {
   nombre: string;
   precio: number;
   tipo: "estancia" | "noche" | "persona"; // cobro: por reserva / por noche / por persona
+  imagen?: string; // URL de foto (Storage del hotel); opcional
 }
 
 // Experiencias vendibles en el motor: tours, traslados, cena, spa. Es un add-on

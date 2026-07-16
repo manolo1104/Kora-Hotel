@@ -24,6 +24,8 @@ export function buildHotelKnowledge(hotel: HotelRow): BotKnowledge {
       desde: getRoomBasePrice(r, 2),
       desdeTexto: formatMXN(getRoomBasePrice(r, 2)),
       maxHuespedes: r.maxGuests,
+      camas: Array.isArray(r.camas) ? r.camas.map((c) => `${c.cantidad} ${c.tipo}`) : [],
+      caracteristicas: Array.isArray(r.features) ? r.features : [],
     })),
     amenidades: (extras.amenidades as string[]) ?? [],
     // FIX: mezcla las FAQs del panel ({pregunta,respuesta}) + las solo-del-bot

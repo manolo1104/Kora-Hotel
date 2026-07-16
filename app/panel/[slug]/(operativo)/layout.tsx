@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import AdminSidebar from "@/components/admin/AdminSidebar";
+import GuidedTour from "@/components/panel/GuidedTour";
 import { requireHotelMember } from "@/lib/tenant";
 import { accesoDelHotel } from "@/lib/suscripcion";
 import { PruebaBanner, PruebaVencida } from "@/components/panel/PruebaEstado";
@@ -26,6 +27,10 @@ export default async function PanelOperativoLayout({
   // el panel operativo se pausa (los datos se conservan íntegros).
   const acceso = await accesoDelHotel(ctx.hotel);
 
+  // Tour guiado: arranca solo la primera vez (extras.onboarding.tourVisto).
+  const onboarding = (ctx.hotel.extras?.onboarding ?? {}) as Record<string, unknown>;
+  const tourVisto = onboarding.tourVisto === true;
+
   return (
     <div className={styles.shell}>
       <AdminSidebar slug={slug} hotelName={ctx.hotel.nombre} />
@@ -33,6 +38,7 @@ export default async function PanelOperativoLayout({
         {acceso.prueba && !acceso.prueba.vencida && <PruebaBanner prueba={acceso.prueba} />}
         {acceso.activo ? children : <PruebaVencida hotelNombre={ctx.hotel.nombre} />}
       </div>
+      {acceso.activo && <GuidedTour initialVisto={tourVisto} />}
     </div>
   );
 }

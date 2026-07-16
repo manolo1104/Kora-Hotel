@@ -16,6 +16,7 @@ import {
   ChevronLeft,
   Lock,
   Flame,
+  BedDouble,
 } from "lucide-react";
 import {
   type BookingRoom,
@@ -39,6 +40,7 @@ import {
   type RecargoFinDeSemana,
 } from "@/lib/booking";
 import { t, localeOf, normalizeLang, LANG_KEY, type Lang } from "@/lib/booking/i18n";
+import { HotelImage } from "@/components/HotelImage";
 import { type Experiencia, type ExperienciasBundle } from "@/lib/mini";
 import {
   trackViewItems,
@@ -109,13 +111,11 @@ function RoomGallery({ room, lang }: { room: BookingRoom; lang: Lang }) {
   const go = (d: number) => setIdx((i) => (i + d + images.length) % images.length);
   return (
     <div className="relative h-full w-full">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
+      <HotelImage
         src={images[idx]}
         alt={t(lang, "fotoDe", { i: idx + 1, n: images.length, room: room.name })}
-        className="h-full w-full object-cover"
-        loading="lazy"
-        decoding="async"
+        className="h-full w-full"
+        sizes="(max-width: 640px) 100vw, 400px"
       />
       {images.length > 1 && (
         <>
@@ -981,8 +981,7 @@ export default function ReservarClient({
         {coverUrl ? (
           <header className="mb-5 overflow-hidden rounded-2xl">
             <div className="relative">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={coverUrl} alt={hotelNombre} className="h-44 w-full object-cover sm:h-52" />
+              <HotelImage src={coverUrl} alt={hotelNombre} className="h-44 w-full sm:h-52" sizes="100vw" priority />
               <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-transparent" />
               <div className="absolute inset-x-0 bottom-0 p-4 sm:p-5">
                 <p className="text-xs font-semibold uppercase tracking-wide text-white/90">{t(lang, "badge")}</p>
@@ -1167,6 +1166,12 @@ export default function ReservarClient({
                         <p className="mt-1.5 inline-flex items-center gap-1 text-xs text-kora-muted">
                           <Users size={12} aria-hidden="true" /> {t(lang, "hastaPersonas", { n: room.maxGuests })}
                         </p>
+                        {room.camas && room.camas.length > 0 && (
+                          <p className="mt-1 inline-flex items-center gap-1 text-xs text-kora-muted">
+                            <BedDouble size={12} aria-hidden="true" />{" "}
+                            {room.camas.map((c) => `${c.cantidad} ${c.tipo}`).join(" · ")}
+                          </p>
+                        )}
 
                         {room.features && room.features.length > 0 && (
                           <div className="mt-2 flex flex-wrap gap-1.5">
@@ -1371,6 +1376,9 @@ export default function ReservarClient({
                               >
                                 {on && <Check size={13} style={{ color: "var(--brand-ink)" }} aria-hidden="true" />}
                               </span>
+                              {a.imagen ? (
+                                <HotelImage src={a.imagen} alt="" className="h-11 w-11 shrink-0 rounded-lg" sizes="44px" />
+                              ) : null}
                               <span className="text-sm font-semibold">{a.nombre}</span>
                             </span>
                             <span className="text-sm tabular-nums text-kora-muted">{unit}</span>
@@ -1412,8 +1420,7 @@ export default function ReservarClient({
                           >
                             <div className="flex items-center gap-3">
                               {e.imagen ? (
-                                // eslint-disable-next-line @next/next/no-img-element
-                                <img src={e.imagen} alt="" className="h-14 w-14 shrink-0 rounded-lg object-cover" />
+                                <HotelImage src={e.imagen} alt="" className="h-14 w-14 shrink-0 rounded-lg" sizes="56px" />
                               ) : null}
                               <div className="min-w-0 flex-1">
                                 <p className="text-sm font-semibold">{e.nombre}</p>
