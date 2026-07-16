@@ -91,7 +91,7 @@ export default function CasoParaisoEncantadoPage() {
               { label: "Ubicación", value: "Xilitla, San Luis Potosí" },
               { label: "Tipo", value: "Boutique de naturaleza" },
               { label: "Habitaciones", value: "15" },
-              { label: "Tiempo de implementación", value: "72 horas" },
+              { label: "Tiempo de implementación", value: "48 horas" },
             ].map((item) => (
               <div key={item.label}>
                 <span className="font-semibold text-kora-text">

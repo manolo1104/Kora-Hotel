@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowRight, AlertCircle, Check } from "lucide-react";
 import { personas, getPersona } from "@/lib/personas";
+import { metaDescripcion } from "@/lib/seo";
 import { Reveal } from "@/components/shared/Reveal";
 import { BarraCTA } from "@/components/shared/BarraCTA";
 
@@ -22,7 +23,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!p) return { title: "Página no encontrada — Kora" };
   return {
     title: `${p.titulo} | Kora`,
-    description: p.intro.slice(0, 155),
+    description: metaDescripcion(p.intro),
     alternates: { canonical: `/para/${p.slug}` },
     openGraph: {
       title: p.titulo,

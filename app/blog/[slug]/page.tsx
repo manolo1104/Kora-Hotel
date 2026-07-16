@@ -60,7 +60,7 @@ export default async function BlogArticlePage({ params }: Props) {
         "@type": "Article",
         headline: article.title,
         description: article.excerpt,
-        image: article.image,
+        image: `${siteUrl}${article.image}`,
         inLanguage: "es-MX",
         datePublished: article.publishedIso,
         dateModified: article.updatedIso || article.publishedIso,

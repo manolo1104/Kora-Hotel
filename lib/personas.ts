@@ -51,7 +51,7 @@ export const personas: Persona[] = [
     faqs: [
       {
         q: "¿Kora sirve para un hotel boutique pequeño?",
-        a: "Sí. Está diseñado precisamente para hoteles boutique e independientes en México, operados por su dueño. Lo instalamos y capacitamos nosotros en 48 a 72 horas.",
+        a: "Sí. Está diseñado precisamente para hoteles boutique e independientes en México, operados por su dueño. Lo instalamos y capacitamos nosotros en 48 horas.",
       },
       {
         q: "¿Pierdo mis reservas de Booking o Airbnb?",
@@ -86,7 +86,7 @@ export const personas: Persona[] = [
       {
         titulo: "Instalado y con soporte en español",
         texto:
-          "Lo configuramos por ti en 48 a 72 horas y te damos soporte por WhatsApp. Cero fricción técnica.",
+          "Lo configuramos por ti en 48 horas y te damos soporte por WhatsApp. Cero fricción técnica.",
       },
     ],
     faqs: [
@@ -107,7 +107,7 @@ export const personas: Persona[] = [
     resumen:
       "Reservas directas, WhatsApp con IA y tarifas por temporada para hoteles boutique de playa en México.",
     intro:
-      "Un hotel pequeño de playa vive de temporadas marcadas, puentes y viajeros que planean con ilusión pero preguntan mucho antes de reservar. Necesita captar reservas directas sin comisión, cobrar anticipo para asegurar la fecha y contestar rápido. Kora reúne motor de reservas, IA en WhatsApp y tarifas por temporada en un solo sistema, en español.",
+      "Un hotel boutique de playa en México —de Sayulita y Puerto Escondido a Tulum, Bacalar o Zihuatanejo— vive de temporadas marcadas, puentes y viajeros que planean con ilusión pero preguntan mucho antes de reservar. Necesita captar reservas directas sin comisión, cobrar anticipo para asegurar la fecha y contestar rápido. Kora reúne motor de reservas, IA en WhatsApp y tarifas por temporada en un solo sistema, en español.",
     dolor: [
       "La ocupación se concentra en temporada alta y puentes: cada reserva por OTA en esas fechas se lleva 15%–20% justo cuando más pesa.",
       "El huésped pregunta por disponibilidad, mascotas, alberca o vista a toda hora, y si no le contestas, reserva en otro lado.",
@@ -138,6 +138,10 @@ export const personas: Persona[] = [
       {
         q: "¿Puedo cobrar anticipo para reservar?",
         a: "Sí. El motor cobra el anticipo con tarjeta al confirmar, para asegurar la reserva y reducir cancelaciones de última hora.",
+      },
+      {
+        q: "¿Sirve para un hotel de playa en Tulum, Sayulita o Puerto Escondido?",
+        a: "Sí. Kora sirve para hoteles boutique de playa en cualquier destino de México. Convive con Booking, Airbnb y Expedia mientras haces crecer tu canal directo sin comisión, y lo montamos llave en mano en 48 horas.",
       },
     ],
   },
