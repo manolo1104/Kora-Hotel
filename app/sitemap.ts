@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 import { createClient } from "@supabase/supabase-js";
-import { articles } from "@/lib/articles";
+import { getAllArticles } from "@/lib/blog-db";
 import { herramientasDisponibles } from "@/lib/herramientas";
 import { glosario } from "@/lib/glosario";
 import { comparativas } from "@/lib/comparativas";
@@ -41,6 +41,8 @@ async function miniPaginas(): Promise<MetadataRoute.Sitemap> {
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const hotelEntries = await miniPaginas();
+  // Estáticos (lib/articles.ts) + generados por el agente (blog_articles).
+  const articles = await getAllArticles();
   const articleEntries: MetadataRoute.Sitemap = articles.map((article) => ({
     url: `${BASE_URL}/blog/${article.slug}`,
     lastModified: new Date(article.updatedIso || article.publishedIso),

@@ -1,0 +1,58 @@
+name: Blog Agent — 1 artículo cada 3 días
+
+on:
+  schedule:
+    # Corre DIARIO a las 14:20 UTC (8:20 AM CDMX). El propio agente decide si
+    # "hoy toca" publicar (cada 3 días exactos desde su fecha ancla) — así
+    # evitamos el bug del cron "*/3", que se reinicia al cambiar de mes.
+    - cron: "20 14 * * *"
+  workflow_dispatch:
+    inputs:
+      topic:
+        description: "Tema específico del banco (opcional, busca por título/keyword)"
+        required: false
+        default: ""
+      dry_run:
+        description: "Dry run (genera sin publicar)"
+        type: boolean
+        default: false
+      force:
+        description: "Publicar hoy aunque no toque por calendario"
+        type: boolean
+        default: false
+
+jobs:
+  generate-post:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        working-directory: blog-agent
+        run: npm install
+
+      - name: Generate and publish blog post
+        working-directory: blog-agent
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          BLOG_AGENT_SECRET: ${{ secrets.BLOG_AGENT_SECRET }}
+        run: |
+          ARGS=""
+          if [[ "${{ github.event.inputs.dry_run }}" == "true" ]]; then
+            ARGS="$ARGS --dry-run"
+          fi
+          if [[ "${{ github.event.inputs.force }}" == "true" ]]; then
+            ARGS="$ARGS --force"
+          fi
+          if [[ -n "${{ github.event.inputs.topic }}" ]]; then
+            ARGS="$ARGS --topic '${{ github.event.inputs.topic }}'"
+          fi
+          node index.js $ARGS

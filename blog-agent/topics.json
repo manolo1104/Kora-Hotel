@@ -1,0 +1,436 @@
+{
+  "contexto_negocio": {
+    "objetivo_principal": "Posicionar a Kora (kora-hotel.com) como la referencia en gestión hotelera inteligente para hoteles boutique e independientes en México, atraer hoteleros por búsqueda orgánica y AI search, y convertirlos a la prueba de 30 días sin tarjeta.",
+    "producto": "Kora: motor de reservas directas + agente de WhatsApp con IA (Camila) + CRM + sync con OTAs + experiencias, plan único $550 MXN/mes.",
+    "audiencia": "Dueños y administradores de hoteles boutique e independientes en México (5 a 40 habitaciones), sin equipo técnico.",
+    "autor": "Manolo Covarrubias, fundador de Kora y dueño del Hotel Paraíso Encantado (Xilitla, SLP).",
+    "cadencia": "1 artículo cada 3 días (GitHub Actions + blog-agent)."
+  },
+  "calendario_editorial": {
+    "bloque_1_reservas_directas_y_otas": {
+      "enfoque": "Capturar hoteleros frustrados con las comisiones y la dependencia de OTAs — el dolor #1 que resuelve Kora.",
+      "articulos": [
+        {
+          "id": 1,
+          "titulo": "Motor de reservas para hotel: qué es y cómo elegir el mejor en México",
+          "palabras_clave": ["motor de reservas para hotel", "motor de reservas que es", "booking engine hotel", "sistema de reservas para hotel"],
+          "objetivo_seo": "Capturar búsqueda comercial de hoteleros comparando motores de reservas; posicionar la comparativa antes de que lleguen a Cloudbeds o SiteMinder.",
+          "enfoque_agente": "Explicar criterios de elección honestos (pagos MXN/OXXO, sin comisión por reserva, WhatsApp) y presentar Kora como opción hecha para hoteles independientes mexicanos.",
+          "estado": "pendiente", "slug_publicado": null, "fecha_publicacion": null
+        },
+        {
+          "id": 2,
+          "titulo": "Cómo reducir la dependencia de Booking sin perder ocupación",
+          "palabras_clave": ["reducir dependencia de booking", "depender menos de las otas", "hotel depende de booking", "estrategia canal directo hotel"],
+          "objetivo_seo": "Búsqueda de solución de hoteleros con 70%+ de reservas por OTA; complementa (no repite) el artículo existente de reservas directas.",
+          "enfoque_agente": "Plan de transición gradual por trimestres con metas de mezcla de canales; enlazar al artículo estático de reservas directas y a la calculadora de comisiones.",
+          "estado": "pendiente", "slug_publicado": null, "fecha_publicacion": null
+        },
+        {
+          "id": 3,
+          "titulo": "Paridad de tarifas: qué exige Booking y cómo usarla a tu favor",
+          "palabras_clave": ["paridad de tarifas hotel", "paridad de precios booking", "rate parity que es", "tarifas iguales booking y web"],
+          "objetivo_seo": "Término técnico con poca competencia en español; captura hoteleros que investigan si pueden dar mejor precio en su web.",
+          "enfoque_agente": "Explicar la cláusula, lo que sí es legal en México, y la estrategia de valor agregado en canal directo (desayuno, late check-out, upgrade).",
+          "estado": "pendiente", "slug_publicado": null, "fecha_publicacion": null
+        },
+        {
+          "id": 4,
+          "titulo": "Channel manager: qué es, cuándo lo necesitas y cuánto cuesta",
+          "palabras_clave": ["channel manager que es", "channel manager para hoteles", "sincronizar booking y airbnb", "channel manager precio"],
+          "objetivo_seo": "Búsqueda informacional-comercial de alto intento; el hotelero que la hace ya vende en 2+ OTAs y sufre sobreventas.",
+          "enfoque_agente": "Definición clara, señales de que ya lo necesitas, rangos de precio del mercado y cómo Kora sincroniza calendarios OTA vía iCal sin costo extra.",
+          "estado": "pendiente", "slug_publicado": null, "fecha_publicacion": null
+        },
+        {
+          "id": 5,
+          "titulo": "Google Hotels para hoteleros: cómo vender habitaciones sin pagar comisión",
+          "palabras_clave": ["google hotels para hoteles", "aparecer en google hotels", "google hotel ads gratis", "enlaces de reserva gratuitos google"],
+          "objetivo_seo": "Capturar la búsqueda de hoteleros que vieron su hotel en Google con precios de OTAs y quieren su propio enlace directo.",
+          "enfoque_agente": "Guía paso a paso de free booking links con Google Business Profile + motor propio; caso práctico con capturas conceptuales.",
+          "estado": "pendiente", "slug_publicado": null, "fecha_publicacion": null
+        },
+        {
+          "id": 6,
+          "titulo": "Página web para hotel que sí vende: los 7 elementos indispensables",
+          "palabras_clave": ["pagina web para hotel", "sitio web para hotel", "diseño web hoteles", "pagina de hotel con reservas"],
+          "objetivo_seo": "Búsqueda comercial amplia de hoteleros montando o renovando su sitio; puerta de entrada al motor + mini-página de Kora.",
+          "enfoque_agente": "Checklist de 7 elementos (botón reservar visible, disponibilidad real, WhatsApp, fotos, velocidad, SEO local, prueba social); mencionar que Kora incluye mini-página lista.",
+          "estado": "pendiente", "slug_publicado": null, "fecha_publicacion": null
+        },
+        {
+          "id": 7,
+          "titulo": "Airbnb vs hotel boutique: cómo competir y recuperar huéspedes",
+          "palabras_clave": ["competir con airbnb hotel", "airbnb vs hotel", "hoteles contra airbnb", "ventajas hotel sobre airbnb"],
+          "objetivo_seo": "Tema de conversación del gremio con volumen estable; atrae hoteleros preocupados por la competencia de rentas vacacionales.",
+          "enfoque_agente": "Ventajas reales del hotel (servicio, seguridad, factura, consistencia) y cómo comunicarlas; tecnología como igualador de cancha.",
+          "estado": "pendiente", "slug_publicado": null, "fecha_publicacion": null
+        },
+        {
+          "id": 8,
+          "titulo": "Comisiones de Expedia: cuánto cobra en 2026 y cómo negociar mejor",
+          "palabras_clave": ["comision de expedia hoteles", "cuanto cobra expedia a los hoteles", "expedia partner central comisiones", "expedia vs booking comisiones"],
+          "objetivo_seo": "Hermano del artículo existente de Booking; captura la misma intención para la segunda OTA más usada en México.",
+          "enfoque_agente": "Desglose de programas y comisiones típicas, comparación con Booking, y cálculo de cuánto recuperas moviendo 10 reservas/mes a directo.",
+          "estado": "pendiente", "slug_publicado": null, "fecha_publicacion": null
+        },
+        {
+          "id": 9,
+          "titulo": "Overbooking en hoteles: cómo evitar la sobreventa cuando vendes en varias OTAs",
+          "palabras_clave": ["como evitar overbooking hotel", "sobreventa hotel", "overbooking que es", "calendarios sincronizados hotel"],
+          "objetivo_seo": "Búsqueda de dolor agudo (el hotelero que ya sufrió una sobreventa); intención altísima de adoptar una solución.",
+          "enfoque_agente": "Causas típicas (calendarios manuales, iCal mal configurado), protocolo si ya ocurrió, y prevención con sincronización automática como la de Kora.",
+          "estado": "pendiente", "slug_publicado": null, "fecha_publicacion": null
+        },
+        {
+          "id": 10,
+          "titulo": "Cómo convertir huéspedes de OTA en clientes directos que regresan",
+          "palabras_clave": ["convertir huespedes de ota en directos", "fidelizar huespedes hotel", "huesped recurrente hotel", "base de datos de huespedes"],
+          "objetivo_seo": "Cierra el ciclo del pilar: la estrategia de retención que convierte la comisión pagada una vez en cliente propio para siempre.",
+          "enfoque_agente": "Tácticas en el check-in y post-estancia (captura de contacto, oferta de regreso directo, WhatsApp), con el CRM de Kora como sistema que lo hace en automático.",
+          "estado": "pendiente", "slug_publicado": null, "fecha_publicacion": null
+        }
+      ]
+    },
+    "bloque_2_whatsapp_ia_automatizacion": {
+      "enfoque": "Posicionar a Kora en las búsquedas de IA y WhatsApp hotelero — el diferenciador único del producto (Camila).",
+      "articulos": [
+        {
+          "id": 11,
+          "titulo": "Chatbot para hotel: qué puede hacer (y qué no) por tus reservas",
+          "palabras_clave": ["chatbot para hotel", "chatbot hotelero", "bot de reservas hotel", "asistente virtual hotel"],
+          "objetivo_seo": "Keyword comercial principal del pilar; captura hoteleros evaluando chatbots y separa a Kora de los bots de menú rígido.",
+          "enfoque_agente": "Diferenciar chatbot de menús vs agente IA conversacional; qué sí resuelve (disponibilidad, cotización, cobro) y límites honestos; sin duplicar el artículo estático de agente WhatsApp.",
+          "estado": "pendiente", "slug_publicado": null, "fecha_publicacion": null
+        },
+        {
+          "id": 12,
+          "titulo": "Cómo responder el WhatsApp de tu hotel 24/7 sin contratar más personal",
+          "palabras_clave": ["responder whatsapp hotel", "whatsapp para hoteles", "atencion 24 horas hotel", "mensajes de huespedes en la noche"],
+          "objetivo_seo": "Búsqueda de dolor operativo (mensajes a medianoche, reservas perdidas por respuesta tardía); intención directa hacia la solución de Kora.",
+          "enfoque_agente": "Datos de velocidad de respuesta vs conversión, opciones (turnos, respuestas rápidas, agente IA) y costo comparado de cada una.",
+          "estado": "pendiente", "slug_publicado": null, "fecha_publicacion": null
+        },
+        {
+          "id": 13,
+          "titulo": "Cómo reducir no-shows: la secuencia de confirmaciones y recordatorios que funciona",
+          "palabras_clave": ["reducir no shows hotel", "no show hotel que hacer", "recordatorio de reserva hotel", "confirmacion de reserva automatica"],
+          "objetivo_seo": "Dolor concreto y medible; búsquedas de hoteleros que pierden noches por reservas fantasma.",
+          "enfoque_agente": "Secuencia exacta (confirmación inmediata, recordatorio 72h, día previo con indicaciones de llegada), política de anticipos, y cómo automatizarla.",
+          "estado": "pendiente", "slug_publicado": null, "fecha_publicacion": null
+        },
+        {
+          "id": 14,
+          "titulo": "Inteligencia artificial para hoteles pequeños: 8 usos reales sin ser experto en tecnología",
+          "palabras_clave": ["inteligencia artificial hoteles", "ia para hoteles", "ia en la hoteleria", "tecnologia para hoteles pequeños"],
+          "objetivo_seo": "Keyword amplia en crecimiento; posicionar a Kora en AI Overviews y respuestas de ChatGPT/Perplexity sobre IA hotelera.",
+          "enfoque_agente": "8 usos concretos con ejemplos (atención WhatsApp, descripciones, precios por temporada, reseñas, correos); desmitificar — no se necesita equipo técnico.",
+          "estado": "pendiente", "slug_publicado": null, "fecha_publicacion": null
+        },
+        {
+          "id": 15,
+          "titulo": "Cómo cobrar reservas por WhatsApp de forma segura (y sin perder la venta)",
+          "palabras_clave": ["cobrar reservas por whatsapp", "cobrar anticipo hotel", "link de pago hotel", "pagos por whatsapp mexico"],
+          "objetivo_seo": "Búsqueda transaccional de hoteleros que ya venden por WhatsApp pero cobran mal (transferencias, depósitos sin confirmar).",
+          "enfoque_agente": "Links de pago con tarjeta y OXXO, cuándo pedir anticipo vs pago total, errores comunes de seguridad, y cómo el agente de Kora cobra dentro del chat.",
+          "estado": "pendiente", "slug_publicado": null, "fecha_publicacion": null
+        },
+        {
+          "id": 16,
+          "titulo": "Check-in digital en hoteles boutique: llegadas sin fila ni papeleo",
+          "palabras_clave": ["check in digital hotel", "check in online hotel", "registro de huespedes digital", "agilizar check in"],
+          "objetivo_seo": "Keyword de modernización operativa; atrae hoteleros que quieren mejorar la primera impresión del huésped.",
+          "enfoque_agente": "Qué datos pedir antes de la llegada, flujo por WhatsApp previo al arribo, y balance entre eficiencia y hospitalidad personal.",
+          "estado": "pendiente", "slug_publicado": null, "fecha_publicacion": null
+        },
+        {
+          "id": 17,
+          "titulo": "Automatización hotelera: qué automatizar primero en un hotel de menos de 30 habitaciones",
+          "palabras_clave": ["automatizacion hotelera", "automatizar hotel", "procesos de un hotel", "software para hoteles pequeños"],
+          "objetivo_seo": "Búsqueda estratégica del dueño saturado; ordenar el roadmap de automatización lo posiciona como guía de referencia.",
+          "enfoque_agente": "Orden de prioridad por impacto (reservas → cobros → mensajes → correos post-estancia → reportes) con tiempo ahorrado estimado por cada uno.",
+          "estado": "pendiente", "slug_publicado": null, "fecha_publicacion": null
+        },
+        {
+          "id": 18,
+          "titulo": "Upselling en hoteles: cómo vender desayunos, late check-out y experiencias en automático",
+          "palabras_clave": ["upselling en hoteles", "venta adicional hotel", "aumentar ticket promedio hotel", "extras en reservas de hotel"],
+          "objetivo_seo": "Keyword de ingreso incremental; conecta con el módulo de experiencias y add-ons de Kora.",
+          "enfoque_agente": "Qué extras convierten mejor, en qué momento ofrecerlos (reserva, pre-llegada, check-in) y ejemplos de paquetes con números.",
+          "estado": "pendiente", "slug_publicado": null, "fecha_publicacion": null
+        },
+        {
+          "id": 19,
+          "titulo": "Plantillas de mensajes para huéspedes: WhatsApp y correo en cada etapa de la estancia",
+          "palabras_clave": ["plantillas de mensajes para huespedes", "mensajes de bienvenida hotel", "como responder a un huesped", "comunicacion con huespedes"],
+          "objetivo_seo": "Contenido práctico descargable-copiable con alto potencial de citación en AI search; atrae tráfico recurrente.",
+          "enfoque_agente": "10+ plantillas reales listas para copiar (confirmación, pre-llegada, bienvenida, problema, despedida, reseña) con el tono cálido de hotel boutique.",
+          "estado": "pendiente", "slug_publicado": null, "fecha_publicacion": null
+        },
+        {
+          "id": 20,
+          "titulo": "CRM para hoteles: cómo usar los datos de tus huéspedes para vender más noches",
+          "palabras_clave": ["crm para hoteles", "crm hotelero", "base de datos de clientes hotel", "marketing de retencion hotel"],
+          "objetivo_seo": "Keyword comercial del módulo CRM; captura hoteleros que ya entendieron que el dato del huésped vale dinero.",
+          "enfoque_agente": "Qué datos capturar, segmentaciones simples que funcionan (parejas, familias, recurrentes), y campañas de reactivación con ejemplos.",
+          "estado": "pendiente", "slug_publicado": null, "fecha_publicacion": null
+        }
+      ]
+    },
+    "bloque_3_revenue_management_precios": {
+      "enfoque": "Autoridad en precios y métricas — el tema donde el hotelero independiente más dinero deja en la mesa.",
+      "articulos": [
+        {
+          "id": 21,
+          "titulo": "Cómo poner precio a las habitaciones de tu hotel: método paso a paso",
+          "palabras_clave": ["como poner precio a una habitacion de hotel", "precio de habitacion de hotel", "tarifa de hotel como calcular", "cuanto cobrar por noche hotel"],
+          "objetivo_seo": "Pregunta fundamental con volumen constante; featured snippet + AI Overviews con el método paso a paso.",
+          "enfoque_agente": "Método concreto: costos por habitación ocupada + mercado + valor percibido; ejemplo numérico completo de un hotel de 12 habitaciones.",
+          "estado": "pendiente", "slug_publicado": null, "fecha_publicacion": null
+        },
+        {
+          "id": 22,
+          "titulo": "Tarifas por temporada: cómo armar el calendario de precios de tu hotel",
+          "palabras_clave": ["tarifas por temporada hotel", "temporada alta y baja hotel", "calendario de precios hotel", "precios por fecha hotel"],
+          "objetivo_seo": "Conecta directo con la función de tarifas por temporada de Kora; captura al hotelero con tarifa plana todo el año.",
+          "enfoque_agente": "Cómo mapear el año mexicano (Semana Santa, verano, puentes, diciembre), porcentajes de ajuste sugeridos y errores comunes.",
+          "estado": "pendiente", "slug_publicado": null, "fecha_publicacion": null
+        },
+        {
+          "id": 23,
+          "titulo": "ADR, RevPAR y ocupación: las 3 métricas que todo hotelero debe medir",
+          "palabras_clave": ["revpar que es", "adr hotel", "metricas hoteleras", "indicadores de un hotel"],
+          "objetivo_seo": "Keywords de glosario con búsqueda educativa estable; refuerza el glosario existente del sitio con contenido profundo.",
+          "enfoque_agente": "Definiciones con fórmulas y ejemplos numéricos, qué número mirar cada semana, y benchmarks razonables para hotel boutique en México.",
+          "estado": "pendiente", "slug_publicado": null, "fecha_publicacion": null
+        },
+        {
+          "id": 24,
+          "titulo": "Precios dinámicos en hoteles pequeños: cómo empezar sin software caro",
+          "palabras_clave": ["precios dinamicos hoteles", "tarifas dinamicas hotel", "revenue management hotel pequeño", "ajustar precios hotel demanda"],
+          "objetivo_seo": "Complementa (sin repetir) el artículo estático de revenue management; captura la variante 'precios dinámicos'.",
+          "enfoque_agente": "Sistema manual de 15 minutos por semana: señales de demanda, reglas simples de ajuste, y cuándo ya conviene automatizar.",
+          "estado": "pendiente", "slug_publicado": null, "fecha_publicacion": null
+        },
+        {
+          "id": 25,
+          "titulo": "Promociones para hoteles que no destruyen tu tarifa",
+          "palabras_clave": ["promociones para hoteles", "ofertas de hotel ideas", "descuentos en hoteles", "paquetes promocionales hotel"],
+          "objetivo_seo": "Búsqueda de ideas accionables; el ángulo 'sin destruir tarifa' diferencia del contenido genérico de descuentos.",
+          "enfoque_agente": "Paquetes con valor agregado vs descuento plano, promos por canal directo, fechas específicas; 8 ideas con estructura precio-valor.",
+          "estado": "pendiente", "slug_publicado": null, "fecha_publicacion": null
+        },
+        {
+          "id": 26,
+          "titulo": "Cómo subir las tarifas de tu hotel sin perder huéspedes",
+          "palabras_clave": ["como subir tarifas hotel", "aumentar precios hotel", "subir precio habitacion", "cuando subir tarifas hotel"],
+          "objetivo_seo": "Dolor emocional real (miedo a subir precios); búsqueda de validación y método.",
+          "enfoque_agente": "Señales de que tu tarifa está baja (ocupación >85%, cero quejas de precio), estrategia escalonada por temporada y comunicación del cambio.",
+          "estado": "pendiente", "slug_publicado": null, "fecha_publicacion": null
+        },
+        {
+          "id": 27,
+          "titulo": "Punto de equilibrio de un hotel: cómo calcularlo con tus números reales",
+          "palabras_clave": ["punto de equilibrio hotel", "cuantas habitaciones necesito vender", "costos fijos hotel", "rentabilidad de un hotel"],
+          "objetivo_seo": "Pregunta financiera fundamental; formato calculadora/fórmula ideal para snippet y citación en IA.",
+          "enfoque_agente": "Fórmula paso a paso con ejemplo completo (hotel 10 habitaciones), y cómo ese número cambia tus decisiones de precio y promoción.",
+          "estado": "pendiente", "slug_publicado": null, "fecha_publicacion": null
+        },
+        {
+          "id": 28,
+          "titulo": "Tarifa rack, neta y comisionable: los tipos de tarifas hoteleras explicados",
+          "palabras_clave": ["tipos de tarifas hoteleras", "tarifa rack hotel", "tarifa neta hotel", "tarifa comisionable"],
+          "objetivo_seo": "Keyword de glosario con intención educativa; captura hoteleros nuevos y estudiantes de hotelería que luego recomiendan herramientas.",
+          "enfoque_agente": "Definir cada tipo con ejemplo numérico del mismo cuarto, cuándo usar cada una (agencias, grupos, OTA, directo) y errores al mezclarlas.",
+          "estado": "pendiente", "slug_publicado": null, "fecha_publicacion": null
+        },
+        {
+          "id": 29,
+          "titulo": "Estancia mínima en fines de semana y puentes: cuándo aplicarla y cuándo te cuesta dinero",
+          "palabras_clave": ["estancia minima hotel", "minimo de noches hotel", "estrategia fin de semana hotel", "puentes y dias festivos hotel"],
+          "objetivo_seo": "Tema de nicho con poca competencia; demuestra profundidad de revenue management aplicado a México (puentes).",
+          "enfoque_agente": "Calendario de puentes mexicanos, reglas de 2 noches con ejemplos de cuándo funciona y cuándo deja cuartos vacíos el domingo.",
+          "estado": "pendiente", "slug_publicado": null, "fecha_publicacion": null
+        },
+        {
+          "id": 30,
+          "titulo": "Forecast hotelero simple: cómo pronosticar tu ocupación sin Excel avanzado",
+          "palabras_clave": ["forecast hotelero", "pronostico de ocupacion hotel", "proyeccion de ventas hotel", "planear ocupacion hotel"],
+          "objetivo_seo": "Término profesional que el hotelero independiente busca al crecer; contenido puente entre operación artesanal y gestión seria.",
+          "enfoque_agente": "Método de pickup simple (reservas en libros vs mismo punto del año pasado), qué decidir con el forecast, y plantilla mental semanal.",
+          "estado": "pendiente", "slug_publicado": null, "fecha_publicacion": null
+        }
+      ]
+    },
+    "bloque_4_marketing_hotelero": {
+      "enfoque": "Atraer hoteleros que buscan visibilidad y demanda — top of funnel amplio que alimenta los demás pilares.",
+      "articulos": [
+        {
+          "id": 31,
+          "titulo": "SEO para hoteles: cómo aparecer en Google cuando buscan hotel en tu ciudad",
+          "palabras_clave": ["seo para hoteles", "posicionamiento web hotel", "aparecer en google hotel", "seo hotelero"],
+          "objetivo_seo": "Keyword pilar del bloque de marketing; alto volumen y encaja con la mini-página SEO-ready de Kora.",
+          "enfoque_agente": "SEO local práctico: Google Business, keywords 'hotel en [ciudad]', contenido del sitio, velocidad, reseñas; sin tecnicismos.",
+          "estado": "pendiente", "slug_publicado": null, "fecha_publicacion": null
+        },
+        {
+          "id": 32,
+          "titulo": "Google Business Profile para hoteles: la guía completa para dueños",
+          "palabras_clave": ["google my business para hoteles", "google business profile hotel", "ficha de google hotel", "perfil de empresa google hotel"],
+          "objetivo_seo": "Herramienta gratuita que todo hotelero debería dominar; búsqueda how-to con volumen alto y competencia genérica.",
+          "enfoque_agente": "Optimización sección por sección (fotos, atributos, preguntas, posts, reservas directas), con checklist final accionable.",
+          "estado": "pendiente", "slug_publicado": null, "fecha_publicacion": null
+        },
+        {
+          "id": 33,
+          "titulo": "Cómo conseguir más reseñas para tu hotel (y qué hacer con las malas)",
+          "palabras_clave": ["reseñas de hotel", "como pedir reseñas a huespedes", "responder reseñas negativas hotel", "opiniones de hotel google"],
+          "objetivo_seo": "Dolor universal del hotelero; el ángulo doble (conseguir + responder malas) captura dos intenciones en un artículo.",
+          "enfoque_agente": "Momento y canal exacto para pedirla (WhatsApp post-checkout), plantillas de respuesta a reseñas negativas, y cómo Kora automatiza la solicitud.",
+          "estado": "pendiente", "slug_publicado": null, "fecha_publicacion": null
+        },
+        {
+          "id": 34,
+          "titulo": "Instagram para hoteles boutique: qué publicar para generar reservas (no solo likes)",
+          "palabras_clave": ["instagram para hoteles", "redes sociales hotel", "contenido para hotel instagram", "marketing en instagram hoteles"],
+          "objetivo_seo": "Búsqueda frecuente de hoteleros que invierten horas en redes sin ver reservas; ángulo de conversión diferenciador.",
+          "enfoque_agente": "Los 5 tipos de contenido que convierten (habitación real, experiencia, testimonio, detrás de cámaras, oferta directa) y el puente Instagram → WhatsApp → reserva.",
+          "estado": "pendiente", "slug_publicado": null, "fecha_publicacion": null
+        },
+        {
+          "id": 35,
+          "titulo": "Email marketing para hoteles: 5 correos que generan reservas repetidas",
+          "palabras_clave": ["email marketing para hoteles", "correos para huespedes", "newsletter hotel", "campañas de email hotel"],
+          "objetivo_seo": "Canal subutilizado por hoteles independientes; conecta con las secuencias automáticas de Kora.",
+          "enfoque_agente": "Las 5 campañas con ejemplos de asunto y estructura: post-estancia, aniversario, temporada, recuperación de carrito, oferta de regreso.",
+          "estado": "pendiente", "slug_publicado": null, "fecha_publicacion": null
+        },
+        {
+          "id": 36,
+          "titulo": "Fotografía para hoteles: cómo lograr fotos que venden sin gastar de más",
+          "palabras_clave": ["fotografia para hoteles", "fotos de habitaciones de hotel", "fotografia hotelera consejos", "como fotografiar un hotel"],
+          "objetivo_seo": "Búsqueda práctica evergreen; las fotos son el factor #1 de conversión en OTAs y web propia.",
+          "enfoque_agente": "Qué fotos necesita cada canal, luz natural y horarios, errores típicos (cuartos oscuros, fotos verticales), y cuándo sí pagar profesional.",
+          "estado": "pendiente", "slug_publicado": null, "fecha_publicacion": null
+        },
+        {
+          "id": 37,
+          "titulo": "Publicidad para hoteles: cuándo sí (y cuándo no) pagar Google Ads",
+          "palabras_clave": ["publicidad para hoteles", "google ads para hoteles", "anuncios de hotel", "marketing pagado hotel"],
+          "objetivo_seo": "Búsqueda comercial de hoteleros considerando invertir en ads; el ángulo honesto 'cuándo no' genera confianza y citabilidad.",
+          "enfoque_agente": "Prerrequisitos antes de pagar un peso (motor propio, ficha optimizada, WhatsApp que responde), campañas de marca vs genéricas, presupuesto mínimo realista.",
+          "estado": "pendiente", "slug_publicado": null, "fecha_publicacion": null
+        },
+        {
+          "id": 38,
+          "titulo": "Cómo atraer turistas de último minuto y fines de semana a tu hotel",
+          "palabras_clave": ["como atraer turistas a un hotel", "reservas de ultimo minuto hotel", "escapadas de fin de semana", "llenar hotel fin de semana"],
+          "objetivo_seo": "Demanda cercana de conversión rápida; complementa el artículo estático de temporada baja con el ángulo de inmediatez.",
+          "enfoque_agente": "Canales de última hora (WhatsApp, stories, Google), ofertas flash bien hechas, y responder en minutos como ventaja competitiva.",
+          "estado": "pendiente", "slug_publicado": null, "fecha_publicacion": null
+        },
+        {
+          "id": 39,
+          "titulo": "Alianzas locales para hoteles: restaurantes, tours y experiencias que llenan habitaciones",
+          "palabras_clave": ["alianzas estrategicas hoteles", "convenios para hoteles", "paquetes hotel con tour", "colaboraciones hotel local"],
+          "objetivo_seo": "Tema poco cubierto en español; posiciona la visión de hotel como hub de experiencias locales (tesis de Kora).",
+          "enfoque_agente": "Cómo estructurar convenios ganar-ganar, paquetes hotel+experiencia con ejemplos de precios, y venderlos desde el motor de reservas.",
+          "estado": "pendiente", "slug_publicado": null, "fecha_publicacion": null
+        },
+        {
+          "id": 40,
+          "titulo": "Marketing para hotel boutique: cómo diferenciarte de las cadenas (sin su presupuesto)",
+          "palabras_clave": ["marketing hotel boutique", "diferenciacion hotelera", "posicionar hotel boutique", "competir con cadenas hoteleras"],
+          "objetivo_seo": "Keyword de identidad del nicho exacto de Kora; artículo de tesis que amarra todo el bloque de marketing.",
+          "enfoque_agente": "Storytelling, experiencia local, trato personal y agilidad como ventajas; casos conceptuales de hoteles independientes que ganan a las cadenas.",
+          "estado": "pendiente", "slug_publicado": null, "fecha_publicacion": null
+        }
+      ]
+    },
+    "bloque_5_operacion_finanzas": {
+      "enfoque": "Contenido de operación diaria y finanzas — construye confianza de 'esta gente sí opera un hotel' y captura long-tail.",
+      "articulos": [
+        {
+          "id": 41,
+          "titulo": "PMS para hotel pequeño: qué debe tener y cuánto es razonable pagar",
+          "palabras_clave": ["pms para hotel pequeño", "pms hotelero", "sistema de gestion hotelera", "software administracion hotel"],
+          "objetivo_seo": "Keyword comercial de categoría de software; captura al hotelero comparando sistemas antes de decidir.",
+          "enfoque_agente": "Funciones esenciales vs lujos, rangos de precio del mercado, señales de que un sistema es demasiado para tu tamaño, y dónde encaja Kora.",
+          "estado": "pendiente", "slug_publicado": null, "fecha_publicacion": null
+        },
+        {
+          "id": 42,
+          "titulo": "Facturación para hoteles en México: CFDI, claves y errores que salen caros",
+          "palabras_clave": ["facturacion hotel mexico", "cfdi hoteles", "factura de hospedaje", "impuestos de un hotel"],
+          "objetivo_seo": "Búsqueda de cumplimiento 100% mexicana con poca competencia de calidad; alto valor de confianza local.",
+          "enfoque_agente": "Claves de producto/servicio de hospedaje, ISH (impuesto estatal), cuándo factura el huésped, y flujo recomendado; disclaimers de asesoría contable.",
+          "estado": "pendiente", "slug_publicado": null, "fecha_publicacion": null
+        },
+        {
+          "id": 43,
+          "titulo": "Políticas de cancelación y anticipos: cómo protegerte sin espantar reservas",
+          "palabras_clave": ["politicas de cancelacion hotel", "anticipo de reserva hotel", "deposito para reservar habitacion", "politica de no show"],
+          "objetivo_seo": "Decisión que todo hotelero enfrenta; búsqueda de plantillas y criterios con intención práctica alta.",
+          "enfoque_agente": "3 modelos de política (flexible, moderada, estricta) con texto listo para copiar, cuándo usar cada una, y cómo cobrar anticipos sin fricción.",
+          "estado": "pendiente", "slug_publicado": null, "fecha_publicacion": null
+        },
+        {
+          "id": 44,
+          "titulo": "Cómo administrar un hotel pequeño sin vivir apagando fuegos",
+          "palabras_clave": ["como administrar un hotel pequeño", "administracion hotelera", "gestion de hotel boutique", "organizar un hotel"],
+          "objetivo_seo": "Búsqueda amplia del dueño saturado; artículo paraguas que enlaza a todos los demás pilares.",
+          "enfoque_agente": "Sistemas sobre esfuerzo: rutina semanal del dueño, qué delegar, qué automatizar y qué medir; tono empático de dueño a dueño.",
+          "estado": "pendiente", "slug_publicado": null, "fecha_publicacion": null
+        },
+        {
+          "id": 45,
+          "titulo": "Housekeeping eficiente: checklists y tiempos reales para hoteles boutique",
+          "palabras_clave": ["housekeeping hotel", "limpieza de habitaciones hotel", "checklist de limpieza hotel", "camarista tiempos por habitacion"],
+          "objetivo_seo": "Long-tail operativo con búsqueda constante; contenido checklist perfecto para snippet y para compartirse entre hoteleros.",
+          "enfoque_agente": "Checklist completo por tipo de limpieza (salida vs estancia), tiempos estándar por habitación, supervisión simple y errores que generan malas reseñas.",
+          "estado": "pendiente", "slug_publicado": null, "fecha_publicacion": null
+        },
+        {
+          "id": 46,
+          "titulo": "Los costos ocultos de un hotel: dónde se te está yendo el dinero",
+          "palabras_clave": ["costos de un hotel", "gastos de un hotel", "costos operativos hoteleros", "reducir costos hotel"],
+          "objetivo_seo": "Búsqueda financiera con ángulo de auditoría; el formato 'dónde se te va el dinero' invita al clic y a la citación.",
+          "enfoque_agente": "Lista de fugas típicas con montos (comisiones, amenidades mal compradas, energía, no-shows, horas de administración manual) y cómo tapar cada una.",
+          "estado": "pendiente", "slug_publicado": null, "fecha_publicacion": null
+        },
+        {
+          "id": 47,
+          "titulo": "Cuánto personal necesita un hotel pequeño (por número de habitaciones)",
+          "palabras_clave": ["personal de un hotel", "cuantos empleados necesita un hotel", "organigrama hotel pequeño", "puestos en un hotel"],
+          "objetivo_seo": "Pregunta concreta con respuesta numérica — ideal para featured snippet y AI Overviews; long-tail de administración.",
+          "enfoque_agente": "Tabla de personal por rango de habitaciones (5-10, 11-20, 21-40), roles que se pueden combinar, y qué tareas absorbe la tecnología.",
+          "estado": "pendiente", "slug_publicado": null, "fecha_publicacion": null
+        },
+        {
+          "id": 48,
+          "titulo": "Experiencias en hoteles: cómo vender tours y actividades desde tu recepción (y tu web)",
+          "palabras_clave": ["experiencias en hoteles", "vender tours en hotel", "actividades para huespedes", "ingresos extra hotel"],
+          "objetivo_seo": "Conecta directo con el módulo de experiencias de Kora; captura la tendencia de ingresos más allá de la habitación.",
+          "enfoque_agente": "Qué experiencias funcionan por tipo de destino, cómo ponerles precio y cupo, y venderlas en la reserva o por WhatsApp antes de la llegada.",
+          "estado": "pendiente", "slug_publicado": null, "fecha_publicacion": null
+        },
+        {
+          "id": 49,
+          "titulo": "Métodos de pago para hoteles en México: tarjetas, OXXO, transferencias y contracargos",
+          "palabras_clave": ["metodos de pago hotel", "pagos en hoteles mexico", "contracargos hotel", "cobrar con tarjeta hotel"],
+          "objetivo_seo": "Búsqueda operativa 100% local; el ángulo de contracargos (dolor caro y poco explicado) diferencia el contenido.",
+          "enfoque_agente": "Pros y contras de cada método, por qué OXXO convierte en México, cómo prevenir contracargos con evidencia de estancia, y cobros automatizados.",
+          "estado": "pendiente", "slug_publicado": null, "fecha_publicacion": null
+        },
+        {
+          "id": 50,
+          "titulo": "El tablero semanal del dueño de hotel: los reportes que sí importan",
+          "palabras_clave": ["kpis hoteleros", "reportes de un hotel", "tablero de control hotel", "indicadores de gestion hotelera"],
+          "objetivo_seo": "Cierra el banco con el hábito de gestión por números; long-tail profesional que refuerza autoridad de producto.",
+          "enfoque_agente": "Los 7 números de la revisión semanal de 20 minutos (ocupación, ADR, mezcla de canales, reservas futuras, reseñas, no-shows, caja) y qué decisión dispara cada uno.",
+          "estado": "pendiente", "slug_publicado": null, "fecha_publicacion": null
+        }
+      ]
+    }
+  }
+}
