@@ -7,6 +7,9 @@
 
 const KORA_BASE = (process.env.KORA_BASE_URL || "https://kora-hotel.com").replace(/\/+$/, "");
 const KNOWLEDGE_TTL_MS = Number(process.env.KORA_KNOWLEDGE_TTL_MS || 15 * 60 * 1000); // 15 min
+// Estado on/off del bot: caché corta para que "apagar" (panel o comando) surta
+// efecto en vivo sin golpear la API en cada mensaje.
+const STATUS_TTL_MS = Number(process.env.KORA_BOT_STATUS_TTL_MS || 45 * 1000); // 45 s
 
 export class KoraHotel {
   /** @param {{ id?: string, slug: string, nombre: string, token: string, lang?: "es"|"en" }} hotel */
@@ -18,6 +21,8 @@ export class KoraHotel {
     this.lang = hotel.lang === "en" ? "en" : "es";
     this._knowledge = null;
     this._knowledgeAt = 0;
+    this._status = null; // { enabled, adminPhone }
+    this._statusAt = 0;
   }
 
   // POST base a /api/agent. `conv` (teléfono/chat) alimenta las métricas del
@@ -53,6 +58,44 @@ export class KoraHotel {
     this._knowledge = data;
     this._knowledgeAt = Date.now();
     return data;
+  }
+
+  /** Estado on/off del bot + número admin autorizado. Se cachea STATUS_TTL_MS.
+   *  Fail-open: si la API falla, se asume encendido (un hipo de red no debe
+   *  silenciar a Camila). Devuelve { enabled:boolean, adminPhone:string|null }. */
+  async status() {
+    const fresh = this._status && Date.now() - this._statusAt < STATUS_TTL_MS;
+    if (fresh) return this._status;
+    try {
+      const data = await this._post({ action: "status" });
+      this._status = {
+        enabled: data.enabled !== false,
+        adminPhone: typeof data.adminPhone === "string" ? data.adminPhone : null,
+      };
+    } catch {
+      this._status = this._status || { enabled: true, adminPhone: null };
+    }
+    this._statusAt = Date.now();
+    return this._status;
+  }
+
+  /** Enciende/apaga el bot (comando del número admin). Escribe el mismo
+   *  config.bot_enabled que el panel. Devuelve true si se aplicó. */
+  async setEnabled(enabled) {
+    try {
+      const data = await this._post({ action: "set-status", enabled: Boolean(enabled) });
+      const ok = data && data.ok !== false;
+      if (ok) {
+        this._status = {
+          enabled: Boolean(enabled),
+          adminPhone: (this._status && this._status.adminPhone) || null,
+        };
+        this._statusAt = Date.now();
+      }
+      return ok;
+    } catch {
+      return false;
+    }
   }
 
   /** Disponibilidad real por fechas (YYYY-MM-DD). Devuelve cuartos con id,

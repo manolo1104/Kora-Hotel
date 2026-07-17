@@ -57,6 +57,7 @@ export interface AdminBooking {
   comoNosConocio: string;
   anticipo: number;
   origen: string; // "web" | "bot" | "manual" | "web-pago-hotel" | ...
+  doc: Record<string, unknown>; // overrides del documento branded (editor "modificar antes de descargar")
 }
 
 export interface AdminQuote {
@@ -72,6 +73,7 @@ export interface AdminQuote {
   precioTotal: number;
   estado: "BORRADOR" | "ENVIADA" | "ACEPTADA" | "EXPIRADA";
   notas: string;
+  doc: Record<string, unknown>; // overrides del documento branded (editor "modificar antes de descargar")
 }
 
 export interface GuestStay {
@@ -138,6 +140,7 @@ interface BookingRow {
   como_nos_conocio: string | null;
   notas: string | null;
   created_at: string | null;
+  doc?: Record<string, unknown> | null; // opcional: puede no existir la columna aún
 }
 
 interface QuoteRow {
@@ -153,6 +156,7 @@ interface QuoteRow {
   estado: string | null;
   notas: string | null;
   created_at: string | null;
+  doc?: Record<string, unknown> | null; // opcional: puede no existir la columna aún
 }
 
 interface RoomStatusRow {
@@ -197,6 +201,7 @@ function mapBooking(r: BookingRow): AdminBooking {
     anticipo: parseTotal(r.anticipo),
     estado,
     origen: r.origen ?? "",
+    doc: (r.doc ?? {}) as Record<string, unknown>,
   };
 }
 
@@ -214,6 +219,7 @@ function mapQuote(r: QuoteRow): AdminQuote {
     precioTotal: parseTotal(r.precio_total),
     estado: (r.estado ?? "BORRADOR") as AdminQuote["estado"],
     notas: r.notas ?? "",
+    doc: (r.doc ?? {}) as Record<string, unknown>,
   };
 }
 
@@ -524,7 +530,7 @@ function generarQuoteId(): string {
 /** Crea una cotización (estado inicial BORRADOR). Devuelve su id. */
 export async function createQuote(
   hotelId: string,
-  data: Omit<AdminQuote, "id" | "fecha" | "estado">,
+  data: Omit<AdminQuote, "id" | "fecha" | "estado" | "doc">,
 ): Promise<string> {
   const supabase = createAdminClient();
   const id = generarQuoteId();
@@ -605,6 +611,47 @@ export async function deleteQuote(hotelId: string, id: string): Promise<void> {
     .eq("hotel_id", hotelId)
     .eq("id", id);
   if (error) console.error("deleteQuote error:", error.message);
+}
+
+// ── DOCUMENTOS BRANDED (overrides del editor "modificar antes de descargar") ──
+
+/** Guarda los overrides del documento de una COTIZACIÓN en la columna `doc`.
+ *  Falla explícito si la columna aún no existe (correr sql/kora-documentos.sql). */
+export async function saveQuoteDoc(
+  hotelId: string,
+  id: string,
+  doc: Record<string, unknown>,
+): Promise<{ ok: boolean; error?: string }> {
+  const supabase = createAdminClient();
+  const { error } = await supabase
+    .from("quotes")
+    .update({ doc })
+    .eq("hotel_id", hotelId)
+    .eq("id", id);
+  if (error) {
+    console.error("saveQuoteDoc error:", error.message);
+    return { ok: false, error: error.message };
+  }
+  return { ok: true };
+}
+
+/** Guarda los overrides del documento de una RESERVA (por confirmación) en `doc`. */
+export async function saveBookingDoc(
+  hotelId: string,
+  confirmacion: string,
+  doc: Record<string, unknown>,
+): Promise<{ ok: boolean; error?: string }> {
+  const supabase = createAdminClient();
+  const { error } = await supabase
+    .from("bookings")
+    .update({ doc })
+    .eq("hotel_id", hotelId)
+    .eq("confirmacion", confirmacion);
+  if (error) {
+    console.error("saveBookingDoc error:", error.message);
+    return { ok: false, error: error.message };
+  }
+  return { ok: true };
 }
 
 // ── CRM ───────────────────────────────────────────────────────────────────────
@@ -1068,7 +1115,13 @@ export interface BotTrainingInput {
  */
 export async function saveBotConfig(
   hotelId: string,
-  input: { enabled?: boolean; lang?: "es" | "en"; bot?: BotTrainingInput },
+  input: {
+    enabled?: boolean;
+    lang?: "es" | "en";
+    adminPhone?: string; // número autorizado para apagar/encender por WhatsApp (config.bot_admin_phone)
+    probadoAt?: string; // marca "ya probé el bot" (extras.bot.probadoAt) — NO toca entrenadoAt
+    bot?: BotTrainingInput;
+  },
 ): Promise<void> {
   const supabase = createAdminClient();
   const { data, error } = await supabase
@@ -1088,9 +1141,14 @@ export async function saveBotConfig(
   const extras = { ...(row?.extras ?? {}) };
   if (input.enabled !== undefined) config.bot_enabled = input.enabled;
   if (input.lang) config.bot_lang = input.lang;
-  if (input.bot) {
+  if (input.adminPhone !== undefined) config.bot_admin_phone = input.adminPhone;
+  if (input.bot || input.probadoAt !== undefined) {
     const prev = (extras.bot as Record<string, unknown>) ?? {};
-    extras.bot = { ...prev, ...input.bot, entrenadoAt: new Date().toISOString() };
+    const merged: Record<string, unknown> = { ...prev };
+    // Guardar entrenamiento marca entrenadoAt; probar el bot solo marca probadoAt.
+    if (input.bot) Object.assign(merged, input.bot, { entrenadoAt: new Date().toISOString() });
+    if (input.probadoAt !== undefined) merged.probadoAt = input.probadoAt;
+    extras.bot = merged;
   }
   const { error: updErr } = await supabase
     .from("hoteles")

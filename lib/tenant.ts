@@ -76,6 +76,23 @@ export async function getHotelesDelUsuario(): Promise<{ hotel: HotelRow; rol: Ro
     .filter((x): x is { hotel: HotelRow; rol: RolHotel } => x !== null);
 }
 
+/** Tope de hoteles que una misma cuenta puede dar de alta (como dueño). */
+export const MAX_HOTELES_POR_CUENTA = 2;
+
+/**
+ * Cuántos hoteles es DUEÑO (owner_id) el usuario. Es la base para aplicar el
+ * tope de alta: cuenta solo los hoteles propios, no los que administra como staff.
+ */
+export async function contarHotelesPropios(userId: string): Promise<number> {
+  if (!adminEnvReady) return 0;
+  const admin = createAdminClient();
+  const { count } = await admin
+    .from("hoteles")
+    .select("id", { count: "exact", head: true })
+    .eq("owner_id", userId);
+  return count ?? 0;
+}
+
 /**
  * Resuelve el contexto del hotel para el usuario autenticado SIN redirigir.
  * Devuelve null si: faltan envs, no hay sesión, el hotel no existe, o el

@@ -6,7 +6,7 @@
 
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { logAgentActivity } from "@/lib/db/admin";
+import { logAgentActivity, setBotStatus } from "@/lib/db/admin";
 import { accesoDelHotel } from "@/lib/suscripcion";
 import { crearLinkReservaAgente } from "@/lib/agent-booking";
 import { buildBotSystemPrompt } from "@/lib/bot/prompt";
@@ -45,6 +45,7 @@ export async function POST(req: Request) {
     email?: string;
     telefono?: string;
     lang?: "es" | "en";
+    enabled?: boolean; // acción "set-status" (encender/apagar desde el runtime)
   };
   try {
     body = await req.json();
@@ -53,6 +54,31 @@ export async function POST(req: Request) {
   }
   const hotel = await hotelPorToken(body.token ?? "");
   if (!hotel) return NextResponse.json({ error: "token-invalido" }, { status: 401 });
+
+  const cfg = (hotel.config ?? {}) as Record<string, unknown>;
+
+  // Estado del bot (on/off) para el chequeo EN VIVO del runtime. El runtime lo
+  // cachea ~45s y, si está apagado, deja de responder aunque siga conectado.
+  // También devuelve el número admin autorizado para el comando por WhatsApp.
+  // No cuenta como conversación (no toca métricas).
+  if (body.action === "status") {
+    return NextResponse.json({
+      ok: true,
+      enabled: cfg.bot_enabled !== false,
+      adminPhone: typeof cfg.bot_admin_phone === "string" ? cfg.bot_admin_phone : null,
+    });
+  }
+
+  // Encender/apagar el bot desde el runtime (comando "apagar"/"encender" que el
+  // número admin manda por WhatsApp). Escribe el mismo config.bot_enabled que el
+  // toggle del panel, así el apagado en vivo también calla a los huéspedes.
+  if (body.action === "set-status") {
+    if (typeof body.enabled !== "boolean") {
+      return NextResponse.json({ ok: false, error: "enabled-requerido" }, { status: 400 });
+    }
+    await setBotStatus(hotel.id, body.enabled);
+    return NextResponse.json({ ok: true, enabled: body.enabled });
+  }
 
   // Métricas del foso (dashboard "Agentes"): cada consulta del bot cuenta. Si
   // el bot manda `conv`, se dedupe por día → conversaciones reales; sin conv se

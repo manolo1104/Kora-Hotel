@@ -17,7 +17,12 @@ import { SuscripcionCard } from "@/components/panel/SuscripcionCard";
 import { createClient } from "@/lib/supabase/server";
 import { supabaseEnvReady } from "@/lib/supabase/env";
 import { getSuscripcion } from "@/lib/suscripcion";
-import { getHotelesDelUsuario, type HotelRow, type RolHotel } from "@/lib/tenant";
+import {
+  getHotelesDelUsuario,
+  MAX_HOTELES_POR_CUENTA,
+  type HotelRow,
+  type RolHotel,
+} from "@/lib/tenant";
 
 export const dynamic = "force-dynamic";
 
@@ -73,6 +78,10 @@ export default async function PanelPage() {
     getSuscripcion(user.id),
     getHotelesDelUsuario(),
   ]);
+
+  // Tope de hoteles por cuenta: solo cuentan los que el usuario es dueño.
+  const hotelesPropios = hoteles.filter(({ rol }) => rol === "dueno").length;
+  const alcanzoTope = hotelesPropios >= MAX_HOTELES_POR_CUENTA;
 
   const card = "bg-white rounded-2xl p-6 sm:p-7 border border-gray-100 shadow-sm";
 
@@ -190,16 +199,27 @@ export default async function PanelPage() {
               ))}
 
               <Reveal delay={0.05 * hoteles.length}>
-                <Link
-                  href="/panel/onboarding"
-                  className="btn-press group flex items-center justify-center gap-2 w-full px-5 py-4 rounded-2xl border-2 border-dashed border-gray-200 text-kora-muted font-semibold text-sm hover:border-kora-accent hover:text-kora-primary transition-colors"
-                >
-                  <Plus size={16} /> Agregar otro hotel
-                  <ArrowRight
-                    size={15}
-                    className="opacity-0 -ml-1 group-hover:opacity-100 group-hover:ml-0 transition-all"
-                  />
-                </Link>
+                {alcanzoTope ? (
+                  <div className="flex flex-col items-center gap-1 w-full px-5 py-4 rounded-2xl border border-gray-100 bg-white text-center">
+                    <p className="text-sm font-semibold text-kora-text">
+                      Llegaste al máximo de {MAX_HOTELES_POR_CUENTA} hoteles por cuenta.
+                    </p>
+                    <p className="text-xs text-kora-muted">
+                      ¿Necesitas más? Escríbenos y lo habilitamos.
+                    </p>
+                  </div>
+                ) : (
+                  <Link
+                    href="/panel/onboarding"
+                    className="btn-press group flex items-center justify-center gap-2 w-full px-5 py-4 rounded-2xl border-2 border-dashed border-gray-200 text-kora-muted font-semibold text-sm hover:border-kora-accent hover:text-kora-primary transition-colors"
+                  >
+                    <Plus size={16} /> Agregar otro hotel
+                    <ArrowRight
+                      size={15}
+                      className="opacity-0 -ml-1 group-hover:opacity-100 group-hover:ml-0 transition-all"
+                    />
+                  </Link>
+                )}
               </Reveal>
             </div>
           )}

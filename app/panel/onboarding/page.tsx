@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { supabaseEnvReady } from "@/lib/supabase/env";
+import { contarHotelesPropios, MAX_HOTELES_POR_CUENTA } from "@/lib/tenant";
 import { OnboardingClient } from "./OnboardingClient";
 
 export const dynamic = "force-dynamic";
@@ -20,6 +21,11 @@ export default async function OnboardingPage() {
   } = await supabase.auth.getUser();
   // Sin sesión: al entrar regresa directo aquí a cargar los datos del hotel.
   if (!user) redirect("/entrar?next=/panel/onboarding");
+
+  // Tope por cuenta: si ya llegó al máximo de hoteles propios, no dejamos entrar
+  // al alta (bloquea también el acceso directo por URL).
+  const propios = await contarHotelesPropios(user.id);
+  if (propios >= MAX_HOTELES_POR_CUENTA) redirect("/panel");
 
   return (
     <main className="pt-16">
