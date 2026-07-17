@@ -22,6 +22,7 @@ import { handleTurn } from "./brain.js";
 
 const DATA_PATH = process.env.WWEBJS_DATA_PATH || "./.wwebjs_auth";
 const PORT = Number(process.env.PORT || 3001);
+const FLEET_SECRET = process.env.BOT_FLEET_SECRET || "";
 const MESSAGE_WAIT_MS = Number(process.env.MESSAGE_DEBOUNCE_MS || 2500);
 const HUMAN_TAKEOVER_MS = Number(process.env.HUMAN_TAKEOVER_MS || 60 * 60 * 1000); // 1 h
 const CHROMIUM = process.env.PUPPETEER_EXECUTABLE_PATH || undefined;
@@ -216,6 +217,36 @@ function servidorEstado() {
     if (req.url === "/health") {
       res.writeHead(200, { "content-type": "text/plain" });
       res.end("ok");
+      return;
+    }
+
+    // API JSON para que el panel de Kora muestre el QR/estado de un hotel.
+    // Protegida con el mismo secreto de plataforma que /api/bots/fleet.
+    // GET /estado            → { hotels: [{ slug, nombre, status, qr }] }
+    // GET /estado?slug=xxx   → { slug, nombre, status, qr } (o 404)
+    if (req.url && req.url.startsWith("/estado")) {
+      const auth = req.headers["authorization"] || "";
+      if (!FLEET_SECRET || auth !== `Bearer ${FLEET_SECRET}`) {
+        res.writeHead(401, { "content-type": "application/json" });
+        res.end(JSON.stringify({ error: "no-autorizado" }));
+        return;
+      }
+      const url = new URL(req.url, "http://localhost");
+      const slug = url.searchParams.get("slug");
+      // El QR (dataURL) solo se expone cuando de verdad hay uno que escanear.
+      const publico = (h) => ({
+        slug: h.slug,
+        nombre: h.nombre,
+        status: h.status,
+        qr: h.status === "qr" ? h.qr : null,
+      });
+      res.writeHead(200, { "content-type": "application/json" });
+      if (slug) {
+        const h = estado.get(slug);
+        res.end(JSON.stringify(h ? publico(h) : { slug, status: "desconocido", qr: null }));
+      } else {
+        res.end(JSON.stringify({ hotels: [...estado.values()].map(publico) }));
+      }
       return;
     }
     const filas = [...estado.values()]

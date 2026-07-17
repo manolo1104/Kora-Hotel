@@ -20,6 +20,7 @@ import {
   Flame,
   Sofa,
   BedDouble,
+  BedSingle,
 } from "lucide-react";
 
 type IconProps = { size?: number; className?: string; "aria-hidden"?: boolean };
@@ -69,4 +70,16 @@ export const AMENIDADES_HAB: Amenidad[] = [
   { key: "Chimenea", label: "Chimenea", Icon: Flame },
   { key: "Sala de estar", label: "Sala de estar", Icon: Sofa },
   { key: "Cama King", label: "Cama King", Icon: BedDouble },
+];
+
+// Tipos de cama de una habitación. El hotelero elige tipos y cuántas de cada uno
+// (habitacion.camas = [{tipo, cantidad}]). El `key` = label que se guarda; el
+// hotelero también puede agregar un tipo propio que no esté aquí.
+export const TIPOS_CAMA: Amenidad[] = [
+  { key: "King", label: "King", Icon: BedDouble },
+  { key: "Queen", label: "Queen", Icon: BedDouble },
+  { key: "Matrimonial", label: "Matrimonial", Icon: BedDouble },
+  { key: "Individual", label: "Individual", Icon: BedSingle },
+  { key: "Litera", label: "Litera", Icon: BedSingle },
+  { key: "Sofá cama", label: "Sofá cama", Icon: Sofa },
 ];

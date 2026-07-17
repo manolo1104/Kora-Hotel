@@ -13,6 +13,8 @@ export interface BotRoom {
   desde?: number;
   desdeTexto?: string;
   maxHuespedes?: number | string;
+  camas?: string[]; // ej. ["1 King", "2 Individual"]
+  caracteristicas?: string[]; // amenidades de la habitación (etiquetas)
 }
 
 export interface BotFaq {
@@ -132,10 +134,14 @@ export function buildBotSystemPrompt(k: BotKnowledge, opts: { modoPrueba?: boole
 
   const cuartos = habs.length
     ? habs
-        .map(
-          (r) =>
-            `- ${r.nombre} (hasta ${r.maxHuespedes} huéspedes) — desde ${r.desdeTexto || `$${r.desde}`} MXN/noche. ${r.descripcion || ""}`.trim(),
-        )
+        .map((r) => {
+          const camas = Array.isArray(r.camas) && r.camas.length ? ` Camas: ${r.camas.join(", ")}.` : "";
+          const caract =
+            Array.isArray(r.caracteristicas) && r.caracteristicas.length
+              ? ` Incluye: ${r.caracteristicas.join(", ")}.`
+              : "";
+          return `- ${r.nombre} (hasta ${r.maxHuespedes} huéspedes) — desde ${r.desdeTexto || `$${r.desde}`} MXN/noche.${camas}${caract} ${r.descripcion || ""}`.trim();
+        })
         .join("\n")
     : "(sin cuartos configurados)";
 

@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { HotelImage } from "@/components/HotelImage";
 import {
   MapPin,
   MessageCircle,
@@ -10,6 +12,7 @@ import {
   CreditCard,
   Languages,
   ShieldCheck,
+  BedDouble,
 } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
 import { Reveal } from "@/components/shared/Reveal";
@@ -39,6 +42,8 @@ interface Habitacion {
   capacidad?: string;
   fotos?: string[];
   tarifas?: Tarifa[];
+  features?: string[];
+  camas?: { tipo: string; cantidad: number }[];
 }
 interface Hotel {
   id: string;
@@ -319,14 +324,12 @@ export default async function MiniPagina({
         <section key="fotos">
           <div className="grid grid-cols-2 gap-3">
             {resto.map((url) => (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
+              <HotelImage
                 key={url}
                 src={url}
                 alt={hotel.nombre}
-                className="w-full h-36 sm:h-44 object-cover rounded-xl border border-gray-100"
-                loading="lazy"
-                decoding="async"
+                className="w-full h-36 sm:h-44 rounded-xl border border-gray-100"
+                sizes="(max-width: 640px) 50vw, 300px"
               />
             ))}
           </div>
@@ -373,14 +376,12 @@ export default async function MiniPagina({
                   {fotosHab.length > 0 && (
                     <div className="grid grid-cols-3 gap-1">
                       {fotosHab.slice(0, 3).map((url) => (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
+                        <HotelImage
                           key={url}
                           src={url}
                           alt={h.nombre || "Habitación"}
-                          className="w-full h-24 sm:h-28 object-cover"
-                          loading="lazy"
-                          decoding="async"
+                          className="w-full h-24 sm:h-28"
+                          sizes="(max-width: 640px) 33vw, 200px"
                         />
                       ))}
                     </div>
@@ -393,6 +394,12 @@ export default async function MiniPagina({
                           <p className="mt-0.5 inline-flex items-center gap-1 text-xs text-kora-muted">
                             <Users size={12} aria-hidden="true" />
                             hasta {h.capacidad} personas
+                          </p>
+                        )}
+                        {Array.isArray(h.camas) && h.camas.length > 0 && (
+                          <p className="mt-0.5 inline-flex items-center gap-1 text-xs text-kora-muted">
+                            <BedDouble size={12} aria-hidden="true" />
+                            {h.camas.map((c) => `${c.cantidad} ${c.tipo}`).join(" · ")}
                           </p>
                         )}
                         {h.descripcion && (
@@ -430,6 +437,19 @@ export default async function MiniPagina({
                             <span className="font-semibold" style={{ color: "var(--brand)" }}>
                               {fmtPrecio(t.precio)}
                             </span>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {Array.isArray(h.features) && h.features.length > 0 && (
+                      <div className="mt-3 flex flex-wrap gap-1.5">
+                        {h.features.map((f) => (
+                          <span
+                            key={f}
+                            className="rounded-full border border-gray-100 bg-kora-bg px-2.5 py-1 text-[11px] text-kora-text"
+                          >
+                            {f}
                           </span>
                         ))}
                       </div>
@@ -683,8 +703,7 @@ export default async function MiniPagina({
       {/* Portada */}
       {heroCompleto && portada ? (
         <section className="relative h-[68vh] min-h-[400px] flex items-end">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={portada} alt={hotel.nombre} className="absolute inset-0 w-full h-full object-cover" />
+          <Image src={portada} alt={hotel.nombre} fill sizes="100vw" priority className="object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/30 to-black/10" />
           <div className="relative z-10 w-full max-w-2xl mx-auto px-4 sm:px-6 pb-10 text-white">
             {logo && (
@@ -711,8 +730,7 @@ export default async function MiniPagina({
       ) : (
         <section className="relative">
           {portada ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={portada} alt={hotel.nombre} className="w-full h-60 sm:h-80 object-cover" />
+            <HotelImage src={portada} alt={hotel.nombre} className="w-full h-60 sm:h-80" sizes="100vw" priority />
           ) : (
             <div className="w-full h-40" style={{ backgroundColor: "var(--brand)" }} />
           )}

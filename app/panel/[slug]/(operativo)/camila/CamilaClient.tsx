@@ -14,7 +14,13 @@ import {
   Pencil,
   QrCode,
   Info,
+  BedDouble,
+  CalendarDays,
+  AlertTriangle,
+  ArrowRight,
 } from "lucide-react";
+import type { DiagnosticoHotel, DiagnosticoItem } from "@/lib/panel/diagnostico";
+import type { BotAvailability } from "@/lib/bot/tools";
 
 interface BotFaq {
   q: string;
@@ -28,14 +34,6 @@ interface BotFields {
   escalarWhatsapp: string;
   faqs: BotFaq[];
   entrenadoAt: string | null;
-}
-interface Conocimiento {
-  descripcion: string;
-  cuartos: { nombre: string; maxHuespedes: number }[];
-  amenidades: string[];
-  faqs: BotFaq[];
-  politicas: Record<string, unknown>;
-  guia: Record<string, unknown>;
 }
 interface Msg {
   role: "user" | "assistant";
@@ -52,20 +50,28 @@ const EMPTY_BOT: BotFields = {
   entrenadoAt: null,
 };
 
+// Fecha ISO a N días de hoy (para valores por defecto del verificador).
+function isoEnDias(dias: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() + dias);
+  return d.toLocaleDateString("en-CA");
+}
+
 export default function CamilaClient({
   slug,
   hotelNombre,
   whatsappHotel,
+  diagnostico,
 }: {
   slug: string;
   hotelNombre: string;
   whatsappHotel: string;
+  diagnostico: DiagnosticoHotel;
 }) {
   const [cargando, setCargando] = useState(true);
   const [enabled, setEnabled] = useState(true);
   const [lang, setLang] = useState<"es" | "en">("es");
   const [bot, setBot] = useState<BotFields>(EMPTY_BOT);
-  const [conocimiento, setConocimiento] = useState<Conocimiento | null>(null);
 
   const [entrenando, setEntrenando] = useState(false);
   const [guardando, setGuardando] = useState(false);
@@ -76,13 +82,27 @@ export default function CamilaClient({
   const [tokenCargando, setTokenCargando] = useState(false);
   const [tokenCopiado, setTokenCopiado] = useState(false);
 
+  // Estado/QR del bot (viene del runtime en Railway vía /api/admin/bot-qr)
+  const [qrStatus, setQrStatus] = useState<string | null>(null);
+  const [qrImg, setQrImg] = useState<string | null>(null);
+
   // Chat de prueba
   const [mensajes, setMensajes] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [enviando, setEnviando] = useState(false);
   const chatFin = useRef<HTMLDivElement | null>(null);
 
+  // Verificador de disponibilidad (etapa 5)
+  const [vChkin, setVChkin] = useState("");
+  const [vChkout, setVChkout] = useState("");
+  const [vCargando, setVCargando] = useState(false);
+  const [vError, setVError] = useState<string | null>(null);
+  const [vResultado, setVResultado] = useState<BotAvailability | null>(null);
+
   useEffect(() => {
+    // Fechas por defecto del verificador: dentro de una semana, dos noches.
+    setVChkin(isoEnDias(7));
+    setVChkout(isoEnDias(9));
     fetch("/api/admin/bot-config")
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error("no-auth"))))
       .then((d) => {
@@ -94,7 +114,6 @@ export default function CamilaClient({
           escalarWhatsapp: d.bot?.escalarWhatsapp || whatsappHotel || "",
           faqs: Array.isArray(d.bot?.faqs) ? d.bot.faqs : [],
         });
-        setConocimiento(d.conocimiento ?? null);
       })
       .catch(() => setAviso("No pude cargar la configuración."))
       .finally(() => setCargando(false));
@@ -103,6 +122,28 @@ export default function CamilaClient({
   useEffect(() => {
     chatFin.current?.scrollIntoView({ behavior: "smooth" });
   }, [mensajes, enviando]);
+
+  // Sondea el estado/QR del bot cada 15 s (el QR rota; así se refresca solo).
+  useEffect(() => {
+    let activo = true;
+    async function fetchQr() {
+      try {
+        const res = await fetch("/api/admin/bot-qr", { cache: "no-store" });
+        const d = await res.json().catch(() => ({}));
+        if (!activo) return;
+        setQrStatus(typeof d.status === "string" ? d.status : "sin-servicio");
+        setQrImg(typeof d.qr === "string" ? d.qr : null);
+      } catch {
+        if (activo) setQrStatus("sin-servicio");
+      }
+    }
+    fetchQr();
+    const id = setInterval(fetchQr, 15000);
+    return () => {
+      activo = false;
+      clearInterval(id);
+    };
+  }, []);
 
   async function postConfig(body: Record<string, unknown>) {
     const res = await fetch("/api/admin/bot-config", {
@@ -226,6 +267,39 @@ export default function CamilaClient({
     }
   }
 
+  async function verificarDisponibilidad() {
+    if (vCargando) return;
+    if (!vChkin || !vChkout || vChkout <= vChkin) {
+      setVError("Elige una fecha de salida posterior a la de llegada.");
+      setVResultado(null);
+      return;
+    }
+    setVCargando(true);
+    setVError(null);
+    setVResultado(null);
+    try {
+      const res = await fetch("/api/admin/bot-availability", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ checkin: vChkin, checkout: vChkout }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (res.ok && d.ok) {
+        setVResultado(d as BotAvailability);
+      } else {
+        setVError(
+          d.error === "fechas-invalidas"
+            ? "Esas fechas no son válidas."
+            : "No pude verificar ahora, inténtalo de nuevo.",
+        );
+      }
+    } catch {
+      setVError("Error de red al verificar.");
+    } finally {
+      setVCargando(false);
+    }
+  }
+
   function setFaq(i: number, campo: "q" | "a", v: string) {
     setBot((b) => {
       const faqs = [...b.faqs];
@@ -243,6 +317,27 @@ export default function CamilaClient({
   }
 
   const nombreBot = bot.nombre.trim() || "Camila";
+  const editar = (tab?: string) => `/panel/${slug}/sitio${tab ? `?tab=${tab}` : ""}`;
+
+  // ── Progreso de configuración (etapas 1-4 son configuración; 5-6 son acciones) ──
+  const e1Listo = enabled;
+  const e2Listo = Boolean(bot.nombre.trim() && (bot.tono.trim() || bot.saludo.trim()));
+  const e3Listo =
+    diagnostico.habitaciones.ok && diagnostico.precios.ok && diagnostico.fotos.ok;
+  const e4Listo = Boolean(bot.instrucciones.trim() || bot.faqs.some((f) => f.q.trim()));
+  const listos = [e1Listo, e2Listo, e3Listo, e4Listo].filter(Boolean).length;
+
+  const temporadas = diagnostico.temporadas;
+  const sabeItems: DiagnosticoItem[] = [
+    diagnostico.habitaciones,
+    diagnostico.precios,
+    diagnostico.camas,
+    diagnostico.fotos,
+    diagnostico.amenidades,
+    diagnostico.politicas,
+    diagnostico.faqs,
+    diagnostico.guia,
+  ];
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 space-y-6">
@@ -263,6 +358,28 @@ export default function CamilaClient({
         </div>
       </header>
 
+      {/* Progreso de configuración */}
+      <div className="rounded-2xl border border-black/10 bg-white p-4">
+        <div className="flex items-center justify-between">
+          <p className="text-sm font-semibold text-kora-text">Configuración de {nombreBot}</p>
+          <p className="text-sm font-semibold text-kora-primary">{listos}/4 listo</p>
+        </div>
+        <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-black/5">
+          <div
+            className="h-full rounded-full bg-kora-primary transition-all"
+            style={{ width: `${(listos / 4) * 100}%` }}
+          />
+        </div>
+        <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-kora-muted">
+          <PasoPill n={1} label="Activar" ok={e1Listo} />
+          <PasoPill n={2} label="Identidad" ok={e2Listo} />
+          <PasoPill n={3} label="Datos del hotel" ok={e3Listo} />
+          <PasoPill n={4} label="Reglas" ok={e4Listo} />
+          <PasoPill n={5} label="Probar" />
+          <PasoPill n={6} label="Conectar" />
+        </div>
+      </div>
+
       {aviso && (
         <div className="flex items-start gap-2 rounded-xl bg-kora-primary/5 border border-kora-primary/20 px-4 py-3 text-sm text-kora-text">
           <Info size={16} className="mt-0.5 shrink-0 text-kora-primary" />
@@ -271,15 +388,16 @@ export default function CamilaClient({
       )}
 
       {/* 1 · Activar */}
-      <section className="rounded-2xl border border-black/10 bg-white p-5 space-y-4">
+      <Etapa n={1} titulo="Enciende a Camila" listo={e1Listo} icon={<Power size={18} />}>
         <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <Power size={18} className="text-kora-primary" />
-            <h2 className="text-lg font-bold text-kora-text">1. Activar</h2>
-          </div>
+          <p className="text-sm text-kora-muted">
+            {enabled
+              ? `${nombreBot} está encendida: responde a tus huéspedes cuando el bot esté conectado.`
+              : `${nombreBot} está apagada: no responderá aunque esté conectada.`}
+          </p>
           <button
             onClick={toggleEnabled}
-            className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${enabled ? "bg-kora-primary" : "bg-gray-300"}`}
+            className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors ${enabled ? "bg-kora-primary" : "bg-gray-300"}`}
             aria-label={enabled ? "Apagar bot" : "Encender bot"}
           >
             <span
@@ -287,11 +405,6 @@ export default function CamilaClient({
             />
           </button>
         </div>
-        <p className="text-sm text-kora-muted">
-          {enabled
-            ? `${nombreBot} está encendida: responde a tus huéspedes cuando el bot esté conectado.`
-            : `${nombreBot} está apagada: no responderá aunque esté conectada.`}
-        </p>
         <div className="flex items-center gap-2 text-sm">
           <span className="text-kora-muted">Idioma principal:</span>
           {(["es", "en"] as const).map((l) => (
@@ -304,16 +417,12 @@ export default function CamilaClient({
             </button>
           ))}
         </div>
-      </section>
+      </Etapa>
 
-      {/* 2 · Entrenar */}
-      <section className="rounded-2xl border border-black/10 bg-white p-5 space-y-4">
-        <div className="flex items-center gap-2">
-          <Sparkles size={18} className="text-kora-primary" />
-          <h2 className="text-lg font-bold text-kora-text">2. Entrena a {nombreBot}</h2>
-        </div>
+      {/* 2 · Identidad */}
+      <Etapa n={2} titulo={`Identidad de ${nombreBot}`} listo={e2Listo} icon={<Sparkles size={18} />}>
         <p className="text-sm text-kora-muted">
-          Deja que la IA proponga su personalidad a partir de los datos de tu hotel, y ajústala a tu gusto.
+          Cómo se llama, cómo suena y cómo saluda. Deja que la IA proponga una versión con los datos de tu hotel y ajústala.
         </p>
         <button
           onClick={entrenarIA}
@@ -321,7 +430,7 @@ export default function CamilaClient({
           className="btn-press inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-kora-primary text-white font-semibold text-sm hover:bg-kora-primary-dark transition-colors disabled:opacity-60"
         >
           {entrenando ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
-          {entrenando ? "Redactando…" : "Entrenar con IA"}
+          {entrenando ? "Redactando…" : "Proponer con IA"}
         </button>
 
         <div className="space-y-4 pt-1">
@@ -351,6 +460,56 @@ export default function CamilaClient({
               className="input-kora"
             />
           </Campo>
+        </div>
+        <BotonGuardar guardando={guardando} guardado={guardado} onClick={guardar} />
+      </Etapa>
+
+      {/* 3 · Lo que Camila sabe */}
+      <Etapa n={3} titulo={`Lo que ${nombreBot} sabe de tu hotel`} listo={e3Listo} icon={<Info size={18} />}>
+        <p className="text-sm text-kora-muted">
+          Todo esto sale <strong>estrictamente</strong> de tu hotel. {nombreBot} nunca inventa ni mezcla datos de otro. Completa lo que falte para que responda mejor.
+        </p>
+
+        {/* Cobertura de fechas / temporadas (clave para lo que ofrece Camila) */}
+        <div
+          className={`rounded-xl border px-4 py-3 text-sm ${
+            temporadas.estado === "ok"
+              ? "border-green-200 bg-green-50 text-green-800"
+              : "border-amber-200 bg-amber-50 text-amber-800"
+          }`}
+        >
+          <div className="flex items-start gap-2">
+            {temporadas.estado === "ok" ? (
+              <Check size={16} className="mt-0.5 shrink-0" />
+            ) : (
+              <AlertTriangle size={16} className="mt-0.5 shrink-0" />
+            )}
+            <div className="min-w-0">
+              <p className="font-semibold">Precios por fecha (temporadas)</p>
+              <p>{temporadas.mensaje}</p>
+              <a
+                href={editar("avanzado")}
+                className="mt-1 inline-flex items-center gap-1 font-semibold underline"
+              >
+                {temporadas.tiene ? "Editar temporadas" : "Cargar temporadas"} <ArrowRight size={13} />
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <ul className="grid sm:grid-cols-2 gap-2 text-sm text-kora-text">
+          {sabeItems.map((it) => (
+            <SabeItem key={it.label} item={it} editar={editar} />
+          ))}
+        </ul>
+      </Etapa>
+
+      {/* 4 · Reglas de conversación */}
+      <Etapa n={4} titulo="Reglas de conversación" listo={e4Listo} icon={<MessageCircle size={18} />}>
+        <p className="text-sm text-kora-muted">
+          Instrucciones especiales, a quién pasar los casos que no resuelva, y respuestas extra solo para el bot.
+        </p>
+        <div className="space-y-4">
           <Campo label="Instrucciones especiales del hotel">
             <textarea
               value={bot.instrucciones}
@@ -368,8 +527,6 @@ export default function CamilaClient({
               className="input-kora"
             />
           </Campo>
-
-          {/* FAQs extra del bot */}
           <Campo label="Preguntas y respuestas extra (solo para el bot)">
             <div className="space-y-2">
               {bot.faqs.map((f, i) => (
@@ -404,59 +561,11 @@ export default function CamilaClient({
             </div>
           </Campo>
         </div>
+        <BotonGuardar guardando={guardando} guardado={guardado} onClick={guardar} />
+      </Etapa>
 
-        <div className="flex items-center gap-3 pt-1">
-          <button
-            onClick={guardar}
-            disabled={guardando}
-            className="btn-press inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-kora-text text-white font-semibold text-sm hover:opacity-90 transition-opacity disabled:opacity-60"
-          >
-            {guardando ? <Loader2 size={16} className="animate-spin" /> : guardado ? <Check size={16} /> : null}
-            {guardando ? "Guardando…" : guardado ? "Guardado" : "Guardar entrenamiento"}
-          </button>
-        </div>
-      </section>
-
-      {/* 3 · Lo que Camila ya sabe */}
-      {conocimiento && (
-        <section className="rounded-2xl border border-black/10 bg-white p-5 space-y-3">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold text-kora-text">3. Lo que {nombreBot} ya sabe de tu hotel</h2>
-            <a
-              href={`/panel/${slug}/sitio`}
-              className="inline-flex items-center gap-1 text-sm font-semibold text-kora-primary hover:underline"
-            >
-              <Pencil size={13} /> Editar
-            </a>
-          </div>
-          <p className="text-sm text-kora-muted">
-            Todo esto sale <strong>estrictamente</strong> de tu hotel. {nombreBot} nunca inventa ni mezcla datos de otro.
-          </p>
-          <ul className="grid sm:grid-cols-2 gap-2 text-sm text-kora-text">
-            <SabeItem ok={conocimiento.cuartos.length > 0}>
-              {conocimiento.cuartos.length} tipo(s) de cuarto{conocimiento.cuartos.length ? `: ${conocimiento.cuartos.map((c) => c.nombre).join(", ")}` : ""}
-            </SabeItem>
-            <SabeItem ok={conocimiento.amenidades.length > 0}>
-              {conocimiento.amenidades.length} amenidad(es)
-            </SabeItem>
-            <SabeItem ok={conocimiento.faqs.length > 0}>
-              {conocimiento.faqs.length} pregunta(s) frecuente(s)
-            </SabeItem>
-            <SabeItem ok={Object.keys(conocimiento.politicas).length > 0}>
-              Políticas {Object.keys(conocimiento.politicas).length ? "configuradas" : "sin configurar"}
-            </SabeItem>
-            <SabeItem ok={Boolean(conocimiento.descripcion)}>Descripción del hotel</SabeItem>
-            <SabeItem ok={Object.keys(conocimiento.guia).length > 0}>Guía / recomendaciones</SabeItem>
-          </ul>
-        </section>
-      )}
-
-      {/* 4 · Chat de prueba */}
-      <section className="rounded-2xl border border-black/10 bg-white p-5 space-y-3">
-        <div className="flex items-center gap-2">
-          <MessageCircle size={18} className="text-kora-primary" />
-          <h2 className="text-lg font-bold text-kora-text">4. Prueba a {nombreBot}</h2>
-        </div>
+      {/* 5 · Probar */}
+      <Etapa n={5} titulo={`Prueba a ${nombreBot}`} icon={<MessageCircle size={18} />}>
         <p className="text-sm text-kora-muted">
           Platica con ella aquí mismo (sin WhatsApp) para ver cómo responde con tus datos. Guarda tu entrenamiento antes para probar la última versión.
         </p>
@@ -501,43 +610,254 @@ export default function CamilaClient({
             <Send size={17} />
           </button>
         </div>
-      </section>
 
-      {/* 5 · Conectar */}
-      <section className="rounded-2xl border border-black/10 bg-white p-5 space-y-3">
-        <div className="flex items-center gap-2">
-          <QrCode size={18} className="text-kora-primary" />
-          <h2 className="text-lg font-bold text-kora-text">5. Conecta tu WhatsApp</h2>
-        </div>
-        <p className="text-sm text-kora-muted">
-          {nombreBot} se conecta a un número de WhatsApp dedicado escaneando un código QR (una sola vez). Necesitas el <strong>token</strong> de tu bot para vincularlo.
-        </p>
-        {token ? (
+        {/* Verificador de disponibilidad: exactamente lo que Camila ofrecería */}
+        <div className="rounded-xl border border-black/10 bg-white p-4 space-y-3">
           <div className="flex items-center gap-2">
-            <input readOnly value={token} className="input-kora flex-1 font-mono text-xs" />
+            <CalendarDays size={16} className="text-kora-primary" />
+            <p className="text-sm font-semibold text-kora-text">
+              Verifica qué fechas y precios ofrecería {nombreBot}
+            </p>
+          </div>
+          <p className="text-xs text-kora-muted">
+            Elige unas fechas y confirma con tus ojos qué cuartos y precios cotizaría (es exactamente lo que usa el bot en vivo).
+          </p>
+          <div className="flex flex-wrap items-end gap-2">
+            <label className="text-xs font-semibold text-kora-muted">
+              Llegada
+              <input
+                type="date"
+                value={vChkin}
+                min={isoEnDias(0)}
+                onChange={(e) => setVChkin(e.target.value)}
+                className="input-kora mt-1 block"
+              />
+            </label>
+            <label className="text-xs font-semibold text-kora-muted">
+              Salida
+              <input
+                type="date"
+                value={vChkout}
+                min={vChkin || isoEnDias(1)}
+                onChange={(e) => setVChkout(e.target.value)}
+                className="input-kora mt-1 block"
+              />
+            </label>
             <button
-              onClick={copiarToken}
-              className="btn-press inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-black/5 text-kora-text text-sm font-semibold hover:bg-black/10"
+              onClick={verificarDisponibilidad}
+              disabled={vCargando}
+              className="btn-press inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-kora-text text-white font-semibold text-sm hover:opacity-90 disabled:opacity-60"
             >
-              {tokenCopiado ? <Check size={15} /> : <Copy size={15} />}
-              {tokenCopiado ? "Copiado" : "Copiar"}
+              {vCargando ? <Loader2 size={15} className="animate-spin" /> : <Eye size={15} />}
+              Ver qué ofrecería
             </button>
           </div>
+
+          {vError && <p className="text-sm text-red-600">{vError}</p>}
+
+          {vResultado && (
+            <div className="rounded-lg border border-black/10 bg-kora-bg/40 p-3">
+              {vResultado.hayDisponibilidad ? (
+                <>
+                  <p className="text-xs font-semibold text-kora-text mb-2">
+                    {nombreBot} ofrecería estas opciones para esas fechas:
+                  </p>
+                  <ul className="space-y-1.5">
+                    {vResultado.disponibles.map((r) => (
+                      <li
+                        key={r.id}
+                        className="flex items-center justify-between gap-3 text-sm border-b border-black/5 pb-1.5 last:border-0 last:pb-0"
+                      >
+                        <span className="min-w-0">
+                          <span className="font-semibold text-kora-text">{r.nombre}</span>
+                          <span className="text-kora-muted"> · hasta {r.maxHuespedes} huésp.</span>
+                        </span>
+                        <span className="shrink-0 font-bold tabular-nums text-kora-primary">{r.totalTexto}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              ) : (
+                <p className="flex items-start gap-2 text-sm text-amber-800">
+                  <AlertTriangle size={15} className="mt-0.5 shrink-0" />
+                  Para esas fechas {nombreBot} diría que <strong>no hay disponibilidad</strong>. Revisa que no estén bloqueadas en tu calendario.
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      </Etapa>
+
+      {/* 6 · Conectar */}
+      <Etapa n={6} titulo="Conecta tu WhatsApp" icon={<QrCode size={18} />}>
+        <div className="flex items-center gap-2">
+          <BadgeEstado status={qrStatus} nombreBot={nombreBot} />
+        </div>
+
+        {qrStatus === "ready" ? (
+          <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+            <p className="font-semibold">¡Listo! {nombreBot} está conectada a tu WhatsApp.</p>
+            <p>Ya responde a tus huéspedes 24/7 (si está encendida en el paso 1).</p>
+          </div>
+        ) : qrStatus === "sin-servicio" || qrStatus === "desconocido" ? (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            <p className="font-semibold">Estamos preparando tu conexión.</p>
+            <p>
+              El equipo de Kora deja tu número conectado y en línea 24/7. En cuanto tu bot esté arriba, aquí aparecerá el código QR para escanear.
+            </p>
+          </div>
         ) : (
-          <button
-            onClick={verToken}
-            disabled={tokenCargando}
-            className="btn-press inline-flex items-center gap-2 px-4 py-2 rounded-full bg-black/5 text-kora-text font-semibold text-sm hover:bg-black/10 disabled:opacity-60"
-          >
-            {tokenCargando ? <Loader2 size={15} className="animate-spin" /> : <Eye size={15} />}
-            Ver el token de mi bot
-          </button>
+          <>
+            <p className="text-sm text-kora-muted">
+              Escanea este código <strong>una sola vez</strong> con el WhatsApp del teléfono de tu hotel:
+            </p>
+            <ol className="ml-4 list-decimal space-y-1 text-sm text-kora-text">
+              <li>Abre <strong>WhatsApp</strong> en el teléfono de tu hotel.</li>
+              <li>Entra a <strong>Ajustes</strong> → <strong>Dispositivos vinculados</strong>.</li>
+              <li>Toca <strong>Vincular un dispositivo</strong>.</li>
+              <li>Apunta la cámara al código de aquí abajo.</li>
+            </ol>
+            <div className="flex justify-center py-2">
+              {qrImg ? (
+                <div className="rounded-xl border border-black/10 bg-white p-3">
+                  {/* QR = data URL que rota; <img> plano es lo correcto (no next/image) */}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={qrImg} alt="Código QR para vincular WhatsApp" width={240} height={240} />
+                </div>
+              ) : (
+                <div className="flex h-[240px] w-[240px] flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-black/15 text-kora-muted">
+                  <Loader2 size={22} className="animate-spin" />
+                  <span className="text-xs">Preparando el código…</span>
+                </div>
+              )}
+            </div>
+            <p className="text-center text-xs text-kora-muted">
+              El código se actualiza solo cada pocos segundos. Si expira, espera a que aparezca uno nuevo.
+            </p>
+          </>
         )}
-        <p className="text-xs text-kora-muted">
-          Trátalo como una contraseña. El equipo de Kora te ayuda a dejar tu número conectado y en línea 24/7.
-        </p>
-      </section>
+
+        {/* Token (avanzado): respaldo por si el equipo Kora lo necesita */}
+        <details className="rounded-lg bg-kora-bg/40 px-3 py-2">
+          <summary className="cursor-pointer text-xs font-semibold text-kora-muted">
+            Token de mi bot (avanzado)
+          </summary>
+          <div className="pt-2">
+            {token ? (
+              <div className="flex items-center gap-2">
+                <input readOnly value={token} className="input-kora flex-1 font-mono text-xs" />
+                <button
+                  onClick={copiarToken}
+                  className="btn-press inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-black/5 text-kora-text text-sm font-semibold hover:bg-black/10"
+                >
+                  {tokenCopiado ? <Check size={15} /> : <Copy size={15} />}
+                  {tokenCopiado ? "Copiado" : "Copiar"}
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={verToken}
+                disabled={tokenCargando}
+                className="btn-press inline-flex items-center gap-2 px-4 py-2 rounded-full bg-black/5 text-kora-text font-semibold text-sm hover:bg-black/10 disabled:opacity-60"
+              >
+                {tokenCargando ? <Loader2 size={15} className="animate-spin" /> : <Eye size={15} />}
+                Ver el token de mi bot
+              </button>
+            )}
+            <p className="mt-1 text-xs text-kora-muted">Trátalo como una contraseña.</p>
+          </div>
+        </details>
+      </Etapa>
     </div>
+  );
+}
+
+function BadgeEstado({ status, nombreBot }: { status: string | null; nombreBot: string }) {
+  const map: Record<string, { dot: string; txt: string }> = {
+    ready: { dot: "bg-green-500", txt: `${nombreBot} está conectada` },
+    qr: { dot: "bg-amber-500", txt: "Escanea el código QR" },
+    starting: { dot: "bg-gray-400", txt: "Preparando la conexión…" },
+    disconnected: { dot: "bg-red-500", txt: "Desconectada — reconectando…" },
+    auth_failure: { dot: "bg-red-500", txt: "Falló la vinculación — escanea de nuevo" },
+    error: { dot: "bg-red-500", txt: "Servicio no disponible" },
+    "sin-servicio": { dot: "bg-gray-400", txt: "Preparando tu conexión" },
+    desconocido: { dot: "bg-gray-400", txt: "Preparando tu conexión" },
+  };
+  const s = map[status ?? "sin-servicio"] ?? map["sin-servicio"];
+  return (
+    <span className="inline-flex items-center gap-2 rounded-full bg-black/5 px-3 py-1 text-xs font-semibold text-kora-text">
+      <span className={`h-2 w-2 rounded-full ${s.dot} ${status === "qr" || status === "starting" ? "animate-pulse" : ""}`} />
+      {status === null ? "Consultando estado…" : s.txt}
+    </span>
+  );
+}
+
+function Etapa({
+  n,
+  titulo,
+  listo,
+  icon,
+  children,
+}: {
+  n: number;
+  titulo: string;
+  listo?: boolean;
+  icon: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="rounded-2xl border border-black/10 bg-white p-5 space-y-4">
+      <div className="flex items-center gap-3">
+        <span
+          className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-sm font-bold ${
+            listo ? "bg-green-100 text-green-700" : "bg-kora-primary/10 text-kora-primary"
+          }`}
+        >
+          {listo ? <Check size={16} /> : n}
+        </span>
+        <div className="flex items-center gap-2 text-kora-primary">
+          {icon}
+          <h2 className="text-lg font-bold text-kora-text">{titulo}</h2>
+        </div>
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function PasoPill({ n, label, ok }: { n: number; label: string; ok?: boolean }) {
+  return (
+    <span className="inline-flex items-center gap-1">
+      <span
+        className={`grid h-4 w-4 place-items-center rounded-full text-[9px] font-bold ${
+          ok ? "bg-green-500 text-white" : "bg-black/10 text-kora-muted"
+        }`}
+      >
+        {ok ? <Check size={10} /> : n}
+      </span>
+      {label}
+    </span>
+  );
+}
+
+function BotonGuardar({
+  guardando,
+  guardado,
+  onClick,
+}: {
+  guardando: boolean;
+  guardado: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={guardando}
+      className="btn-press inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-kora-text text-white font-semibold text-sm hover:opacity-90 transition-opacity disabled:opacity-60"
+    >
+      {guardando ? <Loader2 size={16} className="animate-spin" /> : guardado ? <Check size={16} /> : null}
+      {guardando ? "Guardando…" : guardado ? "Guardado" : "Guardar"}
+    </button>
   );
 }
 
@@ -550,13 +870,27 @@ function Campo({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-function SabeItem({ ok, children }: { ok: boolean; children: React.ReactNode }) {
+function SabeItem({
+  item,
+  editar,
+}: {
+  item: DiagnosticoItem;
+  editar: (tab?: string) => string;
+}) {
   return (
     <li className="flex items-start gap-2">
-      <span className={`mt-0.5 shrink-0 ${ok ? "text-green-600" : "text-gray-300"}`}>
+      <span className={`mt-0.5 shrink-0 ${item.ok ? "text-green-600" : "text-gray-300"}`}>
         <Check size={15} />
       </span>
-      <span className={ok ? "" : "text-kora-muted"}>{children}</span>
+      <span className={item.ok ? "" : "text-kora-muted"}>
+        {item.label}
+        {item.detalle ? <span className="text-kora-muted"> · {item.detalle}</span> : null}
+        {!item.ok && (
+          <a href={editar(item.tab)} className="ml-1 font-semibold text-kora-primary hover:underline">
+            Completar
+          </a>
+        )}
+      </span>
     </li>
   );
 }

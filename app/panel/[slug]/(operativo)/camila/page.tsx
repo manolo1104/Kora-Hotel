@@ -1,4 +1,5 @@
 import { requireHotelMember } from "@/lib/tenant";
+import { diagnosticarHotel } from "@/lib/panel/diagnostico";
 import CamilaClient from "./CamilaClient";
 
 export const dynamic = "force-dynamic";
@@ -11,8 +12,16 @@ export default async function CamilaPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  // Gate: redirige si no hay sesión / no es miembro. Los datos los carga el
-  // cliente vía /api/admin/bot-config (hotel de la cuenta activa).
+  // Gate: redirige si no hay sesión / no es miembro. El entrenamiento lo carga el
+  // cliente vía /api/admin/bot-config; el diagnóstico se computa aquí (server).
   const ctx = await requireHotelMember(slug);
-  return <CamilaClient slug={slug} hotelNombre={ctx.hotel.nombre} whatsappHotel={ctx.hotel.whatsapp ?? ""} />;
+  const diagnostico = diagnosticarHotel(ctx.hotel);
+  return (
+    <CamilaClient
+      slug={slug}
+      hotelNombre={ctx.hotel.nombre}
+      whatsappHotel={ctx.hotel.whatsapp ?? ""}
+      diagnostico={diagnostico}
+    />
+  );
 }

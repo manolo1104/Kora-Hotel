@@ -25,6 +25,7 @@ import {
   TriangleAlert,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { comprimirImagen } from "@/lib/images-client";
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
 
@@ -134,12 +135,17 @@ export function OnboardingHotelClient(props: Props) {
     try {
       const nuevas: string[] = [];
       for (const file of Array.from(files)) {
-        const limpio = file.name.replace(/[^a-zA-Z0-9.]/g, "_");
+        // Comprimir a WebP ligero antes de subir (igual que el editor del sitio):
+        // el motor y la mini-página cargan mucho más rápido.
+        const blob = await comprimirImagen(file);
+        const esWebp = blob !== file && blob.type === "image/webp";
+        const base = file.name.replace(/\.[^.]+$/, "").replace(/[^a-zA-Z0-9]/g, "_");
+        const ext = esWebp ? "webp" : (file.name.split(".").pop() || "jpg").replace(/[^a-z0-9]/gi, "");
         const rnd = Math.random().toString(36).slice(2, 6);
-        const path = `${props.userId}/${Date.now()}-${rnd}-${limpio}`;
+        const path = `${props.userId}/${Date.now()}-${rnd}-${base}.${ext}`;
         const { error: upErr } = await supabase.storage
           .from("fotos")
-          .upload(path, file, { upsert: false });
+          .upload(path, blob, { upsert: false, contentType: esWebp ? "image/webp" : file.type || undefined });
         if (upErr) {
           setError("No se pudo subir una foto. Inténtalo de nuevo.");
           continue;
