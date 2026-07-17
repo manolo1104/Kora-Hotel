@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { supabaseEnvReady } from "@/lib/supabase/env";
 import { enviarEmail, NOTIFY_EMAIL } from "@/lib/email/resend";
 import { emailHotelNuevo } from "@/lib/email/templates";
+import { contarHotelesPropios, MAX_HOTELES_POR_CUENTA } from "@/lib/tenant";
 
 export const dynamic = "force-dynamic";
 
@@ -55,6 +56,20 @@ export async function POST(req: Request) {
   } = await supabase.auth.getUser();
   if (!user) {
     return NextResponse.json({ ok: false, error: "Inicia sesión para crear tu hotel." }, { status: 401 });
+  }
+
+  // Tope por cuenta: una cuenta puede tener hasta MAX_HOTELES_POR_CUENTA hoteles
+  // propios. Es la barrera real (la UI también oculta el botón, pero esto cierra
+  // el paso directo por API).
+  const propios = await contarHotelesPropios(user.id);
+  if (propios >= MAX_HOTELES_POR_CUENTA) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: `Máximo ${MAX_HOTELES_POR_CUENTA} hoteles por cuenta. ¿Necesitas más? Escríbenos.`,
+      },
+      { status: 403 },
+    );
   }
 
   let body: {

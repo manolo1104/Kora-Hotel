@@ -29,6 +29,7 @@ export async function GET() {
     enabled: cfg.bot_enabled === undefined ? true : cfg.bot_enabled !== false,
     lang: cfg.bot_lang === "en" ? "en" : "es",
     whatsapp: hotel.whatsapp, // default para "escalar a humano"
+    adminPhone: str(cfg.bot_admin_phone, 40) ?? "", // número que puede apagar/encender por WhatsApp
     bot: {
       nombre: str(bot.nombre) ?? "",
       tono: str(bot.tono) ?? "",
@@ -37,6 +38,7 @@ export async function GET() {
       escalarWhatsapp: str(bot.escalarWhatsapp) ?? "",
       faqs: normalizeFaqs(bot.faqs),
       entrenadoAt: str(bot.entrenadoAt) ?? null,
+      probadoAt: str(bot.probadoAt) ?? null, // ya probó el bot (paso 5)
     },
     // Lo que Camila ya sabe, de los datos REALES de este hotel.
     conocimiento: {
@@ -61,9 +63,21 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "bad-request" }, { status: 400 });
   }
 
-  const input: { enabled?: boolean; lang?: "es" | "en"; bot?: BotTrainingInput } = {};
+  const input: {
+    enabled?: boolean;
+    lang?: "es" | "en";
+    adminPhone?: string;
+    probadoAt?: string;
+    bot?: BotTrainingInput;
+  } = {};
   if (typeof body.enabled === "boolean") input.enabled = body.enabled;
   if (body.lang === "es" || body.lang === "en") input.lang = body.lang;
+  // Número admin para controlar a Camila por WhatsApp: guardamos solo dígitos.
+  if (typeof body.adminPhone === "string") {
+    input.adminPhone = body.adminPhone.replace(/\D/g, "").slice(0, 20);
+  }
+  // El usuario probó el bot (paso 5): se marca con la fecha, sin tocar entrenadoAt.
+  if (body.probado === true) input.probadoAt = new Date().toISOString();
 
   if (body.bot && typeof body.bot === "object") {
     const b = body.bot as Record<string, unknown>;

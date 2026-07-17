@@ -5,7 +5,6 @@ import { Plus, Search, RefreshCw, Send, Download, Loader2, ChevronDown, ChevronU
 import type { AdminBooking } from '@/lib/admin/sheets-admin';
 import type { BookingRoom } from '@/lib/booking';
 import ReservationModal from '@/components/admin/ReservationModal';
-import { printBookingPDF } from '../cotizaciones/CotizacionesClient';
 import styles from './reservas.module.css';
 
 // ── Operational state ────────────────────────────────────────────────────────
@@ -151,11 +150,6 @@ export default function ReservasClient({ initialBookings, rooms, slug }: Props) 
       if (res.ok) alert(`✅ Confirmación enviada a ${b.email}`);
       else { const d = await res.json(); alert('Error: ' + (d.error || 'No se pudo enviar')); }
     } finally { setSendingId(null); }
-  }
-
-  function downloadPDF(e: React.MouseEvent, b: AdminBooking) {
-    e.stopPropagation();
-    printBookingPDF(b);
   }
 
   const totalIngresos = filtered.reduce((s, b) => {
@@ -313,7 +307,7 @@ export default function ReservasClient({ initialBookings, rooms, slug }: Props) 
                   onClick={e => sendEmail(e, b)} disabled={sendingId === b.confirmacion}>
                   {sendingId === b.confirmacion ? <Loader2 size={12} className={styles.spin} /> : null} Email
                 </button>
-                <a href={`/api/admin/reservas/${b.confirmacion}/render`} target="_blank" rel="noopener"
+                <a href={`/panel/${slug}/reservas/${b.confirmacion}/documento`}
                   className={`${styles.mobileCardBtn} ${styles.mobileCardBtnPdf}`}
                   style={{ display:'inline-flex', alignItems:'center', justifyContent:'center' }}
                   onClick={e => e.stopPropagation()}>
@@ -386,8 +380,8 @@ export default function ReservasClient({ initialBookings, rooms, slug }: Props) 
                         disabled={sendingId === b.confirmacion} title="Enviar confirmación">
                         {sendingId === b.confirmacion ? <Loader2 size={13} className={styles.spin} /> : <Send size={13} />}
                       </button>
-                      <a href={`/api/admin/reservas/${b.confirmacion}/render`} target="_blank" rel="noopener"
-                        className={styles.actionBtnPdf} title="Descargar confirmación"
+                      <a href={`/panel/${slug}/reservas/${b.confirmacion}/documento`}
+                        className={styles.actionBtnPdf} title="Documento / descargar"
                         style={{ display:'inline-flex', alignItems:'center', justifyContent:'center' }}
                         onClick={e => e.stopPropagation()}>
                         <Download size={13} />

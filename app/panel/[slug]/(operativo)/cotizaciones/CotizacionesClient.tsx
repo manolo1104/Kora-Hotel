@@ -995,10 +995,10 @@ export default function CotizacionesClient({ initialQuotes, rooms, slug }: Props
               <button className={`${styles.mobileCardBtn} ${styles.mobileCardBtnWa}`} onClick={() => openWhatsApp(q)}>
                 <MessageSquare size={12} />
               </button>
-              <a href={`/api/admin/cotizaciones/${q.id}/render`} target="_blank" rel="noopener"
+              <a href={`/panel/${slug}/cotizaciones/${q.id}/documento`}
                 className={`${styles.mobileCardBtn} ${styles.mobileCardBtnPdf}`}
                 style={{ display:'inline-flex', alignItems:'center', justifyContent:'center' }}
-                title="Descargar cotización">
+                title="Documento / descargar">
                 <Download size={12} />
               </a>
               <button className={`${styles.mobileCardBtn} ${styles.mobileCardBtnEdit}`} onClick={() => setEditQuote(q)}>
@@ -1060,8 +1060,8 @@ export default function CotizacionesClient({ initialQuotes, rooms, slug }: Props
                     <button className={styles.waBtn} onClick={() => openWhatsApp(q)} title={q.estado === 'ENVIADA' ? 'Seguimiento WhatsApp' : 'WhatsApp'}>
                       <MessageSquare size={14} />
                     </button>
-                    <a href={`/api/admin/cotizaciones/${q.id}/render`} target="_blank" rel="noopener"
-                      className={styles.pdfBtn} title="Descargar cotización"
+                    <a href={`/panel/${slug}/cotizaciones/${q.id}/documento`}
+                      className={styles.pdfBtn} title="Documento / descargar"
                       style={{ display:'inline-flex', alignItems:'center', justifyContent:'center' }}>
                       <Download size={14} />
                     </a>

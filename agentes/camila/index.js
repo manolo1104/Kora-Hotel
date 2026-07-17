@@ -39,6 +39,32 @@ const pausados = new Map();
 // Ventana para no confundir el envío del propio bot con una respuesta humana.
 const botEnvioAt = new Map();
 
+// ── Comando de control desde el número admin (apagar/encender por WhatsApp) ──
+function soloDigitos(s) {
+  return String(s || "").replace(/\D/g, "");
+}
+// Coincide con el número admin tolerando lada/país (52/521 en MX): compara los
+// últimos 10 dígitos. El admin debe escribir desde un número normal (@c.us);
+// los @lid no exponen el teléfono real de forma fiable.
+function mismoNumero(chatId, adminPhone) {
+  const a = soloDigitos(String(chatId).split("@")[0]);
+  const b = soloDigitos(adminPhone);
+  if (!a || !b || b.length < 10) return false;
+  const n = Math.min(10, a.length, b.length);
+  return a.slice(-n) === b.slice(-n);
+}
+// Reconoce un comando SOLO si el mensaje es esencialmente la orden (con "camila"
+// opcional al inicio). Así el dueño no apaga el bot por escribir texto normal.
+function parseComando(texto) {
+  let t = texto.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim();
+  t = t.replace(/^camila[\s,:-]*/, "").replace(/[.!¡¿?]+$/g, "").trim();
+  const OFF = ["apagar", "apaga", "apagate", "pausar", "pausa", "off", "desactivar", "detente", "detener", "silencio"];
+  const ON = ["encender", "enciende", "prender", "prende", "activar", "activa", "on", "reanudar", "reanuda", "despierta"];
+  if (OFF.includes(t)) return "off";
+  if (ON.includes(t)) return "on";
+  return null;
+}
+
 // Borra "candados" viejos del perfil de Chromium (si un contenedor anterior no
 // cerró bien, deja un SingletonLock que impide arrancar: "Code 21"). Auto-recuperable.
 function limpiarLocks(slug) {
@@ -171,6 +197,31 @@ async function onMensaje(client, slug, kora, msg) {
   if (!texto) return;
 
   const key = `${slug}::${chatId}`;
+
+  // Estado on/off del bot (cacheado ~45s) + número admin autorizado.
+  const st = await kora.status();
+
+  // Comando de control desde el número admin: "apagar" / "encender" por WhatsApp.
+  if (st.adminPhone && mismoNumero(chatId, st.adminPhone)) {
+    const cmd = parseComando(texto);
+    if (cmd) {
+      const encender = cmd === "on";
+      const ok = await kora.setEnabled(encender);
+      const resp = ok
+        ? encender
+          ? "✅ Camila encendida. Vuelvo a responder a tus huéspedes."
+          : "🔕 Camila apagada. No responderé a tus huéspedes hasta que la enciendas (escribe *encender*)."
+        : "No pude cambiar el estado ahora, inténtalo de nuevo.";
+      botEnvioAt.set(key, Date.now());
+      await client.sendMessage(chatId, resp).catch(() => {});
+      console.log(`[${slug}] comando admin de ${chatId}: ${cmd} (${ok ? "ok" : "falló"})`);
+      return;
+    }
+  }
+
+  // Apagado EN VIVO: si el dueño apagó a Camila (panel o comando), no responde
+  // aunque siga conectada. Fail-open lo maneja kora.status().
+  if (!st.enabled) return;
 
   // ¿Chat en pausa por toma humana? Ignora hasta que expire.
   const pausadoHasta = pausados.get(key) || 0;
