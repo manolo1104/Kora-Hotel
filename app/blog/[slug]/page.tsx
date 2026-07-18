@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getArticle, articles, extractHeadings } from "@/lib/articles";
+import { articles, extractHeadings } from "@/lib/articles";
+import { getArticleBySlug, getAllArticles } from "@/lib/blog-db";
 import { FUNDADOR } from "@/lib/fundador";
 import { ShareButtons } from "@/components/blog/ShareButtons";
 import { CoverImage } from "@/components/blog/CoverImage";
@@ -10,13 +11,17 @@ interface Props {
   params: Promise<{ slug: string }>;
 }
 
+// Los estáticos se prerenderizan en build; los del agente (Supabase) se
+// renderizan on-demand con ISR (dynamicParams es true por default).
+export const revalidate = 3600;
+
 export async function generateStaticParams() {
   return articles.map((a) => ({ slug: a.slug }));
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const article = getArticle(slug);
+  const article = await getArticleBySlug(slug);
   if (!article) return { title: "Artículo no encontrado — Kora" };
 
   return {
@@ -44,11 +49,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function BlogArticlePage({ params }: Props) {
   const { slug } = await params;
-  const article = getArticle(slug);
+  const article = await getArticleBySlug(slug);
   if (!article) notFound();
 
   const headings = extractHeadings(article.content);
-  const related = articles.filter((a) => a.slug !== slug).slice(0, 2);
+  const todos = await getAllArticles();
+  const related = todos.filter((a) => a.slug !== slug).slice(0, 2);
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
   const articleUrl = `${siteUrl}/blog/${article.slug}`;

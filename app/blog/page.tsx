@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { articles } from "@/lib/articles";
+import { getAllArticles } from "@/lib/blog-db";
 import { BarraCTA } from "@/components/shared/BarraCTA";
 import { Reveal } from "@/components/shared/Reveal";
 import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
@@ -14,22 +14,27 @@ export const metadata: Metadata = {
   },
 };
 
+// ISR: el índice se regenera cuando el agente publica (revalidatePath) o cada hora.
+export const revalidate = 3600;
+
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
-const categories = Array.from(new Set(articles.map((a) => a.category)));
 
-const itemListJsonLd = {
-  "@context": "https://schema.org",
-  "@type": "ItemList",
-  name: "Blog de Kora",
-  itemListElement: articles.map((a, i) => ({
-    "@type": "ListItem",
-    position: i + 1,
-    name: a.title,
-    url: `${SITE_URL}/blog/${a.slug}`,
-  })),
-};
+export default async function BlogPage() {
+  const articles = await getAllArticles();
+  const categories = Array.from(new Set(articles.map((a) => a.category)));
 
-export default function BlogPage() {
+  const itemListJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: "Blog de Kora",
+    itemListElement: articles.map((a, i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      name: a.title,
+      url: `${SITE_URL}/blog/${a.slug}`,
+    })),
+  };
+
   return (
     <main className="pt-16">
       <script
