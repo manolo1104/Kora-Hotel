@@ -106,6 +106,7 @@ async function doResearch(topic) {
 2. Precios o rangos actuales relevantes al tema
 3. 3 preguntas frecuentes que hacen los hoteleros sobre este tema
 4. Un dato o ángulo que los artículos genéricos no cubren
+Para CADA dato incluye la fuente y su URL exacta (la usaré para enlazarla).
 Si no encuentras un dato confiable, dilo — NO inventes cifras.`;
 
   let messages = [{ role: "user", content: prompt }];
@@ -176,6 +177,42 @@ function validateInternalLinks(content, verifiedBlogSlugs) {
   );
 
   return { content: fixed, validCount: valid, totalCount: total };
+}
+
+// ── Links externos: verificar que las URLs citadas respondan ─
+// Señal E-E-A-T (fuentes verificables) sin riesgo de publicar links muertos
+// o alucinados: cada URL externa se prueba con una petición real; si no
+// responde, se quita el <a> y se conserva el texto.
+
+async function verifyExternalLinks(content) {
+  const matches = [...content.matchAll(/<a\s[^>]*href="(https?:\/\/[^"]+)"[^>]*>([\s\S]*?)<\/a>/gi)];
+  if (matches.length === 0) return { content, checked: 0, removed: 0 };
+
+  let result = content;
+  let removed = 0;
+
+  for (const [tag, url, texto] of matches) {
+    let ok = false;
+    try {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 10000);
+      let res = await fetch(url, { method: "HEAD", redirect: "follow", signal: ctrl.signal });
+      if (res.status === 405 || res.status === 403) {
+        res = await fetch(url, { method: "GET", redirect: "follow", signal: ctrl.signal });
+      }
+      clearTimeout(timer);
+      ok = res.status < 400;
+    } catch {
+      ok = false;
+    }
+    if (!ok) {
+      console.warn(`   ⚠️  Link externo no responde — removido: ${url}`);
+      result = result.replace(tag, texto);
+      removed++;
+    }
+  }
+
+  return { content: result, checked: matches.length, removed };
 }
 
 // ── Métricas de calidad ─────────────────────────────────────
@@ -296,6 +333,10 @@ LINKS INTERNOS (usa 3 a 5, rutas relativas):
 - Páginas del sitio: /caracteristicas, /precios, /como-funciona, /herramientas, /glosario, /comparativas
 - NUNCA inventes un slug de blog ni una ruta que no esté en esta lista.
 
+LINKS EXTERNOS A FUENTES (E-E-A-T): enlaza de 1 a 3 fuentes citadas, SOLO con URLs que aparezcan literalmente en el contexto investigado, así:
+<a href="URL_EXACTA_DEL_CONTEXTO" rel="noopener nofollow" target="_blank">nombre de la fuente</a>
+Ponlos donde cites el dato ("según <a ...>Cloudbeds</a>, ..."). NUNCA inventes ni completes una URL de memoria; si el contexto no trae URLs, no pongas links externos.
+
 KEYWORD DENSITY: usa "${topic.focusKeyword}" entre 8 y 14 veces (1 vez en un H2, 2 veces en el intro, resto natural). Para lo demás usa las secundarias y sinónimos. El keyword stuffing penaliza.
 
 HONESTIDAD DE CIFRAS (regla de la casa, innegociable):
@@ -369,9 +410,10 @@ async function writeArticle(topic, researchContext, verifiedBlogSlugs) {
 
 async function correctWordCount(content, wordCount) {
   const action = wordCount > WORD_MAX ? "recorta" : "expande";
+  const target = Math.round((WORD_MIN + WORD_MAX) / 2);
   const objetivo = wordCount > WORD_MAX
-    ? `máximo ${WORD_MAX} palabras eliminando párrafos redundantes del cuerpo (NUNCA el callout-summary, el FAQ ni el callout-cta)`
-    : `mínimo ${WORD_MIN} palabras profundizando las secciones más cortas con ejemplos numéricos concretos (no relleno)`;
+    ? `entre ${WORD_MIN} y ${WORD_MAX} palabras (apunta a ~${target}) eliminando párrafos redundantes del cuerpo (NUNCA el callout-summary, el FAQ ni el callout-cta)`
+    : `entre ${WORD_MIN} y ${WORD_MAX} palabras (apunta a ~${target} — NO te pases de ${WORD_MAX}) profundizando las secciones más cortas con ejemplos numéricos concretos (no relleno). Cuenta las palabras antes de entregar`;
 
   console.log(`   🔄 Corrigiendo word count (${wordCount} → ${action})...`);
   const response = await callWithRetry(async () => {
@@ -462,6 +504,9 @@ function printQualityLog(post) {
   const lv = post._links || { validCount: 0, totalCount: 0 };
   console.log(`✅ Links internos: ${lv.validCount}/${lv.totalCount} verificados (los rotos se redirigieron)`);
 
+  const ext = post._extLinks || { checked: 0, removed: 0 };
+  console.log(`${ext.checked - ext.removed >= 1 ? "✅" : "ℹ️"} Links a fuentes: ${ext.checked - ext.removed} activos de ${ext.checked} citados${ext.removed ? ` (${ext.removed} muertos removidos)` : ""}`);
+
   if (issues.length) console.log(`\n⚠️  REQUIERE REVISIÓN: ${issues.join(" | ")}`);
   else console.log(`\n🎯 Todas las verificaciones pasaron`);
   console.log("─".repeat(55));
@@ -528,6 +573,11 @@ async function main() {
   } else {
     console.log(`   ✅ Word count: ${wc}`);
   }
+
+  // Verificar links externos a fuentes (después de la corrección de longitud)
+  const extCheck = await verifyExternalLinks(post.content);
+  post.content = extCheck.content;
+  post._extLinks = extCheck;
 
   const publicado = await publishPost(post);
   printQualityLog(post);
