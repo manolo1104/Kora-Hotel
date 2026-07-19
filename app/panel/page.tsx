@@ -10,6 +10,7 @@ import {
   Building2,
   ArrowRight,
   CircleDashed,
+  Sparkles,
 } from "lucide-react";
 import { Reveal } from "@/components/shared/Reveal";
 import { LogoutButton } from "@/components/panel/LogoutButton";
@@ -222,6 +223,32 @@ export default async function PanelPage() {
                 )}
               </Reveal>
             </div>
+          )}
+
+          {/* Herramientas rápidas con IA (incluidas en el plan) */}
+          {hoteles.length > 0 && (
+            <Reveal delay={0.1}>
+              <Link
+                href="/panel/herramientas"
+                className="btn-press group mt-6 flex items-center gap-4 rounded-2xl bg-kora-primary p-5 sm:p-6 text-white hover:bg-kora-primary-dark transition-colors"
+              >
+                <div className="w-11 h-11 shrink-0 rounded-full bg-kora-accent/20 flex items-center justify-center">
+                  <Sparkles size={22} className="text-kora-accent" aria-hidden="true" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h2 className="text-base sm:text-lg font-bold">Herramientas con IA</h2>
+                  <p className="mt-0.5 text-sm text-white/75 leading-snug">
+                    Responde reseñas de Google, escribe mensajes de WhatsApp y descripciones en
+                    segundos.
+                  </p>
+                </div>
+                <ArrowRight
+                  size={18}
+                  className="shrink-0 opacity-70 group-hover:translate-x-0.5 transition-transform"
+                  aria-hidden="true"
+                />
+              </Link>
+            </Reveal>
           )}
         </div>
       </section>

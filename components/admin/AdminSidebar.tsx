@@ -1,7 +1,7 @@
 'use client';
 
 import { usePathname, useRouter } from 'next/navigation';
-import { Calendar, BookOpen, FileText, TrendingUp, Users, LogOut, Menu, X, LayoutDashboard, ClipboardCheck, Globe2, CreditCard, Pencil, CalendarCheck, Building2, Bot } from 'lucide-react';
+import { Calendar, BookOpen, FileText, TrendingUp, Users, LogOut, Menu, X, LayoutDashboard, ClipboardCheck, Globe2, CreditCard, Pencil, CalendarCheck, Building2, Bot, Sparkles } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import styles from './AdminSidebar.module.css';
@@ -95,6 +95,14 @@ export default function AdminSidebar({ slug, hotelName }: { slug: string; hotelN
           <a href="/panel" className={styles.navItem} onClick={() => setOpen(false)}>
             <Building2 size={18} strokeWidth={1.5} />
             <span>Mis hoteles</span>
+          </a>
+          <a
+            href="/panel/herramientas"
+            className={`${styles.navItem} ${pathname === '/panel/herramientas' ? styles.active : ''}`}
+            onClick={() => setOpen(false)}
+          >
+            <Sparkles size={18} strokeWidth={1.5} />
+            <span>Herramientas IA</span>
           </a>
         </nav>
 

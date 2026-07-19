@@ -297,6 +297,9 @@ export default function ReservarClient({
       if (Number.isInteger(qAdults) && qAdults >= 1 && qAdults <= 10) setAdults(qAdults);
       const qChildren = Number(q.get("children"));
       if (Number.isInteger(qChildren) && qChildren >= 0 && qChildren <= 10) setChildren(qChildren);
+      // Habitación pre-seleccionada desde el CTA de la mini-página.
+      const qHab = (q.get("habitacion") ?? "").trim().toLowerCase();
+      if (qHab) preselRef.current = qHab;
     } catch {
       /* sin URL válida */
     }
@@ -445,6 +448,10 @@ export default function ReservarClient({
 
   const resultsRef = useRef<HTMLDivElement>(null);
   const stepHeadingRef = useRef<HTMLHeadingElement>(null);
+  // Pre-selección de habitación (viene del CTA "Reservar esta habitación" por ?habitacion=).
+  const preselRef = useRef<string>("");
+  const autoSearchDoneRef = useRef(false);
+  const autoAddDoneRef = useRef(false);
 
   // Al cambiar de paso: scroll arriba + foco al título (teclado/lector).
   useEffect(() => {
@@ -549,6 +556,28 @@ export default function ReservarClient({
   function removeFromCart(roomId: number | string) {
     setCart((prev) => prev.filter((c) => c.roomId !== roomId));
   }
+
+  // Si llegó con una habitación pre-seleccionada (?habitacion=) y fechas válidas,
+  // buscamos disponibilidad automáticamente una sola vez.
+  useEffect(() => {
+    if (autoSearchDoneRef.current || !preselRef.current) return;
+    if (!checkin || !checkout || nights <= 0) return;
+    autoSearchDoneRef.current = true;
+    handleSearch();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [checkin, checkout, nights]);
+
+  // Al terminar la búsqueda, agregamos al carrito la habitación pre-seleccionada
+  // si está disponible (una sola vez).
+  useEffect(() => {
+    if (!searched || autoAddDoneRef.current || !preselRef.current) return;
+    autoAddDoneRef.current = true;
+    const room = rooms.find((r) => r.name.trim().toLowerCase() === preselRef.current);
+    if (room && !unavailable.includes(room.name) && !inCart(room.id)) {
+      addToCart(room);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searched, unavailable]);
   // Cambia cuántas unidades del tipo se reservan (cap = unidades libres). Al bajar
   // de 1 se quita el tipo del carrito.
   function updateQuantity(roomId: number | string, delta: number) {

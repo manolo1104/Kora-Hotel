@@ -25,8 +25,12 @@ interface GeneradorIAProps {
   campos: CampoDef[];
   botonLabel: string;
   resultadoLabel: string;
-  lead: { herramienta: string; title: string; subtitle: string; button: string };
-  kora: { badge: string; titulo: string; texto: string; utm: string };
+  // lead/kora son los bloques de captación y CTA de registro (solo para la página
+  // pública). En el panel se ocultan con ocultarLead/ocultarCta.
+  lead?: { herramienta: string; title: string; subtitle: string; button: string };
+  kora?: { badge: string; titulo: string; texto: string; utm: string };
+  ocultarLead?: boolean;
+  ocultarCta?: boolean;
 }
 
 export function GeneradorIA({
@@ -38,6 +42,8 @@ export function GeneradorIA({
   resultadoLabel,
   lead,
   kora,
+  ocultarLead = false,
+  ocultarCta = false,
 }: GeneradorIAProps) {
   const inicial: Record<string, string> = {};
   for (const c of campos) inicial[c.name] = c.default ?? "";
@@ -211,18 +217,21 @@ export function GeneradorIA({
       </div>
 
       {/* CAPA 2 */}
-      <Reveal>
-        <div className="mt-10">
-          <LeadCaptureTool
-            herramienta={lead.herramienta}
-            title={lead.title}
-            subtitle={lead.subtitle}
-            buttonText={lead.button}
-          />
-        </div>
-      </Reveal>
+      {!ocultarLead && lead && (
+        <Reveal>
+          <div className="mt-10">
+            <LeadCaptureTool
+              herramienta={lead.herramienta}
+              title={lead.title}
+              subtitle={lead.subtitle}
+              buttonText={lead.button}
+            />
+          </div>
+        </Reveal>
+      )}
 
       {/* CAPA 3 */}
+      {!ocultarCta && kora && (
       <Reveal>
         <div className="mt-10 rounded-2xl bg-kora-primary p-7 sm:p-9 text-center">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-kora-accent/15 mb-4">
@@ -246,6 +255,7 @@ export function GeneradorIA({
           </a>
         </div>
       </Reveal>
+      )}
     </div>
   );
 }

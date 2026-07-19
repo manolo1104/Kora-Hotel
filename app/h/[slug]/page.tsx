@@ -13,6 +13,7 @@ import {
   Languages,
   ShieldCheck,
   BedDouble,
+  CalendarCheck,
 } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
 import { Reveal } from "@/components/shared/Reveal";
@@ -26,7 +27,7 @@ import {
   type MiniExtras,
 } from "@/lib/mini";
 import { SUPABASE_URL, SUPABASE_ANON_KEY, supabaseEnvReady } from "@/lib/supabase/env";
-import { ownerTienePlanActivo } from "@/lib/suscripcion";
+import { ownerTienePlanActivo, accesoDelHotel } from "@/lib/suscripcion";
 import { getResenasPublicadas } from "@/lib/db/reviews";
 
 export const dynamic = "force-dynamic";
@@ -56,12 +57,13 @@ interface Hotel {
   habitaciones: Habitacion[];
   fotos: string[];
   extras: MiniExtras | null;
+  created_at: string | null;
 }
 
 async function getHotel(slug: string, preview: boolean): Promise<Hotel | null> {
   if (!supabaseEnvReady) return null;
   const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  const base = "id, slug, owner_id, nombre, ubicacion, descripcion, whatsapp, habitaciones, fotos";
+  const base = "id, slug, owner_id, nombre, ubicacion, descripcion, whatsapp, habitaciones, fotos, created_at";
   const run = (cols: string) => {
     let q = supabase.from("hoteles").select(cols).eq("slug", slug);
     if (!preview) q = q.eq("publicado", true);
@@ -232,6 +234,25 @@ export default async function MiniPagina({
         )}`
       : null;
 
+  // Destino de los CTAs de reserva según el plan del hotel:
+  //  - prueba activa (dentro de 30 días) o suscripción pagada → motor de reservas.
+  //  - gratis (prueba vencida sin pago) → WhatsApp.
+  // Es la MISMA condición que gatea /reservar, así que nunca enlazamos a un motor pausado.
+  const acceso = await accesoDelHotel({
+    owner_id: hotel.owner_id,
+    created_at: hotel.created_at,
+    extras: hotel.extras as Record<string, unknown> | null,
+  });
+  const motorActivo = acceso.activo;
+  const reservarUrl = `/h/${hotel.slug}/reservar`;
+  const reservarHabUrl = (nombre?: string) =>
+    `${reservarUrl}${nombre ? `?habitacion=${encodeURIComponent(nombre)}` : ""}`;
+  // CTA principal (hero + cierre). Si el motor está activo → al motor; si no → WhatsApp.
+  const ctaHref = motorActivo ? reservarUrl : waUrl;
+  const ctaHabHref = (nombre?: string) => (motorActivo ? reservarHabUrl(nombre) : waHabUrl(nombre));
+  const ctaLabel = motorActivo ? "Reservar ahora" : "Reservar por WhatsApp";
+  const ctaExtern = motorActivo ? {} : { target: "_blank" as const, rel: "noopener noreferrer" };
+
   // Precio mínimo (para priceRange del schema)
   const preciosNum = (hotel.habitaciones ?? [])
     .flatMap((h) => [aNumero(h.precio), ...(h.tarifas ?? []).map((t) => aNumero(t.precio))])
@@ -367,7 +388,7 @@ export default async function MiniPagina({
               const precio = precioDesde(h);
               const tarifas = (h.tarifas ?? []).filter((t) => aNumero(t.precio) > 0);
               const fotosHab = h.fotos ?? [];
-              const waHab = waHabUrl(h.nombre);
+              const habHref = ctaHabHref(h.nombre);
               return (
                 <div
                   key={i}
@@ -455,15 +476,18 @@ export default async function MiniPagina({
                       </div>
                     )}
 
-                    {waHab && (
+                    {habHref && (
                       <a
-                        href={waHab}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                        href={habHref}
+                        {...ctaExtern}
                         className="btn-press mt-3 inline-flex items-center gap-1.5 text-sm font-semibold"
                         style={{ color: "var(--brand)" }}
                       >
-                        <MessageCircle size={15} aria-hidden="true" />
+                        {motorActivo ? (
+                          <CalendarCheck size={15} aria-hidden="true" />
+                        ) : (
+                          <MessageCircle size={15} aria-hidden="true" />
+                        )}
                         Reservar esta habitación
                       </a>
                     )}
@@ -766,16 +790,19 @@ export default async function MiniPagina({
             </>
           )}
 
-          {waUrl && (
+          {ctaHref && (
             <a
-              href={waUrl}
-              target="_blank"
-              rel="noopener noreferrer"
+              href={ctaHref}
+              {...ctaExtern}
               className="btn-press btn-fill mt-4 w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full font-bold text-sm transition-colors"
               style={{ backgroundColor: "var(--brand)", color: "var(--brand-ink)" }}
             >
-              <MessageCircle size={17} aria-hidden="true" />
-              Reservar por WhatsApp
+              {motorActivo ? (
+                <CalendarCheck size={17} aria-hidden="true" />
+              ) : (
+                <MessageCircle size={17} aria-hidden="true" />
+              )}
+              {ctaLabel}
             </a>
           )}
 
@@ -785,10 +812,12 @@ export default async function MiniPagina({
 
       <Reveal className="max-w-2xl mx-auto px-4 sm:px-6 py-8 space-y-8">
         {/* Formulario de solicitud de reserva */}
-        {hotel.whatsapp && (
+        {(motorActivo || hotel.whatsapp) && (
           <ReservaForm
             hotelNombre={hotel.nombre}
-            whatsapp={hotel.whatsapp}
+            whatsapp={hotel.whatsapp ?? ""}
+            slug={hotel.slug}
+            motorActivo={motorActivo}
             habitaciones={(hotel.habitaciones ?? [])
               .map((h) => h.nombre || "")
               .filter(Boolean)}
@@ -798,18 +827,21 @@ export default async function MiniPagina({
         {/* Secciones reordenables */}
         {orden.map((k) => secciones[k]).filter(Boolean)}
 
-        {/* CTA WhatsApp final */}
-        {waUrl && (
+        {/* CTA de reserva final */}
+        {ctaHref && (
           <section className="text-center">
             <a
-              href={waUrl}
-              target="_blank"
-              rel="noopener noreferrer"
+              href={ctaHref}
+              {...ctaExtern}
               className="btn-press btn-fill inline-flex items-center justify-center gap-2 px-7 py-4 rounded-full font-bold text-sm transition-colors"
               style={{ backgroundColor: "var(--brand)", color: "var(--brand-ink)" }}
             >
-              <MessageCircle size={17} aria-hidden="true" />
-              Reservar por WhatsApp
+              {motorActivo ? (
+                <CalendarCheck size={17} aria-hidden="true" />
+              ) : (
+                <MessageCircle size={17} aria-hidden="true" />
+              )}
+              {ctaLabel}
             </a>
           </section>
         )}

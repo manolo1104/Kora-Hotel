@@ -27,7 +27,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "La IA no está configurada (falta ANTHROPIC_API_KEY)." }, { status: 503 });
   }
 
-  let body: { nombre?: string; capacidad?: string | number; features?: unknown; tono?: string };
+  let body: {
+    nombre?: string;
+    capacidad?: string | number;
+    features?: unknown;
+    camas?: unknown;
+    notas?: string;
+    tono?: string;
+  };
   try {
     body = await req.json();
   } catch {
@@ -38,14 +45,31 @@ export async function POST(req: Request) {
   if (!nombre) return NextResponse.json({ error: "Ponle primero un nombre a la habitación." }, { status: 400 });
   const capacidad = Number(body.capacidad) || 0;
   const features = Array.isArray(body.features) ? body.features.map(String).filter(Boolean).slice(0, 20) : [];
+  // Camas: cada objeto {tipo, cantidad} → "2 Queen", "1 King"
+  const camas = Array.isArray(body.camas)
+    ? body.camas
+        .map((c) => {
+          const o = c as { tipo?: unknown; cantidad?: unknown };
+          const tipo = String(o?.tipo ?? "").trim();
+          if (!tipo) return "";
+          const cant = Number(o?.cantidad) || 0;
+          return cant > 1 ? `${cant} ${tipo}` : tipo;
+        })
+        .filter(Boolean)
+        .slice(0, 8)
+    : [];
+  // Notas: lo que el hotelero ya escribió (borrador / puntos que quiere resaltar)
+  const notas = String(body.notas ?? "").trim().slice(0, 600);
   const tonoKey = String(body.tono ?? "evocadora");
   const tonoDesc = TONOS[tonoKey] ?? TONOS.evocadora;
 
-  const system = `Eres copywriter de hoteles boutique en México. Escribes la descripción de UNA habitación (no del hotel), en español de México. Entre 45 y 75 palabras, en un solo párrafo. HONESTIDAD: usa SOLO las características que te den; NO inventes amenidades, medidas, vistas ni datos. Sin emojis, sin comillas, sin encabezados: devuelve únicamente el texto de la descripción.`;
+  const system = `Eres copywriter de hoteles boutique en México. Escribes la descripción de UNA habitación (no del hotel), en español de México. Entre 45 y 75 palabras, en un solo párrafo. HONESTIDAD: usa SOLO las características, camas y notas que te den; NO inventes amenidades, medidas, vistas ni datos. Si te dan notas del hotelero, respétalas y mejóralas (redacción, orden, tono); no las contradigas ni agregues datos que no estén ahí. Sin emojis, sin comillas, sin encabezados: devuelve únicamente el texto de la descripción.`;
   const user = `Hotel: ${ctx.hotel.nombre || "el hotel"}
 Habitación: ${nombre}
 Capacidad: ${capacidad > 0 ? `${capacidad} personas` : "no especificada"}
+Camas: ${camas.length ? camas.join(", ") : "no especificadas"}
 Características: ${features.length ? features.join(", ") : "no especificadas"}
+Notas del hotelero (lo que quiere resaltar): ${notas || "ninguna"}
 Tono: ${tonoDesc}
 
 Escribe la descripción de esta habitación.`;

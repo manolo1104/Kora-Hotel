@@ -5,7 +5,7 @@
 // /panel/[slug]/onboarding, donde viven los pasos 3-6 resumables.
 
 import { useState } from "react";
-import { Loader2, Plus, Trash2, ArrowRight, ArrowLeft } from "lucide-react";
+import { Loader2, Plus, Trash2, ArrowRight, ArrowLeft, Lightbulb } from "lucide-react";
 
 const inputCls =
   "w-full px-4 py-3 rounded-xl border border-gray-200 text-kora-text text-sm placeholder:text-kora-muted focus:outline-none focus:ring-2 focus:ring-kora-accent focus:border-transparent transition-all duration-200";
@@ -99,8 +99,16 @@ export function OnboardingClient() {
 
   // ─── Pasos 1 y 2 de 6: crear el hotel ──────────────────────────────────────
   const pasos = [
-    { titulo: "Tu hotel", desc: "Lo básico para tu página." },
-    { titulo: "Habitaciones y tarifas", desc: "Lo que ofreces y su precio." },
+    {
+      titulo: "Tu hotel",
+      desc: "Lo básico para tu página.",
+      guia: "Escribe los datos de tu hotel como se los dirías a un huésped. No te preocupes por que quede perfecto: todo lo puedes editar después.",
+    },
+    {
+      titulo: "Habitaciones y tarifas",
+      desc: "Lo que ofreces y su precio.",
+      guia: "Agrega cada tipo de habitación con su precio por noche. Con una basta para empezar; luego agregas fotos, descripciones y más tarifas.",
+    },
   ];
 
   return (
@@ -133,6 +141,12 @@ export function OnboardingClient() {
         <h2 className="mt-1 text-xl font-bold text-kora-text">{pasos[paso].titulo}</h2>
         <p className="mt-1 text-sm text-kora-muted">{pasos[paso].desc}</p>
 
+        {/* Guía del paso: qué hacer y cómo */}
+        <div className="mt-4 flex items-start gap-2.5 rounded-xl bg-kora-accent/10 border border-kora-accent/30 px-3.5 py-3">
+          <Lightbulb size={16} className="text-kora-primary flex-shrink-0 mt-0.5" aria-hidden="true" />
+          <p className="text-xs text-kora-text leading-relaxed">{pasos[paso].guia}</p>
+        </div>
+
         <div className="mt-5 space-y-4">
           {/* PASO 1 */}
           {paso === 0 && (
@@ -148,6 +162,9 @@ export function OnboardingClient() {
                   placeholder="Hotel Paraíso Encantado"
                   autoFocus
                 />
+                <p className="mt-1.5 text-xs text-kora-muted">
+                  Es lo primero que ve el huésped, en grande, en tu página.
+                </p>
               </div>
               <div>
                 <label className="block text-sm font-semibold text-kora-text mb-1.5">
@@ -159,6 +176,9 @@ export function OnboardingClient() {
                   onChange={(e) => setUbicacion(e.target.value)}
                   placeholder="Xilitla, San Luis Potosí"
                 />
+                <p className="mt-1.5 text-xs text-kora-muted">
+                  Ciudad y estado. Más adelante podrás poner el mapa exacto.
+                </p>
               </div>
               <div>
                 <label className="block text-sm font-semibold text-kora-text mb-1.5">
@@ -186,6 +206,9 @@ export function OnboardingClient() {
                   onChange={(e) => setDescripcion(e.target.value)}
                   placeholder="¿Por qué es especial y qué hay cerca?"
                 />
+                <p className="mt-1.5 text-xs text-kora-muted">
+                  ¿No sabes qué poner? Escribe unas ideas y luego, en tu panel, la IA te la redacta.
+                </p>
               </div>
             </>
           )}

@@ -28,11 +28,13 @@ import {
   BarChart3,
   ArrowRight,
   CalendarCheck,
+  MapPin,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { deriveUnidades } from "@/lib/booking";
 import { comprimirImagen } from "@/lib/images-client";
-import { AMENIDADES, AMENIDADES_HAB, TIPOS_CAMA } from "@/lib/amenidades";
+import { AMENIDADES, AMENIDADES_HAB, AMENIDADES_MAP, TIPOS_CAMA } from "@/lib/amenidades";
+import { construirMapa } from "@/lib/maps";
 import { ResenasCapturadas } from "@/components/panel/ResenasCapturadas";
 import {
   FUENTES,
@@ -253,6 +255,8 @@ export function PanelEditor({
   const [instagram, setInstagram] = useState("");
   const [facebook, setFacebook] = useState("");
   const [mapsUrl, setMapsUrl] = useState("");
+  const [mapInput, setMapInput] = useState(""); // lo que el hotelero pega: dirección o link de Google Maps
+  const [resolviendoMapa, setResolviendoMapa] = useState(false);
   const [reviewUrl, setReviewUrl] = useState(""); // link "escribir reseña" de Google (email día 7)
 
   // Token del bot de WhatsApp (config.agent_token). Se pide al backend solo
@@ -468,6 +472,8 @@ export function PanelEditor({
   const [subiendoHab, setSubiendoHab] = useState<number | null>(null);
   const [genDescIdx, setGenDescIdx] = useState<number | null>(null); // habitación cuya descripción se está generando con IA
   const [tonoDesc, setTonoDesc] = useState("evocadora"); // tono elegido para la descripción con IA
+  const [genDescHotel, setGenDescHotel] = useState(false); // descripción del hotel generándose con IA
+  const [tonoDescHotel, setTonoDescHotel] = useState("evocadora"); // tono para la descripción del hotel
   const [guardando, setGuardando] = useState(false);
   const [guardado, setGuardado] = useState(false);
   const [error, setError] = useState("");
@@ -524,6 +530,7 @@ export function PanelEditor({
         setInstagram(ex.instagram ?? "");
         setFacebook(ex.facebook ?? "");
         setMapsUrl(ex.mapsUrl ?? "");
+        setMapInput(ex.mapInput ?? ex.mapsUrl ?? "");
         setReviewUrl(ex.reviewUrl ?? "");
         setMapEmbedUrl(ex.mapEmbedUrl ?? "");
         const d = ex.diseno ?? {};
@@ -734,6 +741,8 @@ export function PanelEditor({
           nombre: h.nombre,
           capacidad: h.capacidad,
           features: h.features ?? [],
+          camas: h.camas ?? [],
+          notas: h.descripcion ?? "",
           tono: tonoDesc,
         }),
       });
@@ -747,6 +756,76 @@ export function PanelEditor({
       setError("No se pudo generar la descripción. Revisa tu conexión.");
     } finally {
       setGenDescIdx(null);
+    }
+  }
+
+  // Genera la descripción del HOTEL con IA, a partir de lo que ya escribió el
+  // hotelero (como notas) + ubicación, amenidades y habitaciones reales.
+  async function generarDescripcionHotel() {
+    if (genDescHotel) return;
+    if (!nombre.trim()) {
+      setError("Ponle primero un nombre al hotel para generar su descripción.");
+      return;
+    }
+    setGenDescHotel(true);
+    setError("");
+    try {
+      const res = await fetch("/api/admin/hotel-description", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nombre,
+          ubicacion,
+          amenidades: amenidades.map((k) => AMENIDADES_MAP[k]?.label || k),
+          habitaciones: habitaciones.map((h) => ({ nombre: h.nombre, features: h.features ?? [] })),
+          notas: descripcion,
+          tono: tonoDescHotel,
+        }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (res.ok && d.texto) {
+        setDescripcion(d.texto);
+      } else {
+        setError(d.error || "No se pudo generar la descripción.");
+      }
+    } catch {
+      setError("No se pudo generar la descripción. Revisa tu conexión.");
+    } finally {
+      setGenDescHotel(false);
+    }
+  }
+
+  // Toma lo que el hotelero pegó (dirección o link de Google Maps) y calcula el
+  // mapa embebido + el link "Cómo llegar". Los links cortos se expanden en el servidor.
+  async function aplicarMapa() {
+    const val = mapInput.trim();
+    if (!val) {
+      setMapEmbedUrl("");
+      setMapsUrl("");
+      return;
+    }
+    setResolviendoMapa(true);
+    setError("");
+    try {
+      let r = construirMapa(val);
+      if (r.needsResolve) {
+        const res = await fetch("/api/panel/resolver-mapa", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ input: val }),
+        });
+        const d = await res.json().catch(() => null);
+        if (res.ok && d) r = d;
+      }
+      setMapEmbedUrl(r.embedUrl || "");
+      setMapsUrl(r.mapsUrl || val);
+      if (!r.embedUrl) {
+        setError("No pudimos armar el mapa embebido con ese link. Prueba pegando la dirección del hotel.");
+      }
+    } catch {
+      setError("No se pudo procesar el mapa. Revisa tu conexión.");
+    } finally {
+      setResolviendoMapa(false);
     }
   }
 
@@ -1062,6 +1141,7 @@ export function PanelEditor({
       instagram: instagram.trim(),
       facebook: facebook.trim(),
       mapsUrl: mapsUrl.trim(),
+      mapInput: mapInput.trim(),
       reviewUrl: reviewUrl.trim(),
       mapEmbedUrl: mapEmbedUrl.trim(),
       diseno: {
@@ -1608,6 +1688,16 @@ export function PanelEditor({
       {/* ─── CONTENIDO ─── */}
       {tab === "contenido" && (
         <div className="space-y-6">
+          {/* Guía de orientación de la pantalla */}
+          <div className="flex items-start gap-2.5 rounded-2xl bg-kora-accent/10 border border-kora-accent/30 px-4 py-3.5">
+            <HelpCircle size={17} className="text-kora-primary flex-shrink-0 mt-0.5" aria-hidden="true" />
+            <p className="text-xs text-kora-text leading-relaxed">
+              <b>Aquí armas tu página.</b> Llena los datos de tu hotel, sube fotos, marca tus
+              amenidades y pon tu ubicación. Usa el botón <b>“Generar con IA”</b> si no sabes qué
+              escribir, y no olvides <b>Guardar</b>. La lista de arriba te dice qué te falta para
+              recibir reservas.
+            </p>
+          </div>
           <div className={`${card} space-y-4`}>
             <h2 className="text-lg font-bold text-kora-text">Datos de tu hotel</h2>
             <div>
@@ -1645,7 +1735,7 @@ export function PanelEditor({
                 />
               </div>
             </div>
-            <div>
+            <div className="space-y-2">
               <label className="block text-sm font-semibold text-kora-text mb-1.5">
                 Descripción
               </label>
@@ -1656,6 +1746,33 @@ export function PanelEditor({
                 onChange={(e) => setDescripcion(e.target.value)}
                 placeholder="Cuéntale al huésped por qué tu hotel es especial y qué hay cerca."
               />
+              <p className="text-[11px] text-kora-muted">
+                Tip: escribe unas ideas sueltas (o déjalo vacío) y la IA arma la descripción usando tu
+                ubicación, amenidades y habitaciones. No inventa datos.
+              </p>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[11px] text-kora-muted">Generar con IA — tono:</span>
+                <select
+                  className="text-xs rounded-lg border border-gray-200 px-2 py-1.5 text-kora-text bg-white focus:outline-none focus:ring-2 focus:ring-kora-accent"
+                  value={tonoDescHotel}
+                  onChange={(e) => setTonoDescHotel(e.target.value)}
+                >
+                  <option value="evocadora">Evocadora</option>
+                  <option value="emotiva">Emotiva</option>
+                  <option value="vender">Para vender</option>
+                  <option value="sencilla">Sencilla</option>
+                  <option value="moderna">Moderna</option>
+                </select>
+                <button
+                  type="button"
+                  onClick={generarDescripcionHotel}
+                  disabled={genDescHotel}
+                  className="btn-press inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-kora-accent bg-kora-accent/10 text-kora-primary text-xs font-semibold hover:bg-kora-accent/20 transition-colors disabled:opacity-60"
+                >
+                  {genDescHotel ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
+                  {genDescHotel ? "Generando…" : "Generar con IA"}
+                </button>
+              </div>
             </div>
           </div>
 
@@ -1740,28 +1857,52 @@ export function PanelEditor({
             </div>
             <div>
               <label className="block text-sm font-semibold text-kora-text mb-1.5">
-                Link de Google Maps (para “Cómo llegar”)
+                Ubicación en el mapa
               </label>
-              <input
-                className={inputCls}
-                value={mapsUrl}
-                onChange={(e) => setMapsUrl(e.target.value)}
-                placeholder="https://maps.app.goo.gl/..."
-                inputMode="url"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-kora-text mb-1.5">
-                Mapa para mostrar en la página{" "}
-                <span className="font-normal text-kora-muted">(opcional, URL de “insertar mapa”)</span>
-              </label>
-              <input
-                className={inputCls}
-                value={mapEmbedUrl}
-                onChange={(e) => setMapEmbedUrl(e.target.value)}
-                placeholder="https://www.google.com/maps/embed?pb=..."
-                inputMode="url"
-              />
+              <p className="text-xs text-kora-muted mb-2">
+                Pega la <b>dirección</b> de tu hotel o un <b>link de Google Maps</b> y presiona
+                “Poner mapa”. Nosotros lo insertamos y creamos el botón “Cómo llegar”. No necesitas
+                copiar código.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <input
+                  className={inputCls}
+                  value={mapInput}
+                  onChange={(e) => setMapInput(e.target.value)}
+                  onBlur={() => { if (mapInput.trim() && !mapEmbedUrl) aplicarMapa(); }}
+                  placeholder="Ej. Xilitla, SLP  ·  o  https://maps.app.goo.gl/..."
+                  inputMode="url"
+                />
+                <button
+                  type="button"
+                  onClick={aplicarMapa}
+                  disabled={resolviendoMapa || !mapInput.trim()}
+                  className="btn-press shrink-0 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border-2 border-kora-primary text-kora-primary font-semibold text-sm hover:bg-kora-primary hover:text-white transition-colors disabled:opacity-60"
+                >
+                  {resolviendoMapa ? <Loader2 size={15} className="animate-spin" /> : <MapPin size={15} />}
+                  {resolviendoMapa ? "Buscando…" : "Poner mapa"}
+                </button>
+              </div>
+              {mapEmbedUrl && (
+                <div className="mt-3">
+                  <div className="rounded-xl overflow-hidden border border-gray-200">
+                    <iframe
+                      src={mapEmbedUrl}
+                      title="Vista previa del mapa"
+                      className="w-full h-48"
+                      loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => { setMapEmbedUrl(""); setMapsUrl(""); setMapInput(""); }}
+                    className="mt-1.5 text-xs text-red-600 font-semibold hover:underline"
+                  >
+                    Quitar mapa
+                  </button>
+                </div>
+              )}
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>

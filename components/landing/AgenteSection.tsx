@@ -1,7 +1,7 @@
 import { Clock, MessageSquare, Languages, ArrowRight } from "lucide-react";
 import { Reveal } from "@/components/shared/Reveal";
 import { CtaLink } from "@/components/shared/CtaLink";
-import { WhatsAppMockup } from "@/components/landing/ProductMockups";
+import { WhatsAppDemoChat } from "@/components/landing/WhatsAppDemoChat";
 
 // Momento dedicado al agente de WhatsApp (estilo Notion: "el turno de noche").
 // Fondo oscuro para dar ritmo claro/oscuro a la página.
@@ -72,10 +72,10 @@ export function AgenteSection() {
             </div>
           </Reveal>
 
-          {/* Chat en vivo */}
+          {/* Chat en vivo — demo interactiva real */}
           <Reveal direction="right" delay={0.1}>
             <div className="max-w-sm mx-auto w-full">
-              <WhatsAppMockup />
+              <WhatsAppDemoChat />
             </div>
           </Reveal>
         </div>

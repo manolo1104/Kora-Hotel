@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { MessageCircle, CalendarDays, Users } from "lucide-react";
+import { MessageCircle, CalendarDays, Users, CalendarCheck } from "lucide-react";
 
 function soloDigitos(s: string): string {
   return s.replace(/\D/g, "");
@@ -18,10 +18,16 @@ export function ReservaForm({
   hotelNombre,
   whatsapp,
   habitaciones,
+  slug,
+  motorActivo = false,
 }: {
   hotelNombre: string;
   whatsapp: string;
   habitaciones: string[];
+  slug?: string;
+  // Cuando el hotel está en prueba/pagado, el formulario lleva al motor de
+  // reservas con las fechas y la habitación ya seleccionadas.
+  motorActivo?: boolean;
 }) {
   const hoy = new Date().toISOString().slice(0, 10);
   const [llegada, setLlegada] = useState("");
@@ -31,12 +37,29 @@ export function ReservaForm({
   const [nota, setNota] = useState("");
   const [error, setError] = useState("");
 
+  const alMotor = motorActivo && !!slug;
+
   function enviar() {
     setError("");
     if (llegada && salida && salida <= llegada) {
       setError("La fecha de salida debe ser posterior a la de llegada.");
       return;
     }
+
+    // Motor de reservas: llevamos fechas / huéspedes / habitación por la URL.
+    if (alMotor) {
+      const q = new URLSearchParams();
+      if (llegada) q.set("checkin", llegada);
+      if (salida) q.set("checkout", salida);
+      const adults = parseInt(huespedes, 10);
+      if (Number.isInteger(adults) && adults >= 1) q.set("adults", String(adults));
+      if (habitacion) q.set("habitacion", habitacion);
+      const qs = q.toString();
+      window.location.href = `/h/${slug}/reservar${qs ? `?${qs}` : ""}`;
+      return;
+    }
+
+    // Sin motor (plan gratis): abrimos WhatsApp con la solicitud lista.
     const lineas = [
       `Hola, vi su página y quiero reservar en ${hotelNombre}.`,
       llegada ? `Llegada: ${fmtFecha(llegada)}` : "",
@@ -136,11 +159,17 @@ export function ReservaForm({
         className="btn-press btn-fill mt-4 w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full font-bold text-sm transition-colors"
         style={{ backgroundColor: "var(--brand)", color: "var(--brand-ink)" }}
       >
-        <MessageCircle size={17} aria-hidden="true" />
-        Solicitar por WhatsApp
+        {alMotor ? (
+          <CalendarCheck size={17} aria-hidden="true" />
+        ) : (
+          <MessageCircle size={17} aria-hidden="true" />
+        )}
+        {alMotor ? "Ver disponibilidad y reservar" : "Solicitar por WhatsApp"}
       </button>
       <p className="mt-2 text-center text-[11px] text-kora-muted">
-        Te abrimos WhatsApp con tu solicitud lista para enviar.
+        {alMotor
+          ? "Te llevamos a completar tu reserva con las fechas que elegiste."
+          : "Te abrimos WhatsApp con tu solicitud lista para enviar."}
       </p>
     </div>
   );
