@@ -2,7 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getActiveHotel } from '@/lib/panel/active-hotel';
 import { getAllBookings, createManualBooking } from '@/lib/db/admin';
 import { checkAvailability } from '@/lib/db/availability';
-import { Resend } from 'resend';
+import type { HotelRow } from '@/lib/tenant';
+import {
+  resolveHotelAvisoEmail,
+  sendAvisoReservaHotel,
+  sendConfirmacionReserva,
+} from '@/lib/email/reserva';
+import { bookingBrandFromHotel } from '@/lib/email/booking-branded';
 
 export const dynamic = 'force-dynamic';
 
@@ -66,8 +72,11 @@ export async function POST(req: NextRequest) {
     // TODO loyalty: en Paraíso se llamaba checkAndEnrollLoyalty aquí. Kora aún no
     // tiene módulo de lealtad → se omite.
 
-    // Notificación por email al equipo del hotel (no bloqueante, solo si hay envs).
-    notifyTeamNewBooking(ctx.hotel.nombre, { confirmacion, ...data }).catch(() => {});
+    // Correos post-reserva (best-effort: nunca tumban la creación de la reserva).
+    // Mismo patrón que el webhook del motor (app/api/h/webhooks/stripe): aviso al
+    // hotel con destinatario RESUELTO (panel → config → cuenta del dueño) y
+    // confirmación PREMIUM al huésped con la marca del hotel.
+    notifyBookingEmails(req, ctx.hotel, confirmacion, data).catch(() => {});
 
     return NextResponse.json({ ok: true, confirmacion });
   } catch (e: any) {
@@ -75,31 +84,69 @@ export async function POST(req: NextRequest) {
   }
 }
 
-async function notifyTeamNewBooking(hotelName: string, data: {
-  confirmacion: string; cliente?: string; habitacion?: string;
-  checkin?: string; checkout?: string; total?: number; email?: string;
-}) {
-  if (!process.env.RESEND_API_KEY) return; // no-op sin envs
-  const hotelEmail = process.env.RESEND_FROM || process.env.OWNER_EMAIL;
-  if (!hotelEmail) return;
-  try {
-    const resend = new Resend(process.env.RESEND_API_KEY);
-    await resend.emails.send({
-      from: hotelEmail,
-      to: hotelEmail,
-      subject: `🏨 Nueva reserva: ${data.confirmacion} — ${data.cliente || 'Sin nombre'}`,
-      html: `<div style="font-family:sans-serif;padding:24px;max-width:480px;">
-        <h2 style="color:#2a2218;margin:0 0 16px;">🏨 Nueva reserva en ${hotelName}</h2>
-        <table style="border-collapse:collapse;width:100%;">
-          <tr><td style="padding:8px 0;color:#888;font-size:13px;">Folio</td><td style="padding:8px 0;font-weight:600;">${data.confirmacion}</td></tr>
-          <tr><td style="padding:8px 0;color:#888;font-size:13px;">Cliente</td><td style="padding:8px 0;">${data.cliente || '—'}</td></tr>
-          <tr><td style="padding:8px 0;color:#888;font-size:13px;">Suite</td><td style="padding:8px 0;">${data.habitacion || '—'}</td></tr>
-          <tr><td style="padding:8px 0;color:#888;font-size:13px;">Check-in</td><td style="padding:8px 0;">${data.checkin || '—'}</td></tr>
-          <tr><td style="padding:8px 0;color:#888;font-size:13px;">Check-out</td><td style="padding:8px 0;">${data.checkout || '—'}</td></tr>
-          <tr><td style="padding:8px 0;color:#888;font-size:13px;">Total</td><td style="padding:8px 0;font-weight:600;color:#2d7a34;">$${Number(data.total || 0).toLocaleString('es-MX')} MXN</td></tr>
-        </table>
-        <p style="margin:16px 0 0;font-size:12px;color:#aaa;">Reserva creada desde el panel admin.</p>
-      </div>`,
-    });
-  } catch { /* non-blocking */ }
+interface ManualBookingData {
+  cliente?: string; telefono?: string; email?: string; habitacion?: string;
+  checkin?: string; checkout?: string; huespedes?: number | string;
+  total?: number | string; anticipo?: number | string;
+}
+
+async function notifyBookingEmails(
+  req: NextRequest,
+  hotel: HotelRow,
+  confirmacion: string,
+  data: ManualBookingData,
+) {
+  const origin = new URL(req.url).origin;
+  const num = (v: unknown) => Number(v) || 0;
+  // El CSV de habitaciones puede traer varias suites separadas por coma y con
+  // sufijos entre paréntesis: los limpiamos igual que en la verificación de arriba.
+  const habitaciones = String(data.habitacion ?? '')
+    .split(',')
+    .map((r) => r.replace(/\s*\([^)]*\)/g, '').trim())
+    .filter(Boolean);
+  const total = num(data.total);
+  const anticipo = num(data.anticipo);
+  const huespedes = num(data.huespedes) || 1;
+
+  // 1) Aviso al hotel — destinatario resuelto correctamente (no a Kora).
+  const avisoTo = await resolveHotelAvisoEmail(hotel).catch(() => '');
+  if (avisoTo) {
+    await sendAvisoReservaHotel(avisoTo, {
+      hotelNombre: hotel.nombre,
+      panelUrl: `${origin}/panel/${hotel.slug}/reservas`,
+      confirmacion,
+      cliente: data.cliente || null,
+      telefono: data.telefono || null,
+      email: data.email || null,
+      habitaciones,
+      checkin: data.checkin || '',
+      checkout: data.checkout || '',
+      huespedes,
+      total,
+      anticipo,
+      pagoEnHotel: anticipo <= 0,
+    }).catch(() => {});
+  }
+
+  // 2) Confirmación al huésped (gated por email válido dentro del helper).
+  if ((data.email ?? '').includes('@')) {
+    await sendConfirmacionReserva(
+      data.email!,
+      {
+        hotelNombre: hotel.nombre,
+        confirmacion,
+        habitaciones,
+        checkin: data.checkin || '',
+        checkout: data.checkout || '',
+        anticipo,
+        pendiente: Math.max(0, total - anticipo),
+        cliente: data.cliente || null,
+        huespedes,
+        portalUrl: `${origin}/reserva/consultar`,
+        lang: 'es',
+        brand: bookingBrandFromHotel(hotel),
+      },
+      (hotel.config?.email_from as string) || null,
+    ).catch(() => {});
+  }
 }
