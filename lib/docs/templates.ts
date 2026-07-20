@@ -43,7 +43,7 @@ export const COTIZACION_TPL = `<!DOCTYPE html>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
   @page { size: letter; margin: 0.4in; }
-  * { box-sizing: border-box; }
+  * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   body { margin:0; background:#e7e4dc; font-family:'Plus Jakarta Sans',system-ui,sans-serif; -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility; color:#1f2823; }
   .sheet { width:7.7in; margin:28px auto; background:#fff; padding:0.4in; box-shadow:0 24px 60px rgba(27,67,50,.16); }
   table { border-collapse:collapse; }
@@ -231,7 +231,7 @@ export const RESERVA_TPL = `<!DOCTYPE html>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
   @page { size: letter; margin: 0.4in; }
-  * { box-sizing: border-box; }
+  * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   body { margin:0; background:#e7e4dc; font-family:'Plus Jakarta Sans',system-ui,sans-serif; -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility; color:#1f2823; }
   .sheet { width:7.7in; margin:28px auto; background:#fff; padding:0.4in; box-shadow:0 24px 60px rgba(27,67,50,.16); }
   table { border-collapse:collapse; }
