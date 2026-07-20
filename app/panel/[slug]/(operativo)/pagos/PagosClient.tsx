@@ -10,6 +10,7 @@ import {
   Banknote,
   Store,
   ShieldCheck,
+  CalendarClock,
 } from "lucide-react";
 
 interface Payout {
@@ -17,6 +18,16 @@ interface Payout {
   currency: string;
   arrivalDate: string;
   status: string;
+}
+
+interface Payment {
+  created: string;
+  availableOn: string; // fecha estimada de llegada al banco
+  gross: number;
+  fee: number;
+  net: number;
+  currency: string;
+  status: string; // 'available' (ya depositable) | 'pending' (en camino)
 }
 
 type Status = {
@@ -29,6 +40,8 @@ type Status = {
   oxxoEnabled?: boolean;
   requirementsDue?: number;
   dashboardUrl?: string | null;
+  balance?: { available: number; pending: number; currency: string } | null;
+  payments?: Payment[];
   payouts?: Payout[];
 } | null;
 
@@ -42,6 +55,10 @@ const PAYOUT_STATUS: Record<string, string> = {
 
 function fmtMonto(p: Payout): string {
   return `$${p.amount.toLocaleString("es-MX")} ${p.currency}`;
+}
+
+function money(n: number, currency = "MXN"): string {
+  return `$${n.toLocaleString("es-MX", { minimumFractionDigits: 0, maximumFractionDigits: 2 })} ${currency}`;
 }
 
 function fmtFecha(iso: string): string {
@@ -149,6 +166,82 @@ export default function PagosClient({ rol, hotelNombre }: { rol: string; hotelNo
               >
                 <ExternalLink size={15} /> Ver mi panel de Stripe (cobros y depósitos)
               </a>
+            )}
+          </div>
+
+          {/* Saldo actual (neto, ya sin comisión) */}
+          {status.balance && (
+            <div className="rounded-xl border border-gray-200 bg-white p-5">
+              <h2 className="text-sm font-bold text-[#1B2421]">Tu saldo</h2>
+              <p className="mt-0.5 text-xs text-gray-500">
+                Ya con la comisión de Stripe descontada: es lo que realmente recibes.
+              </p>
+              <div className="mt-3 grid grid-cols-2 gap-3">
+                <div className="rounded-lg border border-green-100 bg-green-50 p-3">
+                  <div className="text-xs font-semibold text-green-700">Disponible</div>
+                  <div className="text-lg font-bold tabular-nums text-green-800">
+                    {money(status.balance.available, status.balance.currency)}
+                  </div>
+                  <div className="mt-0.5 text-[11px] text-green-600">Listo para depositarse a tu banco</div>
+                </div>
+                <div className="rounded-lg border border-amber-100 bg-amber-50 p-3">
+                  <div className="text-xs font-semibold text-amber-700">En camino</div>
+                  <div className="text-lg font-bold tabular-nums text-amber-800">
+                    {money(status.balance.pending, status.balance.currency)}
+                  </div>
+                  <div className="mt-0.5 text-[11px] text-amber-600">Cobrado, Stripe lo está liberando</div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Pagos recibidos (aunque aún no se depositen) con el neto real */}
+          <div className="rounded-xl border border-gray-200 bg-white p-5">
+            <h2 className="text-sm font-bold text-[#1B2421]">Pagos recibidos</h2>
+            <p className="mt-0.5 text-xs text-gray-500">
+              Cada reserva cobrada. <b>Recibes</b> es lo que te queda después de la comisión de Stripe.
+            </p>
+            {status.payments && status.payments.length > 0 ? (
+              <div className="mt-3 divide-y divide-gray-100">
+                {status.payments.map((p, i) => (
+                  <div key={i} className="py-2.5">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-600">{fmtFecha(p.created)}</span>
+                      <span
+                        className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                          p.status === "available"
+                            ? "bg-green-50 text-green-700"
+                            : "bg-amber-50 text-amber-700"
+                        }`}
+                      >
+                        {p.status === "available" ? "Disponible" : "En camino"}
+                      </span>
+                    </div>
+                    <div className="mt-1 flex items-center justify-between text-sm">
+                      <span className="text-gray-500">Cobrado al huésped</span>
+                      <span className="tabular-nums text-gray-600">{money(p.gross, p.currency)}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-500">Comisión de Stripe</span>
+                      <span className="tabular-nums text-gray-500">−{money(p.fee, p.currency)}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm font-semibold text-[#1B2421]">
+                      <span>Recibes</span>
+                      <span className="tabular-nums text-green-800">{money(p.net, p.currency)}</span>
+                    </div>
+                    <div className="mt-1 flex items-center gap-1.5 text-xs text-gray-500">
+                      <CalendarClock size={13} className="shrink-0" />
+                      {p.status === "available"
+                        ? "Ya disponible — se deposita a tu banco en el siguiente pago"
+                        : `Llega a tu banco aprox. el ${fmtFecha(p.availableOn)}`}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-2 text-sm text-gray-500">
+                Aún no hay pagos. Aparecerán aquí en cuanto recibas tu primera reserva pagada.
+              </p>
             )}
           </div>
 

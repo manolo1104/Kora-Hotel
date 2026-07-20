@@ -39,9 +39,22 @@ export async function GET() {
       }
     }
 
-    // Últimos depósitos a su banco (payouts automáticos de Stripe).
+    // Saldo, pagos cobrados y últimos depósitos: todo lo que el hotelero necesita
+    // para NO tener que entrar a Stripe. Los montos de saldo y de "recibe" son
+    // NETOS (ya sin la comisión de Stripe) para que el número sea el real.
     let payouts: Array<{ amount: number; currency: string; arrivalDate: string; status: string }> = [];
+    let balance: { available: number; pending: number; currency: string } | null = null;
+    let payments: Array<{
+      created: string;
+      availableOn: string; // fecha estimada en que el dinero llega al banco
+      gross: number;
+      fee: number;
+      net: number;
+      currency: string;
+      status: string; // 'available' (ya depositable) | 'pending' (en camino)
+    }> = [];
     if (state.chargesEnabled) {
+      // Últimos depósitos a su banco (payouts automáticos de Stripe).
       try {
         const list = await stripe.payouts.list({ limit: 5 }, { stripeAccount: accountId });
         payouts = list.data.map((p) => ({
@@ -52,6 +65,40 @@ export async function GET() {
         }));
       } catch {
         payouts = [];
+      }
+
+      // Saldo: disponible (ya liberado) + en camino (cobrado pero aún retenido).
+      try {
+        const bal = await stripe.balance.retrieve({}, { stripeAccount: accountId });
+        const sum = (arr: Array<{ amount: number }>) => arr.reduce((s, x) => s + x.amount, 0) / 100;
+        const cur = bal.available[0]?.currency || bal.pending[0]?.currency || "mxn";
+        balance = {
+          available: sum(bal.available),
+          pending: sum(bal.pending),
+          currency: cur.toUpperCase(),
+        };
+      } catch {
+        balance = null;
+      }
+
+      // Pagos ya cobrados (aunque Stripe todavía no los deposite). El balance
+      // transaction trae bruto (amount), comisión (fee) y NETO (net) de cada uno.
+      try {
+        const txns = await stripe.balanceTransactions.list({ limit: 20 }, { stripeAccount: accountId });
+        payments = txns.data
+          .filter((t) => t.type === "charge" || t.type === "payment")
+          .slice(0, 10)
+          .map((t) => ({
+            created: new Date(t.created * 1000).toISOString().slice(0, 10),
+            availableOn: new Date(t.available_on * 1000).toISOString().slice(0, 10),
+            gross: t.amount / 100,
+            fee: t.fee / 100,
+            net: t.net / 100,
+            currency: t.currency.toUpperCase(),
+            status: t.status,
+          }));
+      } catch {
+        payments = [];
       }
     }
 
@@ -66,6 +113,8 @@ export async function GET() {
       oxxoEnabled: state.oxxoEnabled,
       requirementsDue: state.requirementsDue,
       dashboardUrl,
+      balance,
+      payments,
       payouts,
     });
   } catch {
