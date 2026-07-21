@@ -109,10 +109,10 @@ export default function HomePage() {
       />
       <Hero />
       <TrustStrip />
-      <ProblemSection />
-      {/* Demo + prueba real arriba: el "ajá" en 90 seg y el caso de Paraíso
-          mientras hay atención, justo después del dolor. */}
+      {/* Demo + prueba real JUSTO bajo el hero: el "ajá" en 90 seg, el caso de
+          Paraíso y los negocios en línea mientras hay máxima atención. */}
       <SocialProofSection />
+      <ProblemSection />
       {/* Producto ancla en profundidad: el motor de reservas directas,
           seguido del demo INTERACTIVO (el motor real, hotel de demostración). */}
       <MotorReservasSection />
