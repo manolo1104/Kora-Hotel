@@ -6,7 +6,8 @@
 
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { logAgentActivity, setBotStatus } from "@/lib/db/admin";
+import { logAgentActivity, setBotStatus, logCamilaConversacion } from "@/lib/db/admin";
+import type { TurnoConversacion } from "@/lib/db/admin";
 import { accesoDelHotel } from "@/lib/suscripcion";
 import { crearLinkReservaAgente } from "@/lib/agent-booking";
 import { buildBotSystemPrompt } from "@/lib/bot/prompt";
@@ -46,6 +47,7 @@ export async function POST(req: Request) {
     telefono?: string;
     lang?: "es" | "en";
     enabled?: boolean; // acción "set-status" (encender/apagar desde el runtime)
+    turnos?: TurnoConversacion[]; // acción "log-conv": mensajes del hilo a guardar
   };
   try {
     body = await req.json();
@@ -78,6 +80,14 @@ export async function POST(req: Request) {
     }
     await setBotStatus(hotel.id, body.enabled);
     return NextResponse.json({ ok: true, enabled: body.enabled });
+  }
+
+  // Guardar el texto de un turno de conversación (huésped + Camila) para poder
+  // analizarlo después. No cuenta como métrica (retorna antes de logAgentActivity).
+  // FAIL-SAFE: si la tabla no existe o falla, no afecta la respuesta al bot.
+  if (body.action === "log-conv") {
+    await logCamilaConversacion(hotel.id, body.conv ?? "", body.turnos ?? []);
+    return NextResponse.json({ ok: true });
   }
 
   // Métricas del foso (dashboard "Agentes"): cada consulta del bot cuenta. Si
