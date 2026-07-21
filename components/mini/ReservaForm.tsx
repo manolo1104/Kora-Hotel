@@ -86,8 +86,9 @@ export function ReservaForm({
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-xs font-semibold text-kora-muted mb-1">Llegada</label>
+          <label htmlFor="rf-llegada" className="block text-xs font-semibold text-kora-muted mb-1">Llegada</label>
           <input
+            id="rf-llegada"
             type="date"
             min={hoy}
             value={llegada}
@@ -96,8 +97,9 @@ export function ReservaForm({
           />
         </div>
         <div>
-          <label className="block text-xs font-semibold text-kora-muted mb-1">Salida</label>
+          <label htmlFor="rf-salida" className="block text-xs font-semibold text-kora-muted mb-1">Salida</label>
           <input
+            id="rf-salida"
             type="date"
             min={llegada || hoy}
             value={salida}
@@ -109,13 +111,15 @@ export function ReservaForm({
 
       <div className="mt-3 grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-xs font-semibold text-kora-muted mb-1">
+          <label htmlFor="rf-huespedes" className="block text-xs font-semibold text-kora-muted mb-1">
             <Users size={12} className="inline mr-1" aria-hidden="true" />
             Huéspedes
           </label>
           <input
+            id="rf-huespedes"
             type="number"
             min={1}
+            max={30}
             value={huespedes}
             onChange={(e) => setHuespedes(e.target.value)}
             className={fieldCls}
@@ -124,8 +128,9 @@ export function ReservaForm({
         </div>
         {habitaciones.length > 0 && (
           <div>
-            <label className="block text-xs font-semibold text-kora-muted mb-1">Habitación</label>
+            <label htmlFor="rf-habitacion" className="block text-xs font-semibold text-kora-muted mb-1">Habitación</label>
             <select
+              id="rf-habitacion"
               value={habitacion}
               onChange={(e) => setHabitacion(e.target.value)}
               className={fieldCls}
@@ -142,8 +147,9 @@ export function ReservaForm({
       </div>
 
       <div className="mt-3">
-        <label className="block text-xs font-semibold text-kora-muted mb-1">Nota (opcional)</label>
+        <label htmlFor="rf-nota" className="block text-xs font-semibold text-kora-muted mb-1">Nota (opcional)</label>
         <input
+          id="rf-nota"
           value={nota}
           onChange={(e) => setNota(e.target.value)}
           placeholder="Ej. llegamos tarde, viajamos con un bebé…"

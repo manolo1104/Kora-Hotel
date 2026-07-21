@@ -445,6 +445,10 @@ export default function ReservarClient({
   const [acepta, setAcepta] = useState(false);
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState("");
+  // Errores de validación como CLAVE i18n: se re-traducen al cambiar idioma
+  // y se limpian en cuanto el huésped corrige el campo.
+  const [payErrorKey, setPayErrorKey] = useState<"" | "errCorreoInvalido" | "errCompletaDatos">("");
+  const payErrorMsg = payErrorKey ? t(lang, payErrorKey) : payError;
 
   const resultsRef = useRef<HTMLDivElement>(null);
   const stepHeadingRef = useRef<HTMLHeadingElement>(null);
@@ -666,7 +670,8 @@ export default function ReservarClient({
     (s, item) => s + (findRoom(item.roomId)?.maxGuests ?? 0) * (item.quantity ?? 1),
     0,
   );
-  const capacityOk = cart.length === 0 || cartCapacity >= adults;
+  const groupSize = adults + children;
+  const capacityOk = cart.length === 0 || cartCapacity >= groupSize;
   const canContinue =
     cart.length > 0 && checkin && checkout && nights > 0 && !cartHasUnavailable && capacityOk;
 
@@ -718,20 +723,22 @@ export default function ReservarClient({
   function goDatos() {
     if (!canContinue) return;
     setPayError("");
+    setPayErrorKey("");
     setStep("datos");
     trackBeginCheckout(cartItems(), total);
   }
 
   function goPago() {
     if (!EMAIL_RE.test(email.trim())) {
-      setPayError(t(lang, "errCorreoInvalido"));
+      setPayErrorKey("errCorreoInvalido");
       return;
     }
     if (!name.trim() || !phone.trim()) {
-      setPayError(t(lang, "errCompletaDatos"));
+      setPayErrorKey("errCompletaDatos");
       return;
     }
     setPayError("");
+    setPayErrorKey("");
     captureIntent(email, name);
     setStep("pago");
     trackAddPaymentInfo(cartItems(), total);
@@ -1011,7 +1018,7 @@ export default function ReservarClient({
           <header className="mb-5 overflow-hidden rounded-2xl">
             <div className="relative">
               <HotelImage src={coverUrl} alt={hotelNombre} className="h-44 w-full sm:h-52" sizes="100vw" priority />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/45 to-black/10" />
               <div className="absolute inset-x-0 bottom-0 p-4 sm:p-5">
                 <p className="text-xs font-semibold uppercase tracking-wide text-white/90">{t(lang, "badge")}</p>
                 <h1 className="mt-0.5 text-2xl font-extrabold tracking-tight text-white sm:text-3xl">
@@ -1202,6 +1209,12 @@ export default function ReservarClient({
                         <p className="mt-1.5 inline-flex items-center gap-1 text-xs text-kora-muted">
                           <Users size={12} aria-hidden="true" /> {t(lang, "hastaPersonas", { n: room.maxGuests })}
                         </p>
+                        {!unavail && room.maxGuests < groupSize && (
+                          <p className="mt-1 flex items-start gap-1 text-[11px] font-semibold text-amber-700">
+                            <AlertTriangle size={11} className="mt-0.5 shrink-0" aria-hidden="true" />
+                            {t(lang, "capacidadCombina")}
+                          </p>
+                        )}
                         {room.camas && room.camas.length > 0 && (
                           <p className="mt-1 inline-flex items-center gap-1 text-xs text-kora-muted">
                             <BedDouble size={12} aria-hidden="true" />{" "}
@@ -1395,7 +1408,7 @@ export default function ReservarClient({
                 {!capacityOk && (
                   <p className="mt-3 flex items-start gap-1.5 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
                     <AlertTriangle size={13} className="mt-0.5 shrink-0" aria-hidden="true" />
-                    {t(lang, "capacidadAviso", { a: adults, c: cartCapacity })}
+                    {t(lang, "capacidadAviso", { a: groupSize, c: cartCapacity })}
                   </p>
                 )}
 
@@ -1623,7 +1636,10 @@ export default function ReservarClient({
                 <input
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (payErrorKey) setPayErrorKey("");
+                  }}
                   onBlur={() => captureIntent(email)}
                   placeholder={t(lang, "correoPlaceholder")}
                   autoComplete="email"
@@ -1636,7 +1652,10 @@ export default function ReservarClient({
                 <input
                   type="text"
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  onChange={(e) => {
+                    setName(e.target.value);
+                    if (payErrorKey) setPayErrorKey("");
+                  }}
                   placeholder={t(lang, "nombrePlaceholder")}
                   autoComplete="name"
                   className="rounded-lg border border-gray-200 px-3 py-2.5 text-sm focus:border-[var(--brand)] focus:outline-none focus:ring-1 focus:ring-[var(--brand)]"
@@ -1647,7 +1666,10 @@ export default function ReservarClient({
                 <input
                   type="tel"
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  onChange={(e) => {
+                    setPhone(e.target.value);
+                    if (payErrorKey) setPayErrorKey("");
+                  }}
                   placeholder={t(lang, "telPlaceholder")}
                   autoComplete="tel"
                   inputMode="tel"
@@ -1666,7 +1688,9 @@ export default function ReservarClient({
                 <span className="inline-flex items-center gap-1.5 text-kora-muted">
                   <Users size={14} aria-hidden="true" /> {adults}{" "}
                   {adults === 1 ? t(lang, "adulto") : t(lang, "adultos_pl")}
-                  {children > 0 ? ` · ${children} ${t(lang, "menores").toLowerCase()}` : ""}
+                  {children > 0
+                    ? ` · ${children} ${children === 1 ? t(lang, "menor") : t(lang, "menores_pl")}`
+                    : ""}
                 </span>
               </div>
               <div className="mt-3 space-y-1.5">
@@ -1781,9 +1805,9 @@ export default function ReservarClient({
               );
             })()}
 
-            {payError && (
+            {payErrorMsg && (
               <p className="mt-3 flex items-start gap-1.5 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700" role="alert">
-                <AlertTriangle size={13} className="mt-0.5 shrink-0" aria-hidden="true" /> {payError}
+                <AlertTriangle size={13} className="mt-0.5 shrink-0" aria-hidden="true" /> {payErrorMsg}
               </p>
             )}
 
@@ -2040,9 +2064,9 @@ export default function ReservarClient({
               </label>
             </div>
 
-            {payError && (
+            {payErrorMsg && (
               <p className="mt-3 flex items-start gap-1.5 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700" role="alert">
-                <AlertTriangle size={13} className="mt-0.5 shrink-0" aria-hidden="true" /> {payError}
+                <AlertTriangle size={13} className="mt-0.5 shrink-0" aria-hidden="true" /> {payErrorMsg}
               </p>
             )}
 
@@ -2100,9 +2124,9 @@ export default function ReservarClient({
             style={{ paddingBottom: "max(env(safe-area-inset-bottom), 12px)" }}
           >
             <div className="mx-auto w-full max-w-3xl px-4 pt-3">
-              {payError && step !== "buscar" && (
+              {payErrorMsg && step !== "buscar" && (
                 <p className="mb-2 flex items-start gap-1.5 text-xs text-red-700" role="alert">
-                  <AlertTriangle size={13} className="mt-0.5 shrink-0" aria-hidden="true" /> {payError}
+                  <AlertTriangle size={13} className="mt-0.5 shrink-0" aria-hidden="true" /> {payErrorMsg}
                 </p>
               )}
               <div className="flex items-center gap-3">
