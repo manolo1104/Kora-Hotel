@@ -111,7 +111,11 @@ export function diagnosticarHotel(hotel: HotelRow): DiagnosticoHotel {
   const experiencias = Array.isArray(extras.experiencias) ? (extras.experiencias as unknown[]) : [];
   const guia = (hotel.guia ?? {}) as Record<string, unknown>;
   const str = (v: unknown) => (typeof v === "string" ? v.trim() : "");
-  const botEntrenado = Boolean(bot.entrenadoAt) || Boolean(str(bot.tono) || str(bot.saludo) || str(bot.instrucciones));
+  // Criterio honesto: "entrenada" = tiene identidad/instrucciones Y el hotelero
+  // la probó de verdad (probadoAt se marca a las 3 interacciones de prueba).
+  const botConTexto =
+    Boolean(bot.entrenadoAt) || Boolean(str(bot.tono) || str(bot.saludo) || str(bot.instrucciones));
+  const botEntrenado = botConTexto && Boolean(bot.probadoAt);
 
   return {
     habitaciones: {
@@ -148,27 +152,43 @@ export function diagnosticarHotel(hotel: HotelRow): DiagnosticoHotel {
       ok: amenidades.length > 0,
       label: "Amenidades del hotel",
       detalle: amenidades.length ? `${amenidades.length}` : undefined,
+      aviso: amenidades.length
+        ? undefined
+        : "Márcalas para que Camila pueda presumir alberca, wifi, estacionamiento…",
       tab: "contenido",
     },
     politicas: {
       ok: Object.keys(politicas).length > 0,
       label: "Políticas",
+      aviso: Object.keys(politicas).length
+        ? undefined
+        : "Sin esto, Camila no sabe responder sobre cancelaciones, mascotas o niños.",
       tab: "avanzado",
     },
     reglas: {
       ok: Object.keys(reglas).length > 0,
       label: "Reglas de reserva e impuestos",
+      aviso: Object.keys(reglas).length
+        ? undefined
+        : "Define anticipo y cancelación para que Camila explique cómo se paga.",
       tab: "avanzado",
     },
     faqs: {
       ok: faqsPanel.length + faqsBot.length > 0,
       label: "Preguntas frecuentes",
       detalle: faqsPanel.length + faqsBot.length ? `${faqsPanel.length + faqsBot.length}` : undefined,
+      aviso:
+        faqsPanel.length + faqsBot.length
+          ? undefined
+          : "Son las respuestas exactas de tu hotel a lo que más preguntan.",
       tab: "resenas",
     },
     guia: {
       ok: Object.keys(guia).length > 0,
       label: "Guía / recomendaciones",
+      aviso: Object.keys(guia).length
+        ? undefined
+        : "Con la guía, Camila responde check-in, check-out, wifi y qué visitar.",
       tab: "contenido",
     },
     experiencias: {
@@ -187,8 +207,12 @@ export function diagnosticarHotel(hotel: HotelRow): DiagnosticoHotel {
     },
     botEntrenado: {
       ok: botEntrenado,
-      label: "Camila entrenada",
-      aviso: botEntrenado ? undefined : "Entrena a Camila para que suene como tu hotel.",
+      label: "Camila entrenada y probada",
+      aviso: botEntrenado
+        ? undefined
+        : botConTexto
+          ? "Ya la entrenaste; ahora hazle 3 preguntas en el chat de prueba para confirmar que responde bien."
+          : "Entrena a Camila para que suene como tu hotel y pruébala con 3 preguntas.",
     },
     publicado: {
       ok: hotel.publicado !== false,
