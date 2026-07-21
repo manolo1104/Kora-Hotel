@@ -19,9 +19,12 @@ const caso = {
   autor: "Manolo Covarrubias · dueño del Hotel Paraíso Encantado",
 };
 
-// Sitios reales que hemos creado (prueba del servicio de página).
+// Negocios reales en línea con Kora: hoteles operando con el motor/sitio
+// y páginas que diseñamos y publicamos (prueba del servicio de página).
 const sitiosCreados = [
   { logo: "/portfolio/paraiso-encantado.png", nombre: "Hotel Paraíso Encantado", url: "https://paraisoencantado.com" },
+  { logo: "/portfolio/alma-nativa.png", nombre: "Alma Nativa · Suites Campestres", url: "/h/hotel-alma-nativa" },
+  { logo: "/portfolio/magic-collinn.png", nombre: "Hotel Magic Collinn", url: "https://www.hotelmagicollinn.com" },
   { logo: "/portfolio/huasteca-tours.png", nombre: "Huasteca Potosina Tours", url: "https://www.huasteca-potosina.com" },
 ];
 
@@ -90,13 +93,13 @@ export function SocialProofSection() {
         <Reveal delay={0.2}>
           <div className="mt-14 pt-12 border-t border-gray-100">
             <p className="text-center text-sm font-semibold text-kora-muted uppercase tracking-widest">
-              Sitios reales que hemos creado
+              Negocios reales que ya están en línea con nosotros
             </p>
             <p className="mt-2 text-center text-kora-muted text-sm max-w-xl mx-auto">
-              Páginas profesionales que diseñamos y publicamos para negocios reales.{" "}
-              <span className="font-semibold text-kora-primary">También creamos la de tu hotel</span>, como servicio aparte.
+              Hoteles que reciben reservas con Kora y páginas que diseñamos y publicamos.{" "}
+              <span className="font-semibold text-kora-primary">La de tu hotel puede ser la siguiente.</span>
             </p>
-            <div className="mt-8 grid grid-cols-2 gap-4 max-w-md mx-auto">
+            <div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-3xl mx-auto">
               {sitiosCreados.map((s) => (
                 <a
                   key={s.nombre}
