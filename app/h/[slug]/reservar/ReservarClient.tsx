@@ -1153,13 +1153,20 @@ export default function ReservarClient({
               )}
 
               <div className="grid gap-4 sm:grid-cols-2">
-                {rooms.map((room) => {
+                {rooms.map((room, roomIdx) => {
                   const unavail = isUnavailable(room);
                   const added = inCart(room.id);
                   const guests = getRoomGuests(room);
                   const roomTotal = searched
                     ? calcRoomStayTotal(room, guests, checkin, checkout, priceOpts)
                     : null;
+                  // Escasez REAL por tipo (solo tras buscar, si de verdad ya se
+                  // ocupó alguna unidad y aún queda al menos una libre).
+                  const totalUnits = room.cantidad ?? 1;
+                  const freeUnits = freeFor(room);
+                  const reservedUnits = Math.max(0, totalUnits - freeUnits);
+                  const showScarcity =
+                    searched && !unavail && totalUnits > 1 && freeUnits >= 1 && reservedUnits >= 1;
                   return (
                     <article
                       key={room.id}
@@ -1214,6 +1221,32 @@ export default function ReservarClient({
                             ))}
                           </div>
                         )}
+
+                        {showScarcity && (
+                          <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-bold text-amber-700 ring-1 ring-amber-200">
+                            <Flame size={12} className="shrink-0" aria-hidden="true" />
+                            <span>
+                              {freeUnits === 1
+                                ? t(lang, "escasezUltima")
+                                : t(lang, "escasezQuedan", { n: freeUnits })}
+                              <span className="font-semibold text-amber-600">
+                                {" · "}
+                                {reservedUnits === 1
+                                  ? t(lang, "escasezReservada1")
+                                  : t(lang, "escasezReservadaN", { r: reservedUnits })}
+                              </span>
+                            </span>
+                          </div>
+                        )}
+
+                        <a
+                          href={`/h/${slug}/habitacion/${roomIdx}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="mt-2 block text-xs font-semibold underline-offset-2 hover:underline"
+                          style={{ color: "var(--brand)" }}
+                        >
+                          {t(lang, "verDetalles")}
+                        </a>
 
                         <div className="mt-3 flex items-end justify-between gap-3">
                           <div>
