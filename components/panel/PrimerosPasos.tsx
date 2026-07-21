@@ -6,7 +6,7 @@
 // está listo.
 
 import { useState } from "react";
-import { Check, ChevronDown, ChevronUp, Sparkles, ArrowRight } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, Sparkles, ArrowRight, AlertTriangle } from "lucide-react";
 import type { DiagnosticoHotel } from "@/lib/panel/diagnostico";
 
 interface Tarea {
@@ -31,6 +31,7 @@ export default function PrimerosPasos({
     { ...diagnostico.precios, href: sitio("habitaciones") },
     { ...diagnostico.fotos, href: sitio("contenido") },
     { ...diagnostico.amenidades, href: sitio("contenido") },
+    { ...diagnostico.experiencias, href: sitio("avanzado") },
     { ...diagnostico.cobros, href: `${base}/pagos` },
     { ...diagnostico.botEntrenado, href: `${base}/camila` },
     { ...diagnostico.reglas, href: sitio("avanzado") },
@@ -103,6 +104,22 @@ export default function PrimerosPasos({
             </li>
           ))}
         </ul>
+      )}
+
+      {diagnostico.temporadas.estado !== "ok" && (
+        <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 p-3.5">
+          <AlertTriangle size={16} className="mt-0.5 shrink-0 text-amber-600" />
+          <div className="min-w-0 text-sm">
+            <p className="font-semibold text-amber-900">Precios de temporada</p>
+            <p className="mt-0.5 text-amber-800">{diagnostico.temporadas.mensaje}</p>
+            <a
+              href={sitio("avanzado")}
+              className="mt-1.5 inline-flex items-center gap-1 text-xs font-semibold text-amber-900 hover:underline"
+            >
+              Cargar temporadas <ArrowRight size={12} />
+            </a>
+          </div>
+        </div>
       )}
 
       <button
