@@ -24,13 +24,31 @@ export default function AdminSidebar({ slug, hotelName }: { slug: string; hotelN
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [botEnabled, setBotEnabled] = useState<boolean | null>(null);
+  // Conexión REAL de WhatsApp (runtime): 'ready' = vinculada. Antes el punto
+  // decía "Activo" solo por el flag on/off aunque nunca se hubiera escaneado el QR.
+  const [botConexion, setBotConexion] = useState<string | null>(null);
 
   useEffect(() => {
     fetch('/api/admin/bot-status')
       .then(r => (r.ok ? r.json() : Promise.reject(new Error('no-auth'))))
-      .then(d => setBotEnabled(Boolean(d.enabled)))
+      .then(d => {
+        setBotEnabled(Boolean(d.enabled));
+        setBotConexion(typeof d.conexion === 'string' ? d.conexion : 'sin-servicio');
+      })
       .catch(() => setBotEnabled(true));
   }, []);
+
+  // Estado visible del bot: pausada / conectada / sin conectar / preparando.
+  const bot =
+    botEnabled === null
+      ? { dot: '', txt: '...' }
+      : !botEnabled
+        ? { dot: styles.botOff, txt: 'Pausada' }
+        : botConexion === 'ready'
+          ? { dot: styles.botOn, txt: 'Conectada' }
+          : botConexion === 'sin-servicio' || botConexion === null
+            ? { dot: styles.botWarn, txt: 'Preparando conexión' }
+            : { dot: styles.botWarn, txt: 'Sin conectar WhatsApp' };
 
   async function handleLogout() {
     try { await createClient().auth.signOut(); } catch { /* noop */ }
@@ -116,10 +134,8 @@ export default function AdminSidebar({ slug, hotelName }: { slug: string; hotelN
         >
           <div className={styles.botToggleInfo}>
             <span className={styles.botToggleLabel}>Camila (bot)</span>
-            <span className={`${styles.botToggleDot} ${botEnabled ? styles.botOn : styles.botOff}`} />
-            <span className={styles.botToggleStatus}>
-              {botEnabled === null ? '...' : botEnabled ? 'Activo' : 'Pausado'}
-            </span>
+            <span className={`${styles.botToggleDot} ${bot.dot}`} />
+            <span className={styles.botToggleStatus}>{bot.txt}</span>
           </div>
           <span className={`${styles.botToggleBtn} ${botEnabled ? styles.botToggleBtnOn : styles.botToggleBtnOff}`}>
             Configurar

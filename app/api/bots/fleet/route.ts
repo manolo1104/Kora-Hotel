@@ -12,6 +12,7 @@
 // ACCESO ACTIVO (plan pagado o prueba vigente). Sin plan → sin Camila.
 
 import { NextResponse } from "next/server";
+import { randomUUID } from "node:crypto";
 import { createAdminClient, adminEnvReady } from "@/lib/supabase/admin";
 import { accesoDelHotel } from "@/lib/suscripcion";
 import type { HotelRow } from "@/lib/tenant";
@@ -50,10 +51,9 @@ export async function GET(req: Request) {
   for (const h of rows) {
     const cfg = (h.config ?? {}) as Record<string, unknown>;
     const extras = (h.extras ?? {}) as Record<string, unknown>;
-    const token = typeof cfg.agent_token === "string" ? cfg.agent_token : "";
+    let token = typeof cfg.agent_token === "string" ? cfg.agent_token : "";
 
-    // Filtros: token generado, hotel publicado, no demo, y el dueño no lo apagó.
-    if (!token) continue;
+    // Filtros: hotel publicado, no demo, y el dueño no lo apagó.
     if (!h.publicado) continue;
     if (extras.demo === true) continue;
     if (cfg.bot_enabled === false) continue;
@@ -61,6 +61,23 @@ export async function GET(req: Request) {
     // Sin acceso (plan vencido y prueba terminada) → no gastamos WhatsApp+IA.
     const acceso = await accesoDelHotel(h);
     if (!acceso.activo) continue;
+
+    // FIX de acceso: antes el token solo se generaba si el dueño abría "Ver
+    // token (avanzado)" en el panel — un hotel en prueba gratis que nunca
+    // tocaba eso quedaba FUERA del fleet y jamás veía su QR. Ahora todo hotel
+    // elegible (publicado + acceso activo, incluida la prueba) recibe su token
+    // aquí mismo y su Camila arranca sola.
+    if (!token) {
+      token = `kora_${randomUUID().replace(/-/g, "")}`;
+      const { error: tokErr } = await admin
+        .from("hoteles")
+        .update({ config: { ...cfg, agent_token: token } })
+        .eq("id", h.id);
+      if (tokErr) {
+        console.error(`[bots/fleet] no pude generar token para ${h.slug}:`, tokErr.message);
+        continue; // sin token persistido no puede hablar con /api/agent
+      }
+    }
 
     hotels.push({
       id: h.id,

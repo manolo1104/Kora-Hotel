@@ -105,6 +105,7 @@
 }
 .botOn  { background: #4ade80; box-shadow: 0 0 6px rgba(74,222,128,0.6); }
 .botOff { background: #f87171; }
+.botWarn { background: #fbbf24; box-shadow: 0 0 6px rgba(251,191,36,0.6); }
 
 .botToggleStatus {
   font-size: 0.7rem;

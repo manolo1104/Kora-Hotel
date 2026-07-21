@@ -34,6 +34,11 @@ interface BotPagoFields {
   cuenta: string;
   notas: string;
 }
+type EmojiNivel = "nada" | "bajo" | "medio" | "alto";
+interface BotEmojiFields {
+  nivel: EmojiNivel;
+  preferidos: string;
+}
 interface BotFields {
   nombre: string;
   tono: string;
@@ -41,12 +46,22 @@ interface BotFields {
   instrucciones: string;
   escalarWhatsapp: string;
   pago: BotPagoFields;
+  emojis: BotEmojiFields;
   faqs: BotFaq[];
   entrenadoAt: string | null;
   probadoAt: string | null;
 }
 
 const EMPTY_PAGO: BotPagoFields = { titular: "", banco: "", clabe: "", cuenta: "", notas: "" };
+const EMPTY_EMOJIS: BotEmojiFields = { nivel: "medio", preferidos: "" };
+
+// Niveles de emoji que el hotel puede elegir para el estilo de Camila.
+const NIVELES_EMOJI: { key: EmojiNivel; label: string; hint: string }[] = [
+  { key: "nada", label: "Sin emojis", hint: "Nunca usa emojis" },
+  { key: "bajo", label: "Pocos", hint: "Máximo 1, de vez en cuando" },
+  { key: "medio", label: "Normal", hint: "1 o 2 por mensaje" },
+  { key: "alto", label: "Muchos", hint: "2 a 4 por mensaje" },
+];
 interface Msg {
   role: "user" | "assistant";
   content: string;
@@ -59,6 +74,7 @@ const EMPTY_BOT: BotFields = {
   instrucciones: "",
   escalarWhatsapp: "",
   pago: { ...EMPTY_PAGO },
+  emojis: { ...EMPTY_EMOJIS },
   faqs: [],
   entrenadoAt: null,
   probadoAt: null,
@@ -98,6 +114,7 @@ function serializarBot(b: BotFields): string {
     instrucciones: b.instrucciones,
     escalarWhatsapp: b.escalarWhatsapp,
     pago: b.pago,
+    emojis: b.emojis,
     faqs: b.faqs.filter((f) => f.q.trim()),
   });
 }
@@ -184,6 +201,7 @@ export default function CamilaClient({
           ...(d.bot ?? {}),
           escalarWhatsapp: d.bot?.escalarWhatsapp || whatsappHotel || "",
           pago: { ...EMPTY_PAGO, ...(d.bot?.pago ?? {}) },
+          emojis: { ...EMPTY_EMOJIS, ...(d.bot?.emojis ?? {}) },
           faqs: Array.isArray(d.bot?.faqs) ? d.bot.faqs : [],
         };
         setBot(cargado);
@@ -452,6 +470,7 @@ export default function CamilaClient({
     diagnostico.politicas,
     diagnostico.reglas,
     diagnostico.experiencias,
+    diagnostico.accesibilidad,
     diagnostico.faqs,
     diagnostico.guia,
   ];
@@ -626,6 +645,49 @@ export default function CamilaClient({
                   className="input-kora"
                 />
               </Campo>
+
+              {/* Estilo de emojis: cuánto usa y cuáles prefiere (marca del hotel) */}
+              <div className="rounded-2xl border border-black/10 bg-black/[0.015] p-4 space-y-3">
+                <div>
+                  <p className="text-sm font-bold text-kora-text">Emojis en sus mensajes</p>
+                  <p className="mt-0.5 text-xs text-kora-muted">
+                    Elige cuánto emoji usa {nombreBot} al escribir por WhatsApp.
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {NIVELES_EMOJI.map((n) => (
+                    <button
+                      key={n.key}
+                      onClick={() =>
+                        setBot((b) => ({ ...b, emojis: { ...b.emojis, nivel: n.key } }))
+                      }
+                      title={n.hint}
+                      className={`btn-press rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                        bot.emojis.nivel === n.key
+                          ? "border-kora-primary bg-kora-primary/10 text-kora-primary"
+                          : "border-black/10 text-kora-muted hover:bg-black/5"
+                      }`}
+                    >
+                      {n.label}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-kora-muted">
+                  {NIVELES_EMOJI.find((n) => n.key === bot.emojis.nivel)?.hint}
+                </p>
+                {bot.emojis.nivel !== "nada" && (
+                  <Campo label="Emojis preferidos (opcional — los de tu marca)">
+                    <input
+                      value={bot.emojis.preferidos}
+                      onChange={(e) =>
+                        setBot((b) => ({ ...b, emojis: { ...b.emojis, preferidos: e.target.value } }))
+                      }
+                      placeholder="Ej. 🌿🦜🌺 (los usará antes que otros)"
+                      className="input-kora"
+                    />
+                  </Campo>
+                )}
+              </div>
             </div>
             <AutoGuardado guardando={guardando} guardado={guardado} />
           </>

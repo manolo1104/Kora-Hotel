@@ -14,6 +14,7 @@ export function buildHotelKnowledge(hotel: HotelRow): BotKnowledge {
   const extras = (hotel.extras ?? {}) as Record<string, unknown>;
   const bot = (extras.bot ?? {}) as Record<string, unknown>;
   const pago = (bot.pago ?? {}) as Record<string, unknown>;
+  const emojis = (bot.emojis ?? {}) as Record<string, unknown>;
   const str = (v: unknown) => (typeof v === "string" && v.trim() ? v : undefined);
   const rooms = hotelRooms(hotel);
 
@@ -73,8 +74,10 @@ export function buildHotelKnowledge(hotel: HotelRow): BotKnowledge {
       maxHuespedes: r.maxGuests,
       camas: Array.isArray(r.camas) ? r.camas.map((c) => `${c.cantidad} ${c.tipo}`) : [],
       caracteristicas: Array.isArray(r.features) ? r.features : [],
+      accesibilidad: r.accesibilidad,
     })),
     amenidades: (extras.amenidades as string[]) ?? [],
+    accesibilidad: str(extras.accesibilidad),
     // FIX: mezcla las FAQs del panel ({pregunta,respuesta}) + las solo-del-bot
     // (extras.bot.faqs {q,a}), normalizadas. Antes no llegaban al cerebro.
     faqs: normalizeFaqs(extras.faqs, bot.faqs),
@@ -106,6 +109,12 @@ export function buildHotelKnowledge(hotel: HotelRow): BotKnowledge {
         clabe: str(pago.clabe),
         cuenta: str(pago.cuenta),
         notas: str(pago.notas),
+      },
+      emojis: {
+        nivel: ["nada", "bajo", "medio", "alto"].includes(emojis.nivel as string)
+          ? (emojis.nivel as "nada" | "bajo" | "medio" | "alto")
+          : undefined,
+        preferidos: str(emojis.preferidos),
       },
     },
     lang: cfg.bot_lang === "en" ? "en" : "es",

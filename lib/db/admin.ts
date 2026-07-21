@@ -1112,6 +1112,10 @@ export interface BotTrainingInput {
     cuenta?: string;
     notas?: string;
   };
+  emojis?: {
+    nivel?: "nada" | "bajo" | "medio" | "alto";
+    preferidos?: string;
+  };
   faqs?: { q: string; a: string }[];
 }
 

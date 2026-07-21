@@ -34,6 +34,7 @@ export interface DiagnosticoHotel {
   reglas: DiagnosticoItem;
   faqs: DiagnosticoItem;
   guia: DiagnosticoItem;
+  accesibilidad: DiagnosticoItem;
   experiencias: DiagnosticoItem;
   cobros: DiagnosticoItem;
   botEntrenado: DiagnosticoItem;
@@ -110,6 +111,8 @@ export function diagnosticarHotel(hotel: HotelRow): DiagnosticoHotel {
   const reglas = (extras.reglas ?? {}) as Record<string, unknown>;
   const experiencias = Array.isArray(extras.experiencias) ? (extras.experiencias as unknown[]) : [];
   const guia = (hotel.guia ?? {}) as Record<string, unknown>;
+  const accesibilidadHotel = typeof extras.accesibilidad === "string" && extras.accesibilidad.trim();
+  const accesibilidadCuartos = rooms.some((r) => Boolean(r.accesibilidad));
   const str = (v: unknown) => (typeof v === "string" ? v.trim() : "");
   // Criterio honesto: "entrenada" = tiene identidad/instrucciones Y el hotelero
   // la probó de verdad (probadoAt se marca a las 3 interacciones de prueba).
@@ -190,6 +193,15 @@ export function diagnosticarHotel(hotel: HotelRow): DiagnosticoHotel {
         ? undefined
         : "Con la guía, Camila responde check-in, check-out, wifi y qué visitar.",
       tab: "contenido",
+    },
+    accesibilidad: {
+      ok: Boolean(accesibilidadHotel || accesibilidadCuartos),
+      label: "Accesibilidad",
+      aviso:
+        accesibilidadHotel || accesibilidadCuartos
+          ? undefined
+          : "Di cuántos escalones hay a cada cuarto y qué apoyos tiene el hotel: Camila lo usa con huéspedes de movilidad reducida.",
+      tab: "habitaciones",
     },
     experiencias: {
       ok: experiencias.length > 0,
