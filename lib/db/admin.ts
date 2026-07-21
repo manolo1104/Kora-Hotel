@@ -1127,6 +1127,7 @@ export async function saveBotConfig(
     lang?: "es" | "en";
     adminPhone?: string; // número autorizado para apagar/encender por WhatsApp (config.bot_admin_phone)
     probadoAt?: string; // marca "ya probé el bot" (extras.bot.probadoAt) — NO toca entrenadoAt
+    prueba?: boolean; // una interacción de prueba exitosa: incrementa extras.bot.pruebas
     bot?: BotTrainingInput;
   },
 ): Promise<void> {
@@ -1149,12 +1150,19 @@ export async function saveBotConfig(
   if (input.enabled !== undefined) config.bot_enabled = input.enabled;
   if (input.lang) config.bot_lang = input.lang;
   if (input.adminPhone !== undefined) config.bot_admin_phone = input.adminPhone;
-  if (input.bot || input.probadoAt !== undefined) {
+  if (input.bot || input.probadoAt !== undefined || input.prueba) {
     const prev = (extras.bot as Record<string, unknown>) ?? {};
     const merged: Record<string, unknown> = { ...prev };
     // Guardar entrenamiento marca entrenadoAt; probar el bot solo marca probadoAt.
     if (input.bot) Object.assign(merged, input.bot, { entrenadoAt: new Date().toISOString() });
     if (input.probadoAt !== undefined) merged.probadoAt = input.probadoAt;
+    // Criterio honesto de "probada": cuenta interacciones de prueba exitosas
+    // (chat demo o verificador) y solo marca probadoAt al llegar a 3.
+    if (input.prueba) {
+      const pruebas = (Number(merged.pruebas) || 0) + 1;
+      merged.pruebas = pruebas;
+      if (pruebas >= 3 && !merged.probadoAt) merged.probadoAt = new Date().toISOString();
+    }
     extras.bot = merged;
   }
   const { error: updErr } = await supabase

@@ -66,6 +66,42 @@ const EMPTY_BOT: BotFields = {
 
 const TOTAL_PASOS = 6;
 
+// Interacciones de prueba exitosas necesarias para dar por "probada" a Camila.
+const META_PRUEBAS = 3;
+
+// Preguntas típicas de huésped: responderlas aquí "entrena" al bot sin pensar
+// qué escribir. Cada respuesta se guarda como una FAQ del bot ({q, a}).
+const PREGUNTAS_RAPIDAS = [
+  { q: "¿Aceptan mascotas?", ph: "Ej. Sí, con cargo de $200 por noche. / No, lo sentimos." },
+  { q: "¿Tienen estacionamiento?", ph: "Ej. Sí, gratis dentro del hotel." },
+  { q: "¿El desayuno está incluido?", ph: "Ej. Sí, de 8 a 11 am. / Se agrega por $150 por persona." },
+  { q: "¿Hacen descuento a grupos?", ph: "Ej. Desde 8 habitaciones, 10% de descuento." },
+  { q: "¿Puedo facturar mi estancia?", ph: "Ej. Sí, manda tu constancia fiscal al correo…" },
+  { q: "¿Qué hay cerca del hotel?", ph: "Ej. A 10 min de las cascadas, 5 min del centro…" },
+] as const;
+const PRESET_QS = new Set<string>(PREGUNTAS_RAPIDAS.map((p) => p.q));
+
+// Preguntas sugeridas para el chat de prueba (validar a Camila en 1 minuto).
+const SUGERENCIAS_PRUEBA = [
+  "¿Tienen disponibilidad este fin de semana?",
+  "¿Cuánto es el anticipo?",
+  "¿Qué experiencias o tours tienen?",
+  "¿Aceptan mascotas?",
+];
+
+// Lo que se manda al guardar (y se compara para el autoguardado).
+function serializarBot(b: BotFields): string {
+  return JSON.stringify({
+    nombre: b.nombre,
+    tono: b.tono,
+    saludo: b.saludo,
+    instrucciones: b.instrucciones,
+    escalarWhatsapp: b.escalarWhatsapp,
+    pago: b.pago,
+    faqs: b.faqs.filter((f) => f.q.trim()),
+  });
+}
+
 // Fecha ISO a N días de hoy (para valores por defecto del verificador).
 function isoEnDias(dias: number): string {
   const d = new Date();
@@ -93,8 +129,14 @@ export default function CamilaClient({
   const [adminPhone, setAdminPhone] = useState("");
   const [adminGuardado, setAdminGuardado] = useState(false);
 
-  // ¿El usuario ya probó a Camila? (persiste como extras.bot.probadoAt)
+  // ¿El usuario ya probó a Camila? Criterio honesto: 3 interacciones de prueba
+  // exitosas (chat demo o verificador). El servidor lleva la cuenta (extras.bot.pruebas).
   const [probado, setProbado] = useState(false);
+  const [pruebas, setPruebas] = useState(0);
+
+  // Autoguardado: snapshot de lo último guardado + flag "ya cargó del servidor".
+  const cargadoRef = useRef(false);
+  const ultimoGuardadoRef = useRef("");
 
   // Paso activo del asistente (0..TOTAL_PASOS-1).
   const [paso, setPaso] = useState(0);
@@ -136,13 +178,17 @@ export default function CamilaClient({
         setLang(d.lang === "en" ? "en" : "es");
         setAdminPhone(typeof d.adminPhone === "string" ? d.adminPhone : "");
         setProbado(Boolean(d.bot?.probadoAt));
-        setBot({
+        setPruebas(Number(d.bot?.pruebas) || 0);
+        const cargado: BotFields = {
           ...EMPTY_BOT,
           ...(d.bot ?? {}),
           escalarWhatsapp: d.bot?.escalarWhatsapp || whatsappHotel || "",
           pago: { ...EMPTY_PAGO, ...(d.bot?.pago ?? {}) },
           faqs: Array.isArray(d.bot?.faqs) ? d.bot.faqs : [],
-        });
+        };
+        setBot(cargado);
+        ultimoGuardadoRef.current = serializarBot(cargado);
+        cargadoRef.current = true;
       })
       .catch(() => setAviso("No pude cargar la configuración."))
       .finally(() => setCargando(false));
@@ -203,11 +249,13 @@ export default function CamilaClient({
     }
   }
 
-  // Marca "ya probé el bot" una sola vez (persiste, sin marcar "entrenado").
-  async function marcarProbado() {
-    if (probado) return;
-    setProbado(true);
-    await postConfig({ probado: true });
+  // Registra UNA interacción de prueba exitosa (chat demo o verificador). El
+  // servidor lleva la cuenta y marca probadoAt al llegar a META_PRUEBAS.
+  async function registrarPrueba() {
+    const siguiente = pruebas + 1;
+    setPruebas(siguiente);
+    if (siguiente >= META_PRUEBAS) setProbado(true);
+    await postConfig({ prueba: true });
   }
 
   async function entrenarIA() {
@@ -239,29 +287,28 @@ export default function CamilaClient({
     }
   }
 
-  async function guardar() {
-    setGuardando(true);
-    setGuardado(false);
-    const ok = await postConfig({
-      lang,
-      bot: {
-        nombre: bot.nombre,
-        tono: bot.tono,
-        saludo: bot.saludo,
-        instrucciones: bot.instrucciones,
-        escalarWhatsapp: bot.escalarWhatsapp,
-        pago: bot.pago,
-        faqs: bot.faqs.filter((f) => f.q.trim()),
-      },
-    });
-    setGuardando(false);
-    if (ok) {
-      setGuardado(true);
-      setTimeout(() => setGuardado(false), 2500);
-    } else {
-      setAviso("No pude guardar. Inténtalo de nuevo.");
-    }
-  }
+  // Autoguardado: cualquier cambio del entrenamiento se guarda solo (~1.2 s
+  // después de dejar de escribir). Sin botón "Guardar" que se pueda olvidar.
+  useEffect(() => {
+    if (!cargadoRef.current) return;
+    const snap = serializarBot(bot);
+    if (snap === ultimoGuardadoRef.current) return;
+    const id = setTimeout(async () => {
+      setGuardando(true);
+      setGuardado(false);
+      const ok = await postConfig({ bot: JSON.parse(snap) });
+      setGuardando(false);
+      if (ok) {
+        ultimoGuardadoRef.current = snap;
+        setGuardado(true);
+        setTimeout(() => setGuardado(false), 2500);
+      } else {
+        setAviso("No pude guardar los últimos cambios. Revisa tu conexión.");
+      }
+    }, 1200);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bot]);
 
   async function verToken() {
     setTokenCargando(true);
@@ -284,8 +331,8 @@ export default function CamilaClient({
     }
   }
 
-  async function enviarPrueba() {
-    const texto = input.trim();
+  async function enviarPrueba(textoParam?: string) {
+    const texto = (textoParam ?? input).trim();
     if (!texto || enviando) return;
     const nuevos: Msg[] = [...mensajes, { role: "user", content: texto }];
     setMensajes(nuevos);
@@ -305,7 +352,7 @@ export default function CamilaClient({
             ? "(Falta configurar la IA para la prueba.)"
             : "(No pude responder ahora, inténtalo de nuevo.)";
       setMensajes((m) => [...m, { role: "assistant", content: reply }]);
-      if (res.ok && d.reply) marcarProbado();
+      if (res.ok && d.reply) registrarPrueba();
     } catch {
       setMensajes((m) => [...m, { role: "assistant", content: "(Error de red.)" }]);
     } finally {
@@ -332,7 +379,7 @@ export default function CamilaClient({
       const d = await res.json().catch(() => ({}));
       if (res.ok && d.ok) {
         setVResultado(d as BotAvailability);
-        marcarProbado();
+        registrarPrueba();
       } else {
         setVError(
           d.error === "fechas-invalidas"
@@ -351,6 +398,24 @@ export default function CamilaClient({
     setBot((b) => {
       const faqs = [...b.faqs];
       faqs[i] = { ...faqs[i], [campo]: v };
+      return { ...b, faqs };
+    });
+  }
+
+  // Preguntas rápidas: cada respuesta vive como una FAQ del bot con la misma q.
+  function respuestaRapida(q: string): string {
+    return bot.faqs.find((f) => f.q === q)?.a ?? "";
+  }
+  function setRespuestaRapida(q: string, a: string) {
+    setBot((b) => {
+      const i = b.faqs.findIndex((f) => f.q === q);
+      const faqs = [...b.faqs];
+      if (i >= 0) {
+        if (a.trim()) faqs[i] = { q, a };
+        else faqs.splice(i, 1); // respuesta borrada = deja de existir la FAQ
+      } else if (a.trim()) {
+        faqs.push({ q, a });
+      }
       return { ...b, faqs };
     });
   }
@@ -385,6 +450,8 @@ export default function CamilaClient({
     diagnostico.fotos,
     diagnostico.amenidades,
     diagnostico.politicas,
+    diagnostico.reglas,
+    diagnostico.experiencias,
     diagnostico.faqs,
     diagnostico.guia,
   ];
@@ -421,8 +488,10 @@ export default function CamilaClient({
       {/* Progreso + navegación por pasos (cabecera del asistente) */}
       <div className="rounded-2xl border border-black/10 bg-white p-4 space-y-3">
         <div className="flex items-center justify-between">
-          <p className="text-sm font-semibold text-kora-text">Configuración de {nombreBot}</p>
-          <p className="text-sm font-semibold text-kora-primary">{listos}/{TOTAL_PASOS} listo</p>
+          <p className="text-sm font-semibold text-kora-text">Salud de {nombreBot}</p>
+          <p className="text-sm font-semibold text-kora-primary">
+            {Math.round((listos / TOTAL_PASOS) * 100)}% · {listos}/{TOTAL_PASOS} pasos
+          </p>
         </div>
         <div className="h-2 w-full overflow-hidden rounded-full bg-black/5">
           <div
@@ -558,7 +627,7 @@ export default function CamilaClient({
                 />
               </Campo>
             </div>
-            <BotonGuardar guardando={guardando} guardado={guardado} onClick={guardar} />
+            <AutoGuardado guardando={guardando} guardado={guardado} />
           </>
         )}
 
@@ -692,9 +761,44 @@ export default function CamilaClient({
                 </div>
               </div>
 
-              <Campo label="Preguntas y respuestas extra (solo para el bot)">
+              {/* Preguntas rápidas: entrenamiento guiado sin pensar qué escribir.
+                  Cada respuesta se guarda como FAQ del bot; en blanco = no aplica. */}
+              <div className="rounded-2xl border border-black/10 bg-black/[0.015] p-4">
+                <p className="text-sm font-bold text-kora-text">
+                  Preguntas típicas de huésped — responde las que apliquen
+                </p>
+                <p className="mb-3 mt-0.5 text-xs text-kora-muted">
+                  Con cada respuesta, {nombreBot} aprende a contestarla con tus palabras. Las que
+                  dejes en blanco, las pasará con una persona del hotel.
+                </p>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {PREGUNTAS_RAPIDAS.map((p) => {
+                    const val = respuestaRapida(p.q);
+                    return (
+                      <div
+                        key={p.q}
+                        className={`rounded-xl border p-2.5 ${val.trim() ? "border-green-200 bg-green-50/50" : "border-black/10 bg-white"}`}
+                      >
+                        <p className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-kora-text">
+                          {val.trim() ? <Check size={13} className="shrink-0 text-green-600" /> : null}
+                          {p.q}
+                        </p>
+                        <textarea
+                          value={val}
+                          onChange={(e) => setRespuestaRapida(p.q, e.target.value)}
+                          rows={2}
+                          placeholder={p.ph}
+                          className="input-kora text-sm"
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <Campo label="Otras preguntas y respuestas (las que quieras, 100% tuyas)">
                 <div className="space-y-2">
-                  {bot.faqs.map((f, i) => (
+                  {bot.faqs.map((f, i) => PRESET_QS.has(f.q) ? null : (
                     <div key={i} className="grid gap-1.5 rounded-xl border border-black/10 p-2">
                       <input
                         value={f.q}
@@ -726,15 +830,29 @@ export default function CamilaClient({
                 </div>
               </Campo>
             </div>
-            <BotonGuardar guardando={guardando} guardado={guardado} onClick={guardar} />
+            <AutoGuardado guardando={guardando} guardado={guardado} />
           </>
         )}
 
         {paso === 4 && (
           <>
             <p className="text-sm text-kora-muted">
-              Platica con ella aquí mismo (sin WhatsApp) para ver cómo responde con tus datos. Guarda tu entrenamiento antes para probar la última versión.
+              Platica con ella aquí mismo (sin WhatsApp) para ver cómo responde con tus datos.
+              Tus cambios se guardan solos: lo que conteste aquí es exactamente lo que diría en vivo.
             </p>
+            <span
+              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${
+                probado ? "bg-green-100 text-green-700" : "bg-amber-50 text-amber-800"
+              }`}
+            >
+              {probado ? (
+                <>
+                  <Check size={13} /> Probada: ya validaste cómo responde
+                </>
+              ) : (
+                `Hazle ${META_PRUEBAS} preguntas para darla por probada (${Math.min(pruebas, META_PRUEBAS)}/${META_PRUEBAS})`
+              )}
+            </span>
             <div className="rounded-xl border border-black/10 bg-kora-bg/50 h-72 overflow-y-auto p-3 space-y-2">
               {mensajes.length === 0 && (
                 <p className="text-sm text-kora-muted text-center py-8">
@@ -759,6 +877,19 @@ export default function CamilaClient({
               )}
               <div ref={chatFin} />
             </div>
+            {/* Preguntas sugeridas: validar a Camila en 1 minuto, sin pensar qué escribir */}
+            <div className="flex flex-wrap gap-1.5">
+              {SUGERENCIAS_PRUEBA.map((s) => (
+                <button
+                  key={s}
+                  onClick={() => enviarPrueba(s)}
+                  disabled={enviando}
+                  className="btn-press rounded-full border border-kora-primary/25 bg-kora-primary/5 px-3 py-1.5 text-xs font-semibold text-kora-primary hover:bg-kora-primary/10 disabled:opacity-50"
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
             <div className="flex items-center gap-2">
               <input
                 value={input}
@@ -768,7 +899,7 @@ export default function CamilaClient({
                 className="input-kora flex-1"
               />
               <button
-                onClick={enviarPrueba}
+                onClick={() => enviarPrueba()}
                 disabled={enviando || !input.trim()}
                 className="btn-press grid place-items-center w-11 h-11 rounded-full bg-kora-primary text-white disabled:opacity-50"
                 aria-label="Enviar"
@@ -1049,24 +1180,22 @@ function StepPill({
   );
 }
 
-function BotonGuardar({
-  guardando,
-  guardado,
-  onClick,
-}: {
-  guardando: boolean;
-  guardado: boolean;
-  onClick: () => void;
-}) {
+/** Indicador de autoguardado: sin botón "Guardar" que se pueda olvidar. */
+function AutoGuardado({ guardando, guardado }: { guardando: boolean; guardado: boolean }) {
   return (
-    <button
-      onClick={onClick}
-      disabled={guardando}
-      className="btn-press inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-kora-text text-white font-semibold text-sm hover:opacity-90 transition-opacity disabled:opacity-60"
-    >
-      {guardando ? <Loader2 size={16} className="animate-spin" /> : guardado ? <Check size={16} /> : null}
-      {guardando ? "Guardando…" : guardado ? "Guardado" : "Guardar"}
-    </button>
+    <p className="flex items-center gap-1.5 text-xs font-semibold text-kora-muted" aria-live="polite">
+      {guardando ? (
+        <>
+          <Loader2 size={13} className="animate-spin" /> Guardando…
+        </>
+      ) : guardado ? (
+        <>
+          <Check size={13} className="text-green-600" /> Guardado
+        </>
+      ) : (
+        <span className="opacity-70">Tus cambios se guardan solos</span>
+      )}
+    </p>
   );
 }
 
@@ -1099,6 +1228,9 @@ function SabeItem({
             Completar
           </a>
         )}
+        {!item.ok && item.aviso ? (
+          <span className="mt-0.5 block text-xs text-kora-muted/80">{item.aviso}</span>
+        ) : null}
       </span>
     </li>
   );

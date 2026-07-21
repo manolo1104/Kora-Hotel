@@ -10,6 +10,7 @@ import { useRef, useState } from "react";
 import {
   ArrowLeft,
   ArrowRight,
+  Bot,
   Check,
   CheckCircle2,
   Circle,
@@ -299,7 +300,32 @@ export function OnboardingHotelClient(props: Props) {
           )}
         </div>
 
-        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {/* El siguiente paso natural: entrenar a Camila. Antes el onboarding
+            terminaba sin mencionarla y el hotelero ni se enteraba de que existe. */}
+        <div className="mt-6 rounded-2xl border border-kora-primary/20 bg-kora-primary/5 p-5">
+          <div className="flex items-start gap-3">
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-kora-primary/10 text-kora-primary">
+              <Bot size={20} aria-hidden="true" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-kora-text">
+                Siguiente paso: conoce a Camila, tu asistente de WhatsApp
+              </p>
+              <p className="mt-1 text-xs text-kora-muted leading-relaxed">
+                Contesta a tus huéspedes 24/7 con los datos de tu hotel, cotiza con
+                disponibilidad real y cierra reservas con link de pago. Entrénala en 5 minutos.
+              </p>
+              <a
+                href={`/panel/${props.slug}/camila`}
+                className="btn-press mt-3 inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-kora-primary text-white font-semibold text-xs hover:bg-kora-primary-dark transition-colors"
+              >
+                Entrenar a Camila <ArrowRight size={14} aria-hidden="true" />
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
           <a
             href={`/panel/${props.slug}/insights`}
             className="btn-press btn-fill inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-full bg-kora-accent text-kora-primary font-bold text-sm hover:bg-kora-accent-dark transition-colors"
