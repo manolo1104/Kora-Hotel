@@ -6,8 +6,18 @@ html {
   scroll-behavior: smooth;
 }
 
+/* Solo scroll vertical: evita que cualquier elemento ancho arrastre la vista de
+   lado en móvil. `clip` (no `hidden`) no crea contenedor de scroll → no rompe
+   position: sticky. Los contenedores que sí necesitan scroll horizontal propio
+   (tablas del panel, etc.) lo manejan con su propio overflow-x-auto. */
+html,
+body {
+  overflow-x: clip;
+}
+
 body {
   background-color: #fafaf8;
+  max-width: 100%;
 }
 
 /* ─── Custom easing curves (Emil Kowalski) ──────────────────────────────────── */

@@ -476,21 +476,29 @@ export default async function MiniPagina({
                       </div>
                     )}
 
-                    {habHref && (
-                      <a
-                        href={habHref}
-                        {...ctaExtern}
-                        className="btn-press mt-3 inline-flex items-center gap-1.5 text-sm font-semibold"
-                        style={{ color: "var(--brand)" }}
+                    <div className="mt-3 flex flex-wrap items-center gap-4">
+                      <Link
+                        href={`/h/${hotel.slug}/habitacion/${i}`}
+                        className="btn-press inline-flex items-center gap-1.5 text-sm font-semibold text-kora-muted hover:text-kora-text"
                       >
-                        {motorActivo ? (
-                          <CalendarCheck size={15} aria-hidden="true" />
-                        ) : (
-                          <MessageCircle size={15} aria-hidden="true" />
-                        )}
-                        Reservar esta habitación
-                      </a>
-                    )}
+                        Ver detalles &rarr;
+                      </Link>
+                      {habHref && (
+                        <a
+                          href={habHref}
+                          {...ctaExtern}
+                          className="btn-press inline-flex items-center gap-1.5 text-sm font-semibold"
+                          style={{ color: "var(--brand)" }}
+                        >
+                          {motorActivo ? (
+                            <CalendarCheck size={15} aria-hidden="true" />
+                          ) : (
+                            <MessageCircle size={15} aria-hidden="true" />
+                          )}
+                          Reservar esta habitación
+                        </a>
+                      )}
+                    </div>
                   </div>
                 </div>
               );
