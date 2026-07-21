@@ -34,6 +34,7 @@ export interface DiagnosticoHotel {
   reglas: DiagnosticoItem;
   faqs: DiagnosticoItem;
   guia: DiagnosticoItem;
+  experiencias: DiagnosticoItem;
   cobros: DiagnosticoItem;
   botEntrenado: DiagnosticoItem;
   publicado: DiagnosticoItem;
@@ -107,6 +108,7 @@ export function diagnosticarHotel(hotel: HotelRow): DiagnosticoHotel {
   const faqsBot = Array.isArray(bot.faqs) ? (bot.faqs as unknown[]) : [];
   const politicas = (extras.politicas ?? {}) as Record<string, unknown>;
   const reglas = (extras.reglas ?? {}) as Record<string, unknown>;
+  const experiencias = Array.isArray(extras.experiencias) ? (extras.experiencias as unknown[]) : [];
   const guia = (hotel.guia ?? {}) as Record<string, unknown>;
   const str = (v: unknown) => (typeof v === "string" ? v.trim() : "");
   const botEntrenado = Boolean(bot.entrenadoAt) || Boolean(str(bot.tono) || str(bot.saludo) || str(bot.instrucciones));
@@ -168,6 +170,15 @@ export function diagnosticarHotel(hotel: HotelRow): DiagnosticoHotel {
       ok: Object.keys(guia).length > 0,
       label: "Guía / recomendaciones",
       tab: "contenido",
+    },
+    experiencias: {
+      ok: experiencias.length > 0,
+      label: "Experiencias vendibles",
+      detalle: experiencias.length ? `${experiencias.length}` : undefined,
+      aviso: experiencias.length
+        ? undefined
+        : "Agrega tours, cenas o traslados: el huésped los suma a su reserva y vendes más en cada estancia.",
+      tab: "avanzado",
     },
     cobros: {
       ok: Boolean(hotel.stripe_account_id),
