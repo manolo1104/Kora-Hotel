@@ -38,6 +38,12 @@ const pendientes = new Map();
 const pausados = new Map();
 // Ventana para no confundir el envío del propio bot con una respuesta humana.
 const botEnvioAt = new Map();
+// Clientes de WhatsApp VIVOS por hotel: slug -> Client. Fuente de verdad de qué
+// hoteles está atendiendo Camila ahora mismo (para arrancar/apagar en caliente).
+const clientes = new Map();
+// Cada cuánto re-consultar el fleet para arrancar hoteles nuevos (registros en
+// prueba) y apagar los que caen (prueba vencida sin pago, bot apagado).
+const FLEET_POLL_MS = Number(process.env.FLEET_POLL_MS || 5 * 60 * 1000); // 5 min
 
 // ── Comando de control desde el número admin (apagar/encender por WhatsApp) ──
 function soloDigitos(s) {
@@ -335,15 +341,80 @@ function servidorEstado() {
   }).listen(PORT, () => console.log(`[camila] estado/health en :${PORT}`));
 }
 
+// Apaga y limpia por completo a un hotel que salió del fleet (prueba vencida sin
+// pago, bot apagado, despublicado). Cierra su sesión de WhatsApp (destroy, NO
+// logout: no desvincula el dispositivo, solo deja de atender) y borra su estado.
+async function pararHotel(slug) {
+  const client = clientes.get(slug);
+  clientes.delete(slug);
+  estado.delete(slug);
+  // Limpia el estado por-chat de ese hotel (claves `${slug}::chatId`).
+  for (const mapa of [historiales, pendientes, pausados, botEnvioAt]) {
+    for (const k of [...mapa.keys()]) {
+      if (!k.startsWith(`${slug}::`)) continue;
+      const v = mapa.get(k);
+      if (v && v.timer) clearTimeout(v.timer); // debounce pendiente
+      mapa.delete(k);
+    }
+  }
+  if (client) {
+    try {
+      await client.destroy();
+    } catch (e) {
+      console.error(`[${slug}] error al detener:`, e && e.message);
+    }
+  }
+  console.log(`[camila] − ${slug} apagado (fuera del fleet).`);
+}
+
+// Re-consulta el fleet y ajusta los hoteles vivos: arranca los nuevos, apaga los
+// que salieron. Es lo que hace que un hotel NUEVO conecte en su prueba y uno con
+// la prueba VENCIDA (sin pago) se bloquee, sin reiniciar el runtime a mano.
+let sincronizando = false;
+async function sincronizarFleet() {
+  if (sincronizando) return;
+  sincronizando = true;
+  try {
+    const { ok, hotels } = await loadFleet();
+    // CLAVE: si no se pudo leer el fleet (red/5xx), NO apagamos nada — un hipo
+    // transitorio jamás debe tumbar a los bots vivos. Reintentamos al próximo ciclo.
+    if (!ok) {
+      console.warn("[camila] no pude leer el fleet; conservo los hoteles actuales.");
+      return;
+    }
+    const enFleet = new Map(hotels.map((h) => [h.slug, h]));
+    // Arrancar los que están en el fleet y aún no corren.
+    for (const hotel of hotels) {
+      if (!clientes.has(hotel.slug)) {
+        console.log(`[camila] + arrancando ${hotel.slug}`);
+        clientes.set(hotel.slug, arrancarHotel(hotel));
+      }
+    }
+    // Apagar los que corren pero ya NO están en el fleet.
+    for (const slug of [...clientes.keys()]) {
+      if (!enFleet.has(slug)) await pararHotel(slug);
+    }
+  } catch (e) {
+    console.error("[camila] error sincronizando el fleet:", e && e.message);
+  } finally {
+    sincronizando = false;
+  }
+}
+
 async function main() {
   servidorEstado();
-  const fleet = await loadFleet();
-  if (!fleet.length) {
-    console.warn("[camila] la flota está vacía. Revisa BOT_FLEET_SECRET / KORA_FLEET.");
-    return;
+  await sincronizarFleet();
+  if (!clientes.size) {
+    console.warn(
+      `[camila] la flota está vacía por ahora; re-consulto cada ${Math.round(
+        FLEET_POLL_MS / 60000,
+      )} min (revisa BOT_FLEET_SECRET / KORA_FLEET si nunca aparece nadie).`,
+    );
   }
-  console.log(`[camila] arrancando ${fleet.length} hotel(es): ${fleet.map((h) => h.slug).join(", ")}`);
-  for (const hotel of fleet) arrancarHotel(hotel);
+  // Re-poll periódico: hoteles nuevos entran en su prueba, vencidos se bloquean.
+  setInterval(() => {
+    sincronizarFleet().catch((e) => console.error("[camila] re-poll:", e && e.message));
+  }, FLEET_POLL_MS);
 }
 
 main().catch((e) => {
