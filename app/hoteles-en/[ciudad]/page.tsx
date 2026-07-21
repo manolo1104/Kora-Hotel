@@ -2,8 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Check, X } from "lucide-react";
+import { createClient } from "@supabase/supabase-js";
 import { ciudades, getCiudad, TABLA_OTA_DIRECTO } from "@/lib/ciudades";
-import { metaDescripcion } from "@/lib/seo";
+import { metaDescripcion, TENANTS_PRUEBA } from "@/lib/seo";
+import { SUPABASE_URL, SUPABASE_ANON_KEY, supabaseEnvReady } from "@/lib/supabase/env";
 import { Reveal } from "@/components/shared/Reveal";
 import { BarraCTA } from "@/components/shared/BarraCTA";
 
@@ -12,6 +14,27 @@ interface Props {
 }
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
+
+// ISR diario: la lista de hoteles reales por ciudad viene de Supabase y cambia
+// sin deploy (cuando un hotel nuevo se publica, la página lo recoge sola).
+export const revalidate = 86400;
+
+// Hoteles publicados cuya ubicación menciona la ciudad: enlace real de la
+// página de ciudad a cada mini-página (SEO local + prueba de que Kora opera ahí).
+async function hotelesEnCiudad(ciudad: string): Promise<{ slug: string; nombre: string }[]> {
+  if (!supabaseEnvReady) return [];
+  try {
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const { data } = await supabase
+      .from("hoteles")
+      .select("slug, nombre, ubicacion")
+      .eq("publicado", true)
+      .ilike("ubicacion", `%${ciudad}%`);
+    return (data ?? []).filter((h) => h.slug && h.nombre && !TENANTS_PRUEBA.has(h.slug));
+  } catch {
+    return [];
+  }
+}
 
 export function generateStaticParams() {
   return ciudades.map((c) => ({ ciudad: c.slug }));
@@ -40,6 +63,7 @@ export default async function CiudadPage({ params }: Props) {
   if (!c) notFound();
 
   const url = `${SITE_URL}/hoteles-en/${c.slug}`;
+  const hotelesReales = await hotelesEnCiudad(c.ciudad);
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -139,6 +163,32 @@ export default async function CiudadPage({ params }: Props) {
               </table>
             </div>
           </Reveal>
+
+          {/* Hoteles reales que ya reservan directo en esta ciudad */}
+          {hotelesReales.length > 0 && (
+            <section className="mt-12">
+              <h2 className="text-xl font-bold text-kora-text mb-2">
+                Hoteles que ya reservan directo en {c.ciudad}
+              </h2>
+              <p className="text-sm text-kora-muted mb-4">
+                Estos hoteles reciben reservas sin comisiones con Kora — visita su página y reserva directo:
+              </p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {hotelesReales.map((h) => (
+                  <Link
+                    key={h.slug}
+                    href={`/h/${h.slug}`}
+                    className="group flex items-center justify-between rounded-2xl border border-gray-100 bg-kora-bg px-5 py-4 transition-shadow hover:shadow-md"
+                  >
+                    <span className="font-semibold text-kora-text group-hover:text-kora-primary transition-colors">
+                      {h.nombre}
+                    </span>
+                    <span aria-hidden="true" className="text-kora-primary">→</span>
+                  </Link>
+                ))}
+              </div>
+            </section>
+          )}
 
           {/* FAQ */}
           {c.faqs.length > 0 && (

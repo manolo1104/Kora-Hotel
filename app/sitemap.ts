@@ -7,6 +7,7 @@ import { comparativas } from "@/lib/comparativas";
 import { personas } from "@/lib/personas";
 import { ciudades } from "@/lib/ciudades";
 import { AYUDA } from "@/lib/ayuda";
+import { TENANTS_PRUEBA } from "@/lib/seo";
 import { SUPABASE_URL, SUPABASE_ANON_KEY, supabaseEnvReady } from "@/lib/supabase/env";
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
@@ -15,39 +16,44 @@ const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
 // en cada build y le manda a Google señales falsas de "página modificada").
 const SITE_UPDATED = new Date("2026-06-03");
 
-// Slugs de hoteles de PRUEBA/semilla que no deben aparecer en el sitemap
-// (contenido basura, no son clientes reales). El fix de fondo es despublicarlos
-// en Supabase; esto los excluye del sitemap como parche.
-const TENANTS_PRUEBA = new Set([
-  "hotel-1",
-  "hotel-grande",
-  "hotel-magico",
-  "hotel-corazon-lleno",
-  "hotel-5-encantos",
-  "hotel-demo-huasteca",
-  "manolo",
-  "paraiso-encantadfi",
-]);
-
-// Mini-páginas de hoteles publicadas (/h/slug). Si el env de Supabase no está
-// listo o falla, devuelve [] para no romper el sitemap.
+// Mini-páginas de hoteles publicadas (/h/slug) + la página propia de cada
+// habitación (/h/slug/habitacion/idx). Si el env de Supabase no está listo o
+// falla, devuelve [] para no romper el sitemap.
 async function miniPaginas(): Promise<MetadataRoute.Sitemap> {
   if (!supabaseEnvReady) return [];
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     const { data } = await supabase
       .from("hoteles")
-      .select("slug, updated_at")
+      .select("slug, updated_at, habitaciones")
       .eq("publicado", true);
     if (!data) return [];
     return data
       .filter((h) => h.slug && !TENANTS_PRUEBA.has(h.slug))
-      .map((h) => ({
-        url: `${BASE_URL}/h/${h.slug}`,
-        lastModified: h.updated_at ? new Date(h.updated_at) : SITE_UPDATED,
-        changeFrequency: "weekly" as const,
-        priority: 0.6,
-      }));
+      .flatMap((h) => {
+        const lastModified = h.updated_at ? new Date(h.updated_at) : SITE_UPDATED;
+        const hotel: MetadataRoute.Sitemap = [
+          {
+            url: `${BASE_URL}/h/${h.slug}`,
+            lastModified,
+            changeFrequency: "weekly" as const,
+            priority: 0.6,
+          },
+        ];
+        const habitaciones: { nombre?: string }[] = Array.isArray(h.habitaciones)
+          ? h.habitaciones
+          : [];
+        const cuartos: MetadataRoute.Sitemap = habitaciones
+          .map((room, idx) => ({ room, idx }))
+          .filter(({ room }) => (room?.nombre ?? "").trim())
+          .map(({ idx }) => ({
+            url: `${BASE_URL}/h/${h.slug}/habitacion/${idx}`,
+            lastModified,
+            changeFrequency: "weekly" as const,
+            priority: 0.5,
+          }));
+        return [...hotel, ...cuartos];
+      });
   } catch {
     return [];
   }

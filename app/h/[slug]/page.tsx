@@ -29,6 +29,8 @@ import {
 import { SUPABASE_URL, SUPABASE_ANON_KEY, supabaseEnvReady } from "@/lib/supabase/env";
 import { ownerTienePlanActivo, accesoDelHotel } from "@/lib/suscripcion";
 import { getResenasPublicadas } from "@/lib/db/reviews";
+import { metaDescripcion } from "@/lib/seo";
+import { extraerCoords } from "@/lib/maps";
 
 export const dynamic = "force-dynamic";
 
@@ -125,17 +127,22 @@ export async function generateMetadata({
   const { slug } = await params;
   const hotel = await getHotel(slug, false);
   if (!hotel) return { title: "Hotel no encontrado" };
+  const description = hotel.descripcion
+    ? metaDescripcion(hotel.descripcion)
+    : `Reserva directo en ${hotel.nombre}${hotel.ubicacion ? `, ${hotel.ubicacion}` : ""}: confirmación inmediata y pago seguro, sin comisiones.`;
   return {
     title: `${hotel.nombre}${hotel.ubicacion ? ` — ${hotel.ubicacion}` : ""}`,
-    description:
-      hotel.descripcion?.slice(0, 155) || `Reserva directo en ${hotel.nombre}.`,
+    description,
     alternates: { canonical: `/h/${slug}` },
+    // La imagen OG la genera opengraph-image.tsx (portada branded 1200×630);
+    // no se fija aquí para no pisar la convención de archivo.
     openGraph: {
-      title: hotel.nombre,
-      description: hotel.descripcion?.slice(0, 155) || "",
-      images: hotel.fotos?.[0] ? [hotel.fotos[0]] : undefined,
+      title: `${hotel.nombre}${hotel.ubicacion ? ` — ${hotel.ubicacion}` : ""}`,
+      description,
       type: "website",
+      locale: "es_MX",
     },
+    twitter: { card: "summary_large_image" },
   };
 }
 
@@ -259,13 +266,32 @@ export default async function MiniPagina({
     .filter((n) => n > 0);
   const minPrecio = preciosNum.length ? Math.min(...preciosNum) : null;
 
+  // Coordenadas reales para schema `geo` (del mapa que el hotel pegó en su panel).
+  const coords = extraerCoords(mapEmbedUrl || mapsUrl || "");
+  const redes = [igUrl, fbUrl].filter(Boolean) as string[];
+
   // JSON-LD Hotel (subtipo de LodgingBusiness) + Offer por habitación
   const jsonLd: Record<string, unknown> = {
     "@context": "https://schema.org",
     "@type": "Hotel",
+    "@id": `https://kora-hotel.com/h/${hotel.slug}#hotel`,
+    url: `https://kora-hotel.com/h/${hotel.slug}`,
     name: hotel.nombre,
     ...(hotel.descripcion ? { description: hotel.descripcion.slice(0, 300) } : {}),
     ...(hotel.fotos?.length ? { image: hotel.fotos } : {}),
+    ...(hotel.whatsapp ? { telephone: `+${soloDigitos(hotel.whatsapp)}` } : {}),
+    ...(redes.length ? { sameAs: redes } : {}),
+    ...(mapsUrl ? { hasMap: mapsUrl } : {}),
+    ...(coords
+      ? {
+          geo: {
+            "@type": "GeoCoordinates",
+            latitude: Number(coords.lat),
+            longitude: Number(coords.lng),
+          },
+        }
+      : {}),
+    currenciesAccepted: "MXN",
     ...(hotel.ubicacion
       ? { address: { "@type": "PostalAddress", addressLocality: hotel.ubicacion, addressCountry: "MX" } }
       : {}),
@@ -725,6 +751,23 @@ export default async function MiniPagina({
         // evita que un "</script>" inyectado rompa el bloque y ejecute JS (XSS).
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
       />
+      {faqs.length > 0 && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "FAQPage",
+              "@id": `https://kora-hotel.com/h/${hotel.slug}#faq`,
+              mainEntity: faqs.map((f) => ({
+                "@type": "Question",
+                name: f.pregunta,
+                acceptedAnswer: { "@type": "Answer", text: f.respuesta ?? "" },
+              })),
+            }).replace(/</g, "\\u003c"),
+          }}
+        />
+      )}
 
       {preview === "1" && (
         <div className="bg-amber-100 text-amber-900 text-center text-xs font-semibold py-2 px-4">

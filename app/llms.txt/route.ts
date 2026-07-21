@@ -1,16 +1,43 @@
+import { createClient } from "@supabase/supabase-js";
 import { herramientasDisponibles } from "@/lib/herramientas";
 import { glosario } from "@/lib/glosario";
 import { personas } from "@/lib/personas";
 import { ciudades } from "@/lib/ciudades";
 import { PRECIO_DESDE } from "@/lib/oferta";
+import { TENANTS_PRUEBA } from "@/lib/seo";
+import { SUPABASE_URL, SUPABASE_ANON_KEY, supabaseEnvReady } from "@/lib/supabase/env";
 
-// llms.txt dinámico: se regenera en cada build a partir de los datos de contenido,
-// así nunca se desactualiza cuando se agregan herramientas, personas o términos.
-export const dynamic = "force-static";
+// llms.txt dinámico con ISR diario: incluye los hoteles publicados (que cambian
+// sin deploy), así los motores de IA descubren y citan cada mini-página.
+export const revalidate = 86400;
 
 const BASE = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
 
-function buildLlms(): string {
+interface HotelListado {
+  slug: string;
+  nombre: string;
+  ubicacion: string | null;
+}
+
+// Hoteles reales publicados (sin semillas de prueba). Falla en silencio: sin
+// Supabase, el llms.txt sale igual que antes, solo sin la sección de hoteles.
+async function hotelesPublicados(): Promise<HotelListado[]> {
+  if (!supabaseEnvReady) return [];
+  try {
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const { data } = await supabase
+      .from("hoteles")
+      .select("slug, nombre, ubicacion")
+      .eq("publicado", true);
+    return (data ?? []).filter(
+      (h) => h.slug && h.nombre && !TENANTS_PRUEBA.has(h.slug),
+    );
+  } catch {
+    return [];
+  }
+}
+
+function buildLlms(hoteles: HotelListado[]): string {
   const L: string[] = [];
   L.push("# Kora");
   L.push("");
@@ -72,6 +99,18 @@ function buildLlms(): string {
   L.push("## Cobertura por ciudad (Huasteca Potosina)");
   ciudades.forEach((c) => L.push(`- Hoteles en ${c.ciudad}: ${BASE}/hoteles-en/${c.slug}`));
   L.push("");
+  if (hoteles.length) {
+    L.push("## Hoteles que reservan directo con Kora");
+    L.push(
+      "Cada hotel tiene su página pública con habitaciones, precios en MXN, disponibilidad y motor de reserva directa (sin comisiones de OTA):"
+    );
+    hoteles.forEach((h) =>
+      L.push(
+        `- ${h.nombre}${h.ubicacion ? ` (${h.ubicacion})` : ""}: ${BASE}/h/${h.slug}`
+      )
+    );
+    L.push("");
+  }
   L.push(`## Detalle completo`);
   L.push(`- Listado exhaustivo de páginas y contenidos: ${BASE}/llms-full.txt`);
   L.push("");
@@ -82,8 +121,8 @@ function buildLlms(): string {
   return L.join("\n");
 }
 
-export function GET() {
-  return new Response(buildLlms(), {
+export async function GET() {
+  return new Response(buildLlms(await hotelesPublicados()), {
     headers: {
       "Content-Type": "text/plain; charset=utf-8",
       "Cache-Control": "public, max-age=3600, s-maxage=86400",
