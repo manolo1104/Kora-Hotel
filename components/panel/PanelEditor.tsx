@@ -3659,6 +3659,21 @@ export function PanelEditor({
                   </button>
                 ))}
               </div>
+              {/* Pagos unificados: los datos bancarios (transferencia/depósito/OXXO)
+                  viven en Camila → Reglas; desde aquí solo se enlaza para no tener
+                  dos formularios que se desincronicen. */}
+              {slug ? (
+                <p className="mt-2 text-xs text-kora-muted">
+                  ¿Aceptas transferencia o depósito? Captura los datos bancarios una sola vez en{" "}
+                  <a
+                    href={`/panel/${slug}/camila`}
+                    className="font-semibold text-kora-primary underline"
+                  >
+                    Camila → Reglas
+                  </a>{" "}
+                  y tu asistente los dará al huésped cuando quiera pagar así.
+                </p>
+              ) : null}
             </div>
             <div>
               <p className="block text-sm font-semibold text-kora-text mb-2">Idiomas que hablan</p>
