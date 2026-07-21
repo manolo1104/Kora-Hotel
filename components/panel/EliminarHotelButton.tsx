@@ -1,11 +1,16 @@
 "use client";
 
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { Trash2, X, AlertTriangle, Loader2 } from "lucide-react";
 
 // Botón destructivo (solo dueño) que abre un modal de confirmación: exige
 // escribir el nombre del hotel + la contraseña de la cuenta antes de borrar.
+// El modal se monta con un PORTAL en <body>: la tarjeta del panel vive dentro
+// de <Reveal> (transform de framer-motion) y un transform en el ancestro
+// convierte `position: fixed` en relativo a la tarjeta → modal recortado y
+// sin botones visibles (bug reportado por Manolo el 21 jul).
 export function EliminarHotelButton({
   slug,
   nombre,
@@ -66,9 +71,9 @@ export function EliminarHotelButton({
         <Trash2 size={14} aria-hidden="true" /> Eliminar hotel
       </button>
 
-      {open && (
+      {open && createPortal(
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 overflow-y-auto"
           role="dialog"
           aria-modal="true"
           onClick={cerrar}
@@ -106,6 +111,7 @@ export function EliminarHotelButton({
                 </span>
                 <input
                   type="text"
+                  name="confirmar-nombre-hotel"
                   value={confirmName}
                   onChange={(e) => setConfirmName(e.target.value)}
                   placeholder={nombre}
@@ -122,7 +128,10 @@ export function EliminarHotelButton({
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  autoComplete="current-password"
+                  // "new-password" a propósito: evita que Chrome autollene el
+                  // par usuario+contraseña (metía el email en el campo del
+                  // nombre del hotel y bloqueaba la confirmación).
+                  autoComplete="new-password"
                   disabled={loading}
                   className="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm focus:border-kora-accent focus:outline-none disabled:opacity-60"
                 />
@@ -151,7 +160,8 @@ export function EliminarHotelButton({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );
