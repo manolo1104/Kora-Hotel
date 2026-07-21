@@ -84,11 +84,15 @@ export async function generateMetadata({
   return {
     title,
     description,
+    alternates: { canonical: `/h/${slug}/habitacion/${idx}` },
     openGraph: {
       title,
       description,
+      type: "website",
+      locale: "es_MX",
       images: h.fotos?.[0] ? [h.fotos[0]] : undefined,
     },
+    twitter: { card: "summary_large_image" },
   };
 }
 
@@ -132,8 +136,71 @@ export default async function Page({
 
   const precio = precioDesde(h);
 
+  // JSON-LD: la habitación como HotelRoom con su Offer, ligada al Hotel de la
+  // mini-página (@id) + migas para que Google entienda la jerarquía.
+  const urlHotel = `https://kora-hotel.com/h/${slug}`;
+  const urlCuarto = `${urlHotel}/habitacion/${i}`;
+  const precioNum = precio.texto ? aNumero(precio.texto) : 0;
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "HotelRoom",
+        "@id": `${urlCuarto}#room`,
+        url: urlCuarto,
+        name: nombre || "Habitación",
+        ...(h.descripcion ? { description: String(h.descripcion).slice(0, 300) } : {}),
+        ...(h.fotos?.length ? { image: h.fotos.filter(Boolean) } : {}),
+        ...(aNumero(h.capacidad) > 0
+          ? {
+              occupancy: {
+                "@type": "QuantitativeValue",
+                maxValue: aNumero(h.capacidad),
+                unitText: "personas",
+              },
+            }
+          : {}),
+        ...(Array.isArray(h.camas) && h.camas.length
+          ? {
+              bed: h.camas.map((c) => ({
+                "@type": "BedDetails",
+                typeOfBed: c.tipo,
+                numberOfBeds: c.cantidad,
+              })),
+            }
+          : {}),
+        containedInPlace: { "@type": "Hotel", "@id": `${urlHotel}#hotel`, name: hotel.nombre },
+        ...(precioNum > 0
+          ? {
+              offers: {
+                "@type": "Offer",
+                price: precioNum,
+                priceCurrency: "MXN",
+                availability: "https://schema.org/InStock",
+                url: `${urlHotel}/reservar`,
+              },
+            }
+          : {}),
+      },
+      {
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: hotel.nombre, item: urlHotel },
+          { "@type": "ListItem", position: 2, name: nombre || "Habitación", item: urlCuarto },
+        ],
+      },
+    ],
+  };
+
   return (
-    <RoomDetailClient
+    <>
+      <script
+        type="application/ld+json"
+        // Texto del hotelero dentro del JSON: escapar "<" evita inyección de
+        // un "</script>" que rompa el bloque (misma regla que la mini-página).
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
+      />
+      <RoomDetailClient
       hotelNombre={hotel.nombre}
       ubicacion={hotel.ubicacion}
       backHref={`/h/${slug}`}
@@ -154,6 +221,7 @@ export default async function Page({
       motorActivo={acceso.activo}
       reservarHref={reservarHref}
       waHref={waHref}
-    />
+      />
+    </>
   );
 }

@@ -43,7 +43,8 @@ function mapsSearchDeTexto(texto: string): string {
 }
 
 // Intenta sacar coordenadas de una URL de Google Maps (varios formatos).
-function extraerCoords(url: string): { lat: string; lng: string } | null {
+// Exportada: el schema.org de la mini-página la usa para el campo `geo`.
+export function extraerCoords(url: string): { lat: string; lng: string } | null {
   // /@21.5510,-98.9910,17z
   let m = url.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
   if (m) return { lat: m[1], lng: m[2] };
