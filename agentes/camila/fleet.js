@@ -8,7 +8,13 @@
 const KORA_BASE = (process.env.KORA_BASE_URL || "https://kora-hotel.com").replace(/\/+$/, "");
 
 /**
- * @returns {Promise<Array<{id:string,slug:string,nombre:string,token:string,whatsapp:string|null,lang:"es"|"en"}>>}
+ * Devuelve `{ ok, hotels }`.
+ *  - `ok:true`  → respuesta CONFIABLE del fleet (aunque `hotels` esté vacío: es
+ *                 un "vacío real", p. ej. ningún hotel con acceso).
+ *  - `ok:false` → NO se pudo leer el fleet (red caída, 5xx, sin secreto). El
+ *                 llamador debe CONSERVAR los hoteles actuales, no apagarlos:
+ *                 un hipo transitorio nunca debe tumbar a los bots vivos.
+ * @returns {Promise<{ ok: boolean, hotels: Array<{id:string,slug:string,nombre:string,token:string,whatsapp:string|null,lang:"es"|"en"}> }>}
  */
 export async function loadFleet() {
   // Fallback explícito por env (útil en local, o para forzar un solo hotel).
@@ -17,7 +23,7 @@ export async function loadFleet() {
     try {
       const arr = JSON.parse(raw);
       if (Array.isArray(arr) && arr.length) {
-        return arr.filter((h) => h && h.slug && h.token);
+        return { ok: true, hotels: arr.filter((h) => h && h.slug && h.token) };
       }
     } catch (e) {
       console.error("[fleet] KORA_FLEET no es JSON válido:", e.message);
@@ -27,7 +33,7 @@ export async function loadFleet() {
   const secret = process.env.BOT_FLEET_SECRET;
   if (!secret) {
     console.error("[fleet] falta BOT_FLEET_SECRET (y no hay KORA_FLEET). Sin hoteles.");
-    return [];
+    return { ok: false, hotels: [] };
   }
 
   try {
@@ -36,13 +42,13 @@ export async function loadFleet() {
     });
     if (!res.ok) {
       console.error(`[fleet] /api/bots/fleet respondió ${res.status}`);
-      return [];
+      return { ok: false, hotels: [] };
     }
     const data = await res.json();
     const hotels = Array.isArray(data.hotels) ? data.hotels : [];
-    return hotels.filter((h) => h && h.slug && h.token);
+    return { ok: true, hotels: hotels.filter((h) => h && h.slug && h.token) };
   } catch (e) {
     console.error("[fleet] error consultando el fleet:", e.message);
-    return [];
+    return { ok: false, hotels: [] };
   }
 }
