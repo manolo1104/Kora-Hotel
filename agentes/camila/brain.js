@@ -8,10 +8,15 @@ import Anthropic from "@anthropic-ai/sdk";
 
 const anthropic = new Anthropic(); // lee ANTHROPIC_API_KEY del entorno
 
-// Opus 4.8 por defecto (la instrucción del SDK). Para un bot de chat de alto
-// volumen, CAMILA_MODEL=claude-sonnet-5 (o claude-haiku-4-5) baja mucho el costo
-// y la latencia — es cambiar una variable de entorno, no el código.
-const MODEL = process.env.CAMILA_MODEL || "claude-opus-4-8";
+// Haiku 4.5 por defecto: bot de chat de alto volumen → prioriza costo y latencia.
+// Override con CAMILA_MODEL (p. ej. claude-sonnet-5 o claude-opus-4-8) para más
+// capacidad — es cambiar una variable de entorno, no el código.
+const MODEL = process.env.CAMILA_MODEL || "claude-haiku-4-5";
+
+// La familia Opus/Sonnet 4.6+ acepta output_config.effort y thinking:{disabled};
+// Haiku 4.5 y modelos previos NO (dan 400). Detectamos para mandar los parámetros
+// correctos según el modelo y no reventar el bot al cambiar CAMILA_MODEL.
+const MODELO_CON_EFFORT = /claude-(opus-4-(6|7|8)|sonnet-(5|4-6)|fable-5|mythos-5)/.test(MODEL);
 const MAX_TOKENS = Number(process.env.CAMILA_MAX_TOKENS || 1024);
 const MAX_HISTORY = Number(process.env.CAMILA_MAX_HISTORY || 20); // pares de turnos
 const MAX_TOOL_ITERS = 6; // tope de vueltas de herramientas por turno
@@ -182,11 +187,15 @@ export async function handleTurn({ hotel, kora, history, userText, conv }) {
     const res = await anthropic.messages.create({
       model: MODEL,
       max_tokens: MAX_TOKENS,
-      thinking: { type: "disabled" }, // chat: prioriza latencia
-      output_config: { effort: "low" },
       system,
       tools: HERRAMIENTAS,
       messages,
+      // Chat: prioriza latencia. En Opus/Sonnet 4.6+ se pide sin pensar y con
+      // esfuerzo bajo; en Haiku 4.5 esos parámetros no existen (se omiten y el
+      // modelo ya responde sin "thinking" por defecto).
+      ...(MODELO_CON_EFFORT
+        ? { thinking: { type: "disabled" }, output_config: { effort: "low" } }
+        : {}),
     });
 
     // Guarda el turno del asistente (bloques crudos: texto + tool_use).

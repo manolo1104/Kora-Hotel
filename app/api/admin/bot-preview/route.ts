@@ -13,7 +13,9 @@ import { botAvailability } from "@/lib/bot/tools";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const MODEL = process.env.CAMILA_MODEL || "claude-sonnet-5";
+// Mismo modelo que el runtime de Camila (brain.js) para que el chat de prueba
+// del panel refleje lo que reciben los huéspedes. Override con CAMILA_MODEL.
+const MODEL = process.env.CAMILA_MODEL || "claude-haiku-4-5";
 const MAX_TOOL_ITERS = 6;
 
 export async function POST(req: Request) {
