@@ -73,6 +73,7 @@ interface Habitacion {
   camas?: Cama[]; // camas de la habitación (tipo + cantidad)
   cantidad?: number | string; // unidades físicas del tipo (default 1)
   unidades?: string[]; // nombres de cada unidad (solo si cantidad > 1)
+  accesibilidad?: string; // cómo se llega: escalones, planta baja, elevador…
 }
 // Paquete de cotización tal como se edita (números como string para los inputs).
 interface PaqueteForm {
@@ -306,6 +307,9 @@ export function PanelEditor({
   const [polCancelacion, setPolCancelacion] = useState("");
   const [polMascotas, setPolMascotas] = useState("");
   const [polNinos, setPolNinos] = useState("");
+  // Accesibilidad general del hotel (rampa, elevador, cuarto adaptado…): la usa
+  // Camila con huéspedes de movilidad reducida.
+  const [accesibilidad, setAccesibilidad] = useState("");
   const [formasPago, setFormasPago] = useState<string[]>([]);
   const [idiomas, setIdiomas] = useState<string[]>([]);
 
@@ -547,6 +551,7 @@ export function PanelEditor({
         setPolCancelacion(p.cancelacion ?? "");
         setPolMascotas(p.mascotas ?? "");
         setPolNinos(p.ninos ?? "");
+        setAccesibilidad(typeof ex.accesibilidad === "string" ? ex.accesibilidad : "");
         setFormasPago(Array.isArray(ex.formasPago) ? ex.formasPago : []);
         setIdiomas(Array.isArray(ex.idiomas) ? ex.idiomas : []);
         const rg = ex.reglas ?? {};
@@ -654,7 +659,7 @@ export function PanelEditor({
   }
   function updateHab(
     i: number,
-    campo: "nombre" | "precio" | "descripcion" | "capacidad",
+    campo: "nombre" | "precio" | "descripcion" | "capacidad" | "accesibilidad",
     valor: string
   ) {
     setHabitaciones((h) =>
@@ -1160,6 +1165,7 @@ export function PanelEditor({
         mascotas: polMascotas.trim(),
         ninos: polNinos.trim(),
       },
+      accesibilidad: accesibilidad.trim(),
       reglas: {
         anticipoPct,
         minNoches,
@@ -1964,6 +1970,14 @@ export function PanelEditor({
                     onChange={(e) => updateHab(i, "descripcion", e.target.value)}
                     placeholder="Breve descripción (opcional)"
                     rows={2}
+                  />
+                  {/* Accesibilidad del cuarto: Camila lo usa para huéspedes con
+                      movilidad reducida ("¿cuántos escalones hay?"). */}
+                  <input
+                    className={inputCls}
+                    value={h.accesibilidad ?? ""}
+                    onChange={(e) => updateHab(i, "accesibilidad", e.target.value)}
+                    placeholder="Accesibilidad: ej. planta baja / 12 escalones, sin elevador (opcional)"
                   />
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-[11px] text-kora-muted">Descripción con IA — tono:</span>
@@ -3640,6 +3654,23 @@ export function PanelEditor({
                   placeholder="Ej. Menores de 5 sin costo"
                 />
               </div>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-kora-text mb-1.5">
+                Accesibilidad del hotel
+              </label>
+              <p className="mb-1.5 text-xs text-kora-muted">
+                Rampa, elevador, habitación adaptada, estacionamiento accesible… Camila lo usa
+                para responder a huéspedes con movilidad reducida. Los escalones de cada cuarto
+                se capturan en su habitación (pestaña Habitaciones).
+              </p>
+              <textarea
+                className={`${inputCls} min-h-[60px] resize-y`}
+                value={accesibilidad}
+                onChange={(e) => setAccesibilidad(e.target.value)}
+                placeholder="Ej. Rampa en recepción, sin elevador; la Suite Río está en planta baja y su baño tiene barras de apoyo."
+                rows={2}
+              />
             </div>
             <div>
               <p className="block text-sm font-semibold text-kora-text mb-2">Formas de pago</p>

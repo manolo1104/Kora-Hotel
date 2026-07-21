@@ -21,6 +21,7 @@ export interface BookingRoom {
   // comportamiento previo. `unidades` son los nombres reales que usan blocks/iCal.
   cantidad: number;
   unidades: string[];
+  accesibilidad?: string; // cómo se llega: escalones, planta baja, elevador…
 }
 
 // ── Precios ──────────────────────────────────────────────

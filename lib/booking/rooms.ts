@@ -32,6 +32,7 @@ interface HabitacionRaw {
   camas?: Array<{ tipo?: string; cantidad?: number | string }>; // camas del tipo
   cantidad?: number | string; // unidades físicas del tipo (default 1)
   unidades?: string[]; // nombres explícitos de cada unidad (opcional)
+  accesibilidad?: string; // cómo se llega: escalones, planta baja, elevador…
 }
 
 /** Normaliza las camas jsonb a {tipo, cantidad}[] válidas (descarta basura). */
@@ -123,6 +124,10 @@ export function hotelRooms(hotel: HotelLike): BookingRoom[] {
       camas: parseCamas(h.camas),
       cantidad,
       unidades,
+      accesibilidad:
+        typeof h.accesibilidad === "string" && h.accesibilidad.trim()
+          ? h.accesibilidad.trim()
+          : undefined,
     };
   });
 }

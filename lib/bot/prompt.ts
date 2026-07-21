@@ -15,6 +15,7 @@ export interface BotRoom {
   maxHuespedes?: number | string;
   camas?: string[]; // ej. ["1 King", "2 Individual"]
   caracteristicas?: string[]; // amenidades de la habitación (etiquetas)
+  accesibilidad?: string; // cómo se llega: escalones, planta baja, elevador…
 }
 
 export interface BotFaq {
@@ -73,6 +74,12 @@ export interface BotPago {
   notas?: string; // instrucciones libres (OXXO, referencia, horarios, etc.)
 }
 
+/** Preferencias de emojis del hotel (vive en extras.bot.emojis). */
+export interface BotEmojis {
+  nivel?: "nada" | "bajo" | "medio" | "alto"; // cuánto emoji usar (default medio)
+  preferidos?: string; // emojis de la marca del hotel, ej. "🌿🦜🌺"
+}
+
 /** Entrenamiento que el hotel edita en el panel (vive en extras.bot). */
 export interface BotTraining {
   nombre?: string; // cómo se llama la asistente (default "Camila")
@@ -81,6 +88,7 @@ export interface BotTraining {
   instrucciones?: string; // instrucciones especiales del hotel
   escalarWhatsapp?: string; // número para pasar con una persona (default = whatsapp del hotel)
   pago?: BotPago; // datos para pago por transferencia/depósito
+  emojis?: BotEmojis; // nivel y preferencias de emojis
 }
 
 /** Todo lo que Camila "sabe" de un hotel — mismo shape que devuelve /api/agent. */
@@ -91,6 +99,7 @@ export interface BotKnowledge {
   whatsapp?: string | null;
   habitaciones?: BotRoom[];
   amenidades?: string[];
+  accesibilidad?: string; // accesibilidad general del hotel (rampa, elevador…)
   faqs?: BotFaq[];
   politicas?: Record<string, unknown>;
   guia?: Record<string, unknown>;
@@ -231,6 +240,22 @@ export function buildBotSystemPrompt(k: BotKnowledge, opts: { modoPrueba?: boole
   const guia = k.guia && typeof k.guia === "object" ? k.guia : {};
   const escalar = (bot.escalarWhatsapp || k.whatsapp || "").trim();
   const idioma = k.lang === "en" ? "inglés" : "español";
+
+  // Emojis: regla según el nivel elegido por el hotel (default: con mesura).
+  const emojis = (bot.emojis ?? {}) as BotEmojis;
+  const emojiPref = (emojis.preferidos || "").trim();
+  const emojiRegla =
+    emojis.nivel === "nada"
+      ? "NO uses emojis, en ningún mensaje."
+      : emojis.nivel === "bajo"
+        ? "Usa emojis muy de vez en cuando: máximo 1 por mensaje, y no en todos los mensajes."
+        : emojis.nivel === "alto"
+          ? "Usa emojis con frecuencia (2 a 4 por mensaje), con buen gusto y variedad."
+          : "Emojis con mesura (1 o 2 por mensaje, solo cuando sumen).";
+  const emojiPrefRegla =
+    emojiPref && emojis.nivel !== "nada"
+      ? ` Cuando uses emojis, prefiere estos (son la marca del hotel): ${emojiPref}`
+      : "";
   const exps = Array.isArray(k.experiencias) ? k.experiencias : [];
   const adds = Array.isArray(k.addons) ? k.addons : [];
   const reglas = k.reglas ?? {};
@@ -321,7 +346,8 @@ ${reglasLineas.join("\n")}\n`;
             Array.isArray(r.caracteristicas) && r.caracteristicas.length
               ? ` Incluye: ${r.caracteristicas.join(", ")}.`
               : "";
-          return `- ${r.nombre} (hasta ${r.maxHuespedes} huéspedes) — desde ${r.desdeTexto || `$${r.desde} MXN`}/noche.${camas}${caract} ${r.descripcion || ""}`.trim();
+          const acceso = r.accesibilidad ? ` Accesibilidad: ${r.accesibilidad}.` : "";
+          return `- ${r.nombre} (hasta ${r.maxHuespedes} huéspedes) — desde ${r.desdeTexto || `$${r.desde} MXN`}/noche.${camas}${caract}${acceso} ${r.descripcion || ""}`.trim();
         })
         .join("\n")
     : "(sin cuartos configurados)";
@@ -380,7 +406,8 @@ FECHAS (crítico — léelo con atención)
 TU META: contestar al instante, resolver dudas y CERRAR reservas con link de pago.
 
 TONO Y FORMATO
-- Cálida, humana y breve. Escribes para WhatsApp: frases cortas, saltos de línea, emojis con mesura.
+- Cálida, humana y breve. Escribes para WhatsApp: frases cortas, saltos de línea.
+- ${emojiRegla}${emojiPrefRegla}
 - Responde en el idioma del huésped (por defecto ${idioma}).
 - Formato WhatsApp: *negritas* con un solo asterisco. Nada de tablas ni markdown pesado.
 - Responde SOLO con el mensaje para el huésped. No expliques tu razonamiento ni tus pasos.
@@ -402,7 +429,11 @@ ${k.descripcion ? `Sobre el hotel: ${k.descripcion}` : ""}
 CUARTOS
 ${cuartos}
 
-${amen.length ? `AMENIDADES\n${amen.join(", ")}\n` : ""}${experienciasBloque}${temporadasBloque}${reglasBloque}${
+${amen.length ? `AMENIDADES\n${amen.join(", ")}\n` : ""}${
+    k.accesibilidad || habs.some((r) => r.accesibilidad)
+      ? `ACCESIBILIDAD\n${k.accesibilidad ? `${k.accesibilidad}\n` : ""}- Si el huésped menciona movilidad reducida, silla de ruedas, adultos mayores o dificultad con escalones, comparte estos datos y recomiéndale el cuarto más accesible (la accesibilidad de cada cuarto está en CUARTOS). Si no tienes el dato, dilo con honestidad y ofrece confirmar con el hotel.\n`
+      : ""
+  }${experienciasBloque}${temporadasBloque}${reglasBloque}${
     Object.keys(pol).length
       ? `POLÍTICAS\n${Object.entries(pol)
           .map(([kk, vv]) => `- ${kk}: ${vv}`)

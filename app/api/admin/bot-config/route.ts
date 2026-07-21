@@ -24,6 +24,7 @@ export async function GET() {
   const extras = (hotel.extras ?? {}) as Record<string, unknown>;
   const bot = (extras.bot ?? {}) as Record<string, unknown>;
   const pago = (bot.pago ?? {}) as Record<string, unknown>;
+  const emojis = (bot.emojis ?? {}) as Record<string, unknown>;
   const rooms = hotelRooms(hotel);
 
   return NextResponse.json({
@@ -43,6 +44,12 @@ export async function GET() {
         clabe: str(pago.clabe) ?? "",
         cuenta: str(pago.cuenta) ?? "",
         notas: str(pago.notas) ?? "",
+      },
+      emojis: {
+        nivel: ["nada", "bajo", "medio", "alto"].includes(emojis.nivel as string)
+          ? (emojis.nivel as string)
+          : "medio",
+        preferidos: str(emojis.preferidos, 80) ?? "",
       },
       faqs: normalizeFaqs(bot.faqs),
       entrenadoAt: str(bot.entrenadoAt) ?? null,
@@ -100,6 +107,7 @@ export async function POST(req: Request) {
           .map((f) => ({ q: f.q, a: f.a ?? "" }))
       : undefined;
     const p = (b.pago && typeof b.pago === "object" ? b.pago : {}) as Record<string, unknown>;
+    const em = (b.emojis && typeof b.emojis === "object" ? b.emojis : {}) as Record<string, unknown>;
     input.bot = {
       nombre: str(b.nombre, 60),
       tono: str(b.tono, 2000),
@@ -112,6 +120,12 @@ export async function POST(req: Request) {
         clabe: str(p.clabe, 40),
         cuenta: str(p.cuenta, 40),
         notas: str(p.notas, 600),
+      },
+      emojis: {
+        nivel: ["nada", "bajo", "medio", "alto"].includes(em.nivel as string)
+          ? (em.nivel as "nada" | "bajo" | "medio" | "alto")
+          : "medio",
+        preferidos: str(em.preferidos, 80),
       },
       ...(faqs ? { faqs } : {}),
     };

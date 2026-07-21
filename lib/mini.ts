@@ -124,6 +124,7 @@ export interface MiniExtras {
   resenas?: Resena[];
   faqs?: MiniFaq[];
   politicas?: Politicas;
+  accesibilidad?: string; // rampa, elevador, cuartos adaptados… (la usa Camila)
   reglas?: Reglas;
   impuestos?: Impuestos;
   medicion?: Medicion;
