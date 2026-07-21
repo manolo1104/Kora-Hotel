@@ -47,6 +47,7 @@ export async function GET() {
       faqs: normalizeFaqs(bot.faqs),
       entrenadoAt: str(bot.entrenadoAt) ?? null,
       probadoAt: str(bot.probadoAt) ?? null, // ya probó el bot (paso 5)
+      pruebas: Number(bot.pruebas) || 0, // interacciones de prueba exitosas (meta: 3)
     },
     // Lo que Camila ya sabe, de los datos REALES de este hotel.
     conocimiento: {
@@ -76,6 +77,7 @@ export async function POST(req: Request) {
     lang?: "es" | "en";
     adminPhone?: string;
     probadoAt?: string;
+    prueba?: boolean;
     bot?: BotTrainingInput;
   } = {};
   if (typeof body.enabled === "boolean") input.enabled = body.enabled;
@@ -84,8 +86,11 @@ export async function POST(req: Request) {
   if (typeof body.adminPhone === "string") {
     input.adminPhone = body.adminPhone.replace(/\D/g, "").slice(0, 20);
   }
-  // El usuario probó el bot (paso 5): se marca con la fecha, sin tocar entrenadoAt.
-  if (body.probado === true) input.probadoAt = new Date().toISOString();
+  // Una interacción de prueba exitosa (chat demo o verificador): el servidor
+  // lleva la cuenta y marca probadoAt al llegar a 3 (criterio honesto).
+  if (body.prueba === true) input.prueba = true;
+  // Compat: el flag viejo marcaba probadoAt directo con un solo mensaje.
+  else if (body.probado === true) input.prueba = true;
 
   if (body.bot && typeof body.bot === "object") {
     const b = body.bot as Record<string, unknown>;

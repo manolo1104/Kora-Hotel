@@ -109,9 +109,14 @@ export interface BotKnowledge {
  * Normaliza FAQs de cualquier origen a `{q, a}`.
  * FIX de honestidad: el panel guarda `{pregunta, respuesta}` pero el cerebro
  * espera `{q, a}` — sin esto, las FAQs reales del hotel nunca llegaban a Camila.
+ *
+ * DEDUPE por pregunta: si la misma pregunta aparece en varias listas, gana la
+ * de la ÚLTIMA lista (el orden de llamada es (faqs del sitio, faqs del bot),
+ * así el entrenamiento del bot — lo más fresco — reemplaza a la FAQ vieja del
+ * sitio en vez de convivir contradiciéndola).
  */
 export function normalizeFaqs(...lists: unknown[]): BotFaq[] {
-  const out: BotFaq[] = [];
+  const out = new Map<string, BotFaq>();
   for (const list of lists) {
     if (!Array.isArray(list)) continue;
     for (const f of list) {
@@ -119,10 +124,17 @@ export function normalizeFaqs(...lists: unknown[]): BotFaq[] {
       const o = f as Record<string, unknown>;
       const q = String(o.q ?? o.pregunta ?? "").trim();
       const a = String(o.a ?? o.respuesta ?? "").trim();
-      if (q) out.push({ q, a });
+      if (!q) continue;
+      const key = q
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9ñ]+/g, " ")
+        .trim();
+      out.set(key, { q, a });
     }
   }
-  return out;
+  return [...out.values()];
 }
 
 // Nombres de día para agendas de experiencias (0=Dom … 6=Sáb, como en extras).
@@ -375,6 +387,7 @@ TONO Y FORMATO
 ${bot.tono ? `\nPERSONALIDAD (cómo debes sonar)\n${bot.tono.trim()}\n` : ""}${bot.saludo ? `\nSALUDO (úsalo o adáptalo en el primer mensaje de una conversación nueva)\n"${bot.saludo.trim()}"\n` : ""}${bot.instrucciones ? `\nINSTRUCCIONES DEL HOTEL (respétalas siempre)\n${bot.instrucciones.trim()}\n` : ""}
 REGLA DE ORO — SOLO LOS DATOS DE ESTE HOTEL
 - Usa EXCLUSIVAMENTE la información de ESTE hotel escrita abajo. Si algo no está aquí (un servicio, un precio, una política, una duda que no puedas resolver con estos datos), dilo con honestidad y ofrece pasar con una persona del hotel${escalar ? ` (WhatsApp ${escalar})` : ""}. NUNCA inventes datos ni uses información de otro hotel.
+- Si dos datos de este hotel se CONTRADICEN, gana el más específico: una respuesta de PREGUNTAS FRECUENTES que contesta exactamente lo que pregunta el huésped vale más que una política o instrucción general.
 
 REGLAS DE ORO (no romper)
 - NUNCA inventes precios, disponibilidad ni políticas. Los precios "desde" de abajo son orientativos; el total real SIEMPRE sale de la herramienta checar_disponibilidad.
