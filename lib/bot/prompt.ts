@@ -22,6 +22,48 @@ export interface BotFaq {
   a?: string;
 }
 
+/** Experiencia vendible (tour, traslado, cena, spa) que Camila puede ofrecer. */
+export interface BotExperiencia {
+  nombre: string;
+  precio: number;
+  precioTexto?: string;
+  cobro: string; // estancia | noche | persona | unidad
+  descripcion?: string;
+  categoria?: string;
+  dias?: number[]; // 0=Dom … 6=Sáb; ausente = todos los días
+  horarios?: string[];
+  cupoDia?: number; // lugares por día; ausente = sin límite
+}
+
+/** Add-on simple (desayuno, late checkout…) que Camila puede ofrecer. */
+export interface BotAddon {
+  nombre: string;
+  precio: number;
+  precioTexto?: string;
+  tipo: string; // estancia | noche | persona
+}
+
+/** Reglas de reserva que el motor aplica y Camila debe poder EXPLICAR. */
+export interface BotReglasReserva {
+  anticipoPct?: number;
+  anticipoMinNoches?: number;
+  minNoches?: number;
+  nrfActiva?: boolean;
+  nrfPct?: number;
+  cancelacionDias?: number;
+  pagoEnHotel?: boolean;
+  ishPct?: number;
+}
+
+/** Temporada de precios, para que Camila explique por qué cambia la tarifa. */
+export interface BotTemporada {
+  nombre: string;
+  desde: string; // YYYY-MM-DD
+  hasta: string; // YYYY-MM-DD
+  ajuste: { tipo: "fijo" | "porcentaje"; valor: number };
+  minNoches?: number;
+}
+
 /** Datos bancarios para pago por transferencia/depósito/OXXO (vive en extras.bot.pago). */
 export interface BotPago {
   titular?: string; // beneficiario de la cuenta
@@ -52,6 +94,11 @@ export interface BotKnowledge {
   faqs?: BotFaq[];
   politicas?: Record<string, unknown>;
   guia?: Record<string, unknown>;
+  experiencias?: BotExperiencia[];
+  addons?: BotAddon[];
+  experienciasBundle?: { min: number; pct: number };
+  reglas?: BotReglasReserva;
+  temporadas?: BotTemporada[];
   bot?: BotTraining | null;
   lang?: "es" | "en";
   slug?: string; // slug del hotel (para armar el link de reserva)
@@ -76,6 +123,23 @@ export function normalizeFaqs(...lists: unknown[]): BotFaq[] {
     }
   }
   return out;
+}
+
+// Nombres de día para agendas de experiencias (0=Dom … 6=Sáb, como en extras).
+const DIAS_SEMANA = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
+
+// Cómo se cobra un extra/experiencia, en lenguaje de huésped.
+function cobroLabel(cobro: string): string {
+  switch (cobro) {
+    case "noche":
+      return "por noche";
+    case "persona":
+      return "por persona";
+    case "unidad":
+      return "por boleto";
+    default:
+      return "por estancia";
+  }
 }
 
 // Fecha ISO (YYYY-MM-DD) en zona de México — la que usan las herramientas.
@@ -155,6 +219,87 @@ export function buildBotSystemPrompt(k: BotKnowledge, opts: { modoPrueba?: boole
   const guia = k.guia && typeof k.guia === "object" ? k.guia : {};
   const escalar = (bot.escalarWhatsapp || k.whatsapp || "").trim();
   const idioma = k.lang === "en" ? "inglés" : "español";
+  const exps = Array.isArray(k.experiencias) ? k.experiencias : [];
+  const adds = Array.isArray(k.addons) ? k.addons : [];
+  const reglas = k.reglas ?? {};
+  const temporadas = Array.isArray(k.temporadas) ? k.temporadas : [];
+
+  // EXPERIENCIAS Y EXTRAS — lo que el hotel vende además del cuarto. Camila
+  // debe conocerlas para ofrecerlas (upsell); se pagan en el motor en línea.
+  const expLineas = exps.map((e) => {
+    const dias =
+      Array.isArray(e.dias) && e.dias.length
+        ? ` Días: ${e.dias.map((d) => DIAS_SEMANA[d] ?? "").filter(Boolean).join(", ")}.`
+        : "";
+    const hor = Array.isArray(e.horarios) && e.horarios.length ? ` Horarios: ${e.horarios.join(", ")}.` : "";
+    const cupo = e.cupoDia ? ` Cupo limitado (${e.cupoDia} lugares por día).` : "";
+    return `- ${e.nombre} — ${e.precioTexto || `$${e.precio} MXN`} ${cobroLabel(e.cobro)}.${dias}${hor}${cupo} ${e.descripcion || ""}`.trim();
+  });
+  const addLineas = adds.map(
+    (a) => `- ${a.nombre} — ${a.precioTexto || `$${a.precio} MXN`} ${cobroLabel(a.tipo)}.`
+  );
+  const bundleTxt = k.experienciasBundle
+    ? `- PAQUETE: si agrega ${k.experienciasBundle.min} o más experiencias distintas, todas sus experiencias tienen ${k.experienciasBundle.pct}% de descuento — úsalo para invitar a agregar otra.`
+    : "";
+  const experienciasBloque =
+    expLineas.length || addLineas.length
+      ? `\nEXPERIENCIAS Y EXTRAS (ofrécelas — venden la estancia completa)
+${[...expLineas, ...addLineas].join("\n")}
+${bundleTxt ? bundleTxt + "\n" : ""}- Cuando cotices o confirmes, menciona 1 o 2 que le queden al huésped (sin presionar).
+- Se eligen y pagan en el link de reserva EN LÍNEA. El link de la herramienta "reservar" NO las incluye: si el huésped quiere agregar alguna, mándale mejor el link en línea con sus fechas (opción 1 de FORMAS DE PAGO) para que las escoja ahí. Si paga por transferencia, súmalas al total y pide el comprobante.\n`
+      : "";
+
+  // TEMPORADAS — para que pueda EXPLICAR por qué cambia la tarifa (el total
+  // exacto lo sigue dando checar_disponibilidad, que ya las aplica).
+  const tempLineas = temporadas.map((t) => {
+    const aj =
+      t.ajuste.tipo === "porcentaje"
+        ? t.ajuste.valor >= 0
+          ? `la tarifa sube ${t.ajuste.valor}%`
+          : `la tarifa baja ${Math.abs(t.ajuste.valor)}%`
+        : `tarifa especial de $${t.ajuste.valor} MXN por noche`;
+    const min = t.minNoches ? ` (mínimo ${t.minNoches} noches)` : "";
+    return `- ${t.nombre}: del ${t.desde} al ${t.hasta} — ${aj}${min}.`;
+  });
+  const temporadasBloque = tempLineas.length
+    ? `\nTEMPORADAS (si preguntan por qué cambia el precio, explícalo con esto)
+${tempLineas.join("\n")}
+- El total exacto SIEMPRE sale de checar_disponibilidad; estas notas son para explicar, no para calcular.\n`
+    : "";
+
+  // REGLAS DE RESERVA — el motor ya las aplica al cobrar; aquí Camila aprende
+  // a EXPLICARLAS ("¿cuánto es el anticipo?", "¿hasta cuándo cancelo gratis?").
+  const reglasLineas: string[] = [];
+  if (reglas.anticipoPct != null) {
+    reglasLineas.push(
+      reglas.anticipoPct >= 100
+        ? "- Al reservar se paga el 100% de la estancia."
+        : `- Anticipo: al reservar se paga el ${reglas.anticipoPct}% y el resto al llegar al hotel.${
+            reglas.anticipoMinNoches && reglas.anticipoMinNoches > 1
+              ? ` Estancias de menos de ${reglas.anticipoMinNoches} noches se pagan completas al reservar.`
+              : ""
+          }`
+    );
+  }
+  if (reglas.minNoches && reglas.minNoches > 1)
+    reglasLineas.push(`- Mínimo de noches por reserva: ${reglas.minNoches}.`);
+  if (reglas.cancelacionDias != null)
+    reglasLineas.push(
+      reglas.cancelacionDias > 0
+        ? `- Cancelación gratis hasta ${reglas.cancelacionDias} ${reglas.cancelacionDias === 1 ? "día" : "días"} antes del check-in.`
+        : "- Las reservas no tienen cancelación gratuita."
+    );
+  if (reglas.nrfActiva && reglas.nrfPct)
+    reglasLineas.push(
+      `- Tarifa no reembolsable: ${reglas.nrfPct}% de descuento pagando el total, sin reembolso (se elige en el link de reserva en línea).`
+    );
+  if (reglas.pagoEnHotel)
+    reglasLineas.push(
+      "- También se puede reservar dejando tarjeta como garantía y pagar al llegar (opción del link de reserva en línea)."
+    );
+  reglasLineas.push("- Los precios ya incluyen impuestos.");
+  const reglasBloque = `\nREGLAS DE RESERVA (explícalas tal cual si el huésped pregunta; no las cambies ni negocies)
+${reglasLineas.join("\n")}\n`;
 
   const cuartos = habs.length
     ? habs
@@ -164,7 +309,7 @@ export function buildBotSystemPrompt(k: BotKnowledge, opts: { modoPrueba?: boole
             Array.isArray(r.caracteristicas) && r.caracteristicas.length
               ? ` Incluye: ${r.caracteristicas.join(", ")}.`
               : "";
-          return `- ${r.nombre} (hasta ${r.maxHuespedes} huéspedes) — desde ${r.desdeTexto || `$${r.desde}`} MXN/noche.${camas}${caract} ${r.descripcion || ""}`.trim();
+          return `- ${r.nombre} (hasta ${r.maxHuespedes} huéspedes) — desde ${r.desdeTexto || `$${r.desde} MXN`}/noche.${camas}${caract} ${r.descripcion || ""}`.trim();
         })
         .join("\n")
     : "(sin cuartos configurados)";
@@ -199,7 +344,8 @@ export function buildBotSystemPrompt(k: BotKnowledge, opts: { modoPrueba?: boole
     k.reservaUrl
       ? `1) EN LÍNEA (tarjeta u OXXO): arma y manda este link con SUS fechas ya cargadas para que reserve y pague:
    ${k.reservaUrl}?checkin=AAAA-MM-DD&checkout=AAAA-MM-DD&adults=N
-   Sustituye AAAA-MM-DD por las fechas reales (formato de máquina) y N por el número de adultos; manda el link ya armado, no la plantilla.`
+   Sustituye AAAA-MM-DD por las fechas reales (formato de máquina) y N por el número de adultos; manda el link ya armado, no la plantilla.
+   IMPORTANTE: antes de mandar este link, VERIFICA esas fechas con checar_disponibilidad. Nunca mandes un link a fechas que no comprobaste que tienen lugar; si no hay, ofrece otras fechas u otro cuarto.`
       : "",
     pagoTransfer
       ? `2) TRANSFERENCIA / DEPÓSITO / OXXO a la cuenta del hotel:\n${pagoTransfer}\n   Pídele que te mande el comprobante para confirmar la reserva.`
@@ -243,7 +389,7 @@ ${k.descripcion ? `Sobre el hotel: ${k.descripcion}` : ""}
 CUARTOS
 ${cuartos}
 
-${amen.length ? `AMENIDADES\n${amen.join(", ")}\n` : ""}${
+${amen.length ? `AMENIDADES\n${amen.join(", ")}\n` : ""}${experienciasBloque}${temporadasBloque}${reglasBloque}${
     Object.keys(pol).length
       ? `POLÍTICAS\n${Object.entries(pol)
           .map(([kk, vv]) => `- ${kk}: ${vv}`)
