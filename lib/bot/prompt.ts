@@ -22,6 +22,15 @@ export interface BotFaq {
   a?: string;
 }
 
+/** Datos bancarios para pago por transferencia/depósito/OXXO (vive en extras.bot.pago). */
+export interface BotPago {
+  titular?: string; // beneficiario de la cuenta
+  banco?: string; // nombre del banco
+  clabe?: string; // CLABE interbancaria (18 dígitos)
+  cuenta?: string; // número de cuenta o tarjeta (opcional)
+  notas?: string; // instrucciones libres (OXXO, referencia, horarios, etc.)
+}
+
 /** Entrenamiento que el hotel edita en el panel (vive en extras.bot). */
 export interface BotTraining {
   nombre?: string; // cómo se llama la asistente (default "Camila")
@@ -29,6 +38,7 @@ export interface BotTraining {
   saludo?: string; // saludo de primer contacto
   instrucciones?: string; // instrucciones especiales del hotel
   escalarWhatsapp?: string; // número para pasar con una persona (default = whatsapp del hotel)
+  pago?: BotPago; // datos para pago por transferencia/depósito
 }
 
 /** Todo lo que Camila "sabe" de un hotel — mismo shape que devuelve /api/agent. */
@@ -44,6 +54,8 @@ export interface BotKnowledge {
   guia?: Record<string, unknown>;
   bot?: BotTraining | null;
   lang?: "es" | "en";
+  slug?: string; // slug del hotel (para armar el link de reserva)
+  reservaUrl?: string; // URL absoluta del motor de reservas (…/h/slug/reservar)
 }
 
 /**
@@ -66,8 +78,20 @@ export function normalizeFaqs(...lists: unknown[]): BotFaq[] {
   return out;
 }
 
-function hoyMexico(): string {
+// Fecha ISO (YYYY-MM-DD) en zona de México — la que usan las herramientas.
+function hoyMexicoISO(): string {
   return new Date().toLocaleDateString("en-CA", { timeZone: "America/Mexico_City" });
+}
+// Fecha legible con día de la semana — para que Camila razone fechas relativas
+// ("este viernes", "el finde") y valide que el día y el número coincidan.
+function hoyMexicoHumano(): string {
+  return new Date().toLocaleDateString("es-MX", {
+    timeZone: "America/Mexico_City",
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
 }
 
 /** Herramientas que Camila puede usar (contrato con /api/agent). Compartidas
@@ -157,10 +181,43 @@ export function buildBotSystemPrompt(k: BotKnowledge, opts: { modoPrueba?: boole
   · min-noches → esas fechas piden mínimo N noches.
   · no-disponible / capacidad-insuficiente → ya no hay ese cuarto para esas fechas; ofrece otro tipo u otras fechas.
   · datos-incompletos → pide el dato que falta.
-  · sin-pago / stripe-error → ofrece coordinar el pago directo con el hotel.`;
+  · sin-pago / stripe-error → NO digas que hay un "problema técnico". Ofrece directamente las FORMAS DE PAGO de abajo (el link de reserva en línea con sus fechas y/o los datos de transferencia).`;
+
+  // FORMAS DE PAGO: link del motor con fechas precargadas + datos de transferencia
+  // (transferencia/depósito/OXXO). Solo se listan las opciones con datos reales.
+  const pago = (bot.pago ?? {}) as BotPago;
+  const pagoTransfer = [
+    pago.titular ? `  Titular: ${pago.titular.trim()}` : "",
+    pago.banco ? `  Banco: ${pago.banco.trim()}` : "",
+    pago.clabe ? `  CLABE: ${pago.clabe.trim()}` : "",
+    pago.cuenta ? `  Cuenta/Tarjeta: ${pago.cuenta.trim()}` : "",
+    pago.notas ? `  Notas: ${pago.notas.trim()}` : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
+  const opcionesPago = [
+    k.reservaUrl
+      ? `1) EN LÍNEA (tarjeta u OXXO): arma y manda este link con SUS fechas ya cargadas para que reserve y pague:
+   ${k.reservaUrl}?checkin=AAAA-MM-DD&checkout=AAAA-MM-DD&adults=N
+   Sustituye AAAA-MM-DD por las fechas reales (formato de máquina) y N por el número de adultos; manda el link ya armado, no la plantilla.`
+      : "",
+    pagoTransfer
+      ? `2) TRANSFERENCIA / DEPÓSITO / OXXO a la cuenta del hotel:\n${pagoTransfer}\n   Pídele que te mande el comprobante para confirmar la reserva.`
+      : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
+  const formasPagoBloque = opcionesPago
+    ? `\nFORMAS DE PAGO — cuando el huésped quiera pagar o cerrar (o si "reservar" falla), ofrécele estas opciones (las que apliquen). NUNCA inventes datos bancarios que no estén aquí.\n${opcionesPago}\n`
+    : "";
 
   return `Eres ${nombre}, la asistente de reservas por WhatsApp del hotel "${k.nombre}".
-Hoy es ${hoyMexico()} (hora de México).
+Hoy es ${hoyMexicoHumano()} (${hoyMexicoISO()}, hora de México).
+
+FECHAS (crítico — léelo con atención)
+- HOY es ${hoyMexicoHumano()}. Calcula SIEMPRE las fechas relativas ("hoy", "mañana", "este viernes", "el finde", "la próxima semana") a partir de HOY.
+- Cuando confirmes una fecha, di el día de la semana correcto. Si el huésped da un día y un número que NO coinciden (p. ej. dice "viernes 25" pero el 25 cae en sábado), avísale con amabilidad y pregúntale cuál quiere: el viernes (24) o el sábado (25). NUNCA aceptes una fecha sin estar segura del día.
+- Las herramientas usan formato AAAA-MM-DD. Convierte la fecha al formato de máquina antes de llamar a checar_disponibilidad.
 
 TU META: contestar al instante, resolver dudas y CERRAR reservas con link de pago.
 
@@ -178,7 +235,7 @@ REGLAS DE ORO (no romper)
 - Para cerrar una reserva necesitas: fechas de llegada y salida, tipo de cuarto, número de huéspedes, y datos del huésped (nombre completo, email y teléfono). Si falta algo, pídelo con naturalidad antes de reservar.
 ${reservarRegla}
 - No prometas nada que la herramienta no confirme. Para grupos grandes o casos raros que no puedas resolver, ofrece pasar con una persona del hotel${escalar ? ` (WhatsApp ${escalar})` : ""}.
-
+${formasPagoBloque}
 DATOS DEL HOTEL
 Ubicación: ${k.ubicacion || "—"}
 ${k.descripcion ? `Sobre el hotel: ${k.descripcion}` : ""}

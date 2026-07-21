@@ -6,10 +6,13 @@ import { hotelRooms, getRoomBasePrice, formatMXN } from "@/lib/booking";
 import { normalizeFaqs, type BotKnowledge } from "@/lib/bot/prompt";
 import type { HotelRow } from "@/lib/tenant";
 
+const SITE = (process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com").replace(/\/$/, "");
+
 export function buildHotelKnowledge(hotel: HotelRow): BotKnowledge {
   const cfg = (hotel.config ?? {}) as Record<string, unknown>;
   const extras = (hotel.extras ?? {}) as Record<string, unknown>;
   const bot = (extras.bot ?? {}) as Record<string, unknown>;
+  const pago = (bot.pago ?? {}) as Record<string, unknown>;
   const str = (v: unknown) => (typeof v === "string" && v.trim() ? v : undefined);
   const rooms = hotelRooms(hotel);
 
@@ -39,7 +42,16 @@ export function buildHotelKnowledge(hotel: HotelRow): BotKnowledge {
       saludo: str(bot.saludo),
       instrucciones: str(bot.instrucciones),
       escalarWhatsapp: str(bot.escalarWhatsapp),
+      pago: {
+        titular: str(pago.titular),
+        banco: str(pago.banco),
+        clabe: str(pago.clabe),
+        cuenta: str(pago.cuenta),
+        notas: str(pago.notas),
+      },
     },
     lang: cfg.bot_lang === "en" ? "en" : "es",
+    slug: hotel.slug,
+    reservaUrl: `${SITE}/h/${hotel.slug}/reservar`,
   };
 }

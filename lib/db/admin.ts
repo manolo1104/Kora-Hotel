@@ -1105,6 +1105,13 @@ export interface BotTrainingInput {
   saludo?: string;
   instrucciones?: string;
   escalarWhatsapp?: string;
+  pago?: {
+    titular?: string;
+    banco?: string;
+    clabe?: string;
+    cuenta?: string;
+    notas?: string;
+  };
   faqs?: { q: string; a: string }[];
 }
 

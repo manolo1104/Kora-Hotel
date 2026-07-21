@@ -8,10 +8,11 @@ import Anthropic from "@anthropic-ai/sdk";
 
 const anthropic = new Anthropic(); // lee ANTHROPIC_API_KEY del entorno
 
-// Haiku 4.5 por defecto: bot de chat de alto volumen → prioriza costo y latencia.
-// Override con CAMILA_MODEL (p. ej. claude-sonnet-5 o claude-opus-4-8) para más
-// capacidad — es cambiar una variable de entorno, no el código.
-const MODEL = process.env.CAMILA_MODEL || "claude-haiku-4-5";
+// Sonnet 5 por defecto: balance de inteligencia/costo para un bot de VENTAS que
+// razona fechas, disponibilidad y cierra reservas (Haiku se quedaba corto).
+// Override con CAMILA_MODEL (claude-haiku-4-5 para bajar costo, claude-opus-4-8
+// para máxima capacidad) — es cambiar una variable de entorno, no el código.
+const MODEL = process.env.CAMILA_MODEL || "claude-sonnet-5";
 
 // La familia Opus/Sonnet 4.6+ acepta output_config.effort y thinking:{disabled};
 // Haiku 4.5 y modelos previos NO (dan 400). Detectamos para mandar los parámetros

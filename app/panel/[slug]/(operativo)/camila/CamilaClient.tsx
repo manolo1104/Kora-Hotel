@@ -27,16 +27,26 @@ interface BotFaq {
   q: string;
   a: string;
 }
+interface BotPagoFields {
+  titular: string;
+  banco: string;
+  clabe: string;
+  cuenta: string;
+  notas: string;
+}
 interface BotFields {
   nombre: string;
   tono: string;
   saludo: string;
   instrucciones: string;
   escalarWhatsapp: string;
+  pago: BotPagoFields;
   faqs: BotFaq[];
   entrenadoAt: string | null;
   probadoAt: string | null;
 }
+
+const EMPTY_PAGO: BotPagoFields = { titular: "", banco: "", clabe: "", cuenta: "", notas: "" };
 interface Msg {
   role: "user" | "assistant";
   content: string;
@@ -48,6 +58,7 @@ const EMPTY_BOT: BotFields = {
   saludo: "",
   instrucciones: "",
   escalarWhatsapp: "",
+  pago: { ...EMPTY_PAGO },
   faqs: [],
   entrenadoAt: null,
   probadoAt: null,
@@ -129,6 +140,7 @@ export default function CamilaClient({
           ...EMPTY_BOT,
           ...(d.bot ?? {}),
           escalarWhatsapp: d.bot?.escalarWhatsapp || whatsappHotel || "",
+          pago: { ...EMPTY_PAGO, ...(d.bot?.pago ?? {}) },
           faqs: Array.isArray(d.bot?.faqs) ? d.bot.faqs : [],
         });
       })
@@ -238,6 +250,7 @@ export default function CamilaClient({
         saludo: bot.saludo,
         instrucciones: bot.instrucciones,
         escalarWhatsapp: bot.escalarWhatsapp,
+        pago: bot.pago,
         faqs: bot.faqs.filter((f) => f.q.trim()),
       },
     });
@@ -612,6 +625,73 @@ export default function CamilaClient({
                   className="input-kora"
                 />
               </Campo>
+
+              {/* Formas de pago: para que Camila ofrezca transferencia/depósito/OXXO */}
+              <div className="rounded-2xl border border-black/10 bg-black/[0.015] p-4">
+                <p className="text-sm font-bold text-kora-text">Datos para pago por transferencia</p>
+                <p className="mb-3 mt-0.5 text-xs text-kora-muted">
+                  Si los llenas, Camila podrá ofrecer pago por transferencia, depósito u OXXO
+                  (además del link de reserva en línea). Déjalos en blanco si solo usas pago en
+                  línea.
+                </p>
+                <div className="space-y-3">
+                  <Campo label="Titular / beneficiario">
+                    <input
+                      value={bot.pago.titular}
+                      onChange={(e) =>
+                        setBot((b) => ({ ...b, pago: { ...b.pago, titular: e.target.value } }))
+                      }
+                      placeholder="Nombre de la cuenta"
+                      className="input-kora"
+                    />
+                  </Campo>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <Campo label="Banco">
+                      <input
+                        value={bot.pago.banco}
+                        onChange={(e) =>
+                          setBot((b) => ({ ...b, pago: { ...b.pago, banco: e.target.value } }))
+                        }
+                        placeholder="BBVA, Banorte…"
+                        className="input-kora"
+                      />
+                    </Campo>
+                    <Campo label="CLABE (18 dígitos)">
+                      <input
+                        value={bot.pago.clabe}
+                        onChange={(e) =>
+                          setBot((b) => ({ ...b, pago: { ...b.pago, clabe: e.target.value } }))
+                        }
+                        inputMode="numeric"
+                        placeholder="0000 0000 0000 0000 00"
+                        className="input-kora"
+                      />
+                    </Campo>
+                  </div>
+                  <Campo label="Número de cuenta o tarjeta (opcional)">
+                    <input
+                      value={bot.pago.cuenta}
+                      onChange={(e) =>
+                        setBot((b) => ({ ...b, pago: { ...b.pago, cuenta: e.target.value } }))
+                      }
+                      placeholder="Opcional"
+                      className="input-kora"
+                    />
+                  </Campo>
+                  <Campo label="Notas de pago (OXXO, referencia, instrucciones)">
+                    <textarea
+                      value={bot.pago.notas}
+                      onChange={(e) =>
+                        setBot((b) => ({ ...b, pago: { ...b.pago, notas: e.target.value } }))
+                      }
+                      rows={2}
+                      placeholder="Ej. También aceptamos depósito en OXXO a la tarjeta. Manda tu comprobante para confirmar."
+                      className="input-kora"
+                    />
+                  </Campo>
+                </div>
+              </div>
+
               <Campo label="Preguntas y respuestas extra (solo para el bot)">
                 <div className="space-y-2">
                   {bot.faqs.map((f, i) => (
