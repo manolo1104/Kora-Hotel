@@ -15,6 +15,7 @@ import {
 import { Reveal } from "@/components/shared/Reveal";
 import { LogoutButton } from "@/components/panel/LogoutButton";
 import { SuscripcionCard } from "@/components/panel/SuscripcionCard";
+import { EliminarHotelButton } from "@/components/panel/EliminarHotelButton";
 import { createClient } from "@/lib/supabase/server";
 import { supabaseEnvReady } from "@/lib/supabase/env";
 import { getSuscripcion } from "@/lib/suscripcion";
@@ -195,6 +196,13 @@ export default async function PanelPage() {
                         <Pencil size={15} aria-hidden="true" /> Editar sitio
                       </Link>
                     </div>
+
+                    {/* Zona de peligro: eliminar hotel (solo dueño, con contraseña) */}
+                    {rol === "dueno" && (
+                      <div className="mt-4 pt-4 border-t border-gray-100 flex justify-end">
+                        <EliminarHotelButton slug={hotel.slug} nombre={hotel.nombre} />
+                      </div>
+                    )}
                   </div>
                 </Reveal>
               ))}
