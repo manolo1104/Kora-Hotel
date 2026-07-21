@@ -32,7 +32,47 @@ export function SocialProofSection() {
   return (
     <section id="demo" className="py-20 sm:py-24 bg-white scroll-mt-20">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Negocios reales EN LÍNEA — hasta arriba: la primera señal tras el
+            hero es que esto ya lo usan hoteles de verdad. */}
         <Reveal>
+          <div className="mb-14 pb-12 border-b border-gray-100">
+            <p className="text-center text-sm font-semibold text-kora-muted uppercase tracking-widest">
+              Negocios reales que ya están en línea con nosotros
+            </p>
+            <p className="mt-2 text-center text-kora-muted text-sm max-w-xl mx-auto">
+              Hoteles que reciben reservas con Kora y páginas que diseñamos y publicamos.{" "}
+              <span className="font-semibold text-kora-primary">La de tu hotel puede ser la siguiente.</span>
+            </p>
+            <div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-3xl mx-auto">
+              {sitiosCreados.map((s) => (
+                <a
+                  key={s.nombre}
+                  href={s.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`Ver el sitio de ${s.nombre}`}
+                  className="group block"
+                >
+                  <TiltCard max={6} className="rounded-2xl">
+                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm h-28 flex items-center justify-center p-5 transition-shadow duration-300 group-hover:shadow-md">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={s.logo}
+                        alt={s.nombre}
+                        className="max-h-16 max-w-full w-auto object-contain"
+                      />
+                    </div>
+                  </TiltCard>
+                  <p className="mt-2 text-center text-xs text-kora-muted group-hover:text-kora-primary transition-colors">
+                    {s.nombre}
+                  </p>
+                </a>
+              ))}
+            </div>
+          </div>
+        </Reveal>
+
+        <Reveal delay={0.08}>
           <div className="text-center mb-8">
             <p className="text-xs font-bold text-kora-muted uppercase tracking-widest mb-2">
               Demo en vivo
@@ -89,44 +129,6 @@ export function SocialProofSection() {
           </div>
         </Reveal>
 
-        {/* Sitios reales que hemos creado */}
-        <Reveal delay={0.2}>
-          <div className="mt-14 pt-12 border-t border-gray-100">
-            <p className="text-center text-sm font-semibold text-kora-muted uppercase tracking-widest">
-              Negocios reales que ya están en línea con nosotros
-            </p>
-            <p className="mt-2 text-center text-kora-muted text-sm max-w-xl mx-auto">
-              Hoteles que reciben reservas con Kora y páginas que diseñamos y publicamos.{" "}
-              <span className="font-semibold text-kora-primary">La de tu hotel puede ser la siguiente.</span>
-            </p>
-            <div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-3xl mx-auto">
-              {sitiosCreados.map((s) => (
-                <a
-                  key={s.nombre}
-                  href={s.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={`Ver el sitio de ${s.nombre}`}
-                  className="group block"
-                >
-                  <TiltCard max={6} className="rounded-2xl">
-                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm h-28 flex items-center justify-center p-5 transition-shadow duration-300 group-hover:shadow-md">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={s.logo}
-                        alt={s.nombre}
-                        className="max-h-16 max-w-full w-auto object-contain"
-                      />
-                    </div>
-                  </TiltCard>
-                  <p className="mt-2 text-center text-xs text-kora-muted group-hover:text-kora-primary transition-colors">
-                    {s.nombre}
-                  </p>
-                </a>
-              ))}
-            </div>
-          </div>
-        </Reveal>
       </div>
     </section>
   );
