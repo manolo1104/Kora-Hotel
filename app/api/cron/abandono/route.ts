@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { createAdminClient, adminEnvReady } from "@/lib/supabase/admin";
 import { sendRecordatorioAbandono } from "@/lib/email/reserva";
 import { bookingBrandFromHotel } from "@/lib/email/booking-branded";
+import { hotelRooms, calcCartSubtotal, calcNights, nightOpts, type CartItem } from "@/lib/booking";
+import type { HotelRow as HotelRowFull } from "@/lib/tenant";
 import type { MiniExtras } from "@/lib/mini";
 
 export const runtime = "nodejs";
@@ -38,6 +40,7 @@ interface HotelRow {
   publicado: boolean;
   extras: Record<string, unknown> | null;
   config: Record<string, unknown> | null;
+  habitaciones: unknown[];
 }
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -88,7 +91,7 @@ export async function GET(req: Request) {
   const hotelIds = [...new Set(intents.map((i) => i.hotel_id))];
   const { data: hotelesRaw } = await admin
     .from("hoteles")
-    .select("id, nombre, slug, publicado, extras, config")
+    .select("id, nombre, slug, publicado, extras, config, habitaciones")
     .in("id", hotelIds);
   const hoteles = new Map(((hotelesRaw ?? []) as HotelRow[]).map((h) => [h.id, h]));
 
@@ -144,6 +147,30 @@ export async function GET(req: Request) {
     const fromCfg =
       typeof hotel.config?.email_from === "string" ? hotel.config.email_from.trim() : "";
 
+    // Resolver el carrito guardado → cuarto(s) + total, para el recordatorio
+    // branded (best-effort: si algo falla, el correo sale sin esos detalles).
+    let suites: string[] | undefined;
+    let noches: number | undefined;
+    let total: number | undefined;
+    try {
+      const cart = Array.isArray(p.cart) ? (p.cart as CartItem[]) : [];
+      if (cart.length) {
+        const rooms = hotelRooms(hotel as unknown as HotelRowFull);
+        const nombres = cart
+          .map((c) => rooms.find((r) => String(r.id) === String(c.roomId))?.name)
+          .filter((n): n is string => Boolean(n));
+        if (nombres.length) suites = nombres;
+        noches = calcNights(checkin, checkout);
+        total = calcCartSubtotal(rooms, cart, checkin, checkout, nightOpts(hotel as unknown as HotelRowFull));
+      }
+    } catch (e) {
+      console.error("[cron/abandono] no se pudo resolver el carrito:", (e as Error)?.message);
+    }
+    const huespedes =
+      ((Number.isInteger(adults) && adults > 0 ? adults : 0) +
+        (Number.isInteger(children) && children >= 0 ? children : 0)) ||
+      undefined;
+
     const enviado = await sendRecordatorioAbandono(
       intent.email,
       {
@@ -154,8 +181,12 @@ export async function GET(req: Request) {
         reanudarUrl: `${base}/reservar?${qs.toString()}`,
         lang,
         brandColor: extras.diseno?.color,
-        // Correo PREMIUM con logo + color del hotel (antes era básico).
+        // Correo PREMIUM con marca del hotel + cuarto/total del carrito.
         brand: bookingBrandFromHotel(hotel),
+        suites,
+        huespedes,
+        noches,
+        total,
       },
       fromCfg || null,
     );
