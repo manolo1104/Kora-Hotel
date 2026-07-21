@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
 
 // Mismo modelo que el runtime de Camila (brain.js) para que el chat de prueba
 // del panel refleje lo que reciben los huéspedes. Override con CAMILA_MODEL.
-const MODEL = process.env.CAMILA_MODEL || "claude-haiku-4-5";
+const MODEL = process.env.CAMILA_MODEL || "claude-sonnet-5";
 const MAX_TOOL_ITERS = 6;
 
 export async function POST(req: Request) {

@@ -23,6 +23,7 @@ export async function GET() {
   const cfg = (hotel.config ?? {}) as Record<string, unknown>;
   const extras = (hotel.extras ?? {}) as Record<string, unknown>;
   const bot = (extras.bot ?? {}) as Record<string, unknown>;
+  const pago = (bot.pago ?? {}) as Record<string, unknown>;
   const rooms = hotelRooms(hotel);
 
   return NextResponse.json({
@@ -36,6 +37,13 @@ export async function GET() {
       saludo: str(bot.saludo) ?? "",
       instrucciones: str(bot.instrucciones) ?? "",
       escalarWhatsapp: str(bot.escalarWhatsapp) ?? "",
+      pago: {
+        titular: str(pago.titular) ?? "",
+        banco: str(pago.banco) ?? "",
+        clabe: str(pago.clabe) ?? "",
+        cuenta: str(pago.cuenta) ?? "",
+        notas: str(pago.notas) ?? "",
+      },
       faqs: normalizeFaqs(bot.faqs),
       entrenadoAt: str(bot.entrenadoAt) ?? null,
       probadoAt: str(bot.probadoAt) ?? null, // ya probó el bot (paso 5)
@@ -86,12 +94,20 @@ export async function POST(req: Request) {
           .slice(0, 30) // tope sano
           .map((f) => ({ q: f.q, a: f.a ?? "" }))
       : undefined;
+    const p = (b.pago && typeof b.pago === "object" ? b.pago : {}) as Record<string, unknown>;
     input.bot = {
       nombre: str(b.nombre, 60),
       tono: str(b.tono, 2000),
       saludo: str(b.saludo, 600),
       instrucciones: str(b.instrucciones, 4000),
       escalarWhatsapp: str(b.escalarWhatsapp, 40),
+      pago: {
+        titular: str(p.titular, 120),
+        banco: str(p.banco, 80),
+        clabe: str(p.clabe, 40),
+        cuenta: str(p.cuenta, 40),
+        notas: str(p.notas, 600),
+      },
       ...(faqs ? { faqs } : {}),
     };
   }
