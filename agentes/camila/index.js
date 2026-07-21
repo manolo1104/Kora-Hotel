@@ -260,6 +260,18 @@ async function procesar(client, slug, kora, chatId, userText) {
   if (!salida) return;
   botEnvioAt.set(key, Date.now());
   await client.sendMessage(chatId, salida);
+
+  // Guarda el turno (mensaje del huésped + respuesta) para analizarlo después.
+  // Fire-and-forget: no esperamos ni dejamos que un fallo afecte la conversación.
+  kora
+    .logConversacion({
+      conv,
+      turnos: [
+        { rol: "user", texto: userText },
+        { rol: "assistant", texto: salida },
+      ],
+    })
+    .catch(() => {});
 }
 
 // ── Servidor de estado/QR + health (Railway hace healthcheck a /health) ──

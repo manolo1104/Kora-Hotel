@@ -1241,6 +1241,62 @@ export async function getAgentMetrics(hotelId: string): Promise<AgentMetric[]> {
   }
 }
 
+// ── CONVERSACIONES DE CAMILA (texto del bot de WhatsApp) ───────────────────────
+
+export interface TurnoConversacion {
+  rol: "user" | "assistant";
+  texto: string;
+  ts?: string; // ISO; lo pone el servidor si no viene
+}
+
+const CAMILA_MAX_TURNOS = 300; // tope de mensajes guardados por hilo
+const CAMILA_MAX_CHARS = 4000; // tope por mensaje
+
+// Guarda (acumula) los mensajes de un hilo huésped↔Camila. Una fila por
+// (hotel_id, chat_id): lee la fila, agrega los turnos nuevos y hace upsert.
+// FAIL-SAFE: si la tabla no existe (ver sql/kora-camila-conversaciones.sql) o
+// algo falla, solo se registra el error — nunca debe romper la respuesta del bot.
+export async function logCamilaConversacion(
+  hotelId: string,
+  chatId: string,
+  turnos: TurnoConversacion[],
+): Promise<void> {
+  try {
+    const id = (chatId ?? "").trim().slice(0, 80);
+    const nuevos = (Array.isArray(turnos) ? turnos : [])
+      .filter((t) => t && (t.rol === "user" || t.rol === "assistant") && typeof t.texto === "string")
+      .map((t) => ({
+        rol: t.rol,
+        texto: t.texto.trim().slice(0, CAMILA_MAX_CHARS),
+        ts: t.ts || new Date().toISOString(),
+      }))
+      .filter((t) => t.texto.length > 0);
+    if (!id || nuevos.length === 0) return;
+
+    const supabase = createAdminClient();
+    const { data: fila } = await supabase
+      .from("camila_conversaciones")
+      .select("mensajes")
+      .eq("hotel_id", hotelId)
+      .eq("chat_id", id)
+      .maybeSingle();
+
+    const previos = Array.isArray(fila?.mensajes) ? (fila!.mensajes as TurnoConversacion[]) : [];
+    const mensajes = [...previos, ...nuevos].slice(-CAMILA_MAX_TURNOS);
+    const ultimo_at = nuevos[nuevos.length - 1].ts;
+
+    const { error } = await supabase
+      .from("camila_conversaciones")
+      .upsert(
+        { hotel_id: hotelId, chat_id: id, mensajes, ultimo_at },
+        { onConflict: "hotel_id,chat_id" },
+      );
+    if (error) console.error("logCamilaConversacion:", error.message);
+  } catch (e) {
+    console.error("logCamilaConversacion:", e);
+  }
+}
+
 // ── MÉTRICAS REDES (sin tabla aún) ─────────────────────────────────────────────
 
 export interface RedMetrica {

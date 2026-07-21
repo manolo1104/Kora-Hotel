@@ -104,6 +104,18 @@ export class KoraHotel {
     return this._post({ action: "availability", checkin, checkout, ...(conv ? { conv } : {}) });
   }
 
+  /** Guarda el texto de un turno (mensaje del huésped + respuesta de Camila) en
+   *  Kora para poder analizarlo después. Fire-and-forget: nunca lanza ni bloquea
+   *  la conversación; un fallo de red aquí no debe afectar al huésped. */
+  async logConversacion({ conv, turnos } = {}) {
+    if (!conv || !Array.isArray(turnos) || turnos.length === 0) return;
+    try {
+      await this._post({ action: "log-conv", conv, turnos });
+    } catch {
+      /* la captura es best-effort; no rompe la conversación */
+    }
+  }
+
   /** Cierra la reserva: aparta el cuarto y genera link de pago. `ok:false` trae
    *  un código de error de negocio que el cerebro traduce al huésped. */
   async reservar(params, { conv } = {}) {
