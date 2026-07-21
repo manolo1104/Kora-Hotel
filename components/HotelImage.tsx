@@ -33,6 +33,7 @@ export function HotelImage({
   if (!src) return null;
   return (
     <span className={`relative block overflow-hidden bg-gray-100 ${className}`}>
+      <span aria-hidden className="absolute inset-0 animate-pulse bg-gray-200/80" />
       <Image
         src={src}
         alt={alt}

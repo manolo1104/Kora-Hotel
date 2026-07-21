@@ -294,7 +294,7 @@ export default async function ConfirmacionPage({
                     <span className="block text-sm font-medium">
                       {resumen.adults} {resumen.adults === "1" ? t(lang, "adulto") : t(lang, "adultos_pl")}
                       {resumen.children && resumen.children !== "0"
-                        ? ` · ${resumen.children} ${t(lang, "menores").toLowerCase()}`
+                        ? ` · ${resumen.children} ${resumen.children === "1" ? t(lang, "menor") : t(lang, "menores_pl")}`
                         : ""}
                     </span>
                   </div>

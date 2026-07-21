@@ -115,6 +115,12 @@ export default async function Page({
     .map((k) => AMENIDADES_MAP[k]?.label)
     .filter((x): x is string => Boolean(x));
 
+  // Las features de la habitación que repiten una amenidad del hotel se
+  // omiten para no listar lo mismo dos veces (ej. "Aire acondicionado").
+  const norm = (s: string) =>
+    s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+  const amenidadesNorm = new Set(amenidades.map(norm));
+
   // CTA de reserva: al motor si está activo; si no, a WhatsApp (misma regla que
   // el sitio del hotel, para no enlazar a un motor pausado).
   const acceso = await accesoDelHotel({
@@ -146,7 +152,9 @@ export default async function Page({
         capacidad: aNumero(h.capacidad) || null,
         fotos: (h.fotos ?? []).filter(Boolean),
         camas: Array.isArray(h.camas) ? h.camas : [],
-        features: Array.isArray(h.features) ? h.features.filter(Boolean) : [],
+        features: Array.isArray(h.features)
+          ? h.features.filter(Boolean).filter((f) => !amenidadesNorm.has(norm(f)))
+          : [],
         precioTexto: precio.texto,
         precioDesde: precio.desde,
       }}

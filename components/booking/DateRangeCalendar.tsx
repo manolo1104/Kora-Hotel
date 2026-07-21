@@ -148,31 +148,44 @@ export function DateRangeCalendar({ checkin, checkout, onChange, fullDates, minN
               day: "numeric",
               month: "long",
             });
+            // El rango se pinta en el WRAPPER (celda completa, sin huecos
+            // horizontales) para que se lea como una banda continua entre
+            // llegada y salida; los extremos llevan media banda para unirse.
+            const tint = "color-mix(in srgb, var(--brand) 18%, white)";
+            const hasRange = Boolean(checkin && checkout);
+            const wrapStyle = hasRange
+              ? range
+                ? { background: tint }
+                : isStart && !isEnd
+                  ? { background: `linear-gradient(to right, transparent 50%, ${tint} 50%)` }
+                  : isEnd && !isStart
+                    ? { background: `linear-gradient(to right, ${tint} 50%, transparent 50%)` }
+                    : undefined
+              : undefined;
             return (
-              <button
-                key={c.iso}
-                type="button"
-                onClick={() => handleClick(c.iso)}
-                disabled={disabled}
-                aria-label={soldOut ? `${label} — ${t(lang, "leyendaNoDisponible")}` : label}
-                aria-pressed={isStart || isEnd}
-                className={`mx-auto grid h-9 w-9 min-[380px]:h-10 min-[380px]:w-10 place-items-center rounded-full text-sm tabular-nums transition-colors ${
-                  disabled ? "cursor-not-allowed" : "hover:ring-1 hover:ring-[var(--brand)]"
-                }`}
-                style={
-                  isStart || isEnd
-                    ? { background: "var(--brand)", color: "var(--brand-ink)", fontWeight: 700 }
-                    : range
-                      ? { background: "color-mix(in srgb, var(--brand) 14%, white)" }
+              <span key={c.iso} className="block" style={wrapStyle}>
+                <button
+                  type="button"
+                  onClick={() => handleClick(c.iso)}
+                  disabled={disabled}
+                  aria-label={soldOut ? `${label} — ${t(lang, "leyendaNoDisponible")}` : label}
+                  aria-pressed={isStart || isEnd}
+                  className={`mx-auto grid h-9 w-9 min-[380px]:h-10 min-[380px]:w-10 place-items-center rounded-full text-sm tabular-nums transition-colors ${
+                    disabled ? "cursor-not-allowed" : "hover:ring-1 hover:ring-[var(--brand)]"
+                  }`}
+                  style={
+                    isStart || isEnd
+                      ? { background: "var(--brand)", color: "var(--brand-ink)", fontWeight: 700 }
                       : soldOut
                         ? { color: "#b91c1c", textDecoration: "line-through", opacity: 0.55 }
                         : disabled
                           ? { color: "#9ca3af", opacity: 0.5 }
                           : undefined
-                }
-              >
-                {c.day}
-              </button>
+                  }
+                >
+                  {c.day}
+                </button>
+              </span>
             );
           })}
         </div>
