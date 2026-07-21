@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Check, X } from "lucide-react";
 import { comparativas, getComparativa } from "@/lib/comparativas";
+import { metaDescripcion } from "@/lib/seo";
 import { Reveal } from "@/components/shared/Reveal";
 import { BarraCTA } from "@/components/shared/BarraCTA";
 
@@ -22,7 +23,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!c) return { title: "Comparativa no encontrada — Kora" };
   return {
     title: `${c.titulo} | Kora`,
-    description: c.intro.slice(0, 155),
+    description: metaDescripcion(c.intro),
     alternates: { canonical: `/comparativas/${c.slug}` },
     openGraph: {
       title: c.titulo,

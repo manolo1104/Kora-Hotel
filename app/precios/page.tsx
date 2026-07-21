@@ -8,9 +8,9 @@ import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 import { PLANES } from "@/lib/oferta";
 
 export const metadata: Metadata = {
-  title: "Precios de Kora: sistema hotelero para hoteles boutique · $550 MXN/mes",
+  title: "Precios de Kora — $550 MXN/mes, todo incluido",
   description:
-    "Un solo plan de $550 MXN/mes con habitaciones ilimitadas, mes a mes y sin permanencia: motor de reservas, PMS, Camila (WhatsApp con IA), dashboard y CRM. Prueba 30 días gratis. Sitio web profesional opcional, como servicio aparte.",
+    "Un solo plan de $550 MXN/mes, todo incluido y con habitaciones ilimitadas: motor de reservas 0% comisión, Camila (WhatsApp con IA), PMS y CRM. Prueba 30 días gratis.",
   alternates: {
     canonical: "/precios",
   },
@@ -25,6 +25,7 @@ const jsonLd = {
     {
       "@type": "Product",
       name: "Kora",
+      image: `${SITE_URL}/opengraph-image`,
       description:
         "Sistema hotelero todo-en-uno con IA para hoteles boutique en México: reservas directas sin comisiones, agente de WhatsApp 24/7, PMS y dashboard con CRM.",
       brand: {
@@ -46,7 +47,7 @@ const jsonLd = {
       "@type": "Service",
       name: "Página web a la medida para hoteles",
       serviceType: "Diseño y desarrollo de sitio web con motor de reservas",
-      provider: { "@type": "Organization", name: "Kora", url: SITE_URL },
+      provider: { "@id": `${SITE_URL}/#organization` },
       areaServed: { "@type": "Country", name: "México" },
       description:
         "Sitio 100% personalizado con motor de reservas propio. Lo diseñamos, publicamos y capacitamos llave en mano. Servicio aparte, cotizado según cada hotel, además de tu suscripción a Kora.",

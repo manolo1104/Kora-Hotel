@@ -19,22 +19,22 @@ import { FundadorSection } from "@/components/landing/FundadorSection";
 import { ContactForm } from "@/components/landing/ContactForm";
 
 export const metadata: Metadata = {
-  title: "Kora — Sistema hotelero con IA para hoteles boutique en México",
+  title: "Kora — Sistema hotelero con IA para hoteles en México",
   description:
-    "Reservas directas sin comisión, agente de WhatsApp 24/7 y todo tu hotel en una sola pantalla — en español. Plan mes a mes de $550 MXN/mes con habitaciones ilimitadas, sin permanencia.",
+    "Reservas directas 0% comisión, WhatsApp con IA 24/7 y todo tu hotel en una pantalla, en español. Plan de $550 MXN/mes, habitaciones ilimitadas, sin permanencia.",
   openGraph: {
-    title: "Kora — Sistema hotelero con IA para hoteles boutique en México",
+    title: "Kora — Sistema hotelero con IA para hoteles en México",
     description:
-      "Reservas directas sin comisión, agente de WhatsApp 24/7 y todo tu hotel en una sola pantalla — en español. Plan mes a mes de $550 MXN/mes con habitaciones ilimitadas, sin permanencia.",
+      "Reservas directas 0% comisión, WhatsApp con IA 24/7 y todo tu hotel en una pantalla, en español. Plan de $550 MXN/mes, habitaciones ilimitadas, sin permanencia.",
     type: "website",
     locale: "es_MX",
     siteName: "Kora",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Kora — Sistema hotelero con IA para hoteles boutique en México",
+    title: "Kora — Sistema hotelero con IA para hoteles en México",
     description:
-      "Reservas directas sin comisión, agente de WhatsApp 24/7 y todo tu hotel en una sola pantalla — en español. Plan mes a mes de $550 MXN/mes con habitaciones ilimitadas, sin permanencia.",
+      "Reservas directas 0% comisión, WhatsApp con IA 24/7 y todo tu hotel en una pantalla, en español. Plan de $550 MXN/mes, habitaciones ilimitadas, sin permanencia.",
   },
   alternates: {
     canonical: "/",
@@ -75,6 +75,15 @@ const jsonLd = {
         description:
           "Plan único de $550 MXN/mes, todo incluido y con habitaciones ilimitadas: motor de reservas, PMS, Camila (WhatsApp con IA), dashboard y CRM. Mes a mes, sin permanencia. Sitio web profesional opcional, como servicio aparte.",
       },
+    },
+    {
+      "@type": "Service",
+      "@id": `${SITE_URL}/#servicio`,
+      name: "Sistema de reservas directas para hoteles independientes en México",
+      serviceType: "Software de reservas y gestión hotelera con IA",
+      provider: { "@id": `${SITE_URL}/#organization` },
+      areaServed: { "@type": "Country", name: "México" },
+      url: SITE_URL,
     },
     {
       "@type": "FAQPage",

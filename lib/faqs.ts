@@ -44,7 +44,7 @@ export const faqs: Faq[] = [
   {
     question: "¿Cuánto tiempo tarda la implementación?",
     answer:
-      "48 a 72 horas. Tú nos das acceso y nosotros configuramos todo. Tu equipo recibe capacitación antes de arrancar.",
+      "48 horas. Tú nos das acceso y nosotros configuramos todo. Tu equipo recibe capacitación antes de arrancar.",
   },
   {
     question: "¿Funciona sin internet estable?",

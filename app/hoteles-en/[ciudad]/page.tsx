@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Check, X } from "lucide-react";
 import { ciudades, getCiudad, TABLA_OTA_DIRECTO } from "@/lib/ciudades";
+import { metaDescripcion } from "@/lib/seo";
 import { Reveal } from "@/components/shared/Reveal";
 import { BarraCTA } from "@/components/shared/BarraCTA";
 
@@ -21,8 +22,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const c = getCiudad(ciudad);
   if (!c) return { title: "Ciudad no encontrada — Kora" };
   return {
-    title: `${c.titulo} | Kora`,
-    description: c.intro.slice(0, 155),
+    title: `${c.ciudad}: reservas directas para hoteles | Kora`,
+    description: metaDescripcion(c.intro),
     alternates: { canonical: `/hoteles-en/${c.slug}` },
     openGraph: {
       title: c.titulo,

@@ -222,10 +222,10 @@ export const ciudades: Ciudad[] = [
     slug: "huasteca-potosina",
     ciudad: "la Huasteca Potosina",
     estado: "San Luis Potosí",
-    titulo: "Sistema de reservas directas para hoteles en la Huasteca Potosina",
-    pregunta: "¿Cuál es el mejor sistema de reservas para un hotel en la Huasteca Potosina?",
+    titulo: "Kora para hoteles de la Huasteca: guía por destino y temporada",
+    pregunta: "¿Kora funciona para hoteles en toda la Huasteca Potosina?",
     resumen:
-      "Reservas directas sin comisión, WhatsApp con IA y operación simple para hoteles, cabañas y ecolodges en toda la Huasteca Potosina.",
+      "Guía regional: por qué los hospedajes de la Huasteca —de Xilitla a El Naranjo— ganan con reservas directas, y cómo Kora se adapta a su temporada.",
     intro:
       "La Huasteca Potosina —Xilitla, Ciudad Valles, Aquismón, Tamasopo, El Naranjo y más— es uno de los destinos de naturaleza que más crecen en México. Sus hospedajes dependen fuerte de las OTAs y de una temporada muy marcada. Kora le da a tu hotel reservas directas 0% comisión y un recepcionista de IA en WhatsApp 24/7.",
     cuerpo: [

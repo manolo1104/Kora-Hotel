@@ -15,6 +15,20 @@ const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
 // en cada build y le manda a Google señales falsas de "página modificada").
 const SITE_UPDATED = new Date("2026-06-03");
 
+// Slugs de hoteles de PRUEBA/semilla que no deben aparecer en el sitemap
+// (contenido basura, no son clientes reales). El fix de fondo es despublicarlos
+// en Supabase; esto los excluye del sitemap como parche.
+const TENANTS_PRUEBA = new Set([
+  "hotel-1",
+  "hotel-grande",
+  "hotel-magico",
+  "hotel-corazon-lleno",
+  "hotel-5-encantos",
+  "hotel-demo-huasteca",
+  "manolo",
+  "paraiso-encantadfi",
+]);
+
 // Mini-páginas de hoteles publicadas (/h/slug). Si el env de Supabase no está
 // listo o falla, devuelve [] para no romper el sitemap.
 async function miniPaginas(): Promise<MetadataRoute.Sitemap> {
@@ -27,7 +41,7 @@ async function miniPaginas(): Promise<MetadataRoute.Sitemap> {
       .eq("publicado", true);
     if (!data) return [];
     return data
-      .filter((h) => h.slug)
+      .filter((h) => h.slug && !TENANTS_PRUEBA.has(h.slug))
       .map((h) => ({
         url: `${BASE_URL}/h/${h.slug}`,
         lastModified: h.updated_at ? new Date(h.updated_at) : SITE_UPDATED,
