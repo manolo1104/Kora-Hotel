@@ -112,8 +112,224 @@ export const CATEGORIAS_EXPERIENCIA = [
   { key: "otro", label: "Otro" },
 ] as const;
 
+// ─── Bloques de la página (ultrapersonalización) ─────────────────────────────
+// La mini-página dejó de ser una plantilla fija de 8 secciones: ahora es una
+// LISTA DE BLOQUES que el hotelero ordena, prende, apaga, retitula y amplía con
+// bloques propios. Los 8 de siempre son "nativos" (sacan su contenido de los
+// datos del hotel); los demás los escribe el hotelero. Todo vive en `extras`,
+// sin migración de columnas.
+
+export type BloqueTipo =
+  // nativos: el contenido sale de los datos del hotel
+  | "formulario"
+  | "descripcion"
+  | "fotos"
+  | "habitaciones"
+  | "amenidades"
+  | "resenas"
+  | "faq"
+  | "politicas"
+  | "ubicacion"
+  // propios: los crea y escribe el hotelero
+  | "texto"
+  | "galeria"
+  | "destacados"
+  | "video";
+
+export const BLOQUES_NATIVOS: BloqueTipo[] = [
+  "formulario",
+  "descripcion",
+  "fotos",
+  "habitaciones",
+  "amenidades",
+  "resenas",
+  "faq",
+  "politicas",
+  "ubicacion",
+];
+
+export function esBloqueNativo(tipo: string): boolean {
+  return BLOQUES_NATIVOS.includes(tipo as BloqueTipo);
+}
+
+// Un punto fuerte del bloque "destacados" (ícono + título + texto corto).
+export interface DestacadoItem {
+  icono?: string; // clave de ICONOS
+  titulo: string;
+  texto?: string;
+}
+
+export interface Bloque {
+  id: string; // estable: en los nativos es igual al tipo; en los propios, un uid
+  tipo: BloqueTipo;
+  oculto?: boolean; // ausente = visible (así el default de todo bloque nuevo es "se ve")
+  titulo?: string; // reemplaza el título por defecto; cadena vacía = sin título
+  fondo?: "ninguno" | "tarjeta" | "marca"; // cómo se pinta la sección
+  // ── contenido de los bloques propios ──
+  texto?: string; // "texto"
+  imagenes?: string[]; // "galeria"
+  items?: DestacadoItem[]; // "destacados"
+  videoUrl?: string; // "video" (link normal de YouTube; se convierte a embed)
+}
+
+// Títulos por defecto de cada tipo (lo que hoy está escrito a fuego en el HTML).
+export const BLOQUE_TITULO_DEFAULT: Record<BloqueTipo, string> = {
+  formulario: "",
+  descripcion: "",
+  fotos: "",
+  habitaciones: "Habitaciones",
+  amenidades: "Servicios",
+  resenas: "Lo que dicen los huéspedes",
+  faq: "Preguntas frecuentes",
+  politicas: "Información útil",
+  ubicacion: "Ubicación",
+  texto: "Sobre nosotros",
+  galeria: "Galería",
+  destacados: "Por qué elegirnos",
+  video: "Conoce el hotel",
+};
+
+// Catálogo para el botón "+ Agregar bloque" del editor.
+export const BLOQUES_CATALOGO: {
+  tipo: BloqueTipo;
+  label: string;
+  desc: string;
+  nativo: boolean;
+}[] = [
+  { tipo: "formulario", label: "Formulario de reserva", desc: "La caja de fechas y personas para pedir disponibilidad.", nativo: true },
+  { tipo: "descripcion", label: "Descripción", desc: "El texto de presentación de tu hotel.", nativo: true },
+  { tipo: "fotos", label: "Galería del hotel", desc: "Las fotos que cargaste en Contenido.", nativo: true },
+  { tipo: "habitaciones", label: "Habitaciones", desc: "Tus habitaciones con precio y botón de reserva.", nativo: true },
+  { tipo: "amenidades", label: "Servicios", desc: "Las amenidades que marcaste (wifi, alberca…).", nativo: true },
+  { tipo: "resenas", label: "Reseñas", desc: "Las reseñas verificadas de tus huéspedes.", nativo: true },
+  { tipo: "faq", label: "Preguntas frecuentes", desc: "Las preguntas que cargaste en su pestaña.", nativo: true },
+  { tipo: "politicas", label: "Información útil", desc: "Cancelación, mascotas, niños, formas de pago.", nativo: true },
+  { tipo: "ubicacion", label: "Ubicación", desc: "El mapa y el botón Cómo llegar.", nativo: true },
+  { tipo: "texto", label: "Texto libre", desc: "Escribe lo que quieras: tu historia, reglas de la casa, qué hacer cerca.", nativo: false },
+  { tipo: "galeria", label: "Galería propia", desc: "Un grupo de fotos aparte, con su propio título (ej. El restaurante).", nativo: false },
+  { tipo: "destacados", label: "Puntos fuertes", desc: "Filas con ícono y texto: alberca natural, desayuno incluido, pet friendly.", nativo: false },
+  { tipo: "video", label: "Video", desc: "Un video de YouTube de tu hotel.", nativo: false },
+];
+
+// ─── Botones y CTAs ──────────────────────────────────────────────────────────
+// Antes solo existían "Reservar ahora", "Cómo llegar", Instagram y Facebook, y
+// no se podían editar. Ahora el hotelero arma los que quiera.
+
+export type BotonAccion =
+  | "reservar" // al motor de reservas (o a WhatsApp si el motor está pausado)
+  | "whatsapp" // al WhatsApp del hotel, con mensaje propio
+  | "telefono"
+  | "email"
+  | "mapa" // al link de Google Maps del hotel
+  | "enlace" // a cualquier URL
+  | "ancla"; // baja a un bloque de la misma página
+
+export type BotonEstilo = "relleno" | "contorno" | "discreto";
+export type BotonZona = "portada" | "cierre" | "flotante";
+
+export interface Boton {
+  id: string;
+  texto: string;
+  accion: BotonAccion;
+  valor?: string; // URL, teléfono, correo, mensaje de WhatsApp o id de bloque
+  icono?: string; // clave de ICONOS
+  estilo?: BotonEstilo; // default "contorno"
+  zonas?: BotonZona[]; // dónde aparece; vacío = en ningún lado
+}
+
+export const ACCIONES_BOTON: {
+  key: BotonAccion;
+  label: string;
+  ayuda: string;
+  campo: string | null; // etiqueta del campo "valor"; null = no necesita
+}[] = [
+  { key: "reservar", label: "Reservar", ayuda: "Lleva a tu motor de reservas.", campo: null },
+  { key: "whatsapp", label: "WhatsApp", ayuda: "Abre un chat contigo.", campo: "Mensaje que llega escrito (opcional)" },
+  { key: "telefono", label: "Llamar", ayuda: "Marca desde el celular.", campo: "Número" },
+  { key: "email", label: "Correo", ayuda: "Abre el correo del huésped.", campo: "Correo" },
+  { key: "mapa", label: "Cómo llegar", ayuda: "Abre tu ubicación en Google Maps.", campo: null },
+  { key: "enlace", label: "Enlace", ayuda: "A donde tú quieras: menú, tour virtual, TripAdvisor.", campo: "Dirección (https://…)" },
+  { key: "ancla", label: "Bajar a un bloque", ayuda: "Baja a una sección de esta misma página.", campo: "Bloque" },
+];
+
+export const ZONAS_BOTON: { key: BotonZona; label: string; ayuda: string }[] = [
+  { key: "portada", label: "Arriba", ayuda: "Junto al nombre del hotel." },
+  { key: "cierre", label: "Al final", ayuda: "Después de todas las secciones." },
+  { key: "flotante", label: "Barra del celular", ayuda: "Siempre visible abajo, en celular." },
+];
+
+// Íconos disponibles para botones y puntos fuertes. Las claves se resuelven a
+// componentes de lucide en components/mini/iconos.tsx (aquí solo van datos, para
+// que este archivo lo pueda leer el servidor sin cargar la librería de íconos).
+export const ICONOS = [
+  { key: "calendario", label: "Calendario" },
+  { key: "whatsapp", label: "WhatsApp" },
+  { key: "telefono", label: "Teléfono" },
+  { key: "correo", label: "Correo" },
+  { key: "mapa", label: "Mapa" },
+  { key: "enlace", label: "Enlace" },
+  { key: "estrella", label: "Estrella" },
+  { key: "corazon", label: "Corazón" },
+  { key: "cama", label: "Cama" },
+  { key: "alberca", label: "Alberca" },
+  { key: "cafe", label: "Café" },
+  { key: "comida", label: "Comida" },
+  { key: "wifi", label: "Wifi" },
+  { key: "auto", label: "Auto" },
+  { key: "mascota", label: "Mascota" },
+  { key: "montana", label: "Montaña" },
+  { key: "sol", label: "Sol" },
+  { key: "escudo", label: "Escudo" },
+  { key: "regalo", label: "Regalo" },
+  { key: "camara", label: "Cámara" },
+  { key: "musica", label: "Música" },
+  { key: "flecha", label: "Flecha" },
+] as const;
+
+// ─── Textos editables de la página ───────────────────────────────────────────
+export interface Textos {
+  heroTitulo?: string; // reemplaza el nombre del hotel como título grande
+  heroSubtitulo?: string; // eslogan bajo el título
+  cierreTitulo?: string; // encabezado del bloque final de reserva
+  cierreTexto?: string; // frase bajo ese encabezado
+}
+
+// ─── Banner de aviso con vigencia ────────────────────────────────────────────
+export interface Aviso {
+  activo?: boolean;
+  texto?: string;
+  desde?: string; // YYYY-MM-DD; vacío = desde siempre
+  hasta?: string; // YYYY-MM-DD; vacío = para siempre (inclusive: se apaga al día siguiente)
+  enlaceTexto?: string;
+  enlaceUrl?: string;
+}
+
+// ¿El aviso debe verse hoy? Se compara en fecha local YYYY-MM-DD para que
+// "hasta el 2 de noviembre" incluya todo el día 2 en México.
+export function avisoVigente(aviso: Aviso | undefined, hoy: string): boolean {
+  if (!aviso?.activo || !(aviso.texto ?? "").trim()) return false;
+  if (aviso.desde && hoy < aviso.desde) return false;
+  if (aviso.hasta && hoy > aviso.hasta) return false;
+  return true;
+}
+
+// Fecha local de México en YYYY-MM-DD (el servidor corre en UTC: sin esto, un
+// aviso se apagaría a las 6 pm hora de México).
+export function hoyMx(): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Mexico_City",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+}
+
 export interface MiniExtras {
   demo?: boolean; // hotel de demostración: el motor simula el pago (nada se cobra)
+  bloques?: Bloque[]; // orden, visibilidad y contenido de la página
+  botones?: Boton[]; // botones y CTAs de la portada, el cierre y la barra móvil
+  textos?: Textos; // títulos y frases que el hotelero reescribe
+  aviso?: Aviso; // banner de temporada con fecha de caducidad
   amenidades?: string[];
   instagram?: string;
   facebook?: string;
@@ -216,6 +432,150 @@ export function ordenSecciones(guardado?: string[]): string[] {
   const validos = guardado.filter((s) => base.includes(s as never));
   const faltantes = base.filter((s) => !validos.includes(s));
   return [...validos, ...faltantes];
+}
+
+// ─── Resolución de bloques ────────────────────────────────────────────────────
+// Fuente de verdad de la página. Si el hotel todavía no tocó el editor visual,
+// se deriva del orden viejo (extras.diseno.ordenSecciones) para que su página
+// se vea EXACTAMENTE igual que antes. Si Kora agrega un bloque nativo nuevo más
+// adelante, se suma al final en vez de desaparecer.
+export function resolverBloques(extras: MiniExtras | null | undefined): Bloque[] {
+  const guardados = extras?.bloques;
+  const base = Array.isArray(guardados)
+    ? guardados.filter((b) => b && typeof b.id === "string" && typeof b.tipo === "string")
+    : // Sin bloques guardados: se deriva del orden viejo, que nunca incluyó el
+      // formulario de reserva (iba fijo arriba). Ese es su lugar por defecto.
+      ordenSecciones(extras?.diseno?.ordenSecciones).map((t) => ({
+        id: t,
+        tipo: t as BloqueTipo,
+      }));
+  if (base.length === 0) return [];
+  const presentes = new Set(base.map((b) => b.tipo));
+  const faltantes = BLOQUES_NATIVOS.filter((t) => !presentes.has(t)).map((t) => ({
+    id: t,
+    tipo: t,
+  }));
+  // El formulario arranca arriba (como estaba); cualquier otro bloque nativo que
+  // Kora agregue en el futuro se suma al final para no reacomodar la página.
+  const alInicio = faltantes.filter((b) => b.tipo === "formulario");
+  const alFinal = faltantes.filter((b) => b.tipo !== "formulario");
+  return [...alInicio, ...base, ...alFinal];
+}
+
+// El título que se dibuja: lo que escribió el hotelero, o el de fábrica. Una
+// cadena vacía guardada a propósito significa "sin encabezado".
+export function tituloBloque(b: Bloque): string {
+  return b.titulo === undefined ? BLOQUE_TITULO_DEFAULT[b.tipo] ?? "" : b.titulo;
+}
+
+// Ancla estable para los botones tipo "bajar a un bloque".
+export function anclaBloque(b: Bloque): string {
+  return `b-${b.id}`;
+}
+
+// ─── Resolución de botones ────────────────────────────────────────────────────
+// Los botones que la página tenía cableados pasan a ser datos editables. Un
+// hotel que nunca abrió el editor ve exactamente lo de antes: reservar arriba y
+// al final, y "Cómo llegar" arriba si tiene mapa.
+export function botonesDefault(opts: { mapsUrl?: string }): Boton[] {
+  const lista: Boton[] = [
+    {
+      id: "reservar",
+      texto: "Reservar ahora",
+      accion: "reservar",
+      icono: "calendario",
+      estilo: "relleno",
+      zonas: ["portada", "cierre"],
+    },
+  ];
+  if ((opts.mapsUrl ?? "").trim()) {
+    lista.push({
+      id: "mapa",
+      texto: "Cómo llegar",
+      accion: "mapa",
+      icono: "mapa",
+      estilo: "contorno",
+      zonas: ["portada"],
+    });
+  }
+  return lista;
+}
+
+export function resolverBotones(extras: MiniExtras | null | undefined): Boton[] {
+  const guardados = extras?.botones;
+  if (Array.isArray(guardados)) {
+    return guardados.filter((b) => b && typeof b.id === "string" && (b.texto ?? "").trim());
+  }
+  return botonesDefault({ mapsUrl: extras?.mapsUrl });
+}
+
+// Contexto que necesita un botón para saber a dónde apunta.
+export interface BotonCtx {
+  slug: string;
+  nombreHotel: string;
+  whatsapp?: string | null;
+  mapsUrl?: string | null;
+  motorActivo: boolean;
+}
+
+// Destino final del botón. Devuelve null si le falta el dato (p. ej. WhatsApp
+// sin número): el render lo omite en vez de dibujar un botón muerto.
+export function hrefBoton(b: Boton, ctx: BotonCtx): string | null {
+  const val = (b.valor ?? "").trim();
+  switch (b.accion) {
+    case "reservar":
+      if (ctx.motorActivo) return `/h/${ctx.slug}/reservar`;
+      return waHref(ctx.whatsapp, `Hola, vi su página y quiero reservar en ${ctx.nombreHotel}`);
+    case "whatsapp":
+      return waHref(ctx.whatsapp, val || `Hola, vi su página de ${ctx.nombreHotel}`);
+    case "telefono": {
+      const tel = val.replace(/[^\d+]/g, "");
+      return tel ? `tel:${tel}` : null;
+    }
+    case "email":
+      return val.includes("@") ? `mailto:${val}` : null;
+    case "mapa":
+      return (ctx.mapsUrl ?? "").trim() || null;
+    case "enlace":
+      if (!val) return null;
+      return /^https?:\/\//i.test(val) ? val : `https://${val}`;
+    case "ancla":
+      return val ? `#b-${val}` : null;
+    default:
+      return null;
+  }
+}
+
+function waHref(whatsapp: string | null | undefined, mensaje: string): string | null {
+  const num = (whatsapp ?? "").replace(/\D/g, "");
+  if (!num) return null;
+  return `https://wa.me/${num}?text=${encodeURIComponent(mensaje)}`;
+}
+
+// Los destinos que salen del sitio se abren en pestaña nueva; las anclas y el
+// motor, no (perderían el contexto de la reserva).
+export function botonExterno(b: Boton, ctx: BotonCtx): boolean {
+  if (b.accion === "ancla") return false;
+  if (b.accion === "reservar") return !ctx.motorActivo;
+  return true;
+}
+
+// ─── Video ────────────────────────────────────────────────────────────────────
+// Acepta lo que el hotelero pegue (youtu.be, watch?v=, /embed/, /shorts/) y
+// devuelve la URL de inserción. null si no es un YouTube reconocible: así nunca
+// se mete un iframe a un dominio arbitrario desde el jsonb.
+export function youtubeEmbed(url: string | undefined): string | null {
+  const s = (url ?? "").trim();
+  if (!s) return null;
+  const m = s.match(
+    /(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/|live\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/
+  );
+  return m ? `https://www.youtube-nocookie.com/embed/${m[1]}` : null;
+}
+
+// ─── Ids ──────────────────────────────────────────────────────────────────────
+export function nuevoId(prefijo: string): string {
+  return `${prefijo}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 }
 
 // ─── Opciones de políticas / pago / idiomas ───────────────────────────────────

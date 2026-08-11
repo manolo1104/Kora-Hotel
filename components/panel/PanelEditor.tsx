@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
+import Link from "next/link";
 import { QRCodeCanvas } from "qrcode.react";
 import {
   Loader2,
@@ -17,8 +18,6 @@ import {
   FileText,
   Lock,
   Eye,
-  ArrowUp,
-  ArrowDown,
   Globe,
   MessageCircle,
   BedDouble,
@@ -43,7 +42,6 @@ import {
   COLOR_DEFAULT,
   FORMAS_PAGO,
   IDIOMAS,
-  SECCION_LABELS,
   CATEGORIAS_EXPERIENCIA,
   ordenSecciones,
   type Resena,
@@ -988,16 +986,6 @@ export function PanelEditor({
 
   function toggleEnLista(valor: string, lista: string[], set: (v: string[]) => void) {
     set(lista.includes(valor) ? lista.filter((x) => x !== valor) : [...lista, valor]);
-  }
-
-  function moveSeccion(i: number, dir: -1 | 1) {
-    setOrden((o) => {
-      const j = i + dir;
-      if (j < 0 || j >= o.length) return o;
-      const copia = [...o];
-      [copia[i], copia[j]] = [copia[j], copia[i]];
-      return copia;
-    });
   }
 
   const subirArchivos = useCallback(
@@ -2313,6 +2301,33 @@ export function PanelEditor({
       {/* ─── DISEÑO ─── */}
       {tab === "diseno" && (
         <div className="space-y-6">
+          {/* El editor visual va primero: ahí se cambia lo mismo que abajo, pero
+              viendo la página al momento. Lo de esta pestaña queda como el
+              camino largo (y es donde viven los ajustes que el editor no toca). */}
+          <div className={card}>
+            <div className="flex items-center gap-2 mb-1">
+              <LayoutDashboard size={18} className="text-kora-primary" />
+              <h2 className="text-lg font-bold text-kora-text">Editor visual de tu página</h2>
+            </div>
+            <p className="text-sm text-kora-muted mb-4">
+              La forma recomendada de armar tu página: acomoda las secciones, apágalas, cambia el
+              color, la letra y tus textos, crea bloques tuyos y arma tus botones — todo con la
+              página de al lado, viéndose al momento.
+            </p>
+            {slug ? (
+              <Link
+                href={`/panel/${slug}/sitio/editor`}
+                className="btn-press inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-kora-primary text-white font-semibold text-sm hover:bg-kora-primary-dark transition-colors"
+              >
+                <Sparkles size={16} /> Abrir el editor visual
+              </Link>
+            ) : (
+              <p className="text-sm text-kora-muted">
+                Guarda tu hotel primero y aquí aparecerá el botón para abrir el editor.
+              </p>
+            )}
+          </div>
+
           <div className={`${card} space-y-5`}>
             <div className="flex items-center gap-2">
               <Palette size={18} className="text-kora-primary" />
@@ -2532,45 +2547,6 @@ export function PanelEditor({
             </div>
           </div>
 
-          {/* Orden de secciones */}
-          <div className={card}>
-            <h2 className="text-lg font-bold text-kora-text mb-1">Orden de las secciones</h2>
-            <p className="text-sm text-kora-muted mb-4">
-              Acomoda cómo aparecen las secciones en tu página.
-            </p>
-            <div className="space-y-2">
-              {orden.map((s, i) => (
-                <div
-                  key={s}
-                  className="flex items-center justify-between gap-3 rounded-xl border border-gray-100 bg-kora-bg/50 px-4 py-2.5"
-                >
-                  <span className="text-sm font-semibold text-kora-text">
-                    {SECCION_LABELS[s] ?? s}
-                  </span>
-                  <div className="flex gap-1">
-                    <button
-                      type="button"
-                      onClick={() => moveSeccion(i, -1)}
-                      disabled={i === 0}
-                      className="btn-press w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-kora-text disabled:opacity-30 hover:border-kora-accent"
-                      aria-label="Subir"
-                    >
-                      <ArrowUp size={14} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => moveSeccion(i, 1)}
-                      disabled={i === orden.length - 1}
-                      className="btn-press w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-kora-text disabled:opacity-30 hover:border-kora-accent"
-                      aria-label="Bajar"
-                    >
-                      <ArrowDown size={14} />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
       )}
 
