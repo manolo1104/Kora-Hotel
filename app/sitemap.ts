@@ -70,8 +70,51 @@ async function miniPaginas(): Promise<MetadataRoute.Sitemap> {
   }
 }
 
+// Blogs de los hoteles: /h/{slug}/blog (si hay ≥1 post) y cada post publicado.
+async function blogsHoteles(): Promise<MetadataRoute.Sitemap> {
+  if (!supabaseEnvReady) return [];
+  try {
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const { data } = await supabase
+      .from("hotel_blog_posts")
+      .select("slug, updated_at, publicado_at, hoteles:hotel_id (slug, publicado)")
+      .eq("publicado", true);
+    if (!data) return [];
+    const entradas: MetadataRoute.Sitemap = [];
+    const indicesVistos = new Set<string>();
+    for (const row of data as unknown as {
+      slug: string;
+      updated_at: string | null;
+      publicado_at: string | null;
+      hoteles: { slug: string; publicado: boolean } | null;
+    }[]) {
+      const h = row.hoteles;
+      if (!h?.publicado || !h.slug || TENANTS_PRUEBA.has(h.slug)) continue;
+      const lastModified = new Date(row.updated_at || row.publicado_at || SITE_UPDATED);
+      if (!indicesVistos.has(h.slug)) {
+        indicesVistos.add(h.slug);
+        entradas.push({
+          url: `${BASE_URL}/h/${h.slug}/blog`,
+          lastModified,
+          changeFrequency: "weekly",
+          priority: 0.5,
+        });
+      }
+      entradas.push({
+        url: `${BASE_URL}/h/${h.slug}/blog/${row.slug}`,
+        lastModified,
+        changeFrequency: "monthly",
+        priority: 0.5,
+      });
+    }
+    return entradas;
+  } catch {
+    return [];
+  }
+}
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const hotelEntries = await miniPaginas();
+  const hotelEntries = [...(await miniPaginas()), ...(await blogsHoteles())];
   // Estáticos (lib/articles.ts) + generados por el agente (blog_articles).
   const articles = await getAllArticles();
   const articleEntries: MetadataRoute.Sitemap = articles.map((article) => ({

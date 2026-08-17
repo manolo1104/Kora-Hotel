@@ -17,6 +17,7 @@ import {
 } from "@/lib/mini";
 import { SUPABASE_URL, SUPABASE_ANON_KEY, supabaseEnvReady } from "@/lib/supabase/env";
 import { ownerTienePlanActivo, accesoDelHotel } from "@/lib/suscripcion";
+import { tienePostsPublicados } from "@/lib/hotel-blog";
 
 export const dynamic = "force-dynamic";
 
@@ -118,7 +119,7 @@ export default async function PaginaPropia({
       paginas: resolverPaginas(extras)
         .filter((p) => !p.oculta)
         .map((p) => ({ slug: p.slug, titulo: p.titulo })),
-      blog: false,
+      blog: await tienePostsPublicados(hotel.id),
     },
   };
 
