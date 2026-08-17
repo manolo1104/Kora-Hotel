@@ -22,6 +22,7 @@ import {
   GripVertical,
   Images,
   Loader2,
+  MapPin,
   Megaphone,
   Monitor,
   MousePointerClick,
@@ -29,9 +30,11 @@ import {
   Plus,
   Smartphone,
   Sparkles,
+  Tag,
   Trash2,
   Type,
   Undo2,
+  UtensilsCrossed,
   Video,
   X,
 } from "lucide-react";
@@ -96,6 +99,9 @@ function IconoTipo({ tipo }: { tipo: BloqueTipo }) {
   if (tipo === "galeria") return <Images size={15} className={cls} />;
   if (tipo === "destacados") return <Sparkles size={15} className={cls} />;
   if (tipo === "video") return <Video size={15} className={cls} />;
+  if (tipo === "promocion") return <Tag size={15} className={cls} />;
+  if (tipo === "cercanos") return <MapPin size={15} className={cls} />;
+  if (tipo === "menu") return <UtensilsCrossed size={15} className={cls} />;
   return <GripVertical size={15} className="text-gray-300" />;
 }
 
@@ -294,6 +300,8 @@ export function EditorVisual({
     }
     const nuevo: Bloque = { id: nuevoId(tipo), tipo };
     if (tipo === "destacados") nuevo.items = [{ icono: "estrella", titulo: "" }];
+    if (tipo === "cercanos") nuevo.cercanos = [{ titulo: "" }];
+    if (tipo === "menu") nuevo.menuSecciones = [{ titulo: "", items: [{ nombre: "" }] }];
     aplicar({ bloques: [...docRef.current.bloques, nuevo] });
     setAbierto(nuevo.id);
   }
@@ -340,6 +348,30 @@ export function EditorVisual({
           const bs = docRef.current.bloques.map((b) =>
             b.id === bloqueId ? { ...b, imagenes: [...(b.imagenes ?? []), ...urls] } : b
           );
+          aplicar({ bloques: bs });
+        }
+      } finally {
+        setSubiendo(null);
+      }
+    },
+    [subirImagenes, aplicar]
+  );
+
+  // La foto de una tarjeta del bloque "Qué hacer cerca" (una por tarjeta).
+  const subirFotoCercano = useCallback(
+    async (bloqueId: string, idx: number, files: FileList | null) => {
+      setSubiendo(`${bloqueId}:${idx}`);
+      setError("");
+      try {
+        const urls = await subirImagenes(files);
+        if (urls[0]) {
+          const bs = docRef.current.bloques.map((b) => {
+            if (b.id !== bloqueId) return b;
+            const copia = [...(b.cercanos ?? [])];
+            if (!copia[idx]) return b;
+            copia[idx] = { ...copia[idx], foto: urls[0] };
+            return { ...b, cercanos: copia };
+          });
           aplicar({ bloques: bs });
         }
       } finally {
@@ -673,6 +705,7 @@ export function EditorVisual({
                 agregar={agregarBloque}
                 subirFotos={subirFotos}
                 subirFotosHotel={subirFotosHotel}
+                subirFotoCercano={subirFotoCercano}
                 subiendo={subiendo}
                 escribirConIA={escribirConIA}
                 generando={generando}
@@ -860,6 +893,7 @@ function PanelBloques({
   agregar,
   subirFotos,
   subirFotosHotel,
+  subirFotoCercano,
   subiendo,
   escribirConIA,
   generando,
@@ -878,6 +912,7 @@ function PanelBloques({
   agregar: (t: BloqueTipo) => void;
   subirFotos: (id: string, files: FileList | null) => void;
   subirFotosHotel: (files: FileList | null) => void;
+  subirFotoCercano: (id: string, idx: number, files: FileList | null) => void;
   subiendo: string | null;
   escribirConIA: (
     tono: string,
@@ -1006,6 +1041,7 @@ function PanelBloques({
                     aplicar={aplicar}
                     subirFotos={subirFotos}
                     subirFotosHotel={subirFotosHotel}
+                    subirFotoCercano={subirFotoCercano}
                     subiendo={subiendo}
                     escribirConIA={escribirConIA}
                     generando={generando}
@@ -1097,6 +1133,7 @@ function CamposBloque({
   aplicar,
   subirFotos,
   subirFotosHotel,
+  subirFotoCercano,
   subiendo,
   escribirConIA,
   generando,
@@ -1108,6 +1145,7 @@ function CamposBloque({
   aplicar: (cambios: Partial<Doc>, grupo?: string) => void;
   subirFotos: (id: string, files: FileList | null) => void;
   subirFotosHotel: (files: FileList | null) => void;
+  subirFotoCercano: (id: string, idx: number, files: FileList | null) => void;
   subiendo: string | null;
   escribirConIA: (
     tono: string,
@@ -1492,6 +1530,230 @@ function CamposBloque({
           className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-kora-primary"
         >
           <Plus size={13} /> Agregar punto
+        </button>
+      </div>
+    );
+  }
+
+  if (b.tipo === "promocion") {
+    const promo = b.promo ?? {};
+    const setPromo = (cambios: Partial<typeof promo>, grupo?: string) =>
+      actualizar(b.id, { promo: { ...promo, ...cambios } }, grupo);
+    return (
+      <div className="space-y-3">
+        <div>
+          <label className={labelCls}>Tu oferta</label>
+          <textarea
+            className={`${inputCls} min-h-[70px]`}
+            value={promo.texto ?? ""}
+            placeholder="2 noches + desayuno para dos por $1,800"
+            onChange={(e) => setPromo({ texto: e.target.value }, `promo-t:${b.id}`)}
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label className={labelCls}>Desde (opcional)</label>
+            <input
+              type="date"
+              className={inputCls}
+              value={promo.desde ?? ""}
+              onChange={(e) => setPromo({ desde: e.target.value })}
+            />
+          </div>
+          <div>
+            <label className={labelCls}>Hasta (opcional)</label>
+            <input
+              type="date"
+              className={inputCls}
+              value={promo.hasta ?? ""}
+              onChange={(e) => setPromo({ hasta: e.target.value })}
+            />
+          </div>
+        </div>
+        <div>
+          <label className={labelCls}>Texto del botón</label>
+          <input
+            className={inputCls}
+            value={promo.botonTexto ?? ""}
+            placeholder="Reservar ahora"
+            onChange={(e) => setPromo({ botonTexto: e.target.value }, `promo-b:${b.id}`)}
+          />
+        </div>
+        <p className={ayudaCls}>
+          Al pasar la fecha “Hasta”, la promoción se quita sola de tu página: no tienes que
+          acordarte de borrarla.
+        </p>
+      </div>
+    );
+  }
+
+  if (b.tipo === "cercanos") {
+    const items = b.cercanos ?? [];
+    const setItem = (i: number, cambios: Partial<(typeof items)[number]>, grupo?: string) => {
+      const copia = [...items];
+      copia[i] = { ...copia[i], ...cambios };
+      actualizar(b.id, { cercanos: copia }, grupo);
+    };
+    return (
+      <div>
+        <label className={labelCls}>Lugares y actividades cerca de tu hotel</label>
+        <div className="space-y-2">
+          {items.map((it, i) => (
+            <div key={i} className="rounded-lg border border-gray-200 p-2 space-y-2">
+              <div className="flex items-center gap-2">
+                <input
+                  className={inputCls}
+                  value={it.titulo}
+                  placeholder="Jardín de Edward James"
+                  onChange={(e) => setItem(i, { titulo: e.target.value }, `cerc-t:${b.id}:${i}`)}
+                />
+                <button
+                  type="button"
+                  onClick={() => actualizar(b.id, { cercanos: items.filter((_, j) => j !== i) })}
+                  aria-label="Quitar lugar"
+                  className="p-1 text-gray-400 hover:text-red-600"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  className={inputCls}
+                  value={it.distancia ?? ""}
+                  placeholder="A 10 min caminando"
+                  onChange={(e) => setItem(i, { distancia: e.target.value }, `cerc-k:${b.id}:${i}`)}
+                />
+                <label className="btn-press flex-shrink-0 inline-flex items-center gap-1.5 px-2.5 py-2 rounded-lg border border-gray-200 text-xs font-semibold text-kora-text cursor-pointer hover:border-kora-accent transition-colors">
+                  {subiendo === `${b.id}:${i}` ? (
+                    <Loader2 size={13} className="animate-spin" />
+                  ) : it.foto ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={it.foto} alt="" className="w-5 h-5 object-cover rounded" />
+                  ) : (
+                    <Plus size={13} />
+                  )}
+                  Foto
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => subirFotoCercano(b.id, i, e.target.files)}
+                  />
+                </label>
+              </div>
+              <input
+                className={inputCls}
+                value={it.texto ?? ""}
+                placeholder="Descripción corta (opcional)"
+                onChange={(e) => setItem(i, { texto: e.target.value }, `cerc-d:${b.id}:${i}`)}
+              />
+            </div>
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={() => actualizar(b.id, { cercanos: [...items, { titulo: "" }] })}
+          className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-kora-primary"
+        >
+          <Plus size={13} /> Agregar lugar
+        </button>
+      </div>
+    );
+  }
+
+  if (b.tipo === "menu") {
+    const secciones = b.menuSecciones ?? [];
+    const setSecciones = (nuevas: typeof secciones, grupo?: string) =>
+      actualizar(b.id, { menuSecciones: nuevas }, grupo);
+    const setSeccion = (i: number, cambios: Partial<(typeof secciones)[number]>, grupo?: string) => {
+      const copia = [...secciones];
+      copia[i] = { ...copia[i], ...cambios };
+      setSecciones(copia, grupo);
+    };
+    return (
+      <div>
+        <label className={labelCls}>Secciones de tu menú o lista de precios</label>
+        <div className="space-y-3">
+          {secciones.map((s, i) => (
+            <div key={i} className="rounded-lg border border-gray-200 p-2 space-y-2">
+              <div className="flex items-center gap-2">
+                <input
+                  className={inputCls}
+                  value={s.titulo ?? ""}
+                  placeholder="Desayunos"
+                  onChange={(e) => setSeccion(i, { titulo: e.target.value }, `menu-s:${b.id}:${i}`)}
+                />
+                <button
+                  type="button"
+                  onClick={() => setSecciones(secciones.filter((_, j) => j !== i))}
+                  aria-label="Quitar sección"
+                  className="p-1 text-gray-400 hover:text-red-600"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+              {(s.items ?? []).map((it, j) => (
+                <div key={j} className="rounded-lg bg-gray-50 p-2 space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <input
+                      className={inputCls}
+                      value={it.nombre}
+                      placeholder="Enchiladas huastecas"
+                      onChange={(e) => {
+                        const items = [...(s.items ?? [])];
+                        items[j] = { ...items[j], nombre: e.target.value };
+                        setSeccion(i, { items }, `menu-n:${b.id}:${i}:${j}`);
+                      }}
+                    />
+                    <input
+                      className={`${inputCls} !w-24 flex-shrink-0`}
+                      value={it.precio ?? ""}
+                      placeholder="$120"
+                      onChange={(e) => {
+                        const items = [...(s.items ?? [])];
+                        items[j] = { ...items[j], precio: e.target.value };
+                        setSeccion(i, { items }, `menu-p:${b.id}:${i}:${j}`);
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setSeccion(i, { items: (s.items ?? []).filter((_, k) => k !== j) })
+                      }
+                      aria-label="Quitar platillo"
+                      className="p-1 text-gray-400 hover:text-red-600"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                  <input
+                    className={inputCls}
+                    value={it.descripcion ?? ""}
+                    placeholder="Descripción corta (opcional)"
+                    onChange={(e) => {
+                      const items = [...(s.items ?? [])];
+                      items[j] = { ...items[j], descripcion: e.target.value };
+                      setSeccion(i, { items }, `menu-d:${b.id}:${i}:${j}`);
+                    }}
+                  />
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() => setSeccion(i, { items: [...(s.items ?? []), { nombre: "" }] })}
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-kora-primary"
+              >
+                <Plus size={13} /> Agregar platillo o servicio
+              </button>
+            </div>
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={() => setSecciones([...secciones, { titulo: "", items: [{ nombre: "" }] }])}
+          className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-kora-primary"
+        >
+          <Plus size={13} /> Agregar sección
         </button>
       </div>
     );

@@ -37,6 +37,7 @@ import {
   resolverBloques,
   resolverBotones,
   tituloBloque,
+  vigenciaActiva,
   youtubeEmbed,
   type Bloque,
   type Boton,
@@ -105,6 +106,21 @@ function precioDesde(h: MiniHabitacion): { texto: string | null; desde: boolean 
     return { texto: "$" + min.toLocaleString("es-MX") + " MXN", desde: true };
   }
   return { texto: fmtPrecio(h.precio), desde: false };
+}
+const MESES_CORTOS = [
+  "enero", "febrero", "marzo", "abril", "mayo", "junio",
+  "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
+];
+// "2026-09-15" → "15 de septiembre" (sin new Date: evita el corrimiento UTC).
+function fechaCorta(iso: string): string {
+  const [, m, d] = iso.split("-").map(Number);
+  if (!m || !d || !MESES_CORTOS[m - 1]) return iso;
+  return `${d} de ${MESES_CORTOS[m - 1]}`;
+}
+// Precio de menú: "$120" limpio, sin el " MXN" de las habitaciones.
+function precioMenu(p: string): string {
+  const n = aNumero(p);
+  return n ? "$" + n.toLocaleString("es-MX") : p;
 }
 export function urlRed(base: string, v?: string): string | null {
   const s = (v ?? "").trim();
@@ -786,6 +802,127 @@ export function MiniRender({
               allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
             />
+          </div>
+        );
+      }
+
+      case "promocion": {
+        const promo = b.promo ?? {};
+        const texto = (promo.texto ?? "").trim();
+        if (!texto) return null;
+        const vigente = vigenciaActiva(promo.desde, promo.hasta, hoy);
+        // Fuera de vigencia no se publica, pero en el editor se ve marcada:
+        // si desapareciera, el hotelero creería que el editor está roto.
+        if (!vigente && !preview) return null;
+        const btn: Boton = {
+          id: `${b.id}-cta`,
+          texto: (promo.botonTexto ?? "").trim() || "Reservar ahora",
+          accion: "reservar",
+        };
+        const href = hrefBoton(btn, ctx);
+        return (
+          <div
+            className="relative rounded-2xl p-6 sm:p-7 text-center"
+            style={{ backgroundColor: "var(--brand)", color: "var(--brand-ink)" }}
+          >
+            {!vigente && (
+              <span className="absolute top-3 right-3 rounded-full bg-white/90 text-gray-600 text-[10px] font-bold uppercase tracking-wide px-2.5 py-1">
+                Fuera de vigencia
+              </span>
+            )}
+            <p className="text-xl sm:text-2xl font-bold leading-snug whitespace-pre-line">{texto}</p>
+            {promo.hasta && (
+              <p className="mt-2 text-sm opacity-85">Válido hasta el {fechaCorta(promo.hasta)}</p>
+            )}
+            {href && (
+              <a
+                href={href}
+                className="btn-press mt-4 inline-flex items-center justify-center gap-2 rounded-full px-7 py-3.5 font-semibold text-sm"
+                style={{ backgroundColor: "var(--brand-ink)", color: "var(--brand)" }}
+              >
+                <IconoBoton boton={btn} size={17} motorActivo={ctx.motorActivo} />
+                {btn.texto}
+              </a>
+            )}
+          </div>
+        );
+      }
+
+      case "cercanos": {
+        const items = (b.cercanos ?? []).filter((it) => (it.titulo ?? "").trim());
+        if (items.length === 0) return null;
+        return (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {items.map((it, i) => (
+              <div key={i} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                {it.foto && (
+                  <HotelImage
+                    src={it.foto}
+                    alt={it.titulo}
+                    className="w-full h-36 sm:h-40"
+                    sizes="(max-width: 640px) 100vw, 320px"
+                  />
+                )}
+                <div className="p-4">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="font-bold text-sm text-kora-text">{it.titulo}</p>
+                    {(it.distancia ?? "").trim() && (
+                      <span
+                        className="flex-shrink-0 inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold"
+                        style={{ backgroundColor: "var(--brand)", color: "var(--brand-ink)" }}
+                      >
+                        <MapPin size={11} />
+                        {it.distancia}
+                      </span>
+                    )}
+                  </div>
+                  {it.texto && (
+                    <p className="mt-1 text-sm text-kora-muted leading-snug">{it.texto}</p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        );
+      }
+
+      case "menu": {
+        const secciones = (b.menuSecciones ?? [])
+          .map((s) => ({ ...s, items: (s.items ?? []).filter((it) => (it.nombre ?? "").trim()) }))
+          .filter((s) => s.items.length > 0);
+        if (secciones.length === 0) return null;
+        return (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-5">
+            {secciones.map((s, i) => (
+              <div key={i}>
+                {(s.titulo ?? "").trim() && (
+                  <h3
+                    className="text-sm font-bold uppercase tracking-wide mb-2"
+                    style={{ color: "var(--brand)" }}
+                  >
+                    {s.titulo}
+                  </h3>
+                )}
+                <ul className="space-y-2.5">
+                  {s.items.map((it, j) => (
+                    <li key={j}>
+                      <div className="flex items-baseline gap-2">
+                        <span className="font-semibold text-sm text-kora-text">{it.nombre}</span>
+                        <span className="flex-1 border-b border-dotted border-gray-300" aria-hidden />
+                        {(it.precio ?? "").trim() && (
+                          <span className="text-sm font-bold text-kora-text whitespace-nowrap">
+                            {precioMenu(it.precio!)}
+                          </span>
+                        )}
+                      </div>
+                      {it.descripcion && (
+                        <p className="text-[13px] text-kora-muted leading-snug">{it.descripcion}</p>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
           </div>
         );
       }

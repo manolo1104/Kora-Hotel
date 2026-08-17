@@ -134,7 +134,10 @@ export type BloqueTipo =
   | "texto"
   | "galeria"
   | "destacados"
-  | "video";
+  | "video"
+  | "promocion"
+  | "cercanos"
+  | "menu";
 
 export const BLOQUES_NATIVOS: BloqueTipo[] = [
   "formulario",
@@ -159,6 +162,29 @@ export interface DestacadoItem {
   texto?: string;
 }
 
+// La oferta del bloque "promocion". Fuera de vigencia, el bloque no se pinta
+// en la página pública (en el preview del editor se ve marcado).
+export interface Promo {
+  texto?: string; // "2 noches + desayuno por $1,800"
+  desde?: string; // YYYY-MM-DD; vacío = desde siempre
+  hasta?: string; // YYYY-MM-DD; vacío = para siempre (inclusive)
+  botonTexto?: string; // default "Reservar ahora"
+}
+
+// Una tarjeta del bloque "cercanos" (qué hacer cerca del hotel).
+export interface CercanoItem {
+  foto?: string; // URL pública del bucket "fotos"
+  titulo: string;
+  texto?: string;
+  distancia?: string; // "a 10 min caminando", "15 km"
+}
+
+// Una sección del bloque "menu" (restaurante, spa, tours propios…).
+export interface MenuSeccion {
+  titulo?: string; // "Desayunos", "Bebidas"; vacío = sin encabezado
+  items: { nombre: string; precio?: string; descripcion?: string }[];
+}
+
 export interface Bloque {
   id: string; // estable: en los nativos es igual al tipo; en los propios, un uid
   tipo: BloqueTipo;
@@ -170,6 +196,9 @@ export interface Bloque {
   imagenes?: string[]; // "galeria"
   items?: DestacadoItem[]; // "destacados"
   videoUrl?: string; // "video" (link normal de YouTube; se convierte a embed)
+  promo?: Promo; // "promocion"
+  cercanos?: CercanoItem[]; // "cercanos"
+  menuSecciones?: MenuSeccion[]; // "menu"
 }
 
 // Títulos por defecto de cada tipo (lo que hoy está escrito a fuego en el HTML).
@@ -187,6 +216,9 @@ export const BLOQUE_TITULO_DEFAULT: Record<BloqueTipo, string> = {
   galeria: "Galería",
   destacados: "Por qué elegirnos",
   video: "Conoce el hotel",
+  promocion: "Promoción",
+  cercanos: "Qué hacer cerca",
+  menu: "Menú",
 };
 
 // Catálogo para el botón "+ Agregar bloque" del editor.
@@ -209,6 +241,9 @@ export const BLOQUES_CATALOGO: {
   { tipo: "galeria", label: "Galería propia", desc: "Un grupo de fotos aparte, con su propio título (ej. El restaurante).", nativo: false },
   { tipo: "destacados", label: "Puntos fuertes", desc: "Filas con ícono y texto: alberca natural, desayuno incluido, pet friendly.", nativo: false },
   { tipo: "video", label: "Video", desc: "Un video de YouTube de tu hotel.", nativo: false },
+  { tipo: "promocion", label: "Promoción", desc: "Una oferta con fecha de fin y botón de reservar (ej. 2 noches + desayuno).", nativo: false },
+  { tipo: "cercanos", label: "Qué hacer cerca", desc: "Tarjetas con foto de lugares y actividades cerca de tu hotel.", nativo: false },
+  { tipo: "menu", label: "Menú o lista de precios", desc: "Tu menú del restaurante o lista de servicios con precios.", nativo: false },
 ];
 
 // ─── Botones y CTAs ──────────────────────────────────────────────────────────
@@ -304,13 +339,19 @@ export interface Aviso {
   enlaceUrl?: string;
 }
 
-// ¿El aviso debe verse hoy? Se compara en fecha local YYYY-MM-DD para que
-// "hasta el 2 de noviembre" incluya todo el día 2 en México.
+// ¿Una vigencia desde/hasta aplica hoy? Se compara en fecha local YYYY-MM-DD
+// para que "hasta el 2 de noviembre" incluya todo el día 2 en México. La usan
+// el aviso y el bloque de promoción.
+export function vigenciaActiva(desde: string | undefined, hasta: string | undefined, hoy: string): boolean {
+  if (desde && hoy < desde) return false;
+  if (hasta && hoy > hasta) return false;
+  return true;
+}
+
+// ¿El aviso debe verse hoy?
 export function avisoVigente(aviso: Aviso | undefined, hoy: string): boolean {
   if (!aviso?.activo || !(aviso.texto ?? "").trim()) return false;
-  if (aviso.desde && hoy < aviso.desde) return false;
-  if (aviso.hasta && hoy > aviso.hasta) return false;
-  return true;
+  return vigenciaActiva(aviso.desde, aviso.hasta, hoy);
 }
 
 // Fecha local de México en YYYY-MM-DD (el servidor corre en UTC: sin esto, un
