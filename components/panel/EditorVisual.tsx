@@ -54,9 +54,13 @@ import {
   fontStack,
   FUENTES,
   ICONOS,
+  MAX_PAGINAS,
   nuevoId,
   resolverBloques,
   resolverBotones,
+  resolverPaginas,
+  SLUGS_RESERVADOS,
+  slugificarPagina,
   ZONAS_BOTON,
   type Aviso,
   type Bloque,
@@ -68,6 +72,7 @@ import {
   type Diseno,
   type MiniExtras,
   type MiniFaq,
+  type Pagina,
   type Politicas,
   type Textos,
 } from "@/lib/mini";
@@ -120,6 +125,7 @@ const PANELES: { key: PanelKey; label: string; Icon: typeof Type }[] = [
 // es cuál.
 interface Doc {
   bloques: Bloque[];
+  paginas: Pagina[];
   botones: Boton[];
   textos: Textos;
   aviso: Aviso;
@@ -152,6 +158,7 @@ export function EditorVisual({
     const e = datosIniciales.extras ?? {};
     return {
       bloques: resolverBloques(e),
+      paginas: resolverPaginas(e),
       botones: resolverBotones(e),
       textos: e.textos ?? {},
       aviso: e.aviso ?? {},
@@ -175,6 +182,13 @@ export function EditorVisual({
 
   const [panel, setPanel] = useState<PanelKey>("bloques");
   const [abierto, setAbierto] = useState<string | null>(null);
+
+  // Qué página edita el panel Bloques: null = Inicio (la portada). Va también
+  // en un ref para que los flujos asíncronos (fotos, IA) escriban en la página
+  // correcta aunque su clausura haya quedado vieja. No entra al historial de
+  // deshacer: cambiar de página es navegación, no edición.
+  const [paginaActiva, setPaginaActivaState] = useState<string | null>(null);
+  const paginaActivaRef = useRef<string | null>(null);
   const [vista, setVista] = useState<"movil" | "escritorio">("escritorio");
   const [pestanaMovil, setPestanaMovil] = useState<"editar" | "ver">("editar");
   const [menuAgregar, setMenuAgregar] = useState(false);
@@ -254,6 +268,7 @@ export function EditorVisual({
       extras: {
         ...datosIniciales.extras,
         bloques: doc.bloques,
+        paginas: doc.paginas,
         botones: doc.botones,
         textos: doc.textos,
         aviso: doc.aviso,
@@ -264,33 +279,59 @@ export function EditorVisual({
         mapsUrl: doc.mapsUrl,
         mapEmbedUrl: doc.mapEmbedUrl,
       } as MiniExtras,
+      nav: {
+        paginas: doc.paginas.filter((p) => !p.oculta).map((p) => ({ slug: p.slug, titulo: p.titulo })),
+        blog: false,
+        activo: null,
+      },
     }),
     [datosIniciales, doc]
   );
 
+  // La página que se está viendo en el preview (con sus bloques al día).
+  const paginaPreview = paginaActiva
+    ? doc.paginas.find((p) => p.id === paginaActiva)
+    : undefined;
+
   // ─── Bloques ───────────────────────────────────────────────────────────────
+  // Todos los helpers de bloques pasan por este par: editan la portada
+  // (doc.bloques) o la página activa (doc.paginas[i].bloques) según el selector.
+  function bloquesActuales(): Bloque[] {
+    const pid = paginaActivaRef.current;
+    if (!pid) return docRef.current.bloques;
+    return docRef.current.paginas.find((p) => p.id === pid)?.bloques ?? [];
+  }
+  function conBloques(bs: Bloque[]): Partial<Doc> {
+    const pid = paginaActivaRef.current;
+    if (!pid) return { bloques: bs };
+    return {
+      paginas: docRef.current.paginas.map((p) => (p.id === pid ? { ...p, bloques: bs } : p)),
+    };
+  }
   function actualizarBloque(id: string, cambios: Partial<Bloque>, grupo?: string) {
     aplicar(
-      { bloques: docRef.current.bloques.map((b) => (b.id === id ? { ...b, ...cambios } : b)) },
+      conBloques(bloquesActuales().map((b) => (b.id === id ? { ...b, ...cambios } : b))),
       grupo
     );
   }
   function borrarBloque(id: string) {
-    aplicar({ bloques: docRef.current.bloques.filter((b) => b.id !== id) });
+    aplicar(conBloques(bloquesActuales().filter((b) => b.id !== id)));
   }
   function moverBloque(desde: number, hasta: number) {
-    const bs = docRef.current.bloques;
+    const bs = bloquesActuales();
     if (hasta < 0 || hasta >= bs.length || desde === hasta) return;
     const copia = [...bs];
     const [item] = copia.splice(desde, 1);
     copia.splice(hasta, 0, item);
-    aplicar({ bloques: copia });
+    aplicar(conBloques(copia));
   }
   function agregarBloque(tipo: BloqueTipo) {
     setMenuAgregar(false);
     // Un bloque nativo no se duplica: si ya está en la lista, solo se prende y
-    // se abre (dos "Habitaciones" mostrarían el mismo contenido dos veces).
+    // se abre (dos "Habitaciones" mostrarían el mismo contenido dos veces). En
+    // una página propia los nativos ni siquiera salen en el catálogo.
     if (esBloqueNativo(tipo)) {
+      if (paginaActivaRef.current) return;
       const ya = docRef.current.bloques.find((b) => b.tipo === tipo);
       if (ya) {
         actualizarBloque(ya.id, { oculto: false });
@@ -302,8 +343,57 @@ export function EditorVisual({
     if (tipo === "destacados") nuevo.items = [{ icono: "estrella", titulo: "" }];
     if (tipo === "cercanos") nuevo.cercanos = [{ titulo: "" }];
     if (tipo === "menu") nuevo.menuSecciones = [{ titulo: "", items: [{ nombre: "" }] }];
-    aplicar({ bloques: [...docRef.current.bloques, nuevo] });
+    aplicar(conBloques([...bloquesActuales(), nuevo]));
     setAbierto(nuevo.id);
+  }
+
+  // ─── Páginas ───────────────────────────────────────────────────────────────
+  function setPaginaActiva(id: string | null) {
+    paginaActivaRef.current = id;
+    setPaginaActivaState(id);
+    setAbierto(null);
+    setMenuAgregar(false);
+  }
+  // Crea la página y devuelve un mensaje de error para el formulario, o null.
+  function crearPagina(titulo: string): string | null {
+    const t = titulo.trim();
+    if (!t) return "Escribe el nombre de la página.";
+    const paginas = docRef.current.paginas;
+    if (paginas.length >= MAX_PAGINAS) {
+      return `Ya tienes ${MAX_PAGINAS} páginas, el máximo. Elimina una para crear otra.`;
+    }
+    const slugNuevo = slugificarPagina(t);
+    if (!slugNuevo) return "El nombre necesita al menos una letra o número.";
+    if (SLUGS_RESERVADOS.includes(slugNuevo)) {
+      return `"${t}" no se puede usar: esa dirección ya la ocupa el sitio. Prueba otro nombre.`;
+    }
+    if (paginas.some((p) => p.slug === slugNuevo)) {
+      return "Ya tienes una página con ese nombre.";
+    }
+    const nueva: Pagina = { id: nuevoId("pag"), slug: slugNuevo, titulo: t, bloques: [] };
+    aplicar({ paginas: [...paginas, nueva] });
+    setPaginaActiva(nueva.id);
+    return null;
+  }
+  // El título del tab se puede cambiar; el slug (la URL) se queda: es SEO.
+  function renombrarPagina(id: string, titulo: string) {
+    const t = titulo.trim();
+    if (!t) return;
+    aplicar(
+      { paginas: docRef.current.paginas.map((p) => (p.id === id ? { ...p, titulo: t } : p)) },
+      `pag-titulo:${id}`
+    );
+  }
+  function toggleOcultaPagina(id: string) {
+    aplicar({
+      paginas: docRef.current.paginas.map((p) =>
+        p.id === id ? { ...p, oculta: !p.oculta } : p
+      ),
+    });
+  }
+  function eliminarPagina(id: string) {
+    aplicar({ paginas: docRef.current.paginas.filter((p) => p.id !== id) });
+    if (paginaActivaRef.current === id) setPaginaActiva(null);
   }
 
   // ─── Subir imágenes ────────────────────────────────────────────────────────
@@ -345,15 +435,17 @@ export function EditorVisual({
       try {
         const urls = await subirImagenes(files);
         if (urls.length) {
-          const bs = docRef.current.bloques.map((b) =>
+          const bs = bloquesActuales().map((b) =>
             b.id === bloqueId ? { ...b, imagenes: [...(b.imagenes ?? []), ...urls] } : b
           );
-          aplicar({ bloques: bs });
+          aplicar(conBloques(bs));
         }
       } finally {
         setSubiendo(null);
       }
     },
+    // bloquesActuales/conBloques son estables en la práctica (solo leen refs).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [subirImagenes, aplicar]
   );
 
@@ -365,19 +457,21 @@ export function EditorVisual({
       try {
         const urls = await subirImagenes(files);
         if (urls[0]) {
-          const bs = docRef.current.bloques.map((b) => {
+          const bs = bloquesActuales().map((b) => {
             if (b.id !== bloqueId) return b;
             const copia = [...(b.cercanos ?? [])];
             if (!copia[idx]) return b;
             copia[idx] = { ...copia[idx], foto: urls[0] };
             return { ...b, cercanos: copia };
           });
-          aplicar({ bloques: bs });
+          aplicar(conBloques(bs));
         }
       } finally {
         setSubiendo(null);
       }
     },
+    // bloquesActuales/conBloques son estables en la práctica (solo leen refs).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [subirImagenes, aplicar]
   );
 
@@ -423,7 +517,7 @@ export function EditorVisual({
         const notas =
           destino.tipo === "descripcion"
             ? d.descripcion
-            : d.bloques.find((b) => b.id === destino.id)?.texto ?? "";
+            : bloquesActuales().find((b) => b.id === destino.id)?.texto ?? "";
         const res = await fetch("/api/admin/hotel-description", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -514,6 +608,7 @@ export function EditorVisual({
       const extras = {
         ...extrasBase.current,
         bloques: d.bloques.map((b) => ({ ...b })),
+        paginas: d.paginas.map((p) => ({ ...p, bloques: p.bloques.map((b) => ({ ...b })) })),
         botones: d.botones.filter((b) => (b.texto ?? "").trim()),
         textos: d.textos,
         aviso: d.aviso,
@@ -693,6 +788,14 @@ export function EditorVisual({
               <PanelBloques
                 doc={doc}
                 slug={slug}
+                bloques={paginaPreview ? paginaPreview.bloques : doc.bloques}
+                paginas={doc.paginas}
+                paginaActiva={paginaActiva}
+                onPagina={setPaginaActiva}
+                onCrearPagina={crearPagina}
+                onRenombrarPagina={renombrarPagina}
+                onOcultarPagina={toggleOcultaPagina}
+                onEliminarPagina={eliminarPagina}
                 abierto={abierto}
                 setAbierto={setAbierto}
                 actualizar={actualizarBloque}
@@ -772,7 +875,18 @@ export function EditorVisual({
               if (a) e.preventDefault();
             }}
           >
-            <MiniRender datos={datosPreview} modo="preview" />
+            <MiniRender
+              datos={datosPreview}
+              modo="preview"
+              pagina={paginaPreview}
+              onNavPagina={(slugPagina) => {
+                if (slugPagina === "blog") return;
+                const destino = slugPagina
+                  ? doc.paginas.find((p) => p.slug === slugPagina)
+                  : null;
+                setPaginaActiva(destino ? destino.id : null);
+              }}
+            />
           </div>
         </main>
       </div>
@@ -897,9 +1011,25 @@ function PanelBloques({
   subiendo,
   escribirConIA,
   generando,
+  bloques,
+  paginas,
+  paginaActiva,
+  onPagina,
+  onCrearPagina,
+  onRenombrarPagina,
+  onOcultarPagina,
+  onEliminarPagina,
 }: {
   doc: Doc;
   slug: string;
+  bloques: Bloque[];
+  paginas: Pagina[];
+  paginaActiva: string | null;
+  onPagina: (id: string | null) => void;
+  onCrearPagina: (titulo: string) => string | null;
+  onRenombrarPagina: (id: string, titulo: string) => void;
+  onOcultarPagina: (id: string) => void;
+  onEliminarPagina: (id: string) => void;
   abierto: string | null;
   setAbierto: (id: string | null) => void;
   actualizar: (id: string, cambios: Partial<Bloque>, grupo?: string) => void;
@@ -920,15 +1050,34 @@ function PanelBloques({
   ) => void;
   generando: boolean;
 }) {
+  const paginaSel = paginaActiva ? paginas.find((p) => p.id === paginaActiva) : undefined;
   return (
     <div>
-      <p className="text-xs text-kora-muted leading-relaxed mb-3">
-        Arrastra para cambiar el orden. El ojo prende o apaga el bloque en tu página. Toca uno
-        para editar su título y su contenido.
-      </p>
+      <SelectorPagina
+        slug={slug}
+        paginas={paginas}
+        activa={paginaActiva}
+        onSelect={onPagina}
+        onCrear={onCrearPagina}
+        onRenombrar={onRenombrarPagina}
+        onOcultar={onOcultarPagina}
+        onEliminar={onEliminarPagina}
+      />
+
+      {paginaSel && bloques.length === 0 && (
+        <p className="text-xs text-kora-muted leading-relaxed mb-3">
+          Esta página está vacía: agrégale bloques con el botón de abajo.
+        </p>
+      )}
+      {(!paginaSel || bloques.length > 0) && (
+        <p className="text-xs text-kora-muted leading-relaxed mb-3">
+          Arrastra para cambiar el orden. El ojo prende o apaga el bloque en tu página. Toca uno
+          para editar su título y su contenido.
+        </p>
+      )}
 
       <div className="space-y-2">
-        {doc.bloques.map((b, i) => {
+        {bloques.map((b, i) => {
           const nativo = esBloqueNativo(b.tipo);
           const abiertoEste = abierto === b.id;
           return (
@@ -1074,7 +1223,9 @@ function PanelBloques({
               </button>
             </div>
             <div className="space-y-1 max-h-80 overflow-y-auto">
-              {BLOQUES_CATALOGO.map((c) => (
+              {/* En una página propia solo caben bloques tuyos: los nativos
+                  (habitaciones, reseñas…) leen datos del hotel y viven en Inicio. */}
+              {(paginaActiva ? BLOQUES_CATALOGO.filter((c) => !c.nativo) : BLOQUES_CATALOGO).map((c) => (
                 <button
                   key={c.tipo}
                   type="button"
@@ -1107,6 +1258,167 @@ function PanelBloques({
           </button>
         )}
       </div>
+    </div>
+  );
+}
+
+// Selector de página del panel Bloques: Inicio o una página propia. Crear,
+// renombrar, ocultar y eliminar viven aquí para que el hotelero no tenga que
+// salir del editor. El slug (la URL) se fija al crear y ya no cambia: SEO.
+function SelectorPagina({
+  slug,
+  paginas,
+  activa,
+  onSelect,
+  onCrear,
+  onRenombrar,
+  onOcultar,
+  onEliminar,
+}: {
+  slug: string;
+  paginas: Pagina[];
+  activa: string | null;
+  onSelect: (id: string | null) => void;
+  onCrear: (titulo: string) => string | null;
+  onRenombrar: (id: string, titulo: string) => void;
+  onOcultar: (id: string) => void;
+  onEliminar: (id: string) => void;
+}) {
+  const [creando, setCreando] = useState(false);
+  const [nombre, setNombre] = useState("");
+  const [errorCrear, setErrorCrear] = useState("");
+  const [confirmarBorrar, setConfirmarBorrar] = useState(false);
+  const sel = activa ? paginas.find((p) => p.id === activa) : undefined;
+
+  const crear = () => {
+    const err = onCrear(nombre);
+    if (err) {
+      setErrorCrear(err);
+      return;
+    }
+    setCreando(false);
+    setNombre("");
+    setErrorCrear("");
+  };
+
+  return (
+    <div className="mb-3 rounded-xl border border-gray-200 bg-white p-2.5 space-y-2">
+      <div>
+        <label className={labelCls}>Página que estás editando</label>
+        <select
+          className={inputCls}
+          value={creando ? "__nueva__" : activa ?? ""}
+          onChange={(e) => {
+            const v = e.target.value;
+            setConfirmarBorrar(false);
+            if (v === "__nueva__") {
+              setCreando(true);
+              return;
+            }
+            setCreando(false);
+            setErrorCrear("");
+            onSelect(v || null);
+          }}
+        >
+          <option value="">Inicio (tu portada)</option>
+          {paginas.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.titulo}
+              {p.oculta ? " (oculta)" : ""}
+            </option>
+          ))}
+          {paginas.length < MAX_PAGINAS && <option value="__nueva__">＋ Nueva página…</option>}
+        </select>
+      </div>
+
+      {creando && (
+        <div className="space-y-1.5">
+          <input
+            className={inputCls}
+            value={nombre}
+            autoFocus
+            placeholder="Restaurante, Bodas, Qué hacer en Xilitla…"
+            onChange={(e) => {
+              setNombre(e.target.value);
+              setErrorCrear("");
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") crear();
+            }}
+          />
+          {nombre.trim() && (
+            <p className="text-[11px] text-kora-muted break-all">
+              Su dirección será /h/{slug}/<b>{slugificarPagina(nombre)}</b>
+            </p>
+          )}
+          {errorCrear && <p className="text-[11px] font-semibold text-red-600">{errorCrear}</p>}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={crear}
+              className="btn-press px-3 py-1.5 rounded-lg bg-kora-primary text-white text-xs font-semibold"
+            >
+              Crear página
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setCreando(false);
+                setNombre("");
+                setErrorCrear("");
+              }}
+              className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-semibold text-kora-muted"
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {sel && !creando && (
+        <div className="space-y-1.5">
+          <input
+            className={inputCls}
+            value={sel.titulo}
+            onChange={(e) => onRenombrar(sel.id, e.target.value)}
+            aria-label="Nombre de la página"
+          />
+          <p className="text-[11px] text-kora-muted break-all">
+            Vive en /h/{slug}/<b>{sel.slug}</b>
+            {sel.oculta ? " · oculta: no sale en tu sitio" : ""}
+          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => onOcultar(sel.id)}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-kora-muted hover:text-kora-text"
+            >
+              {sel.oculta ? <Eye size={13} /> : <EyeOff size={13} />}
+              {sel.oculta ? "Mostrar en el sitio" : "Ocultar del sitio"}
+            </button>
+            {confirmarBorrar ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setConfirmarBorrar(false);
+                  onEliminar(sel.id);
+                }}
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-red-600"
+              >
+                <Trash2 size={13} /> ¿Seguro? Se borra con sus bloques
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setConfirmarBorrar(true)}
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-red-600 hover:text-red-700"
+              >
+                <Trash2 size={13} /> Eliminar página
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

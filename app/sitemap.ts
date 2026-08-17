@@ -7,6 +7,7 @@ import { comparativas } from "@/lib/comparativas";
 import { personas } from "@/lib/personas";
 import { ciudades } from "@/lib/ciudades";
 import { AYUDA } from "@/lib/ayuda";
+import { resolverPaginas, type MiniExtras } from "@/lib/mini";
 import { TENANTS_PRUEBA } from "@/lib/seo";
 import { SUPABASE_URL, SUPABASE_ANON_KEY, supabaseEnvReady } from "@/lib/supabase/env";
 
@@ -25,7 +26,7 @@ async function miniPaginas(): Promise<MetadataRoute.Sitemap> {
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     const { data } = await supabase
       .from("hoteles")
-      .select("slug, updated_at, habitaciones")
+      .select("slug, updated_at, habitaciones, extras")
       .eq("publicado", true);
     if (!data) return [];
     return data
@@ -52,7 +53,17 @@ async function miniPaginas(): Promise<MetadataRoute.Sitemap> {
             changeFrequency: "weekly" as const,
             priority: 0.5,
           }));
-        return [...hotel, ...cuartos];
+        const propias: MetadataRoute.Sitemap = resolverPaginas(
+          (h.extras as MiniExtras | null) ?? undefined
+        )
+          .filter((p) => !p.oculta)
+          .map((p) => ({
+            url: `${BASE_URL}/h/${h.slug}/${p.slug}`,
+            lastModified,
+            changeFrequency: "weekly" as const,
+            priority: 0.5,
+          }));
+        return [...hotel, ...cuartos, ...propias];
       });
   } catch {
     return [];

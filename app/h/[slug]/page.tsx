@@ -12,6 +12,7 @@ import { AMENIDADES_MAP } from "@/lib/amenidades";
 import {
   hoyMx,
   resolverBloques,
+  resolverPaginas,
   tituloBloque,
   type Bloque,
   type MiniExtras,
@@ -168,6 +169,15 @@ export default async function MiniPagina({
     motorActivo,
     marcaOculta,
     hoy: hoyMx(),
+    // Pestañas del sitio: páginas propias visibles. El tab Blog se activa
+    // cuando el hotel tenga artículos publicados (siguiente fase).
+    nav: {
+      paginas: resolverPaginas(extras)
+        .filter((p) => !p.oculta)
+        .map((p) => ({ slug: p.slug, titulo: p.titulo })),
+      blog: false,
+      activo: null,
+    },
   };
 
   // ─── SEO: JSON-LD (solo servidor) ──────────────────────────────────────────

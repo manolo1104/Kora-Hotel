@@ -24,6 +24,7 @@ import {
 import { HotelImage } from "@/components/HotelImage";
 import { Reveal } from "@/components/shared/Reveal";
 import { ReservaForm } from "@/components/mini/ReservaForm";
+import { MiniNav, type MiniNavDatos } from "@/components/mini/MiniNav";
 import { IconoBoton, IconoDe } from "@/components/mini/iconos";
 import { AMENIDADES_MAP } from "@/lib/amenidades";
 import {
@@ -35,6 +36,7 @@ import {
   hrefBoton,
   inkFor,
   resolverBloques,
+  resolverBloquesPagina,
   resolverBotones,
   tituloBloque,
   vigenciaActiva,
@@ -44,6 +46,7 @@ import {
   type BotonCtx,
   type BotonZona,
   type MiniExtras,
+  type Pagina,
 } from "@/lib/mini";
 
 // ─── Datos de entrada ─────────────────────────────────────────────────────────
@@ -86,6 +89,7 @@ export interface MiniDatos {
   motorActivo: boolean;
   marcaOculta: boolean;
   hoy: string; // fecha local de México (YYYY-MM-DD) para la vigencia del aviso
+  nav?: MiniNavDatos; // pestañas del sitio; ausente o vacío = sin barra
 }
 
 // ─── Utilidades de formato ────────────────────────────────────────────────────
@@ -315,11 +319,17 @@ function Cuerpo({
 export function MiniRender({
   datos,
   modo = "publico",
+  pagina,
+  onNavPagina,
 }: {
   datos: MiniDatos;
   /** "preview" apaga las animaciones de entrada para que en el editor todo se
    *  vea de inmediato en vez de esperar a que el bloque entre en pantalla. */
   modo?: "publico" | "preview";
+  /** Página propia a mostrar en vez de la portada (/h/{hotel}/{slug}). */
+  pagina?: Pagina;
+  /** Solo editor: al tocar un tab se cambia de página sin navegar. */
+  onNavPagina?: (slugPagina: string | null) => void;
 }) {
   const {
     slug,
@@ -346,7 +356,9 @@ export function MiniRender({
   const logo = diseno.logoUrl;
   const textos = extras.textos ?? {};
 
-  const bloques = resolverBloques(extras).filter((b) => !b.oculto);
+  const bloques = (pagina ? resolverBloquesPagina(pagina) : resolverBloques(extras)).filter(
+    (b) => !b.oculto
+  );
   const botones = resolverBotones(extras);
 
   const mapsUrl = (extras.mapsUrl ?? "").trim() || null;
@@ -975,8 +987,35 @@ export function MiniRender({
         </div>
       )}
 
+      {/* Pestañas del sitio (Inicio · páginas propias · Blog) */}
+      {datos.nav && (
+        <MiniNav
+          slugHotel={slug}
+          nav={{ ...datos.nav, activo: pagina ? pagina.slug : datos.nav.activo }}
+          preview={preview}
+          onNav={onNavPagina}
+        />
+      )}
+
+      {/* Encabezado de una página propia: sin hero, directo al contenido */}
+      {pagina && (
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 pt-8">
+          <h1
+            className="text-2xl sm:text-3xl font-extrabold tracking-tight"
+            style={{ color: "var(--brand)" }}
+          >
+            {pagina.titulo}
+          </h1>
+          {(pagina.descripcion ?? "").trim() && (
+            <p className="mt-1.5 text-sm sm:text-base text-kora-muted leading-snug">
+              {pagina.descripcion}
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Portada */}
-      {heroCompleto && portada ? (
+      {pagina ? null : heroCompleto && portada ? (
         <section className="relative h-[68vh] min-h-[400px] flex items-end">
           <Image src={portada} alt={nombre} fill sizes="100vw" priority className="object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/30 to-black/10" />
@@ -1015,6 +1054,7 @@ export function MiniRender({
         </section>
       )}
 
+      {!pagina && (
       <div className="max-w-2xl mx-auto px-4 sm:px-6">
         <div
           className={`${heroCompleto ? "mt-6" : "-mt-12"} relative bg-white rounded-2xl shadow-lg border border-gray-100 p-6`}
@@ -1071,6 +1111,7 @@ export function MiniRender({
           )}
         </div>
       </div>
+      )}
 
       {/* En público el cuerpo entra con la animación de siempre; en el editor va
           directo, porque dentro del marco de vista previa el "entró en pantalla"

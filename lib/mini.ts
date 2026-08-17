@@ -388,6 +388,7 @@ export interface MiniExtras {
   notificaciones?: Notificaciones;
   onboarding?: OnboardingProgreso;
   addons?: Addon[];
+  paginas?: Pagina[]; // páginas propias del sitio (/h/{hotel}/{slug})
   experiencias?: Experiencia[];
   experienciasBundle?: ExperienciasBundle;
   formasPago?: string[];
@@ -501,6 +502,95 @@ export function resolverBloques(extras: MiniExtras | null | undefined): Bloque[]
   const alInicio = faltantes.filter((b) => b.tipo === "formulario");
   const alFinal = faltantes.filter((b) => b.tipo !== "formulario");
   return [...alInicio, ...base, ...alFinal];
+}
+
+// ─── Páginas adicionales del sitio ───────────────────────────────────────────
+// El sitio del hotel puede tener páginas propias además de la portada
+// ("Restaurante", "Bodas", "Qué hacer en Xilitla"…). Cada una es una lista de
+// bloques PROPIOS (los nativos leen datos del hotel y viven solo en la home).
+// Viven en extras.paginas y se sirven en /h/{hotel}/{slug}.
+
+export interface Pagina {
+  id: string; // uid estable; el título puede cambiar, el id no
+  slug: string; // el pedazo de URL; fijo tras crear la página (SEO)
+  titulo: string; // texto de la pestaña y <h1> de la página
+  descripcion?: string; // meta description; vacía = se deriva del contenido
+  bloques: Bloque[];
+  oculta?: boolean; // ausente = visible en la navegación y el sitemap
+}
+
+// Tope de producto: suficiente para un sitio completo sin volver el editor
+// (ni el jsonb) inmanejable.
+export const MAX_PAGINAS = 5;
+
+// Rutas que ya existen bajo /h/{hotel}/ y palabras que nunca pueden ser el
+// slug de una página propia.
+export const SLUGS_RESERVADOS = [
+  "habitacion",
+  "reservar",
+  "resena",
+  "blog",
+  "guia",
+  "llms.txt",
+  "opengraph-image",
+  "sitemap.xml",
+  "robots.txt",
+];
+
+// "Qué hacer en Xilitla" → "que-hacer-en-xilitla".
+export function slugificarPagina(titulo: string): string {
+  return titulo
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60);
+}
+
+// Los tipos que caben en una página propia (el catálogo se filtra con esto).
+export function esBloqueDePagina(tipo: string): boolean {
+  return !esBloqueNativo(tipo);
+}
+
+export function resolverPaginas(extras: MiniExtras | null | undefined): Pagina[] {
+  const guardadas = extras?.paginas;
+  if (!Array.isArray(guardadas)) return [];
+  return guardadas.filter(
+    (p) =>
+      p &&
+      typeof p.id === "string" &&
+      typeof p.slug === "string" &&
+      p.slug.length > 0 &&
+      typeof p.titulo === "string"
+  );
+}
+
+// Los bloques de una página propia: solo sanea. Sin la auto-inyección de
+// nativos de resolverBloques(), que es exclusiva de la home.
+export function resolverBloquesPagina(pagina: Pagina): Bloque[] {
+  return (pagina.bloques ?? []).filter(
+    (b) => b && typeof b.id === "string" && typeof b.tipo === "string" && esBloqueDePagina(b.tipo)
+  );
+}
+
+// Meta description de una página propia: lo que escribió el hotelero, o el
+// primer bloque de texto, o una frase genérica. Recortada sin partir palabras.
+export function metaDescripcionPagina(pagina: Pagina, nombreHotel: string, max = 158): string {
+  const propia = (pagina.descripcion ?? "").trim();
+  const texto =
+    propia ||
+    (resolverBloquesPagina(pagina)
+      .map((b) => (b.texto ?? "").trim())
+      .find(Boolean) ??
+      "") ||
+    `${pagina.titulo} de ${nombreHotel}.`;
+  if (texto.length <= max) return texto;
+  const corte = texto.slice(0, max);
+  const ultimoEspacio = corte.lastIndexOf(" ");
+  const base = ultimoEspacio > 40 ? corte.slice(0, ultimoEspacio) : corte;
+  return base.replace(/[\s.,;:–—-]+$/, "") + "…";
 }
 
 // El título que se dibuja: lo que escribió el hotelero, o el de fábrica. Una
