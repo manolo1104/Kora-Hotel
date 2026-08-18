@@ -19,7 +19,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Configuración incompleta." }, { status: 503 });
   }
 
-  let body: { postId?: string; publicado?: boolean };
+  let body: { postId?: string; publicado?: boolean; revalidar?: boolean };
   try {
     body = await req.json();
   } catch {
@@ -30,6 +30,25 @@ export async function POST(req: Request) {
   if (!postId) return NextResponse.json({ error: "Falta el artículo." }, { status: 400 });
 
   const admin = createAdminClient();
+
+  // Modo "solo revalidar": al guardar cambios de un post YA publicado, las
+  // páginas públicas (revalidate 1 h) se refrescan al momento sin tocar el
+  // estado ni la fecha de publicación.
+  if (body.revalidar === true) {
+    const { data: post } = await admin
+      .from("hotel_blog_posts")
+      .select("slug, publicado")
+      .eq("id", postId)
+      .eq("hotel_id", ctx.hotelId)
+      .maybeSingle();
+    if (!post) return NextResponse.json({ error: "No se encontró el artículo." }, { status: 404 });
+    const slugHotel = ctx.hotel.slug;
+    if (post.publicado) {
+      revalidatePath(`/h/${slugHotel}/blog`);
+      revalidatePath(`/h/${slugHotel}/blog/${post.slug}`);
+    }
+    return NextResponse.json({ ok: true, publicado: post.publicado });
+  }
   // El hotel_id viene del tenant resuelto por sesión, nunca del body: un post
   // ajeno simplemente no coincide y el update no toca nada.
   const { data, error } = await admin

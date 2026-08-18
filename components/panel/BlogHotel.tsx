@@ -8,7 +8,7 @@
 // igual que el editor visual. Publicar pasa por /api/admin/blog-publish, que
 // además revalida las páginas públicas y avisa a IndexNow.
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -25,10 +25,22 @@ import { createClient } from "@/lib/supabase/client";
 import { comprimirImagen } from "@/lib/images-client";
 import {
   fechaLargaPost,
+  LIMITE_IA_MENSUAL,
   renderPostHtml,
   slugificarPost,
   type HotelBlogPost,
 } from "@/lib/hotel-blog";
+
+// Enfoques que el hotelero puede elegir para el artículo con IA (la clave
+// viaja al endpoint, que la convierte en instrucciones de investigación).
+const ENFOQUES_IA = [
+  { key: "cerca", label: "Qué hacer cerca" },
+  { key: "gastronomia", label: "Gastronomía" },
+  { key: "temporada", label: "Eventos y temporada" },
+  { key: "consejos", label: "Consejos de viaje" },
+  { key: "hotel", label: "Sobre el hotel" },
+  { key: "libre", label: "Tema libre" },
+] as const;
 
 const inputCls =
   "w-full px-3 py-2 rounded-lg border border-gray-200 text-sm text-kora-text placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-kora-primary/30 focus:border-kora-primary transition";
@@ -221,13 +233,33 @@ function EditorPost({
   const [guardando, setGuardando] = useState(false);
   const [publicando, setPublicando] = useState(false);
   const [subiendo, setSubiendo] = useState(false);
+  const [subiendoFotoTexto, setSubiendoFotoTexto] = useState(false);
   const [borrando, setBorrando] = useState(false);
   const [error, setError] = useState("");
+  const contenidoRef = useRef<HTMLTextAreaElement | null>(null);
 
   // IA
   const [tema, setTema] = useState("");
   const [notas, setNotas] = useState("");
+  const [enfoque, setEnfoque] = useState<string>("cerca");
   const [generando, setGenerando] = useState(false);
+  const [cuota, setCuota] = useState<{ usados: number; limite: number } | null>(null);
+
+  useEffect(() => {
+    let cancelado = false;
+    void fetch("/api/admin/blog-post")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: { usados?: number; limite?: number } | null) => {
+        if (!cancelado && d && typeof d.usados === "number") {
+          setCuota({ usados: d.usados, limite: d.limite ?? LIMITE_IA_MENSUAL });
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelado = true;
+    };
+  }, []);
+  const iaAgotada = cuota !== null && cuota.usados >= cuota.limite;
 
   const set = (cambios: Partial<HotelBlogPost>) => {
     setPost((p) => ({ ...p, ...cambios }));
@@ -266,6 +298,15 @@ function EditorPost({
       const fresco = data as HotelBlogPost;
       setPost(fresco);
       setSucio(false);
+      // Si ya está publicado, refrescar las páginas públicas al momento para
+      // que la corrección se vea sin esperar la revalidación de 1 h.
+      if (fresco.publicado) {
+        void fetch("/api/admin/blog-publish", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ postId: fresco.id, revalidar: true }),
+        }).catch(() => {});
+      }
       return fresco;
     } finally {
       setGuardando(false);
@@ -359,14 +400,19 @@ function EditorPost({
       const res = await fetch("/api/admin/blog-post", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tema, notas }),
+        body: JSON.stringify({ tema, notas, enfoque }),
       });
       const data = (await res.json()) as {
         titulo?: string;
         excerpt?: string;
         contenido?: string;
+        usados?: number;
+        limite?: number;
         error?: string;
       };
+      if (typeof data.usados === "number") {
+        setCuota({ usados: data.usados, limite: data.limite ?? LIMITE_IA_MENSUAL });
+      }
       if (!res.ok || !data.titulo || !data.contenido) {
         setError(
           res.status === 401
@@ -380,6 +426,42 @@ function EditorPost({
       setError("No se pudo conectar con la IA. Revisa tu internet.");
     } finally {
       setGenerando(false);
+    }
+  }
+
+  // Sube una foto e inserta su marcador ![...](url) donde esté el cursor del
+  // textarea (o al final). El render la muestra como imagen del artículo.
+  async function insertarFotoEnTexto(files: FileList | null) {
+    if (!files || files.length === 0) return;
+    setSubiendoFotoTexto(true);
+    setError("");
+    try {
+      const file = files[0];
+      const blob = await comprimirImagen(file);
+      const esWebp = blob !== file && blob.type === "image/webp";
+      const base = file.name.replace(/\.[^.]+$/, "").replace(/[^a-zA-Z0-9]/g, "_");
+      const ext = esWebp ? "webp" : (file.name.split(".").pop() || "jpg").replace(/[^a-z0-9]/gi, "");
+      const rnd = Math.random().toString(36).slice(2, 6);
+      const path = `${userId}/${Date.now()}-${rnd}-${base}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("fotos").upload(path, blob, {
+        upsert: false,
+        contentType: esWebp ? "image/webp" : file.type || undefined,
+      });
+      if (upErr) {
+        setError("No se pudo subir la foto. Inténtalo de nuevo.");
+        return;
+      }
+      const { data } = supabase.storage.from("fotos").getPublicUrl(path);
+      const marcador = `![Describe la foto aquí](${data.publicUrl})`;
+      const ta = contenidoRef.current;
+      const pos = ta ? ta.selectionStart : post.contenido.length;
+      const antes = post.contenido.slice(0, pos).replace(/\n*$/, "");
+      const despues = post.contenido.slice(pos).replace(/^\n*/, "");
+      set({
+        contenido: `${antes}${antes ? "\n\n" : ""}${marcador}\n\n${despues}`,
+      });
+    } finally {
+      setSubiendoFotoTexto(false);
     }
   }
 
@@ -443,12 +525,46 @@ function EditorPost({
       )}
 
       {/* Escríbelo con IA */}
-      <div className="rounded-2xl border border-kora-primary/30 bg-kora-primary/5 p-4 space-y-2">
-        <p className="inline-flex items-center gap-1.5 text-sm font-bold text-kora-primary">
-          <Sparkles size={15} /> Escríbelo con IA
-        </p>
+      <div className="rounded-2xl border border-kora-primary/30 bg-kora-primary/5 p-4 space-y-2.5">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <p className="inline-flex items-center gap-1.5 text-sm font-bold text-kora-primary">
+            <Sparkles size={15} /> Escríbelo con IA
+          </p>
+          {cuota && (
+            <span
+              className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${
+                iaAgotada
+                  ? "text-amber-700 bg-amber-50 border-amber-200"
+                  : "text-kora-primary bg-white border-kora-primary/30"
+              }`}
+            >
+              {iaAgotada
+                ? "Se acabaron los de este mes"
+                : `Te quedan ${cuota.limite - cuota.usados} de ${cuota.limite} este mes`}
+            </span>
+          )}
+        </div>
         <div>
-          <label className={labelCls}>¿Sobre qué es el artículo?</label>
+          <label className={labelCls}>¿De qué quieres que hable?</label>
+          <div className="flex flex-wrap gap-1.5">
+            {ENFOQUES_IA.map((e) => (
+              <button
+                key={e.key}
+                type="button"
+                onClick={() => setEnfoque(e.key)}
+                className={`px-2.5 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+                  enfoque === e.key
+                    ? "border-kora-primary bg-kora-primary/10 text-kora-primary"
+                    : "border-gray-200 bg-white text-kora-muted hover:border-gray-300"
+                }`}
+              >
+                {e.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <label className={labelCls}>El tema, en tus palabras</label>
           <input
             className={inputCls}
             value={tema}
@@ -468,15 +584,21 @@ function EditorPost({
         <button
           type="button"
           onClick={() => void escribirConIA()}
-          disabled={generando}
-          className="btn-press inline-flex items-center gap-2 px-4 py-2 rounded-full bg-kora-primary text-white text-sm font-semibold hover:bg-kora-primary-dark transition-colors"
+          disabled={generando || iaAgotada}
+          className={`btn-press inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-colors ${
+            iaAgotada
+              ? "bg-gray-200 text-gray-400"
+              : "bg-kora-primary text-white hover:bg-kora-primary-dark"
+          }`}
         >
           {generando ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
-          {generando ? "Escribiendo (tarda unos 30 s)…" : "Escribir el artículo"}
+          {generando ? "Investigando y escribiendo (1 a 3 min)…" : "Investigar y escribir"}
         </button>
         <p className={ayudaCls}>
-          La IA usa los datos reales de tu hotel y no inventa precios ni servicios. Tú siempre lo
-          revisas antes de publicar{post.contenido.trim() ? "; ojo: reemplaza lo que ya haya escrito" : ""}.
+          La IA investiga en internet la zona de tu hotel y el tema que elijas, y escribe con lo
+          que encuentra. Sobre tu hotel solo usa tus datos reales. Tú siempre revisas, corriges lo
+          que haga falta y decides cuándo publicar
+          {post.contenido.trim() ? " — ojo: reemplaza lo que ya haya escrito" : ""}.
         </p>
       </div>
 
@@ -542,8 +664,25 @@ function EditorPost({
         </div>
 
         <div>
-          <label className={labelCls}>Artículo</label>
+          <div className="flex items-center justify-between gap-2 mb-1">
+            <label className={`${labelCls} mb-0`}>Artículo</label>
+            <label className="btn-press inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs font-semibold text-kora-text cursor-pointer hover:border-kora-accent transition-colors">
+              {subiendoFotoTexto ? (
+                <Loader2 size={13} className="animate-spin" />
+              ) : (
+                <Plus size={13} />
+              )}
+              {subiendoFotoTexto ? "Subiendo…" : "Insertar foto"}
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => void insertarFotoEnTexto(e.target.files)}
+              />
+            </label>
+          </div>
           <textarea
+            ref={contenidoRef}
             className={`${inputCls} min-h-[320px] font-mono text-[13px]`}
             value={post.contenido}
             placeholder={"Escribe aquí. Formato:\n\n## Un subtítulo\n\nUn párrafo normal. Deja una línea en blanco entre párrafos.\n\n- Una lista\n- Con guiones\n\n**negritas** con asteriscos"}
@@ -551,7 +690,8 @@ function EditorPost({
           />
           <p className={ayudaCls}>
             Formato: “## ” para subtítulos, “- ” para listas, **negritas** entre asteriscos y una
-            línea en blanco entre párrafos. Abajo lo ves como quedará.
+            línea en blanco entre párrafos. “Insertar foto” la pone donde esté tu cursor; cambia el
+            texto entre corchetes por una descripción de la foto. Abajo lo ves como quedará.
           </p>
         </div>
 
@@ -586,7 +726,7 @@ function EditorPost({
             {post.titulo.trim() || "Sin título"}
           </h2>
           <div
-            className="post-hotel text-sm text-kora-text leading-relaxed space-y-3 [&_h2]:text-lg [&_h2]:font-bold [&_h2]:mt-4 [&_h3]:font-bold [&_ul]:list-disc [&_ul]:pl-5 [&_li]:mt-1"
+            className="post-hotel text-sm text-kora-text leading-relaxed space-y-3 [&_h2]:text-lg [&_h2]:font-bold [&_h2]:mt-4 [&_h3]:font-bold [&_ul]:list-disc [&_ul]:pl-5 [&_li]:mt-1 [&_img]:rounded-xl [&_img]:max-w-full"
             dangerouslySetInnerHTML={{ __html: previewHtml }}
           />
         </div>

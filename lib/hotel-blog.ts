@@ -1,14 +1,21 @@
 // Blog por hotel: tipos, consultas públicas y el render del contenido.
 //
 // El contenido de un post es MARKDOWN MÍNIMO (párrafos separados por línea en
-// blanco, "## Subtítulo", "### Subtítulo chico", listas con "- " y **negritas**
-// / *cursivas*). renderPostHtml() lo convierte a HTML emitiendo SOLO esas
-// etiquetas y escapando todo lo demás: XSS imposible por construcción, sin
-// librería de sanitizado. La IA del panel devuelve este mismo formato, así que
-// lo generado y lo escrito a mano se editan igual.
+// blanco, "## Subtítulo", "### Subtítulo chico", listas con "- ", **negritas**
+// / *cursivas*, y fotos en su propia línea con ![descripción](url)).
+// renderPostHtml() lo convierte a HTML emitiendo SOLO esas etiquetas y
+// escapando todo lo demás: XSS imposible por construcción, sin librería de
+// sanitizado. Las imágenes solo se emiten si la URL es del Storage del
+// proyecto (el botón "Insertar foto" del panel sube ahí). La IA del panel
+// devuelve este mismo formato, así que lo generado y lo escrito a mano se
+// editan igual.
 
 import { createClient } from "@supabase/supabase-js";
 import { SUPABASE_URL, SUPABASE_ANON_KEY, supabaseEnvReady } from "@/lib/supabase/env";
+
+// Artículos con IA por hotel por mes (el costo real por artículo con
+// investigación web es de centavos; esto acota el peor caso).
+export const LIMITE_IA_MENSUAL = 2;
 
 export interface HotelBlogPost {
   id: string;
@@ -110,6 +117,18 @@ function inline(s: string): string {
     .replace(/\*([^*]+)\*/g, "<em>$1</em>");
 }
 
+// ¿La URL puede ir en un <img> del post? Solo el Storage público del proyecto:
+// nunca se emite un <img> a un dominio arbitrario escrito en el textarea.
+function urlDeImagenPermitida(url: string): boolean {
+  if (!SUPABASE_URL) return false;
+  try {
+    const u = new URL(url);
+    return u.protocol === "https:" && u.host === new URL(SUPABASE_URL).host;
+  } catch {
+    return false;
+  }
+}
+
 export function renderPostHtml(md: string): string {
   const lineas = (md ?? "").replace(/\r\n/g, "\n").split("\n");
   const html: string[] = [];
@@ -130,6 +149,17 @@ export function renderPostHtml(md: string): string {
   };
 
   for (const cruda of lineas) {
+    // Foto en su propia línea: ![descripción](url). Se valida la URL cruda y
+    // se escapa todo lo que acaba dentro del tag.
+    const foto = cruda.trim().match(/^!\[([^\]]*)\]\(([^)\s]+)\)$/);
+    if (foto && urlDeImagenPermitida(foto[2])) {
+      cerrarParrafo();
+      cerrarLista();
+      html.push(
+        `<img src="${escapeHtml(foto[2])}" alt="${escapeHtml(foto[1])}" loading="lazy" />`
+      );
+      continue;
+    }
     const linea = escapeHtml(cruda.trim());
     if (!linea) {
       cerrarParrafo();

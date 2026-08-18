@@ -63,3 +63,25 @@ drop trigger if exists hotel_blog_posts_touch on public.hotel_blog_posts;
 create trigger hotel_blog_posts_touch
   before update on public.hotel_blog_posts
   for each row execute function public.hotel_blog_touch_updated_at();
+
+-- ── Usos de la IA del blog ───────────────────────────────────────────────────
+-- Cada generación con IA deja una fila; el endpoint cuenta las del mes en curso
+-- para aplicar el límite mensual (2 artículos con IA por hotel). Solo escribe
+-- el servidor (service role): sin policy de insert, el cliente no puede
+-- regalarse usos ni borrarlos.
+
+create table if not exists public.hotel_blog_ia_usos (
+  id         uuid primary key default gen_random_uuid(),
+  hotel_id   uuid not null references public.hoteles(id) on delete cascade,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists hotel_blog_ia_usos_mes_idx
+  on public.hotel_blog_ia_usos (hotel_id, created_at desc);
+
+alter table public.hotel_blog_ia_usos enable row level security;
+
+drop policy if exists "hotel_blog_ia_usos_select" on public.hotel_blog_ia_usos;
+create policy "hotel_blog_ia_usos_select"
+  on public.hotel_blog_ia_usos for select
+  using (public.es_miembro_hotel(hotel_id));

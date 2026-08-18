@@ -30,6 +30,7 @@ interface HotelMini {
   id: string;
   slug: string;
   nombre: string;
+  fotos: string[] | null;
   extras: MiniExtras | null;
 }
 
@@ -38,7 +39,7 @@ async function getHotel(slug: string): Promise<HotelMini | null> {
   const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   const { data } = await supabase
     .from("hoteles")
-    .select("id, slug, nombre, extras")
+    .select("id, slug, nombre, fotos, extras")
     .eq("slug", slug)
     .eq("publicado", true)
     .maybeSingle();
@@ -57,6 +58,8 @@ export async function generateMetadata({
   if (!post) return { title: "Artículo no encontrado" };
   const title = `${post.titulo} · ${hotel.nombre}`;
   const description = post.excerpt || `${post.titulo} — del blog de ${hotel.nombre}.`;
+  // OG image: la portada del post, o la portada del hotel si no puso una.
+  const ogImage = post.portada || hotel.fotos?.[0] || null;
   return {
     title,
     description,
@@ -66,9 +69,9 @@ export async function generateMetadata({
       description,
       type: "article",
       locale: "es_MX",
-      ...(post.portada ? { images: [{ url: post.portada }] } : {}),
+      ...(ogImage ? { images: [{ url: ogImage }] } : {}),
     },
-    twitter: { card: post.portada ? "summary_large_image" : "summary" },
+    twitter: { card: ogImage ? "summary_large_image" : "summary" },
   };
 }
 
@@ -96,7 +99,7 @@ export default async function PostHotel({
         "@id": urlPost,
         headline: post.titulo,
         description: post.excerpt || undefined,
-        image: post.portada || undefined,
+        image: post.portada || hotel.fotos?.[0] || undefined,
         datePublished: post.publicado_at || undefined,
         dateModified: post.updated_at || post.publicado_at || undefined,
         inLanguage: "es-MX",
@@ -164,7 +167,7 @@ export default async function PostHotel({
           />
         )}
         <div
-          className="mt-6 text-[15px] text-kora-text leading-relaxed space-y-4 [&_h2]:text-xl [&_h2]:font-bold [&_h2]:mt-7 [&_h2]:tracking-tight [&_h3]:font-bold [&_h3]:mt-5 [&_ul]:list-disc [&_ul]:pl-5 [&_li]:mt-1.5"
+          className="mt-6 text-[15px] text-kora-text leading-relaxed space-y-4 [&_h2]:text-xl [&_h2]:font-bold [&_h2]:mt-7 [&_h2]:tracking-tight [&_h3]:font-bold [&_h3]:mt-5 [&_ul]:list-disc [&_ul]:pl-5 [&_li]:mt-1.5 [&_img]:rounded-2xl [&_img]:max-w-full [&_img]:border [&_img]:border-gray-100"
           dangerouslySetInnerHTML={{ __html: renderPostHtml(post.contenido) }}
         />
         <div className="mt-10 rounded-2xl p-6 text-center" style={{ backgroundColor: "var(--brand)", color: "var(--brand-ink)" }}>
