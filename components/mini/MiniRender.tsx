@@ -14,6 +14,7 @@ import Link from "next/link";
 import {
   BedDouble,
   CreditCard,
+  FileText,
   Languages,
   MapPin,
   Navigation,
@@ -24,6 +25,7 @@ import {
 import { HotelImage } from "@/components/HotelImage";
 import { Reveal } from "@/components/shared/Reveal";
 import { ReservaForm } from "@/components/mini/ReservaForm";
+import { MiniNav, type MiniNavDatos } from "@/components/mini/MiniNav";
 import { IconoBoton, IconoDe } from "@/components/mini/iconos";
 import { AMENIDADES_MAP } from "@/lib/amenidades";
 import {
@@ -35,14 +37,17 @@ import {
   hrefBoton,
   inkFor,
   resolverBloques,
+  resolverBloquesPagina,
   resolverBotones,
   tituloBloque,
+  vigenciaActiva,
   youtubeEmbed,
   type Bloque,
   type Boton,
   type BotonCtx,
   type BotonZona,
   type MiniExtras,
+  type Pagina,
 } from "@/lib/mini";
 
 // ─── Datos de entrada ─────────────────────────────────────────────────────────
@@ -85,6 +90,8 @@ export interface MiniDatos {
   motorActivo: boolean;
   marcaOculta: boolean;
   hoy: string; // fecha local de México (YYYY-MM-DD) para la vigencia del aviso
+  nav?: MiniNavDatos; // pestañas del sitio; ausente o vacío = sin barra
+  pro?: boolean; // acceso activo: habilita los botones a sitios externos
 }
 
 // ─── Utilidades de formato ────────────────────────────────────────────────────
@@ -105,6 +112,21 @@ function precioDesde(h: MiniHabitacion): { texto: string | null; desde: boolean 
     return { texto: "$" + min.toLocaleString("es-MX") + " MXN", desde: true };
   }
   return { texto: fmtPrecio(h.precio), desde: false };
+}
+const MESES_CORTOS = [
+  "enero", "febrero", "marzo", "abril", "mayo", "junio",
+  "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
+];
+// "2026-09-15" → "15 de septiembre" (sin new Date: evita el corrimiento UTC).
+function fechaCorta(iso: string): string {
+  const [, m, d] = iso.split("-").map(Number);
+  if (!m || !d || !MESES_CORTOS[m - 1]) return iso;
+  return `${d} de ${MESES_CORTOS[m - 1]}`;
+}
+// Precio de menú: "$120" limpio, sin el " MXN" de las habitaciones.
+function precioMenu(p: string): string {
+  const n = aNumero(p);
+  return n ? "$" + n.toLocaleString("es-MX") : p;
 }
 export function urlRed(base: string, v?: string): string | null {
   const s = (v ?? "").trim();
@@ -152,6 +174,23 @@ function BotonUI({
   preview?: boolean;
 }) {
   const href = hrefBoton(boton, ctx);
+  // Enlaces a sitios EXTERNOS son función Pro: sin acceso activo no se
+  // publican; en el editor se dibujan con su candado para que se entienda.
+  if (boton.accion === "enlace" && !ctx.pro) {
+    if (!preview) return null;
+    return (
+      <span
+        className={`${ancho ? "w-full " : ""}inline-flex items-center justify-center gap-2 rounded-full ${
+          grande ? "px-7 py-4" : ancho ? "px-6 py-3.5" : "px-4 py-2"
+        } border border-dashed border-gray-300 text-gray-400 font-semibold text-sm`}
+      >
+        {boton.texto || "Botón sin texto"}
+        <span className="text-[10px] font-bold uppercase tracking-wide rounded-full bg-kora-primary/10 text-kora-primary px-1.5 py-0.5">
+          Pro
+        </span>
+      </span>
+    );
+  }
   // Sin destino (p. ej. un enlace al que todavía no le pegan la dirección) el
   // botón no se publica. Pero en el editor sí se dibuja, apagado y avisando qué
   // le falta: si desapareciera, el hotelero acaba de agregarlo y creería que el
@@ -203,7 +242,9 @@ function botonesDeZona(
   preview: boolean
 ): Boton[] {
   return botones.filter(
-    (b) => (b.zonas ?? []).includes(zona) && (preview || hrefBoton(b, ctx))
+    (b) =>
+      (b.zonas ?? []).includes(zona) &&
+      (preview || (hrefBoton(b, ctx) && (b.accion !== "enlace" || ctx.pro)))
   );
 }
 
@@ -299,11 +340,17 @@ function Cuerpo({
 export function MiniRender({
   datos,
   modo = "publico",
+  pagina,
+  onNavPagina,
 }: {
   datos: MiniDatos;
   /** "preview" apaga las animaciones de entrada para que en el editor todo se
    *  vea de inmediato en vez de esperar a que el bloque entre en pantalla. */
   modo?: "publico" | "preview";
+  /** Página propia a mostrar en vez de la portada (/h/{hotel}/{slug}). */
+  pagina?: Pagina;
+  /** Solo editor: al tocar un tab se cambia de página sin navegar. */
+  onNavPagina?: (slugPagina: string | null) => void;
 }) {
   const {
     slug,
@@ -330,7 +377,9 @@ export function MiniRender({
   const logo = diseno.logoUrl;
   const textos = extras.textos ?? {};
 
-  const bloques = resolverBloques(extras).filter((b) => !b.oculto);
+  const bloques = (pagina ? resolverBloquesPagina(pagina) : resolverBloques(extras)).filter(
+    (b) => !b.oculto
+  );
   const botones = resolverBotones(extras);
 
   const mapsUrl = (extras.mapsUrl ?? "").trim() || null;
@@ -344,6 +393,7 @@ export function MiniRender({
     whatsapp,
     mapsUrl,
     motorActivo,
+    pro: datos.pro === true,
   };
 
   const amenidades = (extras.amenidades ?? []).map((k) => AMENIDADES_MAP[k]).filter(Boolean);
@@ -790,6 +840,187 @@ export function MiniRender({
         );
       }
 
+      case "promocion": {
+        const promo = b.promo ?? {};
+        const texto = (promo.texto ?? "").trim();
+        if (!texto) return null;
+        const vigente = vigenciaActiva(promo.desde, promo.hasta, hoy);
+        // Fuera de vigencia no se publica, pero en el editor se ve marcada:
+        // si desapareciera, el hotelero creería que el editor está roto.
+        if (!vigente && !preview) return null;
+        const btn: Boton = {
+          id: `${b.id}-cta`,
+          texto: (promo.botonTexto ?? "").trim() || "Reservar ahora",
+          accion: "reservar",
+        };
+        const href = hrefBoton(btn, ctx);
+        return (
+          <div
+            className="relative rounded-2xl p-6 sm:p-7 text-center"
+            style={{ backgroundColor: "var(--brand)", color: "var(--brand-ink)" }}
+          >
+            {!vigente && (
+              <span className="absolute top-3 right-3 rounded-full bg-white/90 text-gray-600 text-[10px] font-bold uppercase tracking-wide px-2.5 py-1">
+                Fuera de vigencia
+              </span>
+            )}
+            <p className="text-xl sm:text-2xl font-bold leading-snug whitespace-pre-line">{texto}</p>
+            {promo.hasta && (
+              <p className="mt-2 text-sm opacity-85">Válido hasta el {fechaCorta(promo.hasta)}</p>
+            )}
+            {href && (
+              <a
+                href={href}
+                className="btn-press mt-4 inline-flex items-center justify-center gap-2 rounded-full px-7 py-3.5 font-semibold text-sm"
+                style={{ backgroundColor: "var(--brand-ink)", color: "var(--brand)" }}
+              >
+                <IconoBoton boton={btn} size={17} motorActivo={ctx.motorActivo} />
+                {btn.texto}
+              </a>
+            )}
+          </div>
+        );
+      }
+
+      case "cercanos": {
+        const items = (b.cercanos ?? []).filter((it) => (it.titulo ?? "").trim());
+        if (items.length === 0) return null;
+        return (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {items.map((it, i) => (
+              <div key={i} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                {it.foto && (
+                  <HotelImage
+                    src={it.foto}
+                    alt={it.titulo}
+                    className="w-full h-36 sm:h-40"
+                    sizes="(max-width: 640px) 100vw, 320px"
+                  />
+                )}
+                <div className="p-4">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="font-bold text-sm text-kora-text">{it.titulo}</p>
+                    {(it.distancia ?? "").trim() && (
+                      <span
+                        className="flex-shrink-0 inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold"
+                        style={{ backgroundColor: "var(--brand)", color: "var(--brand-ink)" }}
+                      >
+                        <MapPin size={11} />
+                        {it.distancia}
+                      </span>
+                    )}
+                  </div>
+                  {it.texto && (
+                    <p className="mt-1 text-sm text-kora-muted leading-snug">{it.texto}</p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        );
+      }
+
+      case "menu": {
+        const secciones = (b.menuSecciones ?? [])
+          .map((s) => ({ ...s, items: (s.items ?? []).filter((it) => (it.nombre ?? "").trim()) }))
+          .filter((s) => s.items.length > 0);
+        if (secciones.length === 0) return null;
+        return (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-5">
+            {secciones.map((s, i) => (
+              <div key={i}>
+                {(s.titulo ?? "").trim() && (
+                  <h3
+                    className="text-sm font-bold uppercase tracking-wide mb-2"
+                    style={{ color: "var(--brand)" }}
+                  >
+                    {s.titulo}
+                  </h3>
+                )}
+                <ul className="space-y-2.5">
+                  {s.items.map((it, j) => (
+                    <li key={j}>
+                      <div className="flex items-baseline gap-2">
+                        <span className="font-semibold text-sm text-kora-text">{it.nombre}</span>
+                        <span className="flex-1 border-b border-dotted border-gray-300" aria-hidden />
+                        {(it.precio ?? "").trim() && (
+                          <span className="text-sm font-bold text-kora-text whitespace-nowrap">
+                            {precioMenu(it.precio!)}
+                          </span>
+                        )}
+                      </div>
+                      {it.descripcion && (
+                        <p className="text-[13px] text-kora-muted leading-snug">{it.descripcion}</p>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        );
+      }
+
+      case "cta": {
+        const frase = (b.texto ?? "").trim();
+        const btn =
+          b.ctaBoton && (b.ctaBoton.texto ?? "").trim() ? b.ctaBoton : null;
+        if (!frase && !btn) return null;
+        return (
+          <div className="text-center py-2">
+            {frase && (
+              <p className="text-xl sm:text-2xl font-bold leading-snug text-kora-text whitespace-pre-line">
+                {frase}
+              </p>
+            )}
+            {btn && (
+              <div className="mt-4">
+                <BotonUI
+                  boton={{ ...btn, estilo: btn.estilo ?? "relleno" }}
+                  ctx={ctx}
+                  grande
+                  preview={preview}
+                />
+              </div>
+            )}
+          </div>
+        );
+      }
+
+      case "pdf": {
+        const url = (b.pdfUrl ?? "").trim();
+        const nombre = (b.pdfNombre ?? "").trim() || "Documento";
+        if (!url) {
+          // Público: sin archivo no hay nada que mostrar. Editor: se avisa qué falta.
+          if (!preview) return null;
+          return (
+            <p className="rounded-2xl border-2 border-dashed border-gray-300 p-5 text-center text-sm text-gray-400 font-semibold">
+              Sube tu PDF en el panel de la izquierda para que aparezca aquí.
+            </p>
+          );
+        }
+        return (
+          <div className="flex items-center gap-3 bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+            <span
+              className="flex-shrink-0 inline-flex items-center justify-center w-11 h-11 rounded-xl"
+              style={{ backgroundColor: "var(--brand)", color: "var(--brand-ink)" }}
+            >
+              <FileText size={20} />
+            </span>
+            <p className="flex-1 min-w-0 font-semibold text-sm text-kora-text truncate">{nombre}</p>
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-press flex-shrink-0 inline-flex items-center justify-center rounded-full px-4 py-2 font-semibold text-sm border"
+              style={{ color: "var(--brand)", borderColor: "var(--brand)" }}
+            >
+              Ver PDF
+            </a>
+          </div>
+        );
+      }
+
       default:
         return null;
     }
@@ -838,8 +1069,35 @@ export function MiniRender({
         </div>
       )}
 
+      {/* Pestañas del sitio (Inicio · páginas propias · Blog) */}
+      {datos.nav && (
+        <MiniNav
+          slugHotel={slug}
+          nav={{ ...datos.nav, activo: pagina ? pagina.slug : datos.nav.activo }}
+          preview={preview}
+          onNav={onNavPagina}
+        />
+      )}
+
+      {/* Encabezado de una página propia: sin hero, directo al contenido */}
+      {pagina && (
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 pt-8">
+          <h1
+            className="text-2xl sm:text-3xl font-extrabold tracking-tight"
+            style={{ color: "var(--brand)" }}
+          >
+            {pagina.titulo}
+          </h1>
+          {(pagina.descripcion ?? "").trim() && (
+            <p className="mt-1.5 text-sm sm:text-base text-kora-muted leading-snug">
+              {pagina.descripcion}
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Portada */}
-      {heroCompleto && portada ? (
+      {pagina ? null : heroCompleto && portada ? (
         <section className="relative h-[68vh] min-h-[400px] flex items-end">
           <Image src={portada} alt={nombre} fill sizes="100vw" priority className="object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/30 to-black/10" />
@@ -878,6 +1136,7 @@ export function MiniRender({
         </section>
       )}
 
+      {!pagina && (
       <div className="max-w-2xl mx-auto px-4 sm:px-6">
         <div
           className={`${heroCompleto ? "mt-6" : "-mt-12"} relative bg-white rounded-2xl shadow-lg border border-gray-100 p-6`}
@@ -934,6 +1193,7 @@ export function MiniRender({
           )}
         </div>
       </div>
+      )}
 
       {/* En público el cuerpo entra con la animación de siempre; en el editor va
           directo, porque dentro del marco de vista previa el "entró en pantalla"

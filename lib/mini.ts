@@ -134,7 +134,12 @@ export type BloqueTipo =
   | "texto"
   | "galeria"
   | "destacados"
-  | "video";
+  | "video"
+  | "promocion"
+  | "cercanos"
+  | "menu"
+  | "cta"
+  | "pdf";
 
 export const BLOQUES_NATIVOS: BloqueTipo[] = [
   "formulario",
@@ -159,6 +164,29 @@ export interface DestacadoItem {
   texto?: string;
 }
 
+// La oferta del bloque "promocion". Fuera de vigencia, el bloque no se pinta
+// en la página pública (en el preview del editor se ve marcado).
+export interface Promo {
+  texto?: string; // "2 noches + desayuno por $1,800"
+  desde?: string; // YYYY-MM-DD; vacío = desde siempre
+  hasta?: string; // YYYY-MM-DD; vacío = para siempre (inclusive)
+  botonTexto?: string; // default "Reservar ahora"
+}
+
+// Una tarjeta del bloque "cercanos" (qué hacer cerca del hotel).
+export interface CercanoItem {
+  foto?: string; // URL pública del bucket "fotos"
+  titulo: string;
+  texto?: string;
+  distancia?: string; // "a 10 min caminando", "15 km"
+}
+
+// Una sección del bloque "menu" (restaurante, spa, tours propios…).
+export interface MenuSeccion {
+  titulo?: string; // "Desayunos", "Bebidas"; vacío = sin encabezado
+  items: { nombre: string; precio?: string; descripcion?: string }[];
+}
+
 export interface Bloque {
   id: string; // estable: en los nativos es igual al tipo; en los propios, un uid
   tipo: BloqueTipo;
@@ -170,6 +198,14 @@ export interface Bloque {
   imagenes?: string[]; // "galeria"
   items?: DestacadoItem[]; // "destacados"
   videoUrl?: string; // "video" (link normal de YouTube; se convierte a embed)
+  promo?: Promo; // "promocion"
+  cercanos?: CercanoItem[]; // "cercanos"
+  menuSecciones?: MenuSeccion[]; // "menu"
+  // "cta": la frase va en `texto`; el botón es un Boton normal (misma
+  // infraestructura de acciones que los botones del sitio)
+  ctaBoton?: Boton;
+  pdfUrl?: string; // "pdf": URL pública del archivo en Storage
+  pdfNombre?: string; // "pdf": etiqueta que ve el huésped (ej. "Menú del restaurante")
 }
 
 // Títulos por defecto de cada tipo (lo que hoy está escrito a fuego en el HTML).
@@ -187,6 +223,11 @@ export const BLOQUE_TITULO_DEFAULT: Record<BloqueTipo, string> = {
   galeria: "Galería",
   destacados: "Por qué elegirnos",
   video: "Conoce el hotel",
+  promocion: "Promoción",
+  cercanos: "Qué hacer cerca",
+  menu: "Menú",
+  cta: "",
+  pdf: "",
 };
 
 // Catálogo para el botón "+ Agregar bloque" del editor.
@@ -209,6 +250,152 @@ export const BLOQUES_CATALOGO: {
   { tipo: "galeria", label: "Galería propia", desc: "Un grupo de fotos aparte, con su propio título (ej. El restaurante).", nativo: false },
   { tipo: "destacados", label: "Puntos fuertes", desc: "Filas con ícono y texto: alberca natural, desayuno incluido, pet friendly.", nativo: false },
   { tipo: "video", label: "Video", desc: "Un video de YouTube de tu hotel.", nativo: false },
+  { tipo: "promocion", label: "Promoción", desc: "Una oferta con fecha de fin y botón de reservar (ej. 2 noches + desayuno).", nativo: false },
+  { tipo: "cercanos", label: "Qué hacer cerca", desc: "Tarjetas con foto de lugares y actividades cerca de tu hotel.", nativo: false },
+  { tipo: "menu", label: "Menú o lista de precios", desc: "Tu menú del restaurante o lista de servicios con precios.", nativo: false },
+  { tipo: "cta", label: "Llamada a la acción", desc: "Una frase con un botón grande: reservar, WhatsApp, llamar o un enlace.", nativo: false },
+  { tipo: "pdf", label: "Archivo PDF", desc: "Tu menú, catálogo o carta de eventos en PDF, con botón para verlo.", nativo: false },
+];
+
+// ─── Secciones prehechas ─────────────────────────────────────────────────────
+// Conjuntos de bloques ya armados con contenido de ejemplo: el hotelero los
+// agrega de un clic y solo cambia los textos y las fotos. Cada uso genera ids
+// nuevos, así que se pueden agregar las veces que haga falta.
+
+function ctaReservar(frase: string): Bloque {
+  return {
+    id: nuevoId("cta"),
+    tipo: "cta",
+    texto: frase,
+    ctaBoton: { id: nuevoId("btn"), texto: "Reservar ahora", accion: "reservar", estilo: "relleno" },
+  };
+}
+
+export const PLANTILLAS_BLOQUES: {
+  key: string;
+  label: string;
+  desc: string;
+  crear: () => Bloque[];
+}[] = [
+  {
+    key: "historia",
+    label: "Nuestra historia",
+    desc: "Un texto de presentación con su llamada a reservar.",
+    crear: () => [
+      {
+        id: nuevoId("texto"),
+        tipo: "texto",
+        titulo: "Nuestra historia",
+        texto:
+          "Cambia este texto: cuenta cómo nació tu hotel, quiénes lo cuidan y qué lo hace distinto. A los huéspedes les encanta saber quién los recibe.",
+      },
+      ctaReservar("Ven a conocernos en persona"),
+    ],
+  },
+  {
+    key: "restaurante",
+    label: "Restaurante completo",
+    desc: "Presentación, menú con precios, galería y botón de reserva.",
+    crear: () => [
+      {
+        id: nuevoId("texto"),
+        tipo: "texto",
+        titulo: "Nuestro restaurante",
+        texto:
+          "Cambia este texto: describe tu cocina, tus platillos estrella y el horario de servicio.",
+      },
+      {
+        id: nuevoId("menu"),
+        tipo: "menu",
+        menuSecciones: [
+          {
+            titulo: "Desayunos",
+            items: [
+              { nombre: "Cambia este platillo", precio: "120", descripcion: "Y esta descripción corta." },
+              { nombre: "Otro platillo", precio: "95" },
+            ],
+          },
+          { titulo: "Bebidas", items: [{ nombre: "Café de la región", precio: "45" }] },
+        ],
+      },
+      { id: nuevoId("gal"), tipo: "galeria", titulo: "Del comal a tu mesa", imagenes: [] },
+      ctaReservar("Reserva tu mesa al hospedarte"),
+    ],
+  },
+  {
+    key: "bodas",
+    label: "Bodas y eventos",
+    desc: "Presentación, puntos fuertes, galería y contacto por WhatsApp.",
+    crear: () => [
+      {
+        id: nuevoId("texto"),
+        tipo: "texto",
+        titulo: "Tu evento con nosotros",
+        texto:
+          "Cambia este texto: cuenta qué tipo de eventos reciben, para cuántas personas y qué incluye el lugar.",
+      },
+      {
+        id: nuevoId("dest"),
+        tipo: "destacados",
+        titulo: "Lo que incluye",
+        items: [
+          { icono: "corazon", titulo: "Cambia este punto", texto: "Ej. jardín para ceremonia" },
+          { icono: "comida", titulo: "Otro punto", texto: "Ej. banquete con cocina local" },
+          { icono: "cama", titulo: "Otro más", texto: "Ej. habitaciones para invitados" },
+        ],
+      },
+      { id: nuevoId("gal"), tipo: "galeria", titulo: "Eventos que hemos recibido", imagenes: [] },
+      {
+        id: nuevoId("cta"),
+        tipo: "cta",
+        texto: "Cuéntanos de tu evento y te armamos una propuesta",
+        ctaBoton: {
+          id: nuevoId("btn"),
+          texto: "Escribir por WhatsApp",
+          accion: "whatsapp",
+          valor: "Hola, quiero información para un evento",
+          estilo: "relleno",
+        },
+      },
+    ],
+  },
+  {
+    key: "cerca",
+    label: "Qué hacer en la zona",
+    desc: "Tarjetas de lugares cercanos y botón de reserva.",
+    crear: () => [
+      {
+        id: nuevoId("cerc"),
+        tipo: "cercanos",
+        cercanos: [
+          { titulo: "Cambia este lugar", distancia: "A 5 min", texto: "Y esta descripción corta." },
+          { titulo: "Otro lugar", distancia: "A 20 min en auto" },
+        ],
+      },
+      ctaReservar("Hospédate cerca de todo"),
+    ],
+  },
+  {
+    key: "promo",
+    label: "Promoción de temporada",
+    desc: "Una oferta con fechas y botón de reserva.",
+    crear: () => [
+      {
+        id: nuevoId("promo"),
+        tipo: "promocion",
+        promo: { texto: "Cambia esta oferta: 2 noches + desayuno para dos", botonTexto: "Reservar ahora" },
+      },
+    ],
+  },
+  {
+    key: "menu-pdf",
+    label: "Menú o catálogo en PDF",
+    desc: "Un PDF descargable con su llamada a la acción.",
+    crear: () => [
+      { id: nuevoId("pdf"), tipo: "pdf", titulo: "Nuestro menú", pdfNombre: "Menú del restaurante" },
+      ctaReservar("Reserva y pruébalo en persona"),
+    ],
+  },
 ];
 
 // ─── Botones y CTAs ──────────────────────────────────────────────────────────
@@ -304,13 +491,19 @@ export interface Aviso {
   enlaceUrl?: string;
 }
 
-// ¿El aviso debe verse hoy? Se compara en fecha local YYYY-MM-DD para que
-// "hasta el 2 de noviembre" incluya todo el día 2 en México.
+// ¿Una vigencia desde/hasta aplica hoy? Se compara en fecha local YYYY-MM-DD
+// para que "hasta el 2 de noviembre" incluya todo el día 2 en México. La usan
+// el aviso y el bloque de promoción.
+export function vigenciaActiva(desde: string | undefined, hasta: string | undefined, hoy: string): boolean {
+  if (desde && hoy < desde) return false;
+  if (hasta && hoy > hasta) return false;
+  return true;
+}
+
+// ¿El aviso debe verse hoy?
 export function avisoVigente(aviso: Aviso | undefined, hoy: string): boolean {
   if (!aviso?.activo || !(aviso.texto ?? "").trim()) return false;
-  if (aviso.desde && hoy < aviso.desde) return false;
-  if (aviso.hasta && hoy > aviso.hasta) return false;
-  return true;
+  return vigenciaActiva(aviso.desde, aviso.hasta, hoy);
 }
 
 // Fecha local de México en YYYY-MM-DD (el servidor corre en UTC: sin esto, un
@@ -347,6 +540,7 @@ export interface MiniExtras {
   notificaciones?: Notificaciones;
   onboarding?: OnboardingProgreso;
   addons?: Addon[];
+  paginas?: Pagina[]; // páginas propias del sitio (/h/{hotel}/{slug})
   experiencias?: Experiencia[];
   experienciasBundle?: ExperienciasBundle;
   formasPago?: string[];
@@ -462,6 +656,95 @@ export function resolverBloques(extras: MiniExtras | null | undefined): Bloque[]
   return [...alInicio, ...base, ...alFinal];
 }
 
+// ─── Páginas adicionales del sitio ───────────────────────────────────────────
+// El sitio del hotel puede tener páginas propias además de la portada
+// ("Restaurante", "Bodas", "Qué hacer en Xilitla"…). Cada una es una lista de
+// bloques PROPIOS (los nativos leen datos del hotel y viven solo en la home).
+// Viven en extras.paginas y se sirven en /h/{hotel}/{slug}.
+
+export interface Pagina {
+  id: string; // uid estable; el título puede cambiar, el id no
+  slug: string; // el pedazo de URL; fijo tras crear la página (SEO)
+  titulo: string; // texto de la pestaña y <h1> de la página
+  descripcion?: string; // meta description; vacía = se deriva del contenido
+  bloques: Bloque[];
+  oculta?: boolean; // ausente = visible en la navegación y el sitemap
+}
+
+// Tope de producto: suficiente para un sitio completo sin volver el editor
+// (ni el jsonb) inmanejable.
+export const MAX_PAGINAS = 5;
+
+// Rutas que ya existen bajo /h/{hotel}/ y palabras que nunca pueden ser el
+// slug de una página propia.
+export const SLUGS_RESERVADOS = [
+  "habitacion",
+  "reservar",
+  "resena",
+  "blog",
+  "guia",
+  "llms.txt",
+  "opengraph-image",
+  "sitemap.xml",
+  "robots.txt",
+];
+
+// "Qué hacer en Xilitla" → "que-hacer-en-xilitla".
+export function slugificarPagina(titulo: string): string {
+  return titulo
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60);
+}
+
+// Los tipos que caben en una página propia (el catálogo se filtra con esto).
+export function esBloqueDePagina(tipo: string): boolean {
+  return !esBloqueNativo(tipo);
+}
+
+export function resolverPaginas(extras: MiniExtras | null | undefined): Pagina[] {
+  const guardadas = extras?.paginas;
+  if (!Array.isArray(guardadas)) return [];
+  return guardadas.filter(
+    (p) =>
+      p &&
+      typeof p.id === "string" &&
+      typeof p.slug === "string" &&
+      p.slug.length > 0 &&
+      typeof p.titulo === "string"
+  );
+}
+
+// Los bloques de una página propia: solo sanea. Sin la auto-inyección de
+// nativos de resolverBloques(), que es exclusiva de la home.
+export function resolverBloquesPagina(pagina: Pagina): Bloque[] {
+  return (pagina.bloques ?? []).filter(
+    (b) => b && typeof b.id === "string" && typeof b.tipo === "string" && esBloqueDePagina(b.tipo)
+  );
+}
+
+// Meta description de una página propia: lo que escribió el hotelero, o el
+// primer bloque de texto, o una frase genérica. Recortada sin partir palabras.
+export function metaDescripcionPagina(pagina: Pagina, nombreHotel: string, max = 158): string {
+  const propia = (pagina.descripcion ?? "").trim();
+  const texto =
+    propia ||
+    (resolverBloquesPagina(pagina)
+      .map((b) => (b.texto ?? "").trim())
+      .find(Boolean) ??
+      "") ||
+    `${pagina.titulo} de ${nombreHotel}.`;
+  if (texto.length <= max) return texto;
+  const corte = texto.slice(0, max);
+  const ultimoEspacio = corte.lastIndexOf(" ");
+  const base = ultimoEspacio > 40 ? corte.slice(0, ultimoEspacio) : corte;
+  return base.replace(/[\s.,;:–—-]+$/, "") + "…";
+}
+
 // El título que se dibuja: lo que escribió el hotelero, o el de fábrica. Una
 // cadena vacía guardada a propósito significa "sin encabezado".
 export function tituloBloque(b: Bloque): string {
@@ -516,6 +799,10 @@ export interface BotonCtx {
   whatsapp?: string | null;
   mapsUrl?: string | null;
   motorActivo: boolean;
+  // Botones a sitios EXTERNOS (accion "enlace") son función Pro: solo se
+  // publican con acceso activo (prueba vigente o suscripción). En el editor
+  // se dibujan con su candado en vez de desaparecer.
+  pro?: boolean;
 }
 
 // Destino final del botón. Devuelve null si le falta el dato (p. ej. WhatsApp

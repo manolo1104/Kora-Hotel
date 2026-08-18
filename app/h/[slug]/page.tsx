@@ -12,6 +12,7 @@ import { AMENIDADES_MAP } from "@/lib/amenidades";
 import {
   hoyMx,
   resolverBloques,
+  resolverPaginas,
   tituloBloque,
   type Bloque,
   type MiniExtras,
@@ -19,6 +20,7 @@ import {
 import { SUPABASE_URL, SUPABASE_ANON_KEY, supabaseEnvReady } from "@/lib/supabase/env";
 import { ownerTienePlanActivo, accesoDelHotel } from "@/lib/suscripcion";
 import { getResenasPublicadas } from "@/lib/db/reviews";
+import { tienePostsPublicados } from "@/lib/hotel-blog";
 import { metaDescripcion } from "@/lib/seo";
 import { extraerCoords } from "@/lib/maps";
 
@@ -168,6 +170,15 @@ export default async function MiniPagina({
     motorActivo,
     marcaOculta,
     hoy: hoyMx(),
+    pro: acceso.activo,
+    // Pestañas del sitio: páginas propias visibles + Blog si hay artículos.
+    nav: {
+      paginas: resolverPaginas(extras)
+        .filter((p) => !p.oculta)
+        .map((p) => ({ slug: p.slug, titulo: p.titulo })),
+      blog: await tienePostsPublicados(hotel.id),
+      activo: null,
+    },
   };
 
   // ─── SEO: JSON-LD (solo servidor) ──────────────────────────────────────────

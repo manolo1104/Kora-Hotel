@@ -2328,6 +2328,26 @@ export function PanelEditor({
             )}
           </div>
 
+          {/* Blog del hotel: artículos que traen visitas de Google a su página */}
+          {slug && (
+            <div className={card}>
+              <div className="flex items-center gap-2 mb-1">
+                <FileText size={18} className="text-kora-primary" />
+                <h2 className="text-lg font-bold text-kora-text">Blog de tu hotel</h2>
+              </div>
+              <p className="text-sm text-kora-muted mb-4">
+                Publica artículos sobre tu destino (“Qué hacer en…”, “Cuándo visitar…”) y deja que
+                Google te traiga huéspedes. Los escribes tú o la IA, y se indexan solos.
+              </p>
+              <Link
+                href={`/panel/${slug}/sitio/blog`}
+                className="btn-press inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-kora-primary text-kora-primary font-semibold text-sm hover:bg-kora-primary/5 transition-colors"
+              >
+                <FileText size={16} /> Abrir mi blog
+              </Link>
+            </div>
+          )}
+
           <div className={`${card} space-y-5`}>
             <div className="flex items-center gap-2">
               <Palette size={18} className="text-kora-primary" />

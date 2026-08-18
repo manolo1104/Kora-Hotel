@@ -19,9 +19,11 @@ import {
   Eye,
   EyeOff,
   ExternalLink,
+  FileText,
   GripVertical,
   Images,
   Loader2,
+  MapPin,
   Megaphone,
   Monitor,
   MousePointerClick,
@@ -29,9 +31,11 @@ import {
   Plus,
   Smartphone,
   Sparkles,
+  Tag,
   Trash2,
   Type,
   Undo2,
+  UtensilsCrossed,
   Video,
   X,
 } from "lucide-react";
@@ -51,9 +55,14 @@ import {
   fontStack,
   FUENTES,
   ICONOS,
+  MAX_PAGINAS,
   nuevoId,
+  PLANTILLAS_BLOQUES,
   resolverBloques,
   resolverBotones,
+  resolverPaginas,
+  SLUGS_RESERVADOS,
+  slugificarPagina,
   ZONAS_BOTON,
   type Aviso,
   type Bloque,
@@ -65,6 +74,7 @@ import {
   type Diseno,
   type MiniExtras,
   type MiniFaq,
+  type Pagina,
   type Politicas,
   type Textos,
 } from "@/lib/mini";
@@ -96,6 +106,11 @@ function IconoTipo({ tipo }: { tipo: BloqueTipo }) {
   if (tipo === "galeria") return <Images size={15} className={cls} />;
   if (tipo === "destacados") return <Sparkles size={15} className={cls} />;
   if (tipo === "video") return <Video size={15} className={cls} />;
+  if (tipo === "promocion") return <Tag size={15} className={cls} />;
+  if (tipo === "cercanos") return <MapPin size={15} className={cls} />;
+  if (tipo === "menu") return <UtensilsCrossed size={15} className={cls} />;
+  if (tipo === "cta") return <MousePointerClick size={15} className={cls} />;
+  if (tipo === "pdf") return <FileText size={15} className={cls} />;
   return <GripVertical size={15} className="text-gray-300" />;
 }
 
@@ -114,6 +129,7 @@ const PANELES: { key: PanelKey; label: string; Icon: typeof Type }[] = [
 // es cuál.
 interface Doc {
   bloques: Bloque[];
+  paginas: Pagina[];
   botones: Boton[];
   textos: Textos;
   aviso: Aviso;
@@ -146,6 +162,7 @@ export function EditorVisual({
     const e = datosIniciales.extras ?? {};
     return {
       bloques: resolverBloques(e),
+      paginas: resolverPaginas(e),
       botones: resolverBotones(e),
       textos: e.textos ?? {},
       aviso: e.aviso ?? {},
@@ -169,6 +186,13 @@ export function EditorVisual({
 
   const [panel, setPanel] = useState<PanelKey>("bloques");
   const [abierto, setAbierto] = useState<string | null>(null);
+
+  // Qué página edita el panel Bloques: null = Inicio (la portada). Va también
+  // en un ref para que los flujos asíncronos (fotos, IA) escriban en la página
+  // correcta aunque su clausura haya quedado vieja. No entra al historial de
+  // deshacer: cambiar de página es navegación, no edición.
+  const [paginaActiva, setPaginaActivaState] = useState<string | null>(null);
+  const paginaActivaRef = useRef<string | null>(null);
   const [vista, setVista] = useState<"movil" | "escritorio">("escritorio");
   const [pestanaMovil, setPestanaMovil] = useState<"editar" | "ver">("editar");
   const [menuAgregar, setMenuAgregar] = useState(false);
@@ -248,6 +272,7 @@ export function EditorVisual({
       extras: {
         ...datosIniciales.extras,
         bloques: doc.bloques,
+        paginas: doc.paginas,
         botones: doc.botones,
         textos: doc.textos,
         aviso: doc.aviso,
@@ -258,33 +283,59 @@ export function EditorVisual({
         mapsUrl: doc.mapsUrl,
         mapEmbedUrl: doc.mapEmbedUrl,
       } as MiniExtras,
+      nav: {
+        paginas: doc.paginas.filter((p) => !p.oculta).map((p) => ({ slug: p.slug, titulo: p.titulo })),
+        blog: false,
+        activo: null,
+      },
     }),
     [datosIniciales, doc]
   );
 
+  // La página que se está viendo en el preview (con sus bloques al día).
+  const paginaPreview = paginaActiva
+    ? doc.paginas.find((p) => p.id === paginaActiva)
+    : undefined;
+
   // ─── Bloques ───────────────────────────────────────────────────────────────
+  // Todos los helpers de bloques pasan por este par: editan la portada
+  // (doc.bloques) o la página activa (doc.paginas[i].bloques) según el selector.
+  function bloquesActuales(): Bloque[] {
+    const pid = paginaActivaRef.current;
+    if (!pid) return docRef.current.bloques;
+    return docRef.current.paginas.find((p) => p.id === pid)?.bloques ?? [];
+  }
+  function conBloques(bs: Bloque[]): Partial<Doc> {
+    const pid = paginaActivaRef.current;
+    if (!pid) return { bloques: bs };
+    return {
+      paginas: docRef.current.paginas.map((p) => (p.id === pid ? { ...p, bloques: bs } : p)),
+    };
+  }
   function actualizarBloque(id: string, cambios: Partial<Bloque>, grupo?: string) {
     aplicar(
-      { bloques: docRef.current.bloques.map((b) => (b.id === id ? { ...b, ...cambios } : b)) },
+      conBloques(bloquesActuales().map((b) => (b.id === id ? { ...b, ...cambios } : b))),
       grupo
     );
   }
   function borrarBloque(id: string) {
-    aplicar({ bloques: docRef.current.bloques.filter((b) => b.id !== id) });
+    aplicar(conBloques(bloquesActuales().filter((b) => b.id !== id)));
   }
   function moverBloque(desde: number, hasta: number) {
-    const bs = docRef.current.bloques;
+    const bs = bloquesActuales();
     if (hasta < 0 || hasta >= bs.length || desde === hasta) return;
     const copia = [...bs];
     const [item] = copia.splice(desde, 1);
     copia.splice(hasta, 0, item);
-    aplicar({ bloques: copia });
+    aplicar(conBloques(copia));
   }
   function agregarBloque(tipo: BloqueTipo) {
     setMenuAgregar(false);
     // Un bloque nativo no se duplica: si ya está en la lista, solo se prende y
-    // se abre (dos "Habitaciones" mostrarían el mismo contenido dos veces).
+    // se abre (dos "Habitaciones" mostrarían el mismo contenido dos veces). En
+    // una página propia los nativos ni siquiera salen en el catálogo.
     if (esBloqueNativo(tipo)) {
+      if (paginaActivaRef.current) return;
       const ya = docRef.current.bloques.find((b) => b.tipo === tipo);
       if (ya) {
         actualizarBloque(ya.id, { oculto: false });
@@ -294,8 +345,79 @@ export function EditorVisual({
     }
     const nuevo: Bloque = { id: nuevoId(tipo), tipo };
     if (tipo === "destacados") nuevo.items = [{ icono: "estrella", titulo: "" }];
-    aplicar({ bloques: [...docRef.current.bloques, nuevo] });
+    if (tipo === "cercanos") nuevo.cercanos = [{ titulo: "" }];
+    if (tipo === "menu") nuevo.menuSecciones = [{ titulo: "", items: [{ nombre: "" }] }];
+    if (tipo === "cta") {
+      nuevo.ctaBoton = { id: nuevoId("btn"), texto: "Reservar ahora", accion: "reservar", estilo: "relleno" };
+    }
+    aplicar(conBloques([...bloquesActuales(), nuevo]));
     setAbierto(nuevo.id);
+  }
+
+  // Inserta una sección prehecha: varios bloques ya armados con contenido de
+  // ejemplo que el hotelero solo rellena. Cada uso trae ids nuevos.
+  function agregarPlantilla(key: string) {
+    setMenuAgregar(false);
+    const plantilla = PLANTILLAS_BLOQUES.find((pl) => pl.key === key);
+    if (!plantilla) return;
+    const nuevos = plantilla.crear();
+    aplicar(conBloques([...bloquesActuales(), ...nuevos]));
+    if (nuevos[0]) setAbierto(nuevos[0].id);
+  }
+
+  // ─── Páginas ───────────────────────────────────────────────────────────────
+  function setPaginaActiva(id: string | null) {
+    paginaActivaRef.current = id;
+    setPaginaActivaState(id);
+    setAbierto(null);
+    setMenuAgregar(false);
+  }
+  // Crea la página y devuelve un mensaje de error para el formulario, o null.
+  function crearPagina(titulo: string): string | null {
+    const t = titulo.trim();
+    if (!t) return "Escribe el nombre de la página.";
+    const paginas = docRef.current.paginas;
+    if (paginas.length >= MAX_PAGINAS) {
+      return `Ya tienes ${MAX_PAGINAS} páginas, el máximo. Elimina una para crear otra.`;
+    }
+    const slugNuevo = slugificarPagina(t);
+    if (!slugNuevo) return "El nombre necesita al menos una letra o número.";
+    if (SLUGS_RESERVADOS.includes(slugNuevo)) {
+      return `"${t}" no se puede usar: esa dirección ya la ocupa el sitio. Prueba otro nombre.`;
+    }
+    if (paginas.some((p) => p.slug === slugNuevo)) {
+      return "Ya tienes una página con ese nombre.";
+    }
+    const nueva: Pagina = { id: nuevoId("pag"), slug: slugNuevo, titulo: t, bloques: [] };
+    aplicar({ paginas: [...paginas, nueva] });
+    setPaginaActiva(nueva.id);
+    return null;
+  }
+  // El título del tab se puede cambiar; el slug (la URL) se queda: es SEO.
+  function renombrarPagina(id: string, titulo: string) {
+    const t = titulo.trim();
+    if (!t) return;
+    aplicar(
+      { paginas: docRef.current.paginas.map((p) => (p.id === id ? { ...p, titulo: t } : p)) },
+      `pag-titulo:${id}`
+    );
+  }
+  function describirPagina(id: string, descripcion: string) {
+    aplicar(
+      { paginas: docRef.current.paginas.map((p) => (p.id === id ? { ...p, descripcion } : p)) },
+      `pag-desc:${id}`
+    );
+  }
+  function toggleOcultaPagina(id: string) {
+    aplicar({
+      paginas: docRef.current.paginas.map((p) =>
+        p.id === id ? { ...p, oculta: !p.oculta } : p
+      ),
+    });
+  }
+  function eliminarPagina(id: string) {
+    aplicar({ paginas: docRef.current.paginas.filter((p) => p.id !== id) });
+    if (paginaActivaRef.current === id) setPaginaActiva(null);
   }
 
   // ─── Subir imágenes ────────────────────────────────────────────────────────
@@ -337,16 +459,92 @@ export function EditorVisual({
       try {
         const urls = await subirImagenes(files);
         if (urls.length) {
-          const bs = docRef.current.bloques.map((b) =>
+          const bs = bloquesActuales().map((b) =>
             b.id === bloqueId ? { ...b, imagenes: [...(b.imagenes ?? []), ...urls] } : b
           );
-          aplicar({ bloques: bs });
+          aplicar(conBloques(bs));
         }
       } finally {
         setSubiendo(null);
       }
     },
+    // bloquesActuales/conBloques son estables en la práctica (solo leen refs).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [subirImagenes, aplicar]
+  );
+
+  // La foto de una tarjeta del bloque "Qué hacer cerca" (una por tarjeta).
+  const subirFotoCercano = useCallback(
+    async (bloqueId: string, idx: number, files: FileList | null) => {
+      setSubiendo(`${bloqueId}:${idx}`);
+      setError("");
+      try {
+        const urls = await subirImagenes(files);
+        if (urls[0]) {
+          const bs = bloquesActuales().map((b) => {
+            if (b.id !== bloqueId) return b;
+            const copia = [...(b.cercanos ?? [])];
+            if (!copia[idx]) return b;
+            copia[idx] = { ...copia[idx], foto: urls[0] };
+            return { ...b, cercanos: copia };
+          });
+          aplicar(conBloques(bs));
+        }
+      } finally {
+        setSubiendo(null);
+      }
+    },
+    // bloquesActuales/conBloques son estables en la práctica (solo leen refs).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [subirImagenes, aplicar]
+  );
+
+  // El PDF de un bloque "Archivo PDF". No se comprime (no es imagen); tope de
+  // 10 MB para no colgar la subida del hotelero.
+  const subirPdf = useCallback(
+    async (bloqueId: string, files: FileList | null) => {
+      const file = files?.[0];
+      if (!file) return;
+      if (file.type !== "application/pdf") {
+        setError("Ese archivo no es un PDF.");
+        return;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        setError("El PDF pesa más de 10 MB. Compáctalo e inténtalo de nuevo.");
+        return;
+      }
+      setSubiendo(bloqueId);
+      setError("");
+      try {
+        const base = file.name.replace(/\.[^.]+$/, "").replace(/[^a-zA-Z0-9]/g, "_");
+        const rnd = Math.random().toString(36).slice(2, 6);
+        const path = `${userId}/${Date.now()}-${rnd}-${base}.pdf`;
+        const { error: upErr } = await supabase.storage.from("fotos").upload(path, file, {
+          upsert: false,
+          contentType: "application/pdf",
+        });
+        if (upErr) {
+          setError("No se pudo subir el PDF. Inténtalo de nuevo.");
+          return;
+        }
+        const { data } = supabase.storage.from("fotos").getPublicUrl(path);
+        const bs = bloquesActuales().map((b) =>
+          b.id === bloqueId
+            ? {
+                ...b,
+                pdfUrl: data.publicUrl,
+                pdfNombre: (b.pdfNombre ?? "").trim() || file.name.replace(/\.pdf$/i, ""),
+              }
+            : b
+        );
+        aplicar(conBloques(bs));
+      } finally {
+        setSubiendo(null);
+      }
+    },
+    // bloquesActuales/conBloques son estables en la práctica (solo leen refs).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [supabase, userId, aplicar]
   );
 
   // Fotos del hotel (las del bloque nativo "Galería del hotel").
@@ -391,7 +589,7 @@ export function EditorVisual({
         const notas =
           destino.tipo === "descripcion"
             ? d.descripcion
-            : d.bloques.find((b) => b.id === destino.id)?.texto ?? "";
+            : bloquesActuales().find((b) => b.id === destino.id)?.texto ?? "";
         const res = await fetch("/api/admin/hotel-description", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -482,6 +680,7 @@ export function EditorVisual({
       const extras = {
         ...extrasBase.current,
         bloques: d.bloques.map((b) => ({ ...b })),
+        paginas: d.paginas.map((p) => ({ ...p, bloques: p.bloques.map((b) => ({ ...b })) })),
         botones: d.botones.filter((b) => (b.texto ?? "").trim()),
         textos: d.textos,
         aviso: d.aviso,
@@ -526,6 +725,7 @@ export function EditorVisual({
   }
 
   const slug = datosIniciales.slug;
+  const pro = datosIniciales.pro === true;
   const rutaSalida = `/panel/${slug}/sitio`;
 
   async function guardarYSalir() {
@@ -661,6 +861,15 @@ export function EditorVisual({
               <PanelBloques
                 doc={doc}
                 slug={slug}
+                bloques={paginaPreview ? paginaPreview.bloques : doc.bloques}
+                paginas={doc.paginas}
+                paginaActiva={paginaActiva}
+                onPagina={setPaginaActiva}
+                onCrearPagina={crearPagina}
+                onRenombrarPagina={renombrarPagina}
+                onDescribirPagina={describirPagina}
+                onOcultarPagina={toggleOcultaPagina}
+                onEliminarPagina={eliminarPagina}
                 abierto={abierto}
                 setAbierto={setAbierto}
                 actualizar={actualizarBloque}
@@ -671,9 +880,13 @@ export function EditorVisual({
                 menuAgregar={menuAgregar}
                 setMenuAgregar={setMenuAgregar}
                 agregar={agregarBloque}
+                agregarPlantilla={agregarPlantilla}
                 subirFotos={subirFotos}
                 subirFotosHotel={subirFotosHotel}
+                subirFotoCercano={subirFotoCercano}
+                subirPdf={subirPdf}
                 subiendo={subiendo}
+                pro={pro}
                 escribirConIA={escribirConIA}
                 generando={generando}
               />
@@ -739,7 +952,18 @@ export function EditorVisual({
               if (a) e.preventDefault();
             }}
           >
-            <MiniRender datos={datosPreview} modo="preview" />
+            <MiniRender
+              datos={datosPreview}
+              modo="preview"
+              pagina={paginaPreview}
+              onNavPagina={(slugPagina) => {
+                if (slugPagina === "blog") return;
+                const destino = slugPagina
+                  ? doc.paginas.find((p) => p.slug === slugPagina)
+                  : null;
+                setPaginaActiva(destino ? destino.id : null);
+              }}
+            />
           </div>
         </main>
       </div>
@@ -858,14 +1082,36 @@ function PanelBloques({
   menuAgregar,
   setMenuAgregar,
   agregar,
+  agregarPlantilla,
   subirFotos,
   subirFotosHotel,
+  subirFotoCercano,
+  subirPdf,
   subiendo,
   escribirConIA,
   generando,
+  pro,
+  bloques,
+  paginas,
+  paginaActiva,
+  onPagina,
+  onCrearPagina,
+  onRenombrarPagina,
+  onDescribirPagina,
+  onOcultarPagina,
+  onEliminarPagina,
 }: {
   doc: Doc;
   slug: string;
+  bloques: Bloque[];
+  paginas: Pagina[];
+  paginaActiva: string | null;
+  onPagina: (id: string | null) => void;
+  onCrearPagina: (titulo: string) => string | null;
+  onRenombrarPagina: (id: string, titulo: string) => void;
+  onDescribirPagina: (id: string, descripcion: string) => void;
+  onOcultarPagina: (id: string) => void;
+  onEliminarPagina: (id: string) => void;
   abierto: string | null;
   setAbierto: (id: string | null) => void;
   actualizar: (id: string, cambios: Partial<Bloque>, grupo?: string) => void;
@@ -876,24 +1122,48 @@ function PanelBloques({
   menuAgregar: boolean;
   setMenuAgregar: (v: boolean) => void;
   agregar: (t: BloqueTipo) => void;
+  agregarPlantilla: (key: string) => void;
   subirFotos: (id: string, files: FileList | null) => void;
   subirFotosHotel: (files: FileList | null) => void;
+  subirFotoCercano: (id: string, idx: number, files: FileList | null) => void;
+  subirPdf: (id: string, files: FileList | null) => void;
   subiendo: string | null;
   escribirConIA: (
     tono: string,
     destino: { tipo: "descripcion" } | { tipo: "bloque"; id: string }
   ) => void;
   generando: boolean;
+  pro: boolean;
 }) {
+  const paginaSel = paginaActiva ? paginas.find((p) => p.id === paginaActiva) : undefined;
   return (
     <div>
-      <p className="text-xs text-kora-muted leading-relaxed mb-3">
-        Arrastra para cambiar el orden. El ojo prende o apaga el bloque en tu página. Toca uno
-        para editar su título y su contenido.
-      </p>
+      <SelectorPagina
+        slug={slug}
+        paginas={paginas}
+        activa={paginaActiva}
+        onSelect={onPagina}
+        onCrear={onCrearPagina}
+        onRenombrar={onRenombrarPagina}
+        onDescripcion={onDescribirPagina}
+        onOcultar={onOcultarPagina}
+        onEliminar={onEliminarPagina}
+      />
+
+      {paginaSel && bloques.length === 0 && (
+        <p className="text-xs text-kora-muted leading-relaxed mb-3">
+          Esta página está vacía: agrégale bloques con el botón de abajo.
+        </p>
+      )}
+      {(!paginaSel || bloques.length > 0) && (
+        <p className="text-xs text-kora-muted leading-relaxed mb-3">
+          Arrastra para cambiar el orden. El ojo prende o apaga el bloque en tu página. Toca uno
+          para editar su título y su contenido.
+        </p>
+      )}
 
       <div className="space-y-2">
-        {doc.bloques.map((b, i) => {
+        {bloques.map((b, i) => {
           const nativo = esBloqueNativo(b.tipo);
           const abiertoEste = abierto === b.id;
           return (
@@ -1006,7 +1276,10 @@ function PanelBloques({
                     aplicar={aplicar}
                     subirFotos={subirFotos}
                     subirFotosHotel={subirFotosHotel}
+                    subirFotoCercano={subirFotoCercano}
+                    subirPdf={subirPdf}
                     subiendo={subiendo}
+                    pro={pro}
                     escribirConIA={escribirConIA}
                     generando={generando}
                   />
@@ -1038,7 +1311,9 @@ function PanelBloques({
               </button>
             </div>
             <div className="space-y-1 max-h-80 overflow-y-auto">
-              {BLOQUES_CATALOGO.map((c) => (
+              {/* En una página propia solo caben bloques tuyos: los nativos
+                  (habitaciones, reseñas…) leen datos del hotel y viven en Inicio. */}
+              {(paginaActiva ? BLOQUES_CATALOGO.filter((c) => !c.nativo) : BLOQUES_CATALOGO).map((c) => (
                 <button
                   key={c.tipo}
                   type="button"
@@ -1059,6 +1334,27 @@ function PanelBloques({
                   </span>
                 </button>
               ))}
+
+              {/* Secciones prehechas: varios bloques ya armados de un clic */}
+              <p className="pt-2 mt-1 px-1 border-t border-gray-100 text-[10px] font-bold uppercase tracking-wide text-kora-muted">
+                Secciones prehechas
+              </p>
+              {PLANTILLAS_BLOQUES.map((pl) => (
+                <button
+                  key={pl.key}
+                  type="button"
+                  onClick={() => agregarPlantilla(pl.key)}
+                  className="w-full text-left px-2.5 py-2 rounded-lg hover:bg-kora-bg transition-colors"
+                >
+                  <span className="flex items-center gap-2 text-sm font-semibold text-kora-text">
+                    <Sparkles size={15} className="text-kora-primary" />
+                    {pl.label}
+                  </span>
+                  <span className="block mt-0.5 text-[11px] text-kora-muted leading-snug">
+                    {pl.desc}
+                  </span>
+                </button>
+              ))}
             </div>
           </div>
         ) : (
@@ -1071,6 +1367,176 @@ function PanelBloques({
           </button>
         )}
       </div>
+    </div>
+  );
+}
+
+// Selector de página del panel Bloques: Inicio o una página propia. Crear,
+// renombrar, ocultar y eliminar viven aquí para que el hotelero no tenga que
+// salir del editor. El slug (la URL) se fija al crear y ya no cambia: SEO.
+function SelectorPagina({
+  slug,
+  paginas,
+  activa,
+  onSelect,
+  onCrear,
+  onRenombrar,
+  onDescripcion,
+  onOcultar,
+  onEliminar,
+}: {
+  slug: string;
+  paginas: Pagina[];
+  activa: string | null;
+  onSelect: (id: string | null) => void;
+  onCrear: (titulo: string) => string | null;
+  onRenombrar: (id: string, titulo: string) => void;
+  onDescripcion: (id: string, descripcion: string) => void;
+  onOcultar: (id: string) => void;
+  onEliminar: (id: string) => void;
+}) {
+  const [creando, setCreando] = useState(false);
+  const [nombre, setNombre] = useState("");
+  const [errorCrear, setErrorCrear] = useState("");
+  const [confirmarBorrar, setConfirmarBorrar] = useState(false);
+  const sel = activa ? paginas.find((p) => p.id === activa) : undefined;
+
+  const crear = () => {
+    const err = onCrear(nombre);
+    if (err) {
+      setErrorCrear(err);
+      return;
+    }
+    setCreando(false);
+    setNombre("");
+    setErrorCrear("");
+  };
+
+  return (
+    <div className="mb-3 rounded-xl border border-gray-200 bg-white p-2.5 space-y-2">
+      <div>
+        <label className={labelCls}>Página que estás editando</label>
+        <select
+          className={inputCls}
+          value={creando ? "__nueva__" : activa ?? ""}
+          onChange={(e) => {
+            const v = e.target.value;
+            setConfirmarBorrar(false);
+            if (v === "__nueva__") {
+              setCreando(true);
+              return;
+            }
+            setCreando(false);
+            setErrorCrear("");
+            onSelect(v || null);
+          }}
+        >
+          <option value="">Inicio (tu portada)</option>
+          {paginas.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.titulo}
+              {p.oculta ? " (oculta)" : ""}
+            </option>
+          ))}
+          {paginas.length < MAX_PAGINAS && <option value="__nueva__">＋ Nueva página…</option>}
+        </select>
+      </div>
+
+      {creando && (
+        <div className="space-y-1.5">
+          <input
+            className={inputCls}
+            value={nombre}
+            autoFocus
+            placeholder="Restaurante, Bodas, Qué hacer en Xilitla…"
+            onChange={(e) => {
+              setNombre(e.target.value);
+              setErrorCrear("");
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") crear();
+            }}
+          />
+          {nombre.trim() && (
+            <p className="text-[11px] text-kora-muted break-all">
+              Su dirección será /h/{slug}/<b>{slugificarPagina(nombre)}</b>
+            </p>
+          )}
+          {errorCrear && <p className="text-[11px] font-semibold text-red-600">{errorCrear}</p>}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={crear}
+              className="btn-press px-3 py-1.5 rounded-lg bg-kora-primary text-white text-xs font-semibold"
+            >
+              Crear página
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setCreando(false);
+                setNombre("");
+                setErrorCrear("");
+              }}
+              className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-semibold text-kora-muted"
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {sel && !creando && (
+        <div className="space-y-1.5">
+          <input
+            className={inputCls}
+            value={sel.titulo}
+            onChange={(e) => onRenombrar(sel.id, e.target.value)}
+            aria-label="Nombre de la página"
+          />
+          <textarea
+            className={`${inputCls} min-h-[52px]`}
+            value={sel.descripcion ?? ""}
+            placeholder="Frase corta bajo el título (también es tu descripción en Google)"
+            onChange={(e) => onDescripcion(sel.id, e.target.value)}
+            aria-label="Descripción de la página"
+          />
+          <p className="text-[11px] text-kora-muted break-all">
+            Vive en /h/{slug}/<b>{sel.slug}</b>
+            {sel.oculta ? " · oculta: no sale en tu sitio" : ""}
+          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => onOcultar(sel.id)}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-kora-muted hover:text-kora-text"
+            >
+              {sel.oculta ? <Eye size={13} /> : <EyeOff size={13} />}
+              {sel.oculta ? "Mostrar en el sitio" : "Ocultar del sitio"}
+            </button>
+            {confirmarBorrar ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setConfirmarBorrar(false);
+                  onEliminar(sel.id);
+                }}
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-red-600"
+              >
+                <Trash2 size={13} /> ¿Seguro? Se borra con sus bloques
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setConfirmarBorrar(true)}
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-red-600 hover:text-red-700"
+              >
+                <Trash2 size={13} /> Eliminar página
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1097,9 +1563,12 @@ function CamposBloque({
   aplicar,
   subirFotos,
   subirFotosHotel,
+  subirFotoCercano,
+  subirPdf,
   subiendo,
   escribirConIA,
   generando,
+  pro,
 }: {
   bloque: Bloque;
   doc: Doc;
@@ -1108,12 +1577,15 @@ function CamposBloque({
   aplicar: (cambios: Partial<Doc>, grupo?: string) => void;
   subirFotos: (id: string, files: FileList | null) => void;
   subirFotosHotel: (files: FileList | null) => void;
+  subirFotoCercano: (id: string, idx: number, files: FileList | null) => void;
+  subirPdf: (id: string, files: FileList | null) => void;
   subiendo: string | null;
   escribirConIA: (
     tono: string,
     destino: { tipo: "descripcion" } | { tipo: "bloque"; id: string }
   ) => void;
   generando: boolean;
+  pro: boolean;
 }) {
   // ── Bloques nativos: se edita aquí el dato de verdad del hotel ──
   if (b.tipo === "descripcion") {
@@ -1493,6 +1965,333 @@ function CamposBloque({
         >
           <Plus size={13} /> Agregar punto
         </button>
+      </div>
+    );
+  }
+
+  if (b.tipo === "promocion") {
+    const promo = b.promo ?? {};
+    const setPromo = (cambios: Partial<typeof promo>, grupo?: string) =>
+      actualizar(b.id, { promo: { ...promo, ...cambios } }, grupo);
+    return (
+      <div className="space-y-3">
+        <div>
+          <label className={labelCls}>Tu oferta</label>
+          <textarea
+            className={`${inputCls} min-h-[70px]`}
+            value={promo.texto ?? ""}
+            placeholder="2 noches + desayuno para dos por $1,800"
+            onChange={(e) => setPromo({ texto: e.target.value }, `promo-t:${b.id}`)}
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label className={labelCls}>Desde (opcional)</label>
+            <input
+              type="date"
+              className={inputCls}
+              value={promo.desde ?? ""}
+              onChange={(e) => setPromo({ desde: e.target.value })}
+            />
+          </div>
+          <div>
+            <label className={labelCls}>Hasta (opcional)</label>
+            <input
+              type="date"
+              className={inputCls}
+              value={promo.hasta ?? ""}
+              onChange={(e) => setPromo({ hasta: e.target.value })}
+            />
+          </div>
+        </div>
+        <div>
+          <label className={labelCls}>Texto del botón</label>
+          <input
+            className={inputCls}
+            value={promo.botonTexto ?? ""}
+            placeholder="Reservar ahora"
+            onChange={(e) => setPromo({ botonTexto: e.target.value }, `promo-b:${b.id}`)}
+          />
+        </div>
+        <p className={ayudaCls}>
+          Al pasar la fecha “Hasta”, la promoción se quita sola de tu página: no tienes que
+          acordarte de borrarla.
+        </p>
+      </div>
+    );
+  }
+
+  if (b.tipo === "cercanos") {
+    const items = b.cercanos ?? [];
+    const setItem = (i: number, cambios: Partial<(typeof items)[number]>, grupo?: string) => {
+      const copia = [...items];
+      copia[i] = { ...copia[i], ...cambios };
+      actualizar(b.id, { cercanos: copia }, grupo);
+    };
+    return (
+      <div>
+        <label className={labelCls}>Lugares y actividades cerca de tu hotel</label>
+        <div className="space-y-2">
+          {items.map((it, i) => (
+            <div key={i} className="rounded-lg border border-gray-200 p-2 space-y-2">
+              <div className="flex items-center gap-2">
+                <input
+                  className={inputCls}
+                  value={it.titulo}
+                  placeholder="Jardín de Edward James"
+                  onChange={(e) => setItem(i, { titulo: e.target.value }, `cerc-t:${b.id}:${i}`)}
+                />
+                <button
+                  type="button"
+                  onClick={() => actualizar(b.id, { cercanos: items.filter((_, j) => j !== i) })}
+                  aria-label="Quitar lugar"
+                  className="p-1 text-gray-400 hover:text-red-600"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  className={inputCls}
+                  value={it.distancia ?? ""}
+                  placeholder="A 10 min caminando"
+                  onChange={(e) => setItem(i, { distancia: e.target.value }, `cerc-k:${b.id}:${i}`)}
+                />
+                <label className="btn-press flex-shrink-0 inline-flex items-center gap-1.5 px-2.5 py-2 rounded-lg border border-gray-200 text-xs font-semibold text-kora-text cursor-pointer hover:border-kora-accent transition-colors">
+                  {subiendo === `${b.id}:${i}` ? (
+                    <Loader2 size={13} className="animate-spin" />
+                  ) : it.foto ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={it.foto} alt="" className="w-5 h-5 object-cover rounded" />
+                  ) : (
+                    <Plus size={13} />
+                  )}
+                  Foto
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => subirFotoCercano(b.id, i, e.target.files)}
+                  />
+                </label>
+              </div>
+              <input
+                className={inputCls}
+                value={it.texto ?? ""}
+                placeholder="Descripción corta (opcional)"
+                onChange={(e) => setItem(i, { texto: e.target.value }, `cerc-d:${b.id}:${i}`)}
+              />
+            </div>
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={() => actualizar(b.id, { cercanos: [...items, { titulo: "" }] })}
+          className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-kora-primary"
+        >
+          <Plus size={13} /> Agregar lugar
+        </button>
+      </div>
+    );
+  }
+
+  if (b.tipo === "menu") {
+    const secciones = b.menuSecciones ?? [];
+    const setSecciones = (nuevas: typeof secciones, grupo?: string) =>
+      actualizar(b.id, { menuSecciones: nuevas }, grupo);
+    const setSeccion = (i: number, cambios: Partial<(typeof secciones)[number]>, grupo?: string) => {
+      const copia = [...secciones];
+      copia[i] = { ...copia[i], ...cambios };
+      setSecciones(copia, grupo);
+    };
+    return (
+      <div>
+        <label className={labelCls}>Secciones de tu menú o lista de precios</label>
+        <div className="space-y-3">
+          {secciones.map((s, i) => (
+            <div key={i} className="rounded-lg border border-gray-200 p-2 space-y-2">
+              <div className="flex items-center gap-2">
+                <input
+                  className={inputCls}
+                  value={s.titulo ?? ""}
+                  placeholder="Desayunos"
+                  onChange={(e) => setSeccion(i, { titulo: e.target.value }, `menu-s:${b.id}:${i}`)}
+                />
+                <button
+                  type="button"
+                  onClick={() => setSecciones(secciones.filter((_, j) => j !== i))}
+                  aria-label="Quitar sección"
+                  className="p-1 text-gray-400 hover:text-red-600"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+              {(s.items ?? []).map((it, j) => (
+                <div key={j} className="rounded-lg bg-gray-50 p-2 space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <input
+                      className={inputCls}
+                      value={it.nombre}
+                      placeholder="Enchiladas huastecas"
+                      onChange={(e) => {
+                        const items = [...(s.items ?? [])];
+                        items[j] = { ...items[j], nombre: e.target.value };
+                        setSeccion(i, { items }, `menu-n:${b.id}:${i}:${j}`);
+                      }}
+                    />
+                    <input
+                      className={`${inputCls} !w-24 flex-shrink-0`}
+                      value={it.precio ?? ""}
+                      placeholder="$120"
+                      onChange={(e) => {
+                        const items = [...(s.items ?? [])];
+                        items[j] = { ...items[j], precio: e.target.value };
+                        setSeccion(i, { items }, `menu-p:${b.id}:${i}:${j}`);
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setSeccion(i, { items: (s.items ?? []).filter((_, k) => k !== j) })
+                      }
+                      aria-label="Quitar platillo"
+                      className="p-1 text-gray-400 hover:text-red-600"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                  <input
+                    className={inputCls}
+                    value={it.descripcion ?? ""}
+                    placeholder="Descripción corta (opcional)"
+                    onChange={(e) => {
+                      const items = [...(s.items ?? [])];
+                      items[j] = { ...items[j], descripcion: e.target.value };
+                      setSeccion(i, { items }, `menu-d:${b.id}:${i}:${j}`);
+                    }}
+                  />
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() => setSeccion(i, { items: [...(s.items ?? []), { nombre: "" }] })}
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-kora-primary"
+              >
+                <Plus size={13} /> Agregar platillo o servicio
+              </button>
+            </div>
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={() => setSecciones([...secciones, { titulo: "", items: [{ nombre: "" }] }])}
+          className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-kora-primary"
+        >
+          <Plus size={13} /> Agregar sección
+        </button>
+      </div>
+    );
+  }
+
+  if (b.tipo === "cta") {
+    const btn: Boton =
+      b.ctaBoton ?? { id: `${b.id}-btn`, texto: "", accion: "reservar", estilo: "relleno" };
+    const setBtn = (cambios: Partial<Boton>, grupo?: string) =>
+      actualizar(b.id, { ctaBoton: { ...btn, ...cambios } }, grupo);
+    const accionInfo = ACCIONES_BOTON.find((a) => a.key === btn.accion);
+    return (
+      <div className="space-y-3">
+        <div>
+          <label className={labelCls}>La frase</label>
+          <textarea
+            className={`${inputCls} min-h-[60px]`}
+            value={b.texto ?? ""}
+            placeholder="¿Listo para tu escapada a la Huasteca?"
+            onChange={(e) => actualizar(b.id, { texto: e.target.value }, `cta-f:${b.id}`)}
+          />
+        </div>
+        <div>
+          <label className={labelCls}>Texto del botón</label>
+          <input
+            className={inputCls}
+            value={btn.texto}
+            placeholder="Reservar ahora"
+            onChange={(e) => setBtn({ texto: e.target.value }, `cta-b:${b.id}`)}
+          />
+        </div>
+        <div>
+          <label className={labelCls}>A dónde lleva</label>
+          <select
+            className={inputCls}
+            value={btn.accion}
+            onChange={(e) => setBtn({ accion: e.target.value as BotonAccion, valor: "" })}
+          >
+            {ACCIONES_BOTON.filter((a) => a.key !== "ancla").map((a) => (
+              <option key={a.key} value={a.key}>
+                {a.label}
+                {a.key === "enlace" ? " — Pro" : ""}
+              </option>
+            ))}
+          </select>
+          {accionInfo && <p className={ayudaCls}>{accionInfo.ayuda}</p>}
+        </div>
+        {accionInfo?.campo && (
+          <div>
+            <label className={labelCls}>{accionInfo.campo}</label>
+            <input
+              className={inputCls}
+              value={btn.valor ?? ""}
+              onChange={(e) => setBtn({ valor: e.target.value }, `cta-v:${b.id}`)}
+            />
+          </div>
+        )}
+        {btn.accion === "enlace" && !pro && (
+          <p className="rounded-lg bg-kora-primary/5 border border-kora-primary/20 px-3 py-2 text-[11px] text-kora-primary leading-snug">
+            Los botones a sitios externos son parte del plan Pro: en la vista previa se ve
+            marcado, pero no saldrá en tu página publicada hasta activar el plan.
+          </p>
+        )}
+      </div>
+    );
+  }
+
+  if (b.tipo === "pdf") {
+    return (
+      <div className="space-y-3">
+        <div>
+          <label className={labelCls}>Nombre que se muestra</label>
+          <input
+            className={inputCls}
+            value={b.pdfNombre ?? ""}
+            placeholder="Menú del restaurante"
+            onChange={(e) => actualizar(b.id, { pdfNombre: e.target.value }, `pdf-n:${b.id}`)}
+          />
+        </div>
+        <div className="flex items-center gap-3 flex-wrap">
+          <label className="btn-press inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 text-sm font-semibold text-kora-text cursor-pointer hover:border-kora-accent transition-colors">
+            {subiendo === b.id ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+            {subiendo === b.id ? "Subiendo…" : b.pdfUrl ? "Cambiar PDF" : "Subir PDF"}
+            <input
+              type="file"
+              accept="application/pdf"
+              className="hidden"
+              onChange={(e) => subirPdf(b.id, e.target.files)}
+            />
+          </label>
+          {b.pdfUrl && (
+            <a
+              href={b.pdfUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-kora-primary hover:underline"
+            >
+              <ExternalLink size={12} /> Ver el PDF subido
+            </a>
+          )}
+        </div>
+        <p className={ayudaCls}>
+          Hasta 10 MB: tu menú, catálogo de eventos o carta de servicios.
+        </p>
       </div>
     );
   }
