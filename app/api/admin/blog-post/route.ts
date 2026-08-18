@@ -45,12 +45,18 @@ async function cuotaDelMes(hotelId: string): Promise<Cuota | null> {
   const inicioMes = new Date();
   inicioMes.setUTCDate(1);
   inicioMes.setUTCHours(0, 0, 0, 0);
+  // GET (no HEAD): con HEAD, una tabla faltante no reporta error y el límite
+  // se volvería infinito en silencio. Así, sin tabla -> error -> 503 visible.
   const { count, error } = await admin
     .from("hotel_blog_ia_usos")
-    .select("id", { count: "exact", head: true })
+    .select("id", { count: "exact" })
     .eq("hotel_id", hotelId)
-    .gte("created_at", inicioMes.toISOString());
-  if (error) return null;
+    .gte("created_at", inicioMes.toISOString())
+    .limit(1);
+  if (error) {
+    console.error("[blog-post] no se pudo leer la cuota (¿falta correr sql/kora-hotel-blog.sql?):", error.message);
+    return null;
+  }
   return { usados: count ?? 0, limite: LIMITE_IA_MENSUAL };
 }
 
@@ -203,7 +209,10 @@ Investiga lo necesario y escribe el artículo.`;
 
     // Solo una generación exitosa consume cuota.
     const admin = createAdminClient();
-    await admin.from("hotel_blog_ia_usos").insert({ hotel_id: ctx.hotelId });
+    const { error: usoErr } = await admin
+      .from("hotel_blog_ia_usos")
+      .insert({ hotel_id: ctx.hotelId });
+    if (usoErr) console.error("[blog-post] no se registró el uso de IA:", usoErr.message);
 
     return NextResponse.json({
       titulo,
