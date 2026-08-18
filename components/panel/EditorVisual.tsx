@@ -19,6 +19,7 @@ import {
   Eye,
   EyeOff,
   ExternalLink,
+  FileText,
   GripVertical,
   Images,
   Loader2,
@@ -56,6 +57,7 @@ import {
   ICONOS,
   MAX_PAGINAS,
   nuevoId,
+  PLANTILLAS_BLOQUES,
   resolverBloques,
   resolverBotones,
   resolverPaginas,
@@ -107,6 +109,8 @@ function IconoTipo({ tipo }: { tipo: BloqueTipo }) {
   if (tipo === "promocion") return <Tag size={15} className={cls} />;
   if (tipo === "cercanos") return <MapPin size={15} className={cls} />;
   if (tipo === "menu") return <UtensilsCrossed size={15} className={cls} />;
+  if (tipo === "cta") return <MousePointerClick size={15} className={cls} />;
+  if (tipo === "pdf") return <FileText size={15} className={cls} />;
   return <GripVertical size={15} className="text-gray-300" />;
 }
 
@@ -343,8 +347,22 @@ export function EditorVisual({
     if (tipo === "destacados") nuevo.items = [{ icono: "estrella", titulo: "" }];
     if (tipo === "cercanos") nuevo.cercanos = [{ titulo: "" }];
     if (tipo === "menu") nuevo.menuSecciones = [{ titulo: "", items: [{ nombre: "" }] }];
+    if (tipo === "cta") {
+      nuevo.ctaBoton = { id: nuevoId("btn"), texto: "Reservar ahora", accion: "reservar", estilo: "relleno" };
+    }
     aplicar(conBloques([...bloquesActuales(), nuevo]));
     setAbierto(nuevo.id);
+  }
+
+  // Inserta una sección prehecha: varios bloques ya armados con contenido de
+  // ejemplo que el hotelero solo rellena. Cada uso trae ids nuevos.
+  function agregarPlantilla(key: string) {
+    setMenuAgregar(false);
+    const plantilla = PLANTILLAS_BLOQUES.find((pl) => pl.key === key);
+    if (!plantilla) return;
+    const nuevos = plantilla.crear();
+    aplicar(conBloques([...bloquesActuales(), ...nuevos]));
+    if (nuevos[0]) setAbierto(nuevos[0].id);
   }
 
   // ─── Páginas ───────────────────────────────────────────────────────────────
@@ -382,6 +400,12 @@ export function EditorVisual({
     aplicar(
       { paginas: docRef.current.paginas.map((p) => (p.id === id ? { ...p, titulo: t } : p)) },
       `pag-titulo:${id}`
+    );
+  }
+  function describirPagina(id: string, descripcion: string) {
+    aplicar(
+      { paginas: docRef.current.paginas.map((p) => (p.id === id ? { ...p, descripcion } : p)) },
+      `pag-desc:${id}`
     );
   }
   function toggleOcultaPagina(id: string) {
@@ -473,6 +497,54 @@ export function EditorVisual({
     // bloquesActuales/conBloques son estables en la práctica (solo leen refs).
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [subirImagenes, aplicar]
+  );
+
+  // El PDF de un bloque "Archivo PDF". No se comprime (no es imagen); tope de
+  // 10 MB para no colgar la subida del hotelero.
+  const subirPdf = useCallback(
+    async (bloqueId: string, files: FileList | null) => {
+      const file = files?.[0];
+      if (!file) return;
+      if (file.type !== "application/pdf") {
+        setError("Ese archivo no es un PDF.");
+        return;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        setError("El PDF pesa más de 10 MB. Compáctalo e inténtalo de nuevo.");
+        return;
+      }
+      setSubiendo(bloqueId);
+      setError("");
+      try {
+        const base = file.name.replace(/\.[^.]+$/, "").replace(/[^a-zA-Z0-9]/g, "_");
+        const rnd = Math.random().toString(36).slice(2, 6);
+        const path = `${userId}/${Date.now()}-${rnd}-${base}.pdf`;
+        const { error: upErr } = await supabase.storage.from("fotos").upload(path, file, {
+          upsert: false,
+          contentType: "application/pdf",
+        });
+        if (upErr) {
+          setError("No se pudo subir el PDF. Inténtalo de nuevo.");
+          return;
+        }
+        const { data } = supabase.storage.from("fotos").getPublicUrl(path);
+        const bs = bloquesActuales().map((b) =>
+          b.id === bloqueId
+            ? {
+                ...b,
+                pdfUrl: data.publicUrl,
+                pdfNombre: (b.pdfNombre ?? "").trim() || file.name.replace(/\.pdf$/i, ""),
+              }
+            : b
+        );
+        aplicar(conBloques(bs));
+      } finally {
+        setSubiendo(null);
+      }
+    },
+    // bloquesActuales/conBloques son estables en la práctica (solo leen refs).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [supabase, userId, aplicar]
   );
 
   // Fotos del hotel (las del bloque nativo "Galería del hotel").
@@ -653,6 +725,7 @@ export function EditorVisual({
   }
 
   const slug = datosIniciales.slug;
+  const pro = datosIniciales.pro === true;
   const rutaSalida = `/panel/${slug}/sitio`;
 
   async function guardarYSalir() {
@@ -794,6 +867,7 @@ export function EditorVisual({
                 onPagina={setPaginaActiva}
                 onCrearPagina={crearPagina}
                 onRenombrarPagina={renombrarPagina}
+                onDescribirPagina={describirPagina}
                 onOcultarPagina={toggleOcultaPagina}
                 onEliminarPagina={eliminarPagina}
                 abierto={abierto}
@@ -806,10 +880,13 @@ export function EditorVisual({
                 menuAgregar={menuAgregar}
                 setMenuAgregar={setMenuAgregar}
                 agregar={agregarBloque}
+                agregarPlantilla={agregarPlantilla}
                 subirFotos={subirFotos}
                 subirFotosHotel={subirFotosHotel}
                 subirFotoCercano={subirFotoCercano}
+                subirPdf={subirPdf}
                 subiendo={subiendo}
+                pro={pro}
                 escribirConIA={escribirConIA}
                 generando={generando}
               />
@@ -1005,18 +1082,22 @@ function PanelBloques({
   menuAgregar,
   setMenuAgregar,
   agregar,
+  agregarPlantilla,
   subirFotos,
   subirFotosHotel,
   subirFotoCercano,
+  subirPdf,
   subiendo,
   escribirConIA,
   generando,
+  pro,
   bloques,
   paginas,
   paginaActiva,
   onPagina,
   onCrearPagina,
   onRenombrarPagina,
+  onDescribirPagina,
   onOcultarPagina,
   onEliminarPagina,
 }: {
@@ -1028,6 +1109,7 @@ function PanelBloques({
   onPagina: (id: string | null) => void;
   onCrearPagina: (titulo: string) => string | null;
   onRenombrarPagina: (id: string, titulo: string) => void;
+  onDescribirPagina: (id: string, descripcion: string) => void;
   onOcultarPagina: (id: string) => void;
   onEliminarPagina: (id: string) => void;
   abierto: string | null;
@@ -1040,15 +1122,18 @@ function PanelBloques({
   menuAgregar: boolean;
   setMenuAgregar: (v: boolean) => void;
   agregar: (t: BloqueTipo) => void;
+  agregarPlantilla: (key: string) => void;
   subirFotos: (id: string, files: FileList | null) => void;
   subirFotosHotel: (files: FileList | null) => void;
   subirFotoCercano: (id: string, idx: number, files: FileList | null) => void;
+  subirPdf: (id: string, files: FileList | null) => void;
   subiendo: string | null;
   escribirConIA: (
     tono: string,
     destino: { tipo: "descripcion" } | { tipo: "bloque"; id: string }
   ) => void;
   generando: boolean;
+  pro: boolean;
 }) {
   const paginaSel = paginaActiva ? paginas.find((p) => p.id === paginaActiva) : undefined;
   return (
@@ -1060,6 +1145,7 @@ function PanelBloques({
         onSelect={onPagina}
         onCrear={onCrearPagina}
         onRenombrar={onRenombrarPagina}
+        onDescripcion={onDescribirPagina}
         onOcultar={onOcultarPagina}
         onEliminar={onEliminarPagina}
       />
@@ -1191,7 +1277,9 @@ function PanelBloques({
                     subirFotos={subirFotos}
                     subirFotosHotel={subirFotosHotel}
                     subirFotoCercano={subirFotoCercano}
+                    subirPdf={subirPdf}
                     subiendo={subiendo}
+                    pro={pro}
                     escribirConIA={escribirConIA}
                     generando={generando}
                   />
@@ -1246,6 +1334,27 @@ function PanelBloques({
                   </span>
                 </button>
               ))}
+
+              {/* Secciones prehechas: varios bloques ya armados de un clic */}
+              <p className="pt-2 mt-1 px-1 border-t border-gray-100 text-[10px] font-bold uppercase tracking-wide text-kora-muted">
+                Secciones prehechas
+              </p>
+              {PLANTILLAS_BLOQUES.map((pl) => (
+                <button
+                  key={pl.key}
+                  type="button"
+                  onClick={() => agregarPlantilla(pl.key)}
+                  className="w-full text-left px-2.5 py-2 rounded-lg hover:bg-kora-bg transition-colors"
+                >
+                  <span className="flex items-center gap-2 text-sm font-semibold text-kora-text">
+                    <Sparkles size={15} className="text-kora-primary" />
+                    {pl.label}
+                  </span>
+                  <span className="block mt-0.5 text-[11px] text-kora-muted leading-snug">
+                    {pl.desc}
+                  </span>
+                </button>
+              ))}
             </div>
           </div>
         ) : (
@@ -1272,6 +1381,7 @@ function SelectorPagina({
   onSelect,
   onCrear,
   onRenombrar,
+  onDescripcion,
   onOcultar,
   onEliminar,
 }: {
@@ -1281,6 +1391,7 @@ function SelectorPagina({
   onSelect: (id: string | null) => void;
   onCrear: (titulo: string) => string | null;
   onRenombrar: (id: string, titulo: string) => void;
+  onDescripcion: (id: string, descripcion: string) => void;
   onOcultar: (id: string) => void;
   onEliminar: (id: string) => void;
 }) {
@@ -1383,6 +1494,13 @@ function SelectorPagina({
             onChange={(e) => onRenombrar(sel.id, e.target.value)}
             aria-label="Nombre de la página"
           />
+          <textarea
+            className={`${inputCls} min-h-[52px]`}
+            value={sel.descripcion ?? ""}
+            placeholder="Frase corta bajo el título (también es tu descripción en Google)"
+            onChange={(e) => onDescripcion(sel.id, e.target.value)}
+            aria-label="Descripción de la página"
+          />
           <p className="text-[11px] text-kora-muted break-all">
             Vive en /h/{slug}/<b>{sel.slug}</b>
             {sel.oculta ? " · oculta: no sale en tu sitio" : ""}
@@ -1446,9 +1564,11 @@ function CamposBloque({
   subirFotos,
   subirFotosHotel,
   subirFotoCercano,
+  subirPdf,
   subiendo,
   escribirConIA,
   generando,
+  pro,
 }: {
   bloque: Bloque;
   doc: Doc;
@@ -1458,12 +1578,14 @@ function CamposBloque({
   subirFotos: (id: string, files: FileList | null) => void;
   subirFotosHotel: (files: FileList | null) => void;
   subirFotoCercano: (id: string, idx: number, files: FileList | null) => void;
+  subirPdf: (id: string, files: FileList | null) => void;
   subiendo: string | null;
   escribirConIA: (
     tono: string,
     destino: { tipo: "descripcion" } | { tipo: "bloque"; id: string }
   ) => void;
   generando: boolean;
+  pro: boolean;
 }) {
   // ── Bloques nativos: se edita aquí el dato de verdad del hotel ──
   if (b.tipo === "descripcion") {
@@ -2067,6 +2189,109 @@ function CamposBloque({
         >
           <Plus size={13} /> Agregar sección
         </button>
+      </div>
+    );
+  }
+
+  if (b.tipo === "cta") {
+    const btn: Boton =
+      b.ctaBoton ?? { id: `${b.id}-btn`, texto: "", accion: "reservar", estilo: "relleno" };
+    const setBtn = (cambios: Partial<Boton>, grupo?: string) =>
+      actualizar(b.id, { ctaBoton: { ...btn, ...cambios } }, grupo);
+    const accionInfo = ACCIONES_BOTON.find((a) => a.key === btn.accion);
+    return (
+      <div className="space-y-3">
+        <div>
+          <label className={labelCls}>La frase</label>
+          <textarea
+            className={`${inputCls} min-h-[60px]`}
+            value={b.texto ?? ""}
+            placeholder="¿Listo para tu escapada a la Huasteca?"
+            onChange={(e) => actualizar(b.id, { texto: e.target.value }, `cta-f:${b.id}`)}
+          />
+        </div>
+        <div>
+          <label className={labelCls}>Texto del botón</label>
+          <input
+            className={inputCls}
+            value={btn.texto}
+            placeholder="Reservar ahora"
+            onChange={(e) => setBtn({ texto: e.target.value }, `cta-b:${b.id}`)}
+          />
+        </div>
+        <div>
+          <label className={labelCls}>A dónde lleva</label>
+          <select
+            className={inputCls}
+            value={btn.accion}
+            onChange={(e) => setBtn({ accion: e.target.value as BotonAccion, valor: "" })}
+          >
+            {ACCIONES_BOTON.filter((a) => a.key !== "ancla").map((a) => (
+              <option key={a.key} value={a.key}>
+                {a.label}
+                {a.key === "enlace" ? " — Pro" : ""}
+              </option>
+            ))}
+          </select>
+          {accionInfo && <p className={ayudaCls}>{accionInfo.ayuda}</p>}
+        </div>
+        {accionInfo?.campo && (
+          <div>
+            <label className={labelCls}>{accionInfo.campo}</label>
+            <input
+              className={inputCls}
+              value={btn.valor ?? ""}
+              onChange={(e) => setBtn({ valor: e.target.value }, `cta-v:${b.id}`)}
+            />
+          </div>
+        )}
+        {btn.accion === "enlace" && !pro && (
+          <p className="rounded-lg bg-kora-primary/5 border border-kora-primary/20 px-3 py-2 text-[11px] text-kora-primary leading-snug">
+            Los botones a sitios externos son parte del plan Pro: en la vista previa se ve
+            marcado, pero no saldrá en tu página publicada hasta activar el plan.
+          </p>
+        )}
+      </div>
+    );
+  }
+
+  if (b.tipo === "pdf") {
+    return (
+      <div className="space-y-3">
+        <div>
+          <label className={labelCls}>Nombre que se muestra</label>
+          <input
+            className={inputCls}
+            value={b.pdfNombre ?? ""}
+            placeholder="Menú del restaurante"
+            onChange={(e) => actualizar(b.id, { pdfNombre: e.target.value }, `pdf-n:${b.id}`)}
+          />
+        </div>
+        <div className="flex items-center gap-3 flex-wrap">
+          <label className="btn-press inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 text-sm font-semibold text-kora-text cursor-pointer hover:border-kora-accent transition-colors">
+            {subiendo === b.id ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+            {subiendo === b.id ? "Subiendo…" : b.pdfUrl ? "Cambiar PDF" : "Subir PDF"}
+            <input
+              type="file"
+              accept="application/pdf"
+              className="hidden"
+              onChange={(e) => subirPdf(b.id, e.target.files)}
+            />
+          </label>
+          {b.pdfUrl && (
+            <a
+              href={b.pdfUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-kora-primary hover:underline"
+            >
+              <ExternalLink size={12} /> Ver el PDF subido
+            </a>
+          )}
+        </div>
+        <p className={ayudaCls}>
+          Hasta 10 MB: tu menú, catálogo de eventos o carta de servicios.
+        </p>
       </div>
     );
   }

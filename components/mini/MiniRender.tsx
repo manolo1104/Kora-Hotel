@@ -14,6 +14,7 @@ import Link from "next/link";
 import {
   BedDouble,
   CreditCard,
+  FileText,
   Languages,
   MapPin,
   Navigation,
@@ -90,6 +91,7 @@ export interface MiniDatos {
   marcaOculta: boolean;
   hoy: string; // fecha local de México (YYYY-MM-DD) para la vigencia del aviso
   nav?: MiniNavDatos; // pestañas del sitio; ausente o vacío = sin barra
+  pro?: boolean; // acceso activo: habilita los botones a sitios externos
 }
 
 // ─── Utilidades de formato ────────────────────────────────────────────────────
@@ -172,6 +174,23 @@ function BotonUI({
   preview?: boolean;
 }) {
   const href = hrefBoton(boton, ctx);
+  // Enlaces a sitios EXTERNOS son función Pro: sin acceso activo no se
+  // publican; en el editor se dibujan con su candado para que se entienda.
+  if (boton.accion === "enlace" && !ctx.pro) {
+    if (!preview) return null;
+    return (
+      <span
+        className={`${ancho ? "w-full " : ""}inline-flex items-center justify-center gap-2 rounded-full ${
+          grande ? "px-7 py-4" : ancho ? "px-6 py-3.5" : "px-4 py-2"
+        } border border-dashed border-gray-300 text-gray-400 font-semibold text-sm`}
+      >
+        {boton.texto || "Botón sin texto"}
+        <span className="text-[10px] font-bold uppercase tracking-wide rounded-full bg-kora-primary/10 text-kora-primary px-1.5 py-0.5">
+          Pro
+        </span>
+      </span>
+    );
+  }
   // Sin destino (p. ej. un enlace al que todavía no le pegan la dirección) el
   // botón no se publica. Pero en el editor sí se dibuja, apagado y avisando qué
   // le falta: si desapareciera, el hotelero acaba de agregarlo y creería que el
@@ -223,7 +242,9 @@ function botonesDeZona(
   preview: boolean
 ): Boton[] {
   return botones.filter(
-    (b) => (b.zonas ?? []).includes(zona) && (preview || hrefBoton(b, ctx))
+    (b) =>
+      (b.zonas ?? []).includes(zona) &&
+      (preview || (hrefBoton(b, ctx) && (b.accion !== "enlace" || ctx.pro)))
   );
 }
 
@@ -372,6 +393,7 @@ export function MiniRender({
     whatsapp,
     mapsUrl,
     motorActivo,
+    pro: datos.pro === true,
   };
 
   const amenidades = (extras.amenidades ?? []).map((k) => AMENIDADES_MAP[k]).filter(Boolean);
@@ -935,6 +957,66 @@ export function MiniRender({
                 </ul>
               </div>
             ))}
+          </div>
+        );
+      }
+
+      case "cta": {
+        const frase = (b.texto ?? "").trim();
+        const btn =
+          b.ctaBoton && (b.ctaBoton.texto ?? "").trim() ? b.ctaBoton : null;
+        if (!frase && !btn) return null;
+        return (
+          <div className="text-center py-2">
+            {frase && (
+              <p className="text-xl sm:text-2xl font-bold leading-snug text-kora-text whitespace-pre-line">
+                {frase}
+              </p>
+            )}
+            {btn && (
+              <div className="mt-4">
+                <BotonUI
+                  boton={{ ...btn, estilo: btn.estilo ?? "relleno" }}
+                  ctx={ctx}
+                  grande
+                  preview={preview}
+                />
+              </div>
+            )}
+          </div>
+        );
+      }
+
+      case "pdf": {
+        const url = (b.pdfUrl ?? "").trim();
+        const nombre = (b.pdfNombre ?? "").trim() || "Documento";
+        if (!url) {
+          // Público: sin archivo no hay nada que mostrar. Editor: se avisa qué falta.
+          if (!preview) return null;
+          return (
+            <p className="rounded-2xl border-2 border-dashed border-gray-300 p-5 text-center text-sm text-gray-400 font-semibold">
+              Sube tu PDF en el panel de la izquierda para que aparezca aquí.
+            </p>
+          );
+        }
+        return (
+          <div className="flex items-center gap-3 bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+            <span
+              className="flex-shrink-0 inline-flex items-center justify-center w-11 h-11 rounded-xl"
+              style={{ backgroundColor: "var(--brand)", color: "var(--brand-ink)" }}
+            >
+              <FileText size={20} />
+            </span>
+            <p className="flex-1 min-w-0 font-semibold text-sm text-kora-text truncate">{nombre}</p>
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-press flex-shrink-0 inline-flex items-center justify-center rounded-full px-4 py-2 font-semibold text-sm border"
+              style={{ color: "var(--brand)", borderColor: "var(--brand)" }}
+            >
+              Ver PDF
+            </a>
           </div>
         );
       }

@@ -96,6 +96,9 @@ export default async function EditorVisualPage({
     motorActivo: acceso.activo,
     marcaOculta,
     hoy: hoyMx(),
+    // Botones a sitios externos (Pro): mismo criterio que el motor — prueba
+    // vigente o suscripción activa.
+    pro: acceso.activo,
   };
 
   return <EditorVisual hotelId={hotel.id} userId={ctx.userId} datosIniciales={datos} />;

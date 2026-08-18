@@ -170,6 +170,7 @@ export default async function MiniPagina({
     motorActivo,
     marcaOculta,
     hoy: hoyMx(),
+    pro: acceso.activo,
     // Pestañas del sitio: páginas propias visibles + Blog si hay artículos.
     nav: {
       paginas: resolverPaginas(extras)

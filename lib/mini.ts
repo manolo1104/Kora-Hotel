@@ -137,7 +137,9 @@ export type BloqueTipo =
   | "video"
   | "promocion"
   | "cercanos"
-  | "menu";
+  | "menu"
+  | "cta"
+  | "pdf";
 
 export const BLOQUES_NATIVOS: BloqueTipo[] = [
   "formulario",
@@ -199,6 +201,11 @@ export interface Bloque {
   promo?: Promo; // "promocion"
   cercanos?: CercanoItem[]; // "cercanos"
   menuSecciones?: MenuSeccion[]; // "menu"
+  // "cta": la frase va en `texto`; el botón es un Boton normal (misma
+  // infraestructura de acciones que los botones del sitio)
+  ctaBoton?: Boton;
+  pdfUrl?: string; // "pdf": URL pública del archivo en Storage
+  pdfNombre?: string; // "pdf": etiqueta que ve el huésped (ej. "Menú del restaurante")
 }
 
 // Títulos por defecto de cada tipo (lo que hoy está escrito a fuego en el HTML).
@@ -219,6 +226,8 @@ export const BLOQUE_TITULO_DEFAULT: Record<BloqueTipo, string> = {
   promocion: "Promoción",
   cercanos: "Qué hacer cerca",
   menu: "Menú",
+  cta: "",
+  pdf: "",
 };
 
 // Catálogo para el botón "+ Agregar bloque" del editor.
@@ -244,6 +253,149 @@ export const BLOQUES_CATALOGO: {
   { tipo: "promocion", label: "Promoción", desc: "Una oferta con fecha de fin y botón de reservar (ej. 2 noches + desayuno).", nativo: false },
   { tipo: "cercanos", label: "Qué hacer cerca", desc: "Tarjetas con foto de lugares y actividades cerca de tu hotel.", nativo: false },
   { tipo: "menu", label: "Menú o lista de precios", desc: "Tu menú del restaurante o lista de servicios con precios.", nativo: false },
+  { tipo: "cta", label: "Llamada a la acción", desc: "Una frase con un botón grande: reservar, WhatsApp, llamar o un enlace.", nativo: false },
+  { tipo: "pdf", label: "Archivo PDF", desc: "Tu menú, catálogo o carta de eventos en PDF, con botón para verlo.", nativo: false },
+];
+
+// ─── Secciones prehechas ─────────────────────────────────────────────────────
+// Conjuntos de bloques ya armados con contenido de ejemplo: el hotelero los
+// agrega de un clic y solo cambia los textos y las fotos. Cada uso genera ids
+// nuevos, así que se pueden agregar las veces que haga falta.
+
+function ctaReservar(frase: string): Bloque {
+  return {
+    id: nuevoId("cta"),
+    tipo: "cta",
+    texto: frase,
+    ctaBoton: { id: nuevoId("btn"), texto: "Reservar ahora", accion: "reservar", estilo: "relleno" },
+  };
+}
+
+export const PLANTILLAS_BLOQUES: {
+  key: string;
+  label: string;
+  desc: string;
+  crear: () => Bloque[];
+}[] = [
+  {
+    key: "historia",
+    label: "Nuestra historia",
+    desc: "Un texto de presentación con su llamada a reservar.",
+    crear: () => [
+      {
+        id: nuevoId("texto"),
+        tipo: "texto",
+        titulo: "Nuestra historia",
+        texto:
+          "Cambia este texto: cuenta cómo nació tu hotel, quiénes lo cuidan y qué lo hace distinto. A los huéspedes les encanta saber quién los recibe.",
+      },
+      ctaReservar("Ven a conocernos en persona"),
+    ],
+  },
+  {
+    key: "restaurante",
+    label: "Restaurante completo",
+    desc: "Presentación, menú con precios, galería y botón de reserva.",
+    crear: () => [
+      {
+        id: nuevoId("texto"),
+        tipo: "texto",
+        titulo: "Nuestro restaurante",
+        texto:
+          "Cambia este texto: describe tu cocina, tus platillos estrella y el horario de servicio.",
+      },
+      {
+        id: nuevoId("menu"),
+        tipo: "menu",
+        menuSecciones: [
+          {
+            titulo: "Desayunos",
+            items: [
+              { nombre: "Cambia este platillo", precio: "120", descripcion: "Y esta descripción corta." },
+              { nombre: "Otro platillo", precio: "95" },
+            ],
+          },
+          { titulo: "Bebidas", items: [{ nombre: "Café de la región", precio: "45" }] },
+        ],
+      },
+      { id: nuevoId("gal"), tipo: "galeria", titulo: "Del comal a tu mesa", imagenes: [] },
+      ctaReservar("Reserva tu mesa al hospedarte"),
+    ],
+  },
+  {
+    key: "bodas",
+    label: "Bodas y eventos",
+    desc: "Presentación, puntos fuertes, galería y contacto por WhatsApp.",
+    crear: () => [
+      {
+        id: nuevoId("texto"),
+        tipo: "texto",
+        titulo: "Tu evento con nosotros",
+        texto:
+          "Cambia este texto: cuenta qué tipo de eventos reciben, para cuántas personas y qué incluye el lugar.",
+      },
+      {
+        id: nuevoId("dest"),
+        tipo: "destacados",
+        titulo: "Lo que incluye",
+        items: [
+          { icono: "corazon", titulo: "Cambia este punto", texto: "Ej. jardín para ceremonia" },
+          { icono: "comida", titulo: "Otro punto", texto: "Ej. banquete con cocina local" },
+          { icono: "cama", titulo: "Otro más", texto: "Ej. habitaciones para invitados" },
+        ],
+      },
+      { id: nuevoId("gal"), tipo: "galeria", titulo: "Eventos que hemos recibido", imagenes: [] },
+      {
+        id: nuevoId("cta"),
+        tipo: "cta",
+        texto: "Cuéntanos de tu evento y te armamos una propuesta",
+        ctaBoton: {
+          id: nuevoId("btn"),
+          texto: "Escribir por WhatsApp",
+          accion: "whatsapp",
+          valor: "Hola, quiero información para un evento",
+          estilo: "relleno",
+        },
+      },
+    ],
+  },
+  {
+    key: "cerca",
+    label: "Qué hacer en la zona",
+    desc: "Tarjetas de lugares cercanos y botón de reserva.",
+    crear: () => [
+      {
+        id: nuevoId("cerc"),
+        tipo: "cercanos",
+        cercanos: [
+          { titulo: "Cambia este lugar", distancia: "A 5 min", texto: "Y esta descripción corta." },
+          { titulo: "Otro lugar", distancia: "A 20 min en auto" },
+        ],
+      },
+      ctaReservar("Hospédate cerca de todo"),
+    ],
+  },
+  {
+    key: "promo",
+    label: "Promoción de temporada",
+    desc: "Una oferta con fechas y botón de reserva.",
+    crear: () => [
+      {
+        id: nuevoId("promo"),
+        tipo: "promocion",
+        promo: { texto: "Cambia esta oferta: 2 noches + desayuno para dos", botonTexto: "Reservar ahora" },
+      },
+    ],
+  },
+  {
+    key: "menu-pdf",
+    label: "Menú o catálogo en PDF",
+    desc: "Un PDF descargable con su llamada a la acción.",
+    crear: () => [
+      { id: nuevoId("pdf"), tipo: "pdf", titulo: "Nuestro menú", pdfNombre: "Menú del restaurante" },
+      ctaReservar("Reserva y pruébalo en persona"),
+    ],
+  },
 ];
 
 // ─── Botones y CTAs ──────────────────────────────────────────────────────────
@@ -647,6 +799,10 @@ export interface BotonCtx {
   whatsapp?: string | null;
   mapsUrl?: string | null;
   motorActivo: boolean;
+  // Botones a sitios EXTERNOS (accion "enlace") son función Pro: solo se
+  // publican con acceso activo (prueba vigente o suscripción). En el editor
+  // se dibujan con su candado en vez de desaparecer.
+  pro?: boolean;
 }
 
 // Destino final del botón. Devuelve null si le falta el dato (p. ej. WhatsApp

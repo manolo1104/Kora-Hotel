@@ -115,6 +115,7 @@ export default async function PaginaPropia({
     motorActivo: acceso.activo,
     marcaOculta,
     hoy: hoyMx(),
+    pro: acceso.activo,
     nav: {
       paginas: resolverPaginas(extras)
         .filter((p) => !p.oculta)
