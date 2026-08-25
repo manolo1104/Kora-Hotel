@@ -3,7 +3,7 @@ import AdminSidebar from "@/components/admin/AdminSidebar";
 import GuidedTour from "@/components/panel/GuidedTour";
 import { requireHotelMember } from "@/lib/tenant";
 import { accesoDelHotel } from "@/lib/suscripcion";
-import { PruebaBanner, PruebaVencida } from "@/components/panel/PruebaEstado";
+import { PruebaBanner, PruebaVencida, HotelBloqueado } from "@/components/panel/PruebaEstado";
 import styles from "./admin.module.css";
 
 export const dynamic = "force-dynamic";
@@ -30,6 +30,21 @@ export default async function PanelOperativoLayout({
   // Tour guiado: arranca solo la primera vez (extras.onboarding.tourVisto).
   const onboarding = (ctx.hotel.extras?.onboarding ?? {}) as Record<string, unknown>;
   const tourVisto = onboarding.tourVisto === true;
+
+  // Cuenta bloqueada por Kora: ni menú lateral ni tour. Solo el mensaje — es lo
+  // ÚNICO que puede ver mientras dure el bloqueo.
+  if (acceso.bloqueado) {
+    return (
+      <div className={styles.shell}>
+        <div className={styles.content}>
+          <HotelBloqueado
+            hotelNombre={ctx.hotel.nombre}
+            mensaje={acceso.mensajeBloqueo ?? "Kora bloqueó esta cuenta."}
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.shell}>

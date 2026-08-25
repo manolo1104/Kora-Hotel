@@ -99,6 +99,32 @@ export interface AccesoHotel {
   activo: boolean; // puede operar (plan pagado, cortesía, demo o prueba vigente)
   planActivo: boolean;
   prueba: PruebaHotel | null; // null si tiene plan o es demo
+  /** true = Kora bloqueó la cuenta a mano (no es cosa del plan ni de la prueba). */
+  bloqueado: boolean;
+  /** Mensaje que ve el hotelero al entrar. Solo cuando `bloqueado`. */
+  mensajeBloqueo: string | null;
+}
+
+/** Bloqueo manual guardado en `hoteles.extras.bloqueo`. */
+export interface BloqueoHotel {
+  activo: boolean;
+  mensaje?: string | null;
+  fecha?: string | null; // ISO, cuándo se bloqueó
+}
+
+const MENSAJE_BLOQUEO_DEFAULT = "Kora bloqueó esta cuenta.";
+
+/** Lee el bloqueo manual de `extras.bloqueo`. Nunca lanza. */
+export function bloqueoDelHotel(extras?: Record<string, unknown> | null): BloqueoHotel | null {
+  const b = (extras ?? {})["bloqueo"];
+  if (!b || typeof b !== "object") return null;
+  const raw = b as Record<string, unknown>;
+  if (raw.activo !== true) return null;
+  return {
+    activo: true,
+    mensaje: typeof raw.mensaje === "string" && raw.mensaje.trim() ? raw.mensaje.trim() : null,
+    fecha: typeof raw.fecha === "string" ? raw.fecha : null,
+  };
 }
 
 /**
@@ -110,8 +136,30 @@ export async function accesoDelHotel(hotel: {
   created_at?: string | null;
   extras?: Record<string, unknown> | null;
 }): Promise<AccesoHotel> {
+  // El bloqueo manual gana sobre TODO lo demás: aunque el dueño tenga el plan
+  // pagado al corriente, la cuenta no opera. Como este es el punto único por el
+  // que pasan panel, motor, checkout, bot y agente, con esto se apaga entera.
+  const bloqueo = bloqueoDelHotel(hotel.extras);
+  if (bloqueo) {
+    return {
+      activo: false,
+      planActivo: false,
+      prueba: null,
+      bloqueado: true,
+      mensajeBloqueo: bloqueo.mensaje || MENSAJE_BLOQUEO_DEFAULT,
+    };
+  }
+
   const planActivo = await ownerTienePlanActivo(hotel.owner_id);
-  if (planActivo) return { activo: true, planActivo: true, prueba: null };
+  if (planActivo) {
+    return { activo: true, planActivo: true, prueba: null, bloqueado: false, mensajeBloqueo: null };
+  }
   const prueba = pruebaDelHotel(hotel);
-  return { activo: !prueba || !prueba.vencida, planActivo: false, prueba };
+  return {
+    activo: !prueba || !prueba.vencida,
+    planActivo: false,
+    prueba,
+    bloqueado: false,
+    mensajeBloqueo: null,
+  };
 }

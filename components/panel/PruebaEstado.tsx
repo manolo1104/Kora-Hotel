@@ -74,3 +74,60 @@ export function PruebaVencida({ hotelNombre }: { hotelNombre: string }) {
     </div>
   );
 }
+
+/**
+ * Cuenta BLOQUEADA por Kora (no es la prueba ni el plan: es una decisión
+ * manual). Sustituye al panel entero: no hay nada que tocar aquí, solo el
+ * mensaje y a quién escribirle. El texto lo pone Kora al bloquear.
+ */
+export function HotelBloqueado({
+  hotelNombre,
+  mensaje,
+}: {
+  hotelNombre: string;
+  mensaje: string;
+}) {
+  return (
+    <div className="flex min-h-[70vh] items-center justify-center px-4 py-10">
+      <div className="w-full max-w-md rounded-3xl border border-red-200 bg-white p-8 text-center shadow-sm">
+        <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-red-50">
+          <Lock size={26} className="text-red-600" aria-hidden="true" />
+        </div>
+
+        <h1 className="text-xl font-bold text-kora-text">
+          Tu cuenta está bloqueada
+        </h1>
+        <p className="mt-1.5 text-sm text-kora-muted">{hotelNombre}</p>
+
+        <div className="mt-6 rounded-2xl bg-red-50 px-5 py-4 text-left">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-red-700">
+            Mensaje de Kora
+          </p>
+          <p className="mt-1.5 whitespace-pre-line text-sm leading-relaxed text-red-900">
+            {mensaje}
+          </p>
+        </div>
+
+        <p className="mt-6 flex items-start justify-center gap-2 text-left text-xs leading-relaxed text-kora-muted">
+          <Database size={13} className="mt-0.5 flex-shrink-0 text-kora-primary" aria-hidden="true" />
+          <span>
+            Tus datos siguen completos: reservas, huéspedes, fotos y
+            configuración están tal como los dejaste. Nada se borró.
+          </span>
+        </p>
+
+        <p className="mt-5 text-xs leading-relaxed text-kora-muted">
+          Mientras el bloqueo siga, tu página de reservas y tu bot de WhatsApp
+          están apagados. Para resolverlo, escribe a{" "}
+          <a
+            href="mailto:hola@kora-hotel.com"
+            className="font-semibold text-kora-primary hover:underline"
+          >
+            hola@kora-hotel.com
+          </a>
+          .
+        </p>
+      </div>
+    </div>
+  );
+}

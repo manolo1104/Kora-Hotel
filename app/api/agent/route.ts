@@ -8,7 +8,7 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { logAgentActivity, setBotStatus, logCamilaConversacion } from "@/lib/db/admin";
 import type { TurnoConversacion } from "@/lib/db/admin";
-import { accesoDelHotel } from "@/lib/suscripcion";
+import { accesoDelHotel, bloqueoDelHotel } from "@/lib/suscripcion";
 import { crearLinkReservaAgente } from "@/lib/agent-booking";
 import { buildBotSystemPrompt } from "@/lib/bot/prompt";
 import { buildHotelKnowledge } from "@/lib/bot/knowledge";
@@ -58,6 +58,18 @@ export async function POST(req: Request) {
   if (!hotel) return NextResponse.json({ error: "token-invalido" }, { status: 401 });
 
   const cfg = (hotel.config ?? {}) as Record<string, unknown>;
+
+  // CUENTA BLOQUEADA POR KORA → Camila se apaga entera, antes de cualquier
+  // acción. Se contesta aquí y no más abajo porque `status` es lo que el runtime
+  // consulta en vivo cada ~45 s: en cuanto ve enabled:false deja de responder,
+  // aunque el bot siga conectado a WhatsApp. El fleet además lo saca de la lista
+  // en su siguiente pasada, así que el apagón es doble.
+  if (bloqueoDelHotel(hotel.extras as Record<string, unknown> | null)) {
+    if (body.action === "status") {
+      return NextResponse.json({ ok: true, enabled: false, adminPhone: null });
+    }
+    return NextResponse.json({ ok: false, error: "cuenta-bloqueada" }, { status: 403 });
+  }
 
   // Estado del bot (on/off) para el chequeo EN VIVO del runtime. El runtime lo
   // cachea ~45s y, si está apagado, deja de responder aunque siga conectado.
