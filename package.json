@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "indexnow": "node scripts/indexnow.mjs"
+    "indexnow": "node scripts/indexnow.mjs",
+    "check:inventario": "node scripts/check-inventario.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.100.1",

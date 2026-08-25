@@ -1,6 +1,6 @@
 import { requireHotelMember } from "@/lib/tenant";
 import { getCleaningTasks, getMaintenanceTasks } from "@/lib/db/admin";
-import { tipoNamesOf } from "@/lib/booking";
+import { unitNamesOf } from "@/lib/booking";
 import OperacionesClient from "./OperacionesClient";
 
 export const dynamic = "force-dynamic";
@@ -28,7 +28,9 @@ export default async function OperacionesPage({
   ]);
 
   // Los cuartos salen del hotel (NO de ALL_SUITES de Paraíso).
-  const roomNames = tipoNamesOf(ctx.hotel);
+  // Por cuarto FÍSICO: limpieza y mantenimiento se hacen en la cabaña 2, no en
+  // "el tipo Cabaña". Con tipos, las unidades 2..N no aparecían en la lista.
+  const roomNames = unitNamesOf(ctx.hotel);
 
   return (
     <OperacionesClient

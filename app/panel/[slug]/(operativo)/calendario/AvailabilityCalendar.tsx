@@ -37,7 +37,10 @@ interface Props {
 
 export default function AvailabilityCalendar({ slug, bookings, rooms, roomPrices, bookingRooms, onRefresh }: Props) {
   const now = new Date();
-  const todayStr = now.toISOString().split('T')[0];
+  // Hoy en HORA DE MÉXICO. Con toISOString() se usaba UTC, así que a partir de
+  // las 18:00 locales el panel ya creía que era mañana: pintaba el día de hoy en
+  // gris (pasado) y no respondía al clic — el hotelero no podía bloquear hoy.
+  const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' });
 
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth());

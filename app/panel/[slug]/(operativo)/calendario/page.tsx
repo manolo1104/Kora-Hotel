@@ -21,10 +21,22 @@ export default async function CalendarioPage({
   const bookings = await getAllBookings(ctx.hotelId);
   const rooms = hotelRooms(ctx.hotel);
 
-  // Nombres + precio base por cuarto (a máxima ocupación), para el footer del grid.
-  const roomNames = rooms.map((r) => r.name);
+  // Una fila por CUARTO FÍSICO ("Cabaña", "Cabaña 2", "Cabaña 3"), no por tipo.
+  //
+  // El grid dibuja una fila por nombre y el POST de bloqueo manda ese nombre, así
+  // que mientras la lista fueran tipos, el hotelero con 3 cabañas gestionaba 1 y
+  // las otras 2 eran fantasmas: no existía la fila, no había forma de bloquear la
+  // cabaña 2 desde el panel. El GET de /api/admin/disponibilidad ya devolvía los
+  // datos indexados por unidad y la interfaz los descartaba en silencio.
+  //
+  // `bookingRooms` sigue siendo la lista de TIPOS: es la que usa el formulario de
+  // reserva manual, donde se elige un tipo y no una unidad concreta.
+  const roomNames = rooms.flatMap((r) => r.unidades);
   const roomPrices: Record<string, number> = {};
-  for (const r of rooms) roomPrices[r.name] = getRoomBasePrice(r, r.maxGuests);
+  for (const r of rooms) {
+    const precio = getRoomBasePrice(r, r.maxGuests);
+    for (const unidad of r.unidades) roomPrices[unidad] = precio;
+  }
 
   return (
     <CalendarioClient

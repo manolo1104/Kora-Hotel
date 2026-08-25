@@ -514,6 +514,12 @@ export default function ReservarClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ checkin, checkout, rooms: rooms.map((r) => r.name) }),
       });
+      // Un 400/404/500 con cuerpo JSON NO lanza: `data.types` llegaba undefined,
+      // `freeByType` quedaba vacío y `freeFor()` caía al respaldo `room.cantidad`.
+      // Resultado: TODOS los cuartos aparecían con su inventario completo, en
+      // verde y con precio, como si la consulta hubiera ido bien. Ante la duda,
+      // no vender.
+      if (!res.ok) throw new Error(`check-availability respondió ${res.status}`);
       const data = await res.json();
       const unav: string[] = Array.isArray(data?.unavailableRooms) ? data.unavailableRooms : [];
       setUnavailable(unav);
@@ -538,13 +544,19 @@ export default function ReservarClient({
       if (items.length > 0) {
         trackViewItems(items, items.reduce((s, i) => s + (i.price ?? 0), 0));
       }
+      // `searched` se marca sólo aquí, con datos reales en la mano. Estaba en el
+      // `finally`, así que se ponía en true incluso cuando la consulta había
+      // fallado y la interfaz pintaba el listado igual.
+      setSearched(true);
     } catch {
       setUnavailable([]);
       setAvailableCount(null);
+      setFreeByType({});
+      setExpCupo({});
+      setSearched(false);
       setSearchError(t(lang, "errVerificar"));
     } finally {
       setSearching(false);
-      setSearched(true);
       setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 120);
     }
   }

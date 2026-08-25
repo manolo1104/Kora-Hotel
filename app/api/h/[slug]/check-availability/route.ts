@@ -59,19 +59,26 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     .map((e, i) => ({ e, i }))
     .filter(({ e }) => (e.cupoDia ?? 0) > 0 && e.cobro !== "noche");
   const experienciasCupo: Record<number, Record<string, number>> = {};
+  // El cupo de experiencias es un extra: si falla, se devuelve la disponibilidad
+  // de cuartos igual. Antes un error aquí tumbaba TODA la respuesta, y el motor
+  // se quedaba sin poder decir qué cuartos hay — por un dato accesorio.
   if (conCupo.length > 0) {
-    const vendidos = await ventasPorExperiencia(
-      hotel.id,
-      conCupo.map(({ e }) => e.nombre),
-      checkin,
-      checkout,
-    );
-    for (const { e, i } of conCupo) {
-      const porFecha: Record<string, number> = {};
-      for (const f of experienciaFechasDisponibles(e.dias, checkin, checkout)) {
-        porFecha[f] = Math.max(0, (e.cupoDia as number) - (vendidos[e.nombre]?.[f] ?? 0));
+    try {
+      const vendidos = await ventasPorExperiencia(
+        hotel.id,
+        conCupo.map(({ e }) => e.nombre),
+        checkin,
+        checkout,
+      );
+      for (const { e, i } of conCupo) {
+        const porFecha: Record<string, number> = {};
+        for (const f of experienciaFechasDisponibles(e.dias, checkin, checkout)) {
+          porFecha[f] = Math.max(0, (e.cupoDia as number) - (vendidos[e.nombre]?.[f] ?? 0));
+        }
+        experienciasCupo[i] = porFecha;
       }
-      experienciasCupo[i] = porFecha;
+    } catch (e) {
+      console.error("check-availability: no se pudo calcular el cupo de experiencias:", e);
     }
   }
 

@@ -32,7 +32,9 @@ const DAYS_VISIBLE = 49;
 interface Props { slug: string; bookings: AdminBooking[]; rooms: string[]; bookingRooms: BookingRoom[]; onRefresh: () => void }
 
 function toDate(s: string) { return new Date(s + 'T00:00:00'); }
-function isoToday() { return new Date().toISOString().split('T')[0]; }
+// Hoy en HORA DE MÉXICO: con toISOString() (UTC) la línea de "hoy" del Gantt se
+// adelantaba un día a partir de las 18:00 locales.
+function isoToday() { return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' }); }
 // Web bookings store "Suite Jungla (2 personas)" — strip the parenthetical
 function extractRoom(s: string): string { return s.replace(/\s*\([^)]*\)/g, '').trim(); }
 

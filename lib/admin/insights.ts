@@ -140,7 +140,13 @@ export function calcInsights(
   });
 
   const ingresosMes = bookingsMes.reduce((s, b) => s + parseTotal(b.total), 0);
-  const nochesMes = bookingsMes.reduce((s, b) => s + (b.noches || calcNights(b)), 0);
+  // × unidades: una reserva de 2 cuartos son 2 noches-cuarto, no 1. `kpis.ts:69`
+  // ya lo hacía así y este bloque no, de modo que el mismo hotel enseñaba dos
+  // ocupaciones y dos ADR distintos según la pantalla.
+  const nochesMes = bookingsMes.reduce(
+    (s, b) => s + (b.noches || calcNights(b)) * countUnits(b.habitaciones),
+    0,
+  );
   const nochesDisp = totalSuites * diasMes;
   const ocupacionMes = nochesMes > 0 ? Math.round((nochesMes / nochesDisp) * 100) : 0;
   const adrMes = nochesMes > 0 ? Math.round(ingresosMes / nochesMes) : 0;
