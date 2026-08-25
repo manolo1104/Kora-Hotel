@@ -20,10 +20,16 @@ export function SuscripcionCard({
   plan,
   estado,
   esStripe,
+  sinHoteles = false,
 }: {
   plan: string | null;
   estado: string | null;
   esStripe: boolean;
+  /** El usuario todavia no tiene ningun hotel: su siguiente paso es crearlo,
+   *  NO pagar. Sin esto la barra ofrece "Activar mi plan" con el mismo amarillo
+   *  que "Crear mi hotel" y arriba de el, y la gente pica el de pagar: se topa
+   *  con la tarjeta de Stripe y cree que Kora la exige para entrar. */
+  sinHoteles?: boolean;
 }) {
   const [abriendo, setAbriendo] = useState(false);
   const [error, setError] = useState("");
@@ -54,17 +60,22 @@ export function SuscripcionCard({
           <p className="text-sm text-kora-text">
             <span className="font-bold">Prueba gratis.</span>{" "}
             <span className="text-kora-muted">
-              Cada hotel nuevo incluye 30 días completos sin tarjeta; al vencer,
-              su motor se pausa hasta que actives tu plan ($550/mes).
+              {sinHoteles
+                ? "Tus 30 días empiezan cuando crees tu hotel, aquí abajo. No te pedimos tarjeta para empezar: el plan ($550/mes) lo activas después, desde esta misma barra."
+                : "Cada hotel nuevo incluye 30 días completos sin tarjeta; al vencer, su motor se pausa hasta que actives tu plan ($550/mes)."}
             </span>
           </p>
         </div>
-        <Link
-          href="/pago/iniciar?plan=kora"
-          className="btn-press inline-flex items-center px-4 py-2 rounded-full bg-kora-accent text-kora-primary font-bold text-sm hover:bg-kora-accent-dark transition-colors"
-        >
-          Activar mi plan
-        </Link>
+        {/* Sin hoteles no ofrecemos pagar: sería el único botón de la pantalla
+            compitiendo con "Crear mi hotel" y ganándole por estar arriba. */}
+        {!sinHoteles && (
+          <Link
+            href="/pago/iniciar?plan=kora"
+            className="btn-press inline-flex items-center px-4 py-2 rounded-full bg-kora-accent text-kora-primary font-bold text-sm hover:bg-kora-accent-dark transition-colors"
+          >
+            Activar mi plan
+          </Link>
+        )}
       </div>
     );
   }

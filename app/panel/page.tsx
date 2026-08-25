@@ -107,6 +107,7 @@ export default async function PanelPage() {
             plan={suscripcion?.plan ?? null}
             estado={suscripcion?.estado ?? null}
             esStripe={Boolean(suscripcion?.stripe_customer_id)}
+            sinHoteles={hoteles.length === 0}
           />
 
           {/* Sin hoteles → bienvenida */}
