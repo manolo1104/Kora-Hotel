@@ -2,7 +2,15 @@ import { notFound } from "next/navigation";
 import { resolveHotel } from "@/lib/tenant";
 import { bloqueoDelHotel } from "@/lib/suscripcion";
 
-export const dynamic = "force-dynamic";
+// A propósito SIN `dynamic = "force-dynamic"`. Estaba, y como la configuración
+// de un layout arrastra a todo lo que cuelga de él, anulaba el `revalidate =
+// 3600` de las entradas del blog: cada visita a un artículo pasaba a golpear la
+// base. Y era redundante: /h/[slug], /reservar, /[pagina], /habitacion/[idx] y
+// /resena ya declaran `force-dynamic` cada una, así que en todas ellas el
+// bloqueo sigue surtiendo efecto al instante. La única que hereda caché es el
+// blog: un hotel recién bloqueado puede seguir mostrando sus artículos hasta una
+// hora. Es el precio correcto — el motor de reservas y la página del hotel, que
+// son lo que importa, se apagan en el acto.
 
 /**
  * Puerta de entrada de TODO el sitio público de un hotel (/h/[slug] y todo lo

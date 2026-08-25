@@ -192,23 +192,29 @@ export async function POST(req: Request) {
   // qué es Kora y avisa que Manolo le escribe. Los toques de los días 3 y 7 los
   // manda /api/cron/leads. Best-effort y con su marca en lead_email_log para que
   // el cron no lo repita.
+  //
+  // CON await, igual que el aviso al fundador de aquí arriba: iba dentro de un
+  // `void (async () => …)()`, que es exactamente el patrón que el comentario de
+  // tres líneas más arriba documenta como la causa de los correos perdidos en
+  // Vercel. La función responde y se apaga antes de que el envío termine, así
+  // que el primer toque de la secuencia se perdía a veces — y peor: la marca en
+  // `lead_email_log` sí quedaba escrita, así que el cron lo daba por enviado y
+  // nunca lo reintentaba. El lead se quedaba sin su primer correo, para siempre.
   if (emailLead.includes("@")) {
-    void (async () => {
-      try {
-        await admin
-          .from("lead_email_log")
-          .upsert(
-            { lead_id: lead.id, email_type: "lead_day0", email_destino: emailLead },
-            { onConflict: "lead_id,email_type", ignoreDuplicates: true },
-          );
-        await enviarEmail({
-          to: emailLead,
-          ...emailLeadDay0({ nombre: name, hotel: hotel || undefined }),
-        });
-      } catch (e) {
-        console.error("primer correo al lead falló:", e);
-      }
-    })();
+    try {
+      await admin
+        .from("lead_email_log")
+        .upsert(
+          { lead_id: lead.id, email_type: "lead_day0", email_destino: emailLead },
+          { onConflict: "lead_id,email_type", ignoreDuplicates: true },
+        );
+      await enviarEmail({
+        to: emailLead,
+        ...emailLeadDay0({ nombre: name, hotel: hotel || undefined }),
+      });
+    } catch (e) {
+      console.error("primer correo al lead falló:", e);
+    }
   }
 
   // Respaldo temporal a Formspree mientras se confirma el flujo nuevo.
@@ -217,7 +223,9 @@ export async function POST(req: Request) {
     for (const [k, v] of Object.entries(body)) {
       if (typeof v === "string" && k !== "_gotcha") fd.append(k, v);
     }
-    fetch(FORMSPREE_URL, {
+    // CON await, por lo mismo: es la única ruta de esta función que lanzaba una
+    // petición sin esperarla, y en Vercel eso se pierde al responder.
+    await fetch(FORMSPREE_URL, {
       method: "POST",
       body: fd,
       headers: { Accept: "application/json" },

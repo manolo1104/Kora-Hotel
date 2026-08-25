@@ -491,7 +491,11 @@ export function buildCancelacionHuespedHtml(a: CancelacionHuespedArgs): string {
         hab: "Room(s)",
         fechas: "Dates",
         anticipo: "Deposit",
-        conReembolso: `Your deposit of <strong>${money(a.anticipo)}</strong> is being refunded. Depending on your bank it can take 5 to 10 business days to appear.`,
+        // NO dice "is being refunded": ningún código emite el refund en Stripe.
+        // Los tres caminos de cancelación (portal del huésped, PATCH y DELETE
+        // del panel) llegan a este mismo texto, así que la promesa se hacía por
+        // triplicado y el huésped esperaba 10 días a que no pasara nada.
+        conReembolso: `Your deposit of <strong>${money(a.anticipo)}</strong> is refundable under the terms of your booking. The hotel returns it to the same payment method you used. If you don't see it within a few days, reply to this email.`,
         sinReembolso: `Your deposit of <strong>${money(a.anticipo)}</strong> is non-refundable under the rate you booked, so it won't be returned.`,
         cierre: "If you cancelled by mistake or want to move your dates, reply to this email — we'll help you.",
       }
@@ -504,7 +508,7 @@ export function buildCancelacionHuespedHtml(a: CancelacionHuespedArgs): string {
         hab: "Habitación(es)",
         fechas: "Fechas",
         anticipo: "Anticipo",
-        conReembolso: `Tu anticipo de <strong>${money(a.anticipo)}</strong> se está reembolsando. Según tu banco, puede tardar de 5 a 10 días hábiles en aparecer.`,
+        conReembolso: `Tu anticipo de <strong>${money(a.anticipo)}</strong> es reembolsable según las condiciones de tu reserva. El hotel te lo devuelve por el mismo medio con el que pagaste. Si en unos días no lo ves reflejado, responde este correo.`,
         sinReembolso: `Tu anticipo de <strong>${money(a.anticipo)}</strong> no es reembolsable por la tarifa que elegiste, así que no se devuelve.`,
         cierre: "Si cancelaste por error o quieres mover tus fechas, responde este correo y te ayudamos.",
       };
