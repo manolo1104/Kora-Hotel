@@ -17,6 +17,8 @@ export interface BotAvailability {
     id: string | number;
     nombre: string;
     maxHuespedes: number;
+    /** Personas con las que se calculó `total` (el link de pago cobrará esto). */
+    huespedesCotizados: number;
     /** Cuántos cuartos FÍSICOS de este tipo quedan libres. */
     unidadesLibres: number;
     total: number;
@@ -30,11 +32,21 @@ export interface BotAvailability {
   error?: "fechas-invalidas" | "servicio-no-disponible";
 }
 
-/** Disponibilidad real + precio total por tipo de cuarto para unas fechas. */
+/**
+ * Disponibilidad real + precio total por tipo de cuarto para unas fechas.
+ *
+ * `huespedes` importa: en un hotel con tarifas por número de personas, el precio
+ * de 2 no es el de 4. Antes se cotizaba SIEMPRE a ocupación máxima mientras el
+ * link de pago cobraba por los huéspedes reales, así que el huésped veía un
+ * número en WhatsApp y otro en Stripe. Con tarifas planas los dos coinciden, que
+ * es por lo que el defecto llevaba tiempo sin verse. Por defecto 2, el mismo
+ * supuesto que ya usa el bloque CUARTOS del cerebro.
+ */
 export async function botAvailability(
   hotel: HotelRow,
   checkin: string,
   checkout: string,
+  huespedes = 2,
 ): Promise<BotAvailability> {
   const base = { hotel: hotel.nombre, checkin, checkout, linkReserva: `${SITE}/h/${hotel.slug}/reservar` };
 
@@ -60,12 +72,14 @@ export async function botAvailability(
     if (t.freeCount <= 0) return [];
     const r = porId.get(t.id);
     if (!r) return []; // no debería pasar: ambos salen de hotelRooms(hotel)
-    const total = calcRoomStayTotal(r, r.maxGuests, checkin, checkout, opts);
+    const ocupacion = Math.max(1, Math.min(r.maxGuests, Math.floor(huespedes) || 2));
+    const total = calcRoomStayTotal(r, ocupacion, checkin, checkout, opts);
     return [
       {
         id: t.id,
         nombre: t.name,
         maxHuespedes: r.maxGuests,
+        huespedesCotizados: ocupacion,
         unidadesLibres: t.freeCount,
         total,
         totalTexto: formatMXN(total),

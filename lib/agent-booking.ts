@@ -144,11 +144,20 @@ export async function crearLinkReservaAgente(
   if (!ta || ta.freeCount < quantity) return { ok: false, error: "no-disponible" };
   const unidades = ta.freeUnitNames.slice(0, quantity);
 
-  // Precio SIEMPRE server-side. Repartir los adultos entre las unidades para
-  // cobrar la tarifa por ocupación correcta (ceil → nunca cobra de menos, y
-  // como cabían en la capacidad, nunca rebasa maxGuests).
-  const guestsPerUnit = Math.min(room.maxGuests, Math.ceil(adults / quantity));
-  const cart: CartItem[] = [{ roomId: room.id, guestCount: guestsPerUnit, quantity }];
+  // Precio SIEMPRE server-side. Los adultos se REPARTEN entre las unidades: la
+  // base a cada una y una persona más a las primeras `resto`.
+  //
+  // Antes era `ceil(adults / quantity)` aplicado por igual a todas, así que 5
+  // personas en 2 cuartos de 3 se cobraban como 3+3 = 6 personas, no 5. En un
+  // hotel con tarifas por número de personas eso es dinero de más en la tarjeta
+  // del huésped. La capacidad ya se validó arriba (maxGuests × quantity ≥
+  // adults), así que ninguna unidad rebasa su máximo.
+  const base = Math.floor(adults / quantity);
+  const resto = adults % quantity;
+  const repartos = Array.from({ length: quantity }, (_, i) =>
+    Math.max(1, Math.min(room.maxGuests, base + (i < resto ? 1 : 0))),
+  );
+  const cart: CartItem[] = repartos.map((g) => ({ roomId: room.id, guestCount: g, quantity: 1 }));
   const stayTotal = calcCartSubtotal(rooms, cart, input.checkin, input.checkout, rules.nightOpts);
   const deposit = calcDepositAmount(stayTotal, nights, {
     pct: rules.anticipoPct,
@@ -174,7 +183,7 @@ export async function crearLinkReservaAgente(
 
   // Metadata: contrato EXACTO que lee el webhook (una entrada "unidad:huéspedes"
   // por unidad apartada). origen:"bot" marca la reserva como cerrada por Camila.
-  const roomsMeta = unidades.map((u) => `${u}:${guestsPerUnit}`).join("|").slice(0, 480);
+  const roomsMeta = unidades.map((u, i) => `${u}:${repartos[i]}`).join("|").slice(0, 480);
   const md: Record<string, string> = {
     hotel_id: hotel.id,
     slug: hotel.slug,

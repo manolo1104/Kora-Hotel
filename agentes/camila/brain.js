@@ -34,6 +34,11 @@ const HERRAMIENTAS = [
       properties: {
         checkin: { type: "string", description: "Fecha de llegada, formato YYYY-MM-DD" },
         checkout: { type: "string", description: "Fecha de salida, formato YYYY-MM-DD" },
+        huespedes: {
+          type: "number",
+          description:
+            "Cuántas personas se van a quedar. Mándalo siempre que lo sepas: el total cambia con el número de personas y es el mismo que cobrará el link de pago. Si aún no lo sabes, omítelo (se asume 2) y pregúntaselo antes de cerrar.",
+        },
       },
       required: ["checkin", "checkout"],
     },

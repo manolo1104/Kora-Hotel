@@ -131,7 +131,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "fechas-requeridas" }, { status: 400 });
     }
     // Disponibilidad real (helper compartido con el chat de prueba del panel).
-    return NextResponse.json(await botAvailability(hotel, checkin, checkout));
+    // `huespedes` viaja hasta el cálculo del precio: sin él se cotizaba a
+    // ocupación máxima y el link de pago cobraba otra cosa.
+    const huespedes = Math.max(1, Math.floor(Number(body.huespedes) || 2));
+    return NextResponse.json(await botAvailability(hotel, checkin, checkout, huespedes));
   }
 
   // Acción "reservar": el bot CIERRA la reserva. Apartamos el cuarto y devolvemos
