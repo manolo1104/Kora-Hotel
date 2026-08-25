@@ -9,12 +9,12 @@
 //
 // roomId puede llegar como:
 //   - el NOMBRE del cuarto url-encoded ("Suite%20Jungla"), o
-//   - un índice numérico (0..n-1) contra roomNamesOf(hotel).
+//   - un índice numérico (0..n-1) contra tipoNamesOf(hotel).
 // Se resuelve SIEMPRE contra los cuartos reales del hotel (404 si no coincide).
 
 import { NextRequest, NextResponse } from "next/server";
 import { resolveHotel } from "@/lib/tenant";
-import { roomNamesOf } from "@/lib/booking";
+import { tipoNamesOf } from "@/lib/booking";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
@@ -48,7 +48,7 @@ export async function GET(
   const hotel = await resolveHotel(slug);
   if (!hotel) return new NextResponse("Hotel not found", { status: 404 });
 
-  const rooms = roomNamesOf(hotel);
+  const rooms = tipoNamesOf(hotel);
   if (rooms.length === 0) return new NextResponse("Room not found", { status: 404 });
 
   // Resolver roomId → nombre del cuarto.

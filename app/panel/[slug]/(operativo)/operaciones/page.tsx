@@ -1,6 +1,6 @@
 import { requireHotelMember } from "@/lib/tenant";
 import { getCleaningTasks, getMaintenanceTasks } from "@/lib/db/admin";
-import { roomNamesOf } from "@/lib/booking";
+import { tipoNamesOf } from "@/lib/booking";
 import OperacionesClient from "./OperacionesClient";
 
 export const dynamic = "force-dynamic";
@@ -28,7 +28,7 @@ export default async function OperacionesPage({
   ]);
 
   // Los cuartos salen del hotel (NO de ALL_SUITES de Paraíso).
-  const roomNames = roomNamesOf(ctx.hotel);
+  const roomNames = tipoNamesOf(ctx.hotel);
 
   return (
     <OperacionesClient

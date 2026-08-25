@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
 //   { suite, estado, notas, actualizacion, ocupadaPor: {cliente,checkout,huespedes}|null }
 //
 // A diferencia de Paraíso (lista fija de suites en Sheets), aquí los cuartos del
-// hotel salen de roomNamesOf(ctx.hotel). Sembramos en memoria un estado
+// hotel salen de tipoNamesOf(ctx.hotel). Sembramos en memoria un estado
 // DISPONIBLE para cada cuarto que aún no tiene fila en room_statuses, de modo que
 // el mapa muestre TODOS los cuartos del hotel aunque nunca se haya tocado su
 // estado. La ocupación real (reservas activas hoy) sobrescribe el estado.

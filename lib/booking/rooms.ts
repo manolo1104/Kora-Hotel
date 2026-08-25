@@ -132,8 +132,19 @@ export function hotelRooms(hotel: HotelLike): BookingRoom[] {
   });
 }
 
-/** Nombres de TIPO del hotel (uno por tipo). NO cambiar: lo usan iCal y check-availability. */
-export function roomNamesOf(hotel: HotelLike): string[] {
+/**
+ * Nombres de TIPO, uno por tipo ("Cabaña"). SÓLO para listas en pantalla.
+ *
+ * NUNCA para consultar `blocks`: ahí viven nombres de UNIDAD ("Cabaña 2"), así
+ * que un filtro por tipo descarta todas las unidades salvo la primera. Para
+ * inventario, `unitNamesOf` / `totalUnits`; para disponibilidad,
+ * `freeUnitsByType`.
+ *
+ * Antes se llamaba `roomNamesOf` y su comentario decía "NO cambiar: lo usan iCal
+ * y check-availability" — una instrucción equivocada que es justo la causa de
+ * que el feed de las OTAs y Camila cuenten tipos en vez de cuartos.
+ */
+export function tipoNamesOf(hotel: HotelLike): string[] {
   return hotelRooms(hotel).map((r) => r.name);
 }
 

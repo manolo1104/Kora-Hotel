@@ -5,7 +5,7 @@
 
 import { getAllOTACalendars } from "@/lib/db/admin";
 import { requireHotelMember } from "@/lib/tenant";
-import { roomNamesOf } from "@/lib/booking";
+import { tipoNamesOf } from "@/lib/booking";
 import CanalesClient from "./CanalesClient";
 
 export const dynamic = "force-dynamic";
@@ -20,7 +20,7 @@ export default async function CanalesPage({
   const ctx = await requireHotelMember(slug);
 
   const initial = await getAllOTACalendars(ctx.hotelId);
-  const rooms = roomNamesOf(ctx.hotel);
+  const rooms = tipoNamesOf(ctx.hotel);
 
   return <CanalesClient initial={initial} rooms={rooms} slug={slug} />;
 }

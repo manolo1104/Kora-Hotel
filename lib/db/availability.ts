@@ -125,21 +125,49 @@ export async function freeUnitsByType(
   checkout: string,
   excludeSession?: string | null,
 ): Promise<TypeAvailability[]> {
+  return (await freeUnitsByTypeResult(hotelId, hotel, checkin, checkout, excludeSession)).types;
+}
+
+export interface FreeUnitsResult {
+  /** false = la CONSULTA falló. No significa que el hotel esté lleno. */
+  ok: boolean;
+  types: TypeAvailability[];
+}
+
+/**
+ * Igual que `freeUnitsByType`, pero distingue "no hay lugar" de "no pude
+ * consultar". El fail-closed (0 libres ante error) es correcto para el motor
+ * web —mejor pedir reintento que sobrevender— pero pésimo para un chat: Camila
+ * no puede distinguir un error de un hotel lleno y le dice al huésped que no hay
+ * cuartos cuando sí los hay. Quien necesite esa diferencia usa esta función.
+ */
+export async function freeUnitsByTypeResult(
+  hotelId: string,
+  hotel: Parameters<typeof hotelRooms>[0],
+  checkin: string,
+  checkout: string,
+  excludeSession?: string | null,
+): Promise<FreeUnitsResult> {
   const rooms = hotelRooms(hotel);
+  const ceros = () =>
+    rooms.map((r) => ({ id: r.id, name: r.name, cantidad: r.cantidad, freeCount: 0, freeUnitNames: [] }));
   if (!checkin || !checkout || new Date(checkout) <= new Date(checkin)) {
-    return rooms.map((r) => ({ id: r.id, name: r.name, cantidad: r.cantidad, freeCount: 0, freeUnitNames: [] }));
+    return { ok: true, types: ceros() };
   }
   let occSet: Set<string>;
   try {
     occSet = new Set(await getOccupiedRoomNames(hotelId, checkin, checkout, excludeSession));
   } catch (e) {
     console.error("freeUnitsByType error:", e);
-    return rooms.map((r) => ({ id: r.id, name: r.name, cantidad: r.cantidad, freeCount: 0, freeUnitNames: [] }));
+    return { ok: false, types: ceros() };
   }
-  return rooms.map((r) => {
-    const freeUnitNames = r.unidades.filter((u) => !occSet.has(u));
-    return { id: r.id, name: r.name, cantidad: r.cantidad, freeCount: freeUnitNames.length, freeUnitNames };
-  });
+  return {
+    ok: true,
+    types: rooms.map((r) => {
+      const freeUnitNames = r.unidades.filter((u) => !occSet.has(u));
+      return { id: r.id, name: r.name, cantidad: r.cantidad, freeCount: freeUnitNames.length, freeUnitNames };
+    }),
+  };
 }
 
 /**
