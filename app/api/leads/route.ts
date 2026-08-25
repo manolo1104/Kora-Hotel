@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient, adminEnvReady } from "@/lib/supabase/admin";
 import { enviarEmail, NOTIFY_EMAIL } from "@/lib/email/resend";
-import { emailLeadNuevo } from "@/lib/email/templates";
+import { emailLeadNuevo, emailLeadDay0 } from "@/lib/email/templates";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -28,7 +28,23 @@ const str = (v: unknown, max = 300): string =>
   typeof v === "string" ? v.trim().slice(0, max) : "";
 
 // Campos estándar; lo demás (resultados de calculadoras, etc.) va a notas.
-const CAMPOS_BASE = new Set(["name", "whatsapp", "hotel", "herramienta", "rooms", "location", "_gotcha"]);
+const CAMPOS_BASE = new Set([
+  "name",
+  "whatsapp",
+  "email",
+  "hotel",
+  "herramienta",
+  "rooms",
+  "location",
+  "_gotcha",
+]);
+
+/** Fecha (YYYY-MM-DD) a N días de hoy, en zona MX. */
+function enDias(n: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() + n);
+  return d.toLocaleDateString("en-CA", { timeZone: "America/Mexico_City" });
+}
 
 export async function POST(req: Request) {
   const ip =
@@ -54,6 +70,7 @@ export async function POST(req: Request) {
 
   const name = str(body.name, 120);
   const whatsapp = str(body.whatsapp, 30);
+  const emailLead = str(body.email, 160).toLowerCase();
   const hotel = str(body.hotel, 160);
   const herramienta = str(body.herramienta, 80);
   const rooms = str(body.rooms, 20);
@@ -105,19 +122,40 @@ export async function POST(req: Request) {
   }
 
   const admin = createAdminClient();
-  const { data: lead, error } = await admin
+
+  // `proximo_seguimiento` se pone SOLO: antes quedaba en NULL y la sección
+  // "seguimientos vencidos" del digest nunca se disparaba, así que un lead sin
+  // contactar desaparecía del radar a las 24 h.
+  const filaLead: Record<string, unknown> = {
+    hotel_nombre: hotel || `(sin hotel) — ${name}`,
+    tomador_nombre: name,
+    contacto: whatsapp,
+    ciudad: location || null,
+    origen,
+    etapa: "nuevo",
+    notas,
+    proximo_seguimiento: enDias(2),
+  };
+  if (emailLead.includes("@")) filaLead.email = emailLead;
+
+  let { data: lead, error } = await admin
     .from("crm_leads")
-    .insert({
-      hotel_nombre: hotel || `(sin hotel) — ${name}`,
-      tomador_nombre: name,
-      contacto: whatsapp,
-      ciudad: location || null,
-      origen,
-      etapa: "nuevo",
-      notas,
-    })
+    .insert(filaLead)
     .select("id")
     .single();
+
+  // Si la columna `email` (o `proximo_seguimiento`) todavía no existe en la BD,
+  // se reintenta sin ellas: perder el lead sería mucho peor que perder el dato.
+  if (error && /column .* does not exist|schema cache/i.test(error.message)) {
+    console.error("crm_leads sin columnas nuevas, reintentando:", error.message);
+    delete filaLead.email;
+    delete filaLead.proximo_seguimiento;
+    ({ data: lead, error } = await admin
+      .from("crm_leads")
+      .insert(filaLead)
+      .select("id")
+      .single());
+  }
 
   if (error || !lead) {
     console.error("Error insertando lead:", error);
@@ -136,16 +174,41 @@ export async function POST(req: Request) {
 
   // Aviso instantáneo al fundador (best-effort: el lead ya quedó guardado).
   if (NOTIFY_EMAIL) {
-    enviarEmail({
+    // CON await: sin él Vercel corta el envío al responder (ver crear-hotel).
+    await enviarEmail({
       to: NOTIFY_EMAIL,
       ...emailLeadNuevo({
         nombre: name,
         whatsapp,
+        email: emailLead || undefined,
         hotel: hotel || undefined,
         origen,
         detalles: notas ?? undefined,
       }),
     }).catch(() => {});
+  }
+
+  // Primer toque de la secuencia AL LEAD, en el momento: acusa recibo, aterriza
+  // qué es Kora y avisa que Manolo le escribe. Los toques de los días 3 y 7 los
+  // manda /api/cron/leads. Best-effort y con su marca en lead_email_log para que
+  // el cron no lo repita.
+  if (emailLead.includes("@")) {
+    void (async () => {
+      try {
+        await admin
+          .from("lead_email_log")
+          .upsert(
+            { lead_id: lead.id, email_type: "lead_day0", email_destino: emailLead },
+            { onConflict: "lead_id,email_type", ignoreDuplicates: true },
+          );
+        await enviarEmail({
+          to: emailLead,
+          ...emailLeadDay0({ nombre: name, hotel: hotel || undefined }),
+        });
+      } catch (e) {
+        console.error("primer correo al lead falló:", e);
+      }
+    })();
   }
 
   // Respaldo temporal a Formspree mientras se confirma el flujo nuevo.

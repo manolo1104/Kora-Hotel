@@ -162,6 +162,23 @@ export function LeadCaptureTool({
 
             <div>
               <label
+                htmlFor="lead-email"
+                className="block text-sm font-semibold text-kora-text mb-1.5"
+              >
+                Tu correo
+              </label>
+              <input
+                id="lead-email"
+                name="email"
+                type="email"
+                required
+                placeholder="tu@hotel.com"
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 text-kora-text text-sm placeholder:text-kora-muted focus:outline-none focus:ring-2 focus:ring-kora-accent focus:border-transparent transition-all duration-200"
+              />
+            </div>
+
+            <div>
+              <label
                 htmlFor="lead-hotel"
                 className="block text-sm font-semibold text-kora-text mb-1.5"
               >

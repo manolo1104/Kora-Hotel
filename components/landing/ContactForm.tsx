@@ -137,9 +137,8 @@ export function ContactForm() {
                       ¡Recibido!
                     </h3>
                     <p className="text-kora-muted text-sm leading-relaxed">
-                      Te escribimos por WhatsApp en menos de 24 horas.
-                      <br />
-                      Revisa que tu número esté correcto.
+                      Te llega un correo ahora mismo y te escribimos por
+                      WhatsApp en menos de 24 horas.
                     </p>
                   </motion.div>
                 ) : (
@@ -191,6 +190,23 @@ export function ContactForm() {
                         type="text"
                         required
                         placeholder="Manolo Covarrubias"
+                        className="w-full px-4 py-3 rounded-xl border border-gray-200 text-kora-text text-sm placeholder:text-kora-muted focus:outline-none focus:ring-2 focus:ring-kora-accent focus:border-transparent transition-all duration-200"
+                      />
+                    </div>
+
+                    <div>
+                      <label
+                        htmlFor="email"
+                        className="block text-sm font-semibold text-kora-text mb-1.5"
+                      >
+                        Tu correo
+                      </label>
+                      <input
+                        id="email"
+                        name="email"
+                        type="email"
+                        required
+                        placeholder="tu@hotel.com"
                         className="w-full px-4 py-3 rounded-xl border border-gray-200 text-kora-text text-sm placeholder:text-kora-muted focus:outline-none focus:ring-2 focus:ring-kora-accent focus:border-transparent transition-all duration-200"
                       />
                     </div>

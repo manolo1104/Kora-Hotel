@@ -41,13 +41,15 @@ export async function GET(req: Request) {
   const hoy = new Date().toISOString().slice(0, 10);
 
   const [leadsNuevos, seguimientos, vencidos, escalados, activas] = await Promise.all([
+    // TODOS los leads que siguen en "nuevo", no solo los de las últimas 24 h.
+    // Antes se filtraba por `created_at >= hace24h`: un lead que no contestabas
+    // hoy desaparecía del resumen mañana y ya nadie lo volvía a recordar.
     admin
       .from("crm_leads")
-      .select("hotel_nombre, tomador_nombre, contacto, origen")
+      .select("hotel_nombre, tomador_nombre, contacto, origen, created_at")
       .eq("etapa", "nuevo")
-      .gte("created_at", hace24h)
-      .order("created_at", { ascending: false })
-      .limit(20),
+      .order("created_at", { ascending: true })
+      .limit(40),
     admin
       .from("crm_leads")
       .select("hotel_nombre, tomador_nombre, contacto, etapa, proximo_seguimiento")
@@ -71,12 +73,18 @@ export async function GET(req: Request) {
   const secciones: { encabezado: string; lineas: string[] }[] = [];
 
   if (leadsNuevos.data?.length) {
+    // Los más viejos primero y con los días que llevan esperando: un lead de 5
+    // días sin contactar debe verse peor que uno de hoy.
+    const dias = (iso: string | null) =>
+      iso ? Math.floor((Date.now() - Date.parse(iso)) / 86_400_000) : 0;
     secciones.push({
-      encabezado: `🆕 Leads nuevos sin contactar (${leadsNuevos.data.length})`,
-      lineas: leadsNuevos.data.map(
-        (l) =>
-          `<b>${esc(l.hotel_nombre)}</b> (${esc(l.tomador_nombre ?? "?")}, vía ${esc(l.origen ?? "?")})${linkWa(l.contacto, l.tomador_nombre)}`
-      ),
+      encabezado: `🆕 Leads sin contactar (${leadsNuevos.data.length})`,
+      lineas: leadsNuevos.data.map((l) => {
+        const d = dias(l.created_at as string | null);
+        const espera =
+          d === 0 ? "hoy" : d === 1 ? "<b>lleva 1 día</b>" : `<b>lleva ${d} días</b>`;
+        return `<b>${esc(l.hotel_nombre)}</b> (${esc(l.tomador_nombre ?? "?")}, vía ${esc(l.origen ?? "?")}) — ${espera}${linkWa(l.contacto, l.tomador_nombre)}`;
+      }),
     });
   }
 
