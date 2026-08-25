@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { supabaseEnvReady } from "@/lib/supabase/env";
 import { enviarEmail, NOTIFY_EMAIL } from "@/lib/email/resend";
+import { sendBienvenidaHotel } from "@/lib/email/prueba";
 import { emailHotelNuevo } from "@/lib/email/templates";
 import { contarHotelesPropios, MAX_HOTELES_POR_CUENTA } from "@/lib/tenant";
 
@@ -193,7 +194,22 @@ export async function POST(req: Request) {
   } catch {
     /* el conteo es opcional (solo el badge) */
   }
-  enviarEmail({
+  // Bienvenida AL HOTELERO el mismo día. Antes su primer correo de Kora llegaba
+  // el día 20 de la prueba de 30: veinte días de silencio en el momento donde se
+  // decide si activa o abandona. Best-effort: el hotel ya quedó creado.
+  // OJO: estos envíos van CON await. Sin él son "floating promises": Vercel
+  // congela la función en cuanto respondemos y la petición a Resend se queda a
+  // medias. Así se perdieron los avisos de los dos hoteles del 22/08/2026 —
+  // el del 19/08 sí salió, porque es una carrera que a veces se gana.
+  if (user.email) {
+    await sendBienvenidaHotel(user.email, {
+      hotelNombre: (body.nombre || "").trim() || creado.slug,
+      slug: creado.slug,
+      nombreUsuario: usuario,
+    }).catch(() => {});
+  }
+
+  await enviarEmail({
     to: NOTIFY_EMAIL || "daftpunkmanolo@gmail.com",
     ...emailHotelNuevo({
       hotel: (body.nombre || "").trim() || creado.slug,

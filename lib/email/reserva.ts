@@ -9,6 +9,23 @@ import {
   buildBrandedRecoveryEmailHtml,
   type BookingBrand,
 } from "@/lib/email/booking-branded";
+import {
+  T as TOK,
+  FONT,
+  doc,
+  esc,
+  money,
+  cabecera,
+  titulo,
+  saludo,
+  parrafo,
+  botonOscuro,
+  tablaDatos,
+  caja,
+  pieHotel,
+  pieKora,
+  respiro,
+} from "@/lib/email/design";
 
 /** Noches entre dos fechas YYYY-MM-DD (mínimo 1). */
 function calcNoches(checkin: string, checkout: string): number {
@@ -39,80 +56,31 @@ export interface ConfirmacionEmailArgs {
 }
 
 export function buildConfirmacionEmailHtml(a: ConfirmacionEmailArgs): string {
-  // Con marca del hotel → correo premium branded (logo + color). Sin ella,
-  // fallback al diseño básico de abajo.
-  if (a.brand) {
-    return buildBrandedBookingEmailHtml(a.brand, {
-      kind: "reserva",
-      lang: a.lang,
-      confirmacion: a.confirmacion,
-      cliente: a.cliente || "",
-      suites: a.habitaciones,
-      checkin: a.checkin,
-      checkout: a.checkout,
-      noches: calcNoches(a.checkin, a.checkout),
-      huespedes: a.huespedes ?? 0,
-      total: (a.anticipo || 0) + (a.pendiente || 0),
-      anticipo: a.anticipo,
-      restante: a.pendiente,
-      experiencias: a.experiencias,
-      portalUrl: a.portalUrl,
-      nrf: a.ratePlan === "nrf",
-      checkinTime: a.checkinTime,
-      checkoutTime: a.checkoutTime,
-    });
-  }
-  const color = a.brandColor || "#1B4332";
-  const fmt = (n: number) => `$${Math.round(n).toLocaleString("es-MX")} MXN`;
-  const en = a.lang === "en";
-  const t = en
-    ? {
-        titulo: "Booking confirmed! 🎉",
-        gracias: (c: string, h: string) => `Thank you ${c}. Your booking at <b>${h}</b> is confirmed.`,
-        folio: "Confirmation",
-        habitaciones: "Room(s)",
-        llegada: "Check-in",
-        salida: "Check-out",
-        anticipo: "Deposit paid",
-        saldo: "Balance on arrival",
-        tarifa: "Rate",
-        nrf: "Non-refundable",
-        experiencias: "Experiences",
-        portal: (u: string) => `View or manage your booking at <a href="${u}" style="color:${color};">${u}</a> with your confirmation number and email.`,
-      }
-    : {
-        titulo: "¡Reserva confirmada! 🎉",
-        gracias: (c: string, h: string) => `Gracias ${c}. Tu reserva en <b>${h}</b> quedó confirmada.`,
-        folio: "Folio",
-        habitaciones: "Habitación(es)",
-        llegada: "Llegada",
-        salida: "Salida",
-        anticipo: "Anticipo pagado",
-        saldo: "Saldo al llegar",
-        tarifa: "Tarifa",
-        nrf: "No reembolsable",
-        experiencias: "Experiencias",
-        portal: (u: string) => `Consulta o gestiona tu reserva en <a href="${u}" style="color:${color};">${u}</a> con tu folio y tu correo.`,
-      };
-  return `<div style="font-family:system-ui,sans-serif;max-width:480px;padding:24px;">
-    <h2 style="color:${color};">${t.titulo}</h2>
-    <p>${t.gracias(a.cliente || "", a.hotelNombre)}</p>
-    <table style="border-collapse:collapse;width:100%;font-size:14px;">
-      <tr><td style="padding:6px 0;color:#667;">${t.folio}</td><td style="padding:6px 0;font-weight:600;">${a.confirmacion}</td></tr>
-      <tr><td style="padding:6px 0;color:#667;">${t.habitaciones}</td><td style="padding:6px 0;">${a.habitaciones.join(", ")}</td></tr>
-      ${a.experiencias?.length ? `<tr><td style="padding:6px 0;color:#667;">${t.experiencias}</td><td style="padding:6px 0;">${a.experiencias.join(", ")}</td></tr>` : ""}
-      <tr><td style="padding:6px 0;color:#667;">${t.llegada}</td><td style="padding:6px 0;">${a.checkin}</td></tr>
-      <tr><td style="padding:6px 0;color:#667;">${t.salida}</td><td style="padding:6px 0;">${a.checkout}</td></tr>
-      <tr><td style="padding:6px 0;color:#667;">${t.anticipo}</td><td style="padding:6px 0;font-weight:600;color:${color};">${fmt(a.anticipo)}</td></tr>
-      <tr><td style="padding:6px 0;color:#667;">${t.saldo}</td><td style="padding:6px 0;">${fmt(a.pendiente)}</td></tr>
-      ${a.ratePlan === "nrf" ? `<tr><td style="padding:6px 0;color:#667;">${t.tarifa}</td><td style="padding:6px 0;">${t.nrf}</td></tr>` : ""}
-    </table>
-    ${
-      a.portalUrl
-        ? `<p style="margin-top:16px;font-size:13px;color:#667;">${t.portal(a.portalUrl)}</p>`
-        : ""
-    }
-  </div>`;
+  // Sin marca del hotel (caso raro: el llamador no pudo resolver la fila) se
+  // arma una marca mínima con el nombre. Así NUNCA sale un correo con un
+  // diseño distinto al resto: hay una sola plantilla de confirmación.
+  const brand: BookingBrand =
+    a.brand ?? { nombre: a.hotelNombre || "el hotel", color: a.brandColor || "#1B4332" };
+
+  return buildBrandedBookingEmailHtml(brand, {
+    kind: "reserva",
+    lang: a.lang,
+    confirmacion: a.confirmacion,
+    cliente: a.cliente || "",
+    suites: a.habitaciones,
+    checkin: a.checkin,
+    checkout: a.checkout,
+    noches: calcNoches(a.checkin, a.checkout),
+    huespedes: a.huespedes ?? 0,
+    total: (a.anticipo || 0) + (a.pendiente || 0),
+    anticipo: a.anticipo,
+    restante: a.pendiente,
+    experiencias: a.experiencias,
+    portalUrl: a.portalUrl,
+    nrf: a.ratePlan === "nrf",
+    checkinTime: a.checkinTime,
+    checkoutTime: a.checkoutTime,
+  });
 }
 
 /** Envío base (gated por RESEND_API_KEY; nunca lanza). */
@@ -216,30 +184,37 @@ export interface AvisoReservaHotelArgs {
 }
 
 export function buildAvisoReservaHotelHtml(a: AvisoReservaHotelArgs): string {
-  const fmt = (n: number) => `$${Math.round(n).toLocaleString("es-MX")} MXN`;
-  const fila = (k: string, v: string) =>
-    `<tr><td style="padding:6px 12px 6px 0;color:#667;white-space:nowrap;">${k}</td><td style="padding:6px 0;">${v}</td></tr>`;
   const pago = a.pagoEnHotel
-    ? `<b>Paga al llegar</b> (tarjeta en garantía)`
-    : `Anticipo pagado: <b>${fmt(a.anticipo)}</b> · Saldo al llegar: ${fmt(Math.max(0, a.total - a.anticipo))}`;
-  return `<div style="font-family:system-ui,sans-serif;max-width:520px;padding:24px;">
-    <h2 style="color:#1B4332;">Nueva reserva 🛎️ — ${a.confirmacion}</h2>
-    <p>Entró una reserva por el motor de <b>${a.hotelNombre}</b>.</p>
-    <table style="border-collapse:collapse;width:100%;font-size:14px;">
-      ${fila("Huésped", `${a.cliente || "Sin nombre"}${a.huespedes ? ` · ${a.huespedes} persona(s)` : ""}`)}
-      ${a.telefono ? fila("Teléfono", a.telefono) : ""}
-      ${a.email ? fila("Correo", a.email) : ""}
-      ${fila("Habitación(es)", a.habitaciones.join(", ") || "—")}
-      ${a.experiencias?.length ? fila("Experiencias", a.experiencias.join(", ")) : ""}
-      ${fila("Llegada", a.checkin)}
-      ${fila("Salida", a.checkout)}
-      ${fila("Total", fmt(a.total))}
-      ${a.ratePlan === "nrf" ? fila("Tarifa", "No reembolsable") : ""}
-    </table>
-    <p style="font-size:14px;">${pago}</p>
-    <p style="margin-top:16px;"><a href="${a.panelUrl}"
-      style="background:#1B4332;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:600;">Ver en mi panel</a></p>
-  </div>`;
+    ? `<strong style="color:${TOK.tinta};">Paga al llegar</strong> — tarjeta en garantía, cobras en recepción.`
+    : `Anticipo pagado: <strong style="color:${TOK.exito};">${money(a.anticipo)}</strong> · Saldo al llegar: <strong style="color:${TOK.tinta};">${money(Math.max(0, a.total - a.anticipo))}</strong>`;
+
+  const filas = [
+    { k: "Huésped", v: `${esc(a.cliente || "Sin nombre")}${a.huespedes ? ` · ${a.huespedes} persona(s)` : ""}` },
+    ...(a.telefono ? [{ k: "Teléfono", v: esc(a.telefono) }] : []),
+    ...(a.email ? [{ k: "Correo", v: esc(a.email) }] : []),
+    { k: "Habitación(es)", v: esc(a.habitaciones.join(", ")) || "—" },
+    ...(a.experiencias?.length ? [{ k: "Experiencias", v: esc(a.experiencias.join(", ")) }] : []),
+    { k: "Llegada", v: esc(a.checkin) },
+    { k: "Salida", v: esc(a.checkout) },
+    { k: "Total", v: money(a.total) },
+    ...(a.ratePlan === "nrf" ? [{ k: "Tarifa", v: "No reembolsable" }] : []),
+  ];
+
+  const inner =
+    cabecera({ nombre: "Kora", eyebrow: "Nueva reserva" }) +
+    titulo("Entró una reserva 🛎️", `Folio <strong style="color:${TOK.cuerpo};letter-spacing:1px;">${esc(a.confirmacion)}</strong>`) +
+    parrafo(`Llegó por el motor de reservas de <strong style="color:${TOK.tinta};">${esc(a.hotelNombre)}</strong>.`) +
+    tablaDatos(filas) +
+    caja(pago) +
+    botonOscuro(a.panelUrl, "Ver en mi panel") +
+    respiro +
+    pieKora("Este aviso te llega porque eres quien recibe las notificaciones de reservas de este hotel.");
+
+  return doc(
+    `Nueva reserva ${a.confirmacion}`,
+    `${a.cliente || "Un huésped"} reservó del ${a.checkin} al ${a.checkout}`,
+    inner,
+  );
 }
 
 /** Aviso inmediato al hotel de reserva nueva. Best-effort, nunca lanza. */
@@ -269,20 +244,32 @@ export interface AvisoCancelacionHotelArgs {
 }
 
 export function buildAvisoCancelacionHotelHtml(a: AvisoCancelacionHotelArgs): string {
-  const fmt = (n: number) => `$${Math.round(n).toLocaleString("es-MX")} MXN`;
-  return `<div style="font-family:system-ui,sans-serif;max-width:520px;padding:24px;">
-    <h2 style="color:#b91c1c;">Reserva cancelada — ${a.confirmacion}</h2>
-    <p>El huésped <b>${a.cliente || a.email || "—"}</b> canceló su reserva en
-    <b>${a.hotelNombre}</b> desde el portal (dentro del plazo de cancelación gratis).</p>
-    <table style="border-collapse:collapse;width:100%;font-size:14px;">
-      <tr><td style="padding:6px 12px 6px 0;color:#667;">Habitación(es)</td><td style="padding:6px 0;">${a.habitaciones || "—"}</td></tr>
-      <tr><td style="padding:6px 12px 6px 0;color:#667;">Fechas</td><td style="padding:6px 0;">${a.checkin} → ${a.checkout}</td></tr>
-      ${a.anticipo > 0 ? `<tr><td style="padding:6px 12px 6px 0;color:#667;">Anticipo</td><td style="padding:6px 0;">${fmt(a.anticipo)} — coordina el reembolso desde tu Stripe</td></tr>` : ""}
-    </table>
-    <p style="font-size:13px;color:#667;">Las fechas ya quedaron liberadas en tu calendario.</p>
-    <p style="margin-top:16px;"><a href="${a.panelUrl}"
-      style="background:#1B4332;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:600;">Ver en mi panel</a></p>
-  </div>`;
+  const filas = [
+    { k: "Huésped", v: esc(a.cliente || a.email || "—") },
+    { k: "Habitación(es)", v: esc(a.habitaciones) || "—" },
+    { k: "Fechas", v: `${esc(a.checkin)} → ${esc(a.checkout)}` },
+    ...(a.anticipo > 0
+      ? [{ k: "Anticipo", v: `${money(a.anticipo)} — coordina el reembolso desde tu Stripe` }]
+      : []),
+  ];
+
+  const inner =
+    cabecera({ nombre: "Kora", eyebrow: "Reserva cancelada" }) +
+    titulo("Se canceló una reserva", `Folio <strong style="color:${TOK.cuerpo};letter-spacing:1px;">${esc(a.confirmacion)}</strong>`) +
+    parrafo(
+      `El huésped canceló su reserva en <strong style="color:${TOK.tinta};">${esc(a.hotelNombre)}</strong> desde el portal, dentro del plazo de cancelación gratis.`,
+    ) +
+    tablaDatos(filas) +
+    caja("Las fechas ya quedaron liberadas en tu calendario: el cuarto vuelve a estar a la venta.", "exito") +
+    botonOscuro(a.panelUrl, "Ver en mi panel") +
+    respiro +
+    pieKora();
+
+  return doc(
+    `Reserva cancelada ${a.confirmacion}`,
+    `${a.cliente || "Un huésped"} canceló su reserva del ${a.checkin}`,
+    inner,
+  );
 }
 
 /** Aviso al hotel de cancelación self-service. Best-effort, nunca lanza. */
@@ -316,53 +303,82 @@ export interface PagoSinCuartoArgs {
 
 export function buildPagoSinCuartoHuespedHtml(a: PagoSinCuartoArgs): string {
   const en = a.lang === "en";
-  const fmt = (n: number) => `$${Math.round(n).toLocaleString("es-MX")} MXN`;
-  if (en) {
-    return `<div style="font-family:system-ui,sans-serif;max-width:520px;padding:24px;">
-      <h2 style="color:#1B4332;">We're sorry — your room is no longer available</h2>
-      <p>Your payment for <b>${a.hotelNombre}</b> (${a.checkin} → ${a.checkout}) went
-      through, but the room was taken just before we could confirm your booking.</p>
-      <p><b>${
-        a.reembolsado
-          ? `We already issued a full refund of ${fmt(a.monto)} — it will appear in your account within a few business days.`
-          : `We are processing a full refund of ${fmt(a.monto)}. If you don't see it within 5 business days, reply to this email.`
-      }</b></p>
-      <p style="font-size:13px;color:#667;">The hotel has been notified and may reach out with alternative dates.</p>
-    </div>`;
-  }
-  return `<div style="font-family:system-ui,sans-serif;max-width:520px;padding:24px;">
-    <h2 style="color:#1B4332;">Una disculpa — tu cuarto ya no está disponible</h2>
-    <p>Tu pago para <b>${a.hotelNombre}</b> (${a.checkin} → ${a.checkout}) sí se procesó,
-    pero el cuarto se ocupó justo antes de que pudiéramos confirmar tu reserva.</p>
-    <p><b>${
-      a.reembolsado
-        ? `Ya emitimos el reembolso completo de ${fmt(a.monto)}: lo verás reflejado en unos días hábiles.`
-        : `Estamos procesando tu reembolso completo de ${fmt(a.monto)}. Si no lo ves en 5 días hábiles, responde a este correo.`
-    }</b></p>
-    <p style="font-size:13px;color:#667;">El hotel ya fue notificado y puede contactarte con fechas alternativas.</p>
-  </div>`;
+  const t = en
+    ? {
+        eyebrow: "About your payment",
+        h: "We're sorry — that room is no longer available",
+        hola: "Hi",
+        intro: `Your payment for <strong>${esc(a.hotelNombre)}</strong> went through, but the room was taken moments before we could confirm your booking. This is on us, and we're fixing it right away.`,
+        fechas: "Dates",
+        cuartos: "Room(s)",
+        monto: "Amount",
+        reembolsado: `We already issued a full refund of <strong>${money(a.monto)}</strong>. It will show up in your account within a few business days.`,
+        pendiente: `We are processing a full refund of <strong>${money(a.monto)}</strong>. If you don't see it within 5 business days, just reply to this email.`,
+        nota: "The hotel has been notified and may reach out with alternative dates.",
+      }
+    : {
+        eyebrow: "Sobre tu pago",
+        h: "Una disculpa — ese cuarto ya no está disponible",
+        hola: "Hola",
+        intro: `Tu pago para <strong>${esc(a.hotelNombre)}</strong> sí se procesó, pero el cuarto se ocupó momentos antes de que pudiéramos confirmar tu reserva. La falla es nuestra y ya la estamos resolviendo.`,
+        fechas: "Fechas",
+        cuartos: "Cuarto(s)",
+        monto: "Monto",
+        reembolsado: `Ya emitimos el reembolso completo de <strong>${money(a.monto)}</strong>. Lo verás reflejado en unos días hábiles.`,
+        pendiente: `Estamos procesando tu reembolso completo de <strong>${money(a.monto)}</strong>. Si no lo ves en 5 días hábiles, responde a este correo.`,
+        nota: "El hotel ya fue notificado y puede contactarte con fechas alternativas.",
+      };
+
+  const inner =
+    cabecera({ nombre: a.hotelNombre, eyebrow: t.eyebrow }) +
+    titulo(t.h) +
+    saludo(t.hola, esc((a.cliente || "").trim().split(/\s+/)[0] || (en ? "there" : "")), t.intro) +
+    tablaDatos([
+      { k: t.fechas, v: `${esc(a.checkin)} → ${esc(a.checkout)}` },
+      { k: t.cuartos, v: esc(a.habitaciones.join(", ")) || "—" },
+      { k: t.monto, v: money(a.monto) },
+    ]) +
+    caja(a.reembolsado ? t.reembolsado : t.pendiente, a.reembolsado ? "exito" : "alerta") +
+    parrafo(`<span style="font-size:13px;color:${TOK.tenue};">${esc(t.nota)}</span>`) +
+    respiro +
+    pieHotel({ nombre: a.hotelNombre });
+
+  return doc(`${a.hotelNombre} — ${t.eyebrow}`, t.h, inner);
 }
 
 export function buildPagoSinCuartoHotelHtml(a: PagoSinCuartoArgs): string {
-  const fmt = (n: number) => `$${Math.round(n).toLocaleString("es-MX")} MXN`;
-  return `<div style="font-family:system-ui,sans-serif;max-width:520px;padding:24px;">
-    <h2 style="color:#b91c1c;">⚠️ Pago recibido sin cuarto disponible</h2>
-    <p>Un huésped pagó en <b>${a.hotelNombre}</b> pero su cuarto ya estaba ocupado al
-    confirmar (probablemente dejó el pago abierto y alguien más reservó antes).</p>
-    <table style="border-collapse:collapse;width:100%;font-size:14px;">
-      <tr><td style="padding:6px 12px 6px 0;color:#667;">Huésped</td><td style="padding:6px 0;">${a.cliente || "—"} · ${a.email || "—"} · ${a.telefono || "—"}</td></tr>
-      <tr><td style="padding:6px 12px 6px 0;color:#667;">Cuarto(s)</td><td style="padding:6px 0;">${a.habitaciones.join(", ") || "—"}</td></tr>
-      <tr><td style="padding:6px 12px 6px 0;color:#667;">Fechas</td><td style="padding:6px 0;">${a.checkin} → ${a.checkout}</td></tr>
-      <tr><td style="padding:6px 12px 6px 0;color:#667;">Monto</td><td style="padding:6px 0;">${fmt(a.monto)}</td></tr>
-      <tr><td style="padding:6px 12px 6px 0;color:#667;">Reembolso</td><td style="padding:6px 0;">${
-        a.reembolsado
-          ? "✅ Emitido automáticamente en Stripe"
-          : "❌ NO se pudo emitir automático — hazlo a mano en tu Stripe HOY"
-      }</td></tr>
-    </table>
-    <p style="font-size:13px;color:#667;">Si tienes otro cuarto libre en esas fechas,
-    contacta al huésped: puedes salvar la venta.</p>
-  </div>`;
+  const inner =
+    cabecera({ nombre: "Kora", eyebrow: "Requiere tu atención" }) +
+    titulo("⚠️ Pago recibido sin cuarto disponible") +
+    parrafo(
+      `Un huésped pagó en <strong style="color:${TOK.tinta};">${esc(a.hotelNombre)}</strong> pero su cuarto ya estaba ocupado al momento de confirmar (probablemente dejó el pago abierto y alguien más reservó antes).`,
+    ) +
+    tablaDatos([
+      { k: "Huésped", v: `${esc(a.cliente || "—")} · ${esc(a.email || "—")} · ${esc(a.telefono || "—")}` },
+      { k: "Cuarto(s)", v: esc(a.habitaciones.join(", ")) || "—" },
+      { k: "Fechas", v: `${esc(a.checkin)} → ${esc(a.checkout)}` },
+      { k: "Monto", v: money(a.monto) },
+      {
+        k: "Reembolso",
+        v: a.reembolsado
+          ? `<span style="color:${TOK.exito};">Emitido automáticamente en Stripe</span>`
+          : `<span style="color:${TOK.error};">NO se pudo emitir automático — hazlo a mano en tu Stripe HOY</span>`,
+      },
+    ]) +
+    caja(
+      a.reembolsado
+        ? "Si tienes otro cuarto libre en esas fechas, contacta al huésped: puedes salvar la venta."
+        : "Emite el reembolso manualmente hoy mismo y contacta al huésped. Si tienes otro cuarto libre en esas fechas, puedes salvar la venta.",
+      a.reembolsado ? "neutro" : "error",
+    ) +
+    respiro +
+    pieKora();
+
+  return doc(
+    `Pago sin cuarto — ${a.hotelNombre}`,
+    `Un huésped pagó ${money(a.monto)} y el cuarto ya estaba ocupado`,
+    inner,
+  );
 }
 
 /** Disculpa + estado del reembolso al huésped. Best-effort, nunca lanza. */
@@ -411,46 +427,20 @@ export interface AbandonoEmailArgs {
 }
 
 export function buildAbandonoEmailHtml(a: AbandonoEmailArgs): string {
-  if (a.brand) {
-    return buildBrandedRecoveryEmailHtml(a.brand, {
-      lang: a.lang,
-      nombre: a.nombre,
-      checkin: a.checkin,
-      checkout: a.checkout,
-      reanudarUrl: a.reanudarUrl,
-      suites: a.suites,
-      huespedes: a.huespedes,
-      noches: a.noches,
-      total: a.total,
-    });
-  }
-  const color = a.brandColor || "#1B4332";
-  const en = a.lang === "en";
-  const fechas =
-    a.checkin && a.checkout
-      ? en
-        ? `<p style="font-size:14px;">Your dates: <b>${a.checkin}</b> → <b>${a.checkout}</b></p>`
-        : `<p style="font-size:14px;">Tus fechas: <b>${a.checkin}</b> → <b>${a.checkout}</b></p>`
-      : "";
-  const saludo = a.nombre ? `${en ? "Hi" : "Hola"} ${a.nombre},` : en ? "Hi," : "Hola,";
-  return `<div style="font-family:system-ui,sans-serif;max-width:480px;padding:24px;">
-    <h2 style="color:${color};">${en ? "Your booking is one step away" : "Tu reserva quedó a un paso"}</h2>
-    <p>${saludo} ${
-      en
-        ? `we saved your search at <b>${a.hotelNombre}</b> so you can pick up right where you left off.`
-        : `guardamos tu búsqueda en <b>${a.hotelNombre}</b> para que la retomes justo donde te quedaste.`
-    }</p>
-    ${fechas}
-    <p style="margin:20px 0;"><a href="${a.reanudarUrl}"
-      style="background:${color};color:#fff;padding:12px 22px;border-radius:8px;text-decoration:none;font-weight:600;">${
-        en ? "Complete my booking" : "Completar mi reserva"
-      }</a></p>
-    <p style="font-size:12px;color:#667;">${
-      en
-        ? "Availability isn't guaranteed until you finish — rooms are released to other guests."
-        : "La disponibilidad no se aparta hasta terminar: los cuartos se liberan a otros huéspedes."
-    }</p>
-  </div>`;
+  const brand: BookingBrand =
+    a.brand ?? { nombre: a.hotelNombre || "el hotel", color: a.brandColor || "#1B4332" };
+
+  return buildBrandedRecoveryEmailHtml(brand, {
+    lang: a.lang,
+    nombre: a.nombre,
+    checkin: a.checkin,
+    checkout: a.checkout,
+    reanudarUrl: a.reanudarUrl,
+    suites: a.suites,
+    huespedes: a.huespedes,
+    noches: a.noches,
+    total: a.total,
+  });
 }
 
 /** Recordatorio de abandono al huésped. Best-effort, nunca lanza. */
@@ -466,6 +456,199 @@ export async function sendRecordatorioAbandono(
       ? `Your booking at ${args.hotelNombre} is one step away`
       : `Tu reserva en ${args.hotelNombre} quedó a un paso`,
     buildAbandonoEmailHtml(args),
+    fromOverride,
+  );
+}
+
+// ─── Cancelación: comprobante para el HUÉSPED ────────────────────────────────
+// Antes, cuando el huésped cancelaba desde el portal, el hotel recibía aviso y
+// el huésped NO recibía nada: se quedaba sin comprobante de su propia
+// cancelación. Este es ese comprobante.
+
+export interface CancelacionHuespedArgs {
+  hotelNombre: string;
+  confirmacion: string;
+  cliente?: string | null;
+  habitaciones: string;
+  checkin: string;
+  checkout: string;
+  anticipo: number;
+  reembolsable: boolean; // canceló dentro del plazo de cancelación gratis
+  lang?: "es" | "en";
+  brand?: BookingBrand;
+}
+
+export function buildCancelacionHuespedHtml(a: CancelacionHuespedArgs): string {
+  const en = a.lang === "en";
+  const first = (a.cliente || "").trim().split(/\s+/)[0] || "";
+  const t = en
+    ? {
+        eyebrow: "Booking cancelled",
+        h: "Your booking is cancelled",
+        hola: "Hi",
+        intro: `We cancelled your booking at <strong>${esc(a.hotelNombre)}</strong>. Keep this email as your record — nothing else is needed from you.`,
+        folio: "Confirmation",
+        hab: "Room(s)",
+        fechas: "Dates",
+        anticipo: "Deposit",
+        conReembolso: `Your deposit of <strong>${money(a.anticipo)}</strong> is being refunded. Depending on your bank it can take 5 to 10 business days to appear.`,
+        sinReembolso: `Your deposit of <strong>${money(a.anticipo)}</strong> is non-refundable under the rate you booked, so it won't be returned.`,
+        cierre: "If you cancelled by mistake or want to move your dates, reply to this email — we'll help you.",
+      }
+    : {
+        eyebrow: "Reserva cancelada",
+        h: "Tu reserva quedó cancelada",
+        hola: "Hola",
+        intro: `Cancelamos tu reserva en <strong>${esc(a.hotelNombre)}</strong>. Guarda este correo como comprobante — no necesitas hacer nada más.`,
+        folio: "Folio",
+        hab: "Habitación(es)",
+        fechas: "Fechas",
+        anticipo: "Anticipo",
+        conReembolso: `Tu anticipo de <strong>${money(a.anticipo)}</strong> se está reembolsando. Según tu banco, puede tardar de 5 a 10 días hábiles en aparecer.`,
+        sinReembolso: `Tu anticipo de <strong>${money(a.anticipo)}</strong> no es reembolsable por la tarifa que elegiste, así que no se devuelve.`,
+        cierre: "Si cancelaste por error o quieres mover tus fechas, responde este correo y te ayudamos.",
+      };
+
+  const inner =
+    cabecera({ nombre: a.brand?.nombre || a.hotelNombre, eyebrow: t.eyebrow }) +
+    titulo(t.h, `${t.folio} <strong style="color:${TOK.cuerpo};letter-spacing:1px;">${esc(a.confirmacion)}</strong>`) +
+    saludo(t.hola, esc(first), t.intro) +
+    tablaDatos([
+      { k: t.hab, v: esc(a.habitaciones) || "—" },
+      { k: t.fechas, v: `${esc(a.checkin)} → ${esc(a.checkout)}` },
+      ...(a.anticipo > 0 ? [{ k: t.anticipo, v: money(a.anticipo) }] : []),
+    ]) +
+    (a.anticipo > 0
+      ? caja(a.reembolsable ? t.conReembolso : t.sinReembolso, a.reembolsable ? "exito" : "alerta")
+      : "") +
+    parrafo(`<span style="font-size:13px;color:${TOK.tenue};">${esc(t.cierre)}</span>`) +
+    respiro +
+    pieHotel({ nombre: a.brand?.nombre || a.hotelNombre, ubicacion: a.brand?.ubicacion });
+
+  return doc(`${a.hotelNombre} — ${t.eyebrow}`, `${t.h} — ${a.confirmacion}`, inner);
+}
+
+/** Comprobante de cancelación al huésped. Best-effort, nunca lanza. */
+export async function sendCancelacionHuesped(
+  to: string,
+  args: CancelacionHuespedArgs,
+  fromOverride?: string | null,
+): Promise<boolean> {
+  return sendMotorEmail(
+    to,
+    args.lang === "en"
+      ? `Your booking is cancelled — ${args.confirmacion}`
+      : `Tu reserva quedó cancelada — ${args.confirmacion}`,
+    buildCancelacionHuespedHtml(args),
+    fromOverride,
+  );
+}
+
+// ─── Reserva modificada por el hotel: aviso al HUÉSPED ───────────────────────
+// Cuando el hotelero le cambia fechas o habitación desde el panel, el huésped
+// tiene que enterarse: antes se le cambiaba la reserva en silencio.
+
+export interface ModificacionHuespedArgs {
+  hotelNombre: string;
+  confirmacion: string;
+  cliente?: string | null;
+  habitaciones: string;
+  checkin: string;
+  checkout: string;
+  noches: number;
+  huespedes?: number;
+  total: number;
+  anticipo: number;
+  anterior?: { habitaciones?: string; checkin?: string; checkout?: string };
+  portalUrl?: string;
+  lang?: "es" | "en";
+  brand?: BookingBrand;
+}
+
+export function buildModificacionHuespedHtml(a: ModificacionHuespedArgs): string {
+  const en = a.lang === "en";
+  const first = (a.cliente || "").trim().split(/\s+/)[0] || "";
+  const restante = Math.max(0, a.total - a.anticipo);
+  const t = en
+    ? {
+        eyebrow: "Booking updated",
+        h: "We updated your booking",
+        hola: "Hi",
+        intro: `The hotel adjusted your reservation at <strong>${esc(a.hotelNombre)}</strong>. These are the new details — everything else stays the same.`,
+        folio: "Confirmation",
+        hab: "Room(s)",
+        fechas: "Dates",
+        noches: "Nights",
+        huesp: "Guests",
+        total: "Total for the stay",
+        pagado: "Already paid",
+        restante: "Balance on arrival",
+        antes: "Previously",
+        cierre: "If something doesn't look right, reply to this email right away.",
+      }
+    : {
+        eyebrow: "Reserva actualizada",
+        h: "Actualizamos tu reserva",
+        hola: "Hola",
+        intro: `El hotel ajustó tu reserva en <strong>${esc(a.hotelNombre)}</strong>. Estos son los datos nuevos — todo lo demás sigue igual.`,
+        folio: "Folio",
+        hab: "Habitación(es)",
+        fechas: "Fechas",
+        noches: "Noches",
+        huesp: "Huéspedes",
+        total: "Total de la estancia",
+        pagado: "Ya pagado",
+        restante: "Restante al llegar",
+        antes: "Antes decía",
+        cierre: "Si algo no cuadra, responde este correo de inmediato.",
+      };
+
+  const antes = a.anterior
+    ? [
+        a.anterior.habitaciones && a.anterior.habitaciones !== a.habitaciones
+          ? `${t.hab}: ${esc(a.anterior.habitaciones)}`
+          : "",
+        (a.anterior.checkin && a.anterior.checkin !== a.checkin) ||
+        (a.anterior.checkout && a.anterior.checkout !== a.checkout)
+          ? `${t.fechas}: ${esc(a.anterior.checkin || "—")} → ${esc(a.anterior.checkout || "—")}`
+          : "",
+      ].filter(Boolean)
+    : [];
+
+  const inner =
+    cabecera({ nombre: a.brand?.nombre || a.hotelNombre, eyebrow: t.eyebrow }) +
+    titulo(t.h, `${t.folio} <strong style="color:${TOK.cuerpo};letter-spacing:1px;">${esc(a.confirmacion)}</strong>`) +
+    saludo(t.hola, esc(first), t.intro) +
+    tablaDatos([
+      { k: t.hab, v: esc(a.habitaciones) || "—" },
+      { k: t.fechas, v: `${esc(a.checkin)} → ${esc(a.checkout)}` },
+      { k: t.noches, v: String(a.noches) },
+      ...(a.huespedes ? [{ k: t.huesp, v: String(a.huespedes) }] : []),
+      { k: t.total, v: money(a.total) },
+      ...(a.anticipo > 0 ? [{ k: t.pagado, v: money(a.anticipo) }] : []),
+      { k: t.restante, v: money(restante) },
+    ]) +
+    (antes.length ? caja(`<strong>${esc(t.antes)}</strong><br>${antes.join("<br>")}`, "alerta") : "") +
+    (a.portalUrl ? botonOscuro(a.portalUrl, en ? "View my booking" : "Ver mi reserva") : "") +
+    parrafo(`<span style="font-size:13px;color:${TOK.tenue};">${esc(t.cierre)}</span>`) +
+    respiro +
+    pieHotel({ nombre: a.brand?.nombre || a.hotelNombre, ubicacion: a.brand?.ubicacion });
+
+  return doc(`${a.hotelNombre} — ${t.eyebrow}`, `${t.h} — ${a.confirmacion}`, inner);
+}
+
+/** Aviso de reserva modificada al huésped. Best-effort, nunca lanza. */
+export async function sendModificacionHuesped(
+  to: string,
+  args: ModificacionHuespedArgs,
+  fromOverride?: string | null,
+): Promise<boolean> {
+  return sendMotorEmail(
+    to,
+    args.lang === "en"
+      ? `Your booking was updated — ${args.confirmacion}`
+      : `Actualizamos tu reserva — ${args.confirmacion}`,
+    buildModificacionHuespedHtml(args),
     fromOverride,
   );
 }

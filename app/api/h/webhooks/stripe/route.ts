@@ -6,6 +6,7 @@ import {
   createBookingAtomic,
   findBookingByPaymentIntent,
   generarConfirmacion,
+  setBookingLang,
   type CrearReservaResult,
 } from "@/lib/db/bookings";
 import { releaseHold, extendHold } from "@/lib/db/availability";
@@ -229,6 +230,10 @@ async function confirmarReserva(
       console.error("createBookingAtomic falló en webhook (transitorio):", result.error);
       return NextResponse.json({ error: result.error }, { status: 500 });
     }
+
+    // Idioma con el que reservó: lo necesitan las secuencias pre/post estancia
+    // para escribirle en su idioma (antes todo salía en español). Best-effort.
+    await setBookingLang(hotelId, result.bookingId ?? "", md.lang === "en" ? "en" : "es");
 
     // Registrar los lugares de experiencias vendidos (cupo diario, Sprint 3).
     // Best-effort: nunca tumba el webhook — la reserva ya quedó creada.

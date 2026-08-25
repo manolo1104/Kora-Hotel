@@ -122,3 +122,30 @@ export function generarConfirmacion(prefijo: string | null | undefined): string 
   for (let i = 0; i < 4; i++) s += chars[Math.floor(Math.random() * chars.length)];
   return `${p}-${year}-${s}`;
 }
+
+/**
+ * Guarda el idioma con el que reservó el huésped (best-effort). Va aparte del
+ * RPC para no cambiar su firma: si la columna `lang` todavía no existe en la
+ * BD, se ignora sin romper el webhook (la reserva y el pago ya son válidos).
+ * Lo usa el cron de secuencias para escribir en el idioma correcto.
+ */
+export async function setBookingLang(
+  hotelId: string,
+  bookingId: string,
+  lang: "es" | "en",
+): Promise<void> {
+  if (!bookingId) return;
+  try {
+    const supabase = createAdminClient();
+    const { error } = await supabase
+      .from("bookings")
+      .update({ lang })
+      .eq("hotel_id", hotelId)
+      .eq("id", bookingId);
+    if (error && !/column .*lang.* does not exist|schema cache/i.test(error.message)) {
+      console.error("setBookingLang error:", error.message);
+    }
+  } catch (e) {
+    console.error("setBookingLang error:", e);
+  }
+}

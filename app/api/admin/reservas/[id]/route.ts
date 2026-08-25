@@ -3,8 +3,13 @@ import { getActiveHotel } from '@/lib/panel/active-hotel';
 import { getAllBookings, updateBooking, cancelBooking, splitRooms } from '@/lib/db/admin';
 import { getOccupiedRoomNames } from '@/lib/db/availability';
 import { liberarExperienciaVentas } from '@/lib/db/experiencias';
+import { sendCancelacionHuesped, sendModificacionHuesped } from '@/lib/email/reserva';
+import { bookingBrandFromHotel, bookingFromHotel } from '@/lib/email/booking-branded';
 
 export const dynamic = 'force-dynamic';
+
+/** ¿Es un correo al que sí se le puede escribir? */
+const correoValido = (e?: string | null) => Boolean(e && e !== 'N/A' && e.includes('@'));
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const ctx = await getActiveHotel();
@@ -69,9 +74,70 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   // mezclar estados RESERVADO/BLOQUEADO y dejar fechas viejas ocupadas).
   await updateBooking(ctx.hotelId, booking.id, raw);
   // Cancelada desde el panel → sus lugares de experiencias quedan libres.
-  if (raw.estado === 'CANCELADA' && booking.estado !== 'CANCELADA') {
+  const cancelaAhora = raw.estado === 'CANCELADA' && booking.estado !== 'CANCELADA';
+  if (cancelaAhora) {
     await liberarExperienciaVentas(ctx.hotelId, booking.confirmacion);
   }
+
+  // AVISO AL HUÉSPED. Antes el hotel le movía fechas o cuarto (o le cancelaba)
+  // y el huésped no se enteraba por ningún lado. Best-effort: el cambio en la
+  // BD ya está aplicado y no se revierte si el correo falla.
+  if (correoValido(booking.email)) {
+    const brand = bookingBrandFromHotel(ctx.hotel);
+    const from = bookingFromHotel(ctx.hotel);
+    const nuevasHabs = String(raw.habitaciones ?? booking.habitaciones ?? '');
+    try {
+      if (cancelaAhora) {
+        await sendCancelacionHuesped(
+          booking.email,
+          {
+            hotelNombre: ctx.hotel.nombre,
+            confirmacion: booking.confirmacion,
+            cliente: booking.cliente,
+            habitaciones: nuevasHabs,
+            checkin: newCheckin,
+            checkout: newCheckout,
+            anticipo: booking.anticipo,
+            // La canceló el hotel: el anticipo se devuelve, sea la tarifa que sea.
+            reembolsable: true,
+            lang: booking.lang,
+            brand,
+          },
+          from,
+        );
+      } else if (cambiaFechas || cambiaCuartos) {
+        const total = Number(raw.total ?? booking.total) || 0;
+        const anticipo = Number(raw.anticipo ?? booking.anticipo) || 0;
+        await sendModificacionHuesped(
+          booking.email,
+          {
+            hotelNombre: ctx.hotel.nombre,
+            confirmacion: booking.confirmacion,
+            cliente: booking.cliente,
+            habitaciones: nuevasHabs,
+            checkin: newCheckin,
+            checkout: newCheckout,
+            noches: Number(raw.noches ?? booking.noches) || 1,
+            huespedes: Number(raw.huespedes ?? booking.huespedes) || undefined,
+            total,
+            anticipo,
+            anterior: {
+              habitaciones: booking.habitaciones,
+              checkin: booking.checkin,
+              checkout: booking.checkout,
+            },
+            portalUrl: `${new URL(req.url).origin}/reserva/consultar`,
+            lang: booking.lang,
+            brand,
+          },
+          from,
+        );
+      }
+    } catch (e) {
+      console.error('aviso de cambio al huésped falló:', e);
+    }
+  }
+
   return NextResponse.json({ ok: true });
 }
 
@@ -88,5 +154,30 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   // cancelBooking marca CANCELADA y borra los blocks ligados (libera disponibilidad).
   await cancelBooking(ctx.hotelId, booking.id);
   await liberarExperienciaVentas(ctx.hotelId, booking.confirmacion);
+
+  // Comprobante de cancelación al huésped (best-effort).
+  if (correoValido(booking.email)) {
+    try {
+      await sendCancelacionHuesped(
+        booking.email,
+        {
+          hotelNombre: ctx.hotel.nombre,
+          confirmacion: booking.confirmacion,
+          cliente: booking.cliente,
+          habitaciones: booking.habitaciones,
+          checkin: booking.checkin,
+          checkout: booking.checkout,
+          anticipo: booking.anticipo,
+          reembolsable: true, // la canceló el hotel
+          lang: booking.lang,
+          brand: bookingBrandFromHotel(ctx.hotel),
+        },
+        bookingFromHotel(ctx.hotel),
+      );
+    } catch (e) {
+      console.error('comprobante de cancelación al huésped falló:', e);
+    }
+  }
+
   return NextResponse.json({ ok: true });
 }

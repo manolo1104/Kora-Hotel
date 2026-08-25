@@ -58,6 +58,8 @@ export interface AdminBooking {
   anticipo: number;
   origen: string; // "web" | "bot" | "manual" | "web-pago-hotel" | ...
   doc: Record<string, unknown>; // overrides del documento branded (editor "modificar antes de descargar")
+  /** Idioma con el que reservó el huésped. Sin columna `lang` en la BD → "es". */
+  lang: "es" | "en";
 }
 
 export interface AdminQuote {
@@ -141,6 +143,7 @@ interface BookingRow {
   notas: string | null;
   created_at: string | null;
   doc?: Record<string, unknown> | null; // opcional: puede no existir la columna aún
+  lang?: string | null; // idioma con el que reservó (opcional: columna nueva)
 }
 
 interface QuoteRow {
@@ -202,6 +205,7 @@ function mapBooking(r: BookingRow): AdminBooking {
     estado,
     origen: r.origen ?? "",
     doc: (r.doc ?? {}) as Record<string, unknown>,
+    lang: r.lang === "en" ? "en" : "es",
   };
 }
 

@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { findGuestBooking, cancelGuestBooking, serializeGuestBooking } from "@/lib/db/portal";
-import { resolveHotelAvisoEmail, sendAvisoCancelacionHotel } from "@/lib/email/reserva";
+import {
+  resolveHotelAvisoEmail,
+  sendAvisoCancelacionHotel,
+  sendCancelacionHuesped,
+} from "@/lib/email/reserva";
+import { bookingBrandFromHotel, bookingFromHotel } from "@/lib/email/booking-branded";
+import type { HotelRow } from "@/lib/tenant";
 
 export const dynamic = "force-dynamic";
 
@@ -57,6 +63,39 @@ export async function POST(req: NextRequest) {
     }
   } catch (e) {
     console.error("aviso de cancelación al hotel falló:", e);
+  }
+
+  // Comprobante al HUÉSPED. Antes solo se avisaba al hotel y el huésped se
+  // quedaba sin constancia de su propia cancelación. Best-effort.
+  try {
+    const h = booking.row.hoteles;
+    if (h && booking.row.email) {
+      const hotelParaMarca = {
+        nombre: h.nombre,
+        ubicacion: null,
+        whatsapp: h.whatsapp,
+        config: h.config,
+        extras: h.extras,
+      };
+      await sendCancelacionHuesped(
+        booking.row.email,
+        {
+          hotelNombre: h.nombre,
+          confirmacion: booking.row.confirmacion,
+          cliente: booking.row.cliente,
+          habitaciones: booking.row.habitaciones,
+          checkin: booking.row.checkin,
+          checkout: booking.row.checkout,
+          anticipo: booking.row.anticipo,
+          // Llegó aquí porque la política lo permitía: cancelación sin cargo.
+          reembolsable: booking.row.rate_plan !== "nrf",
+          brand: bookingBrandFromHotel(hotelParaMarca),
+        },
+        bookingFromHotel({ config: h.config } as HotelRow),
+      );
+    }
+  } catch (e) {
+    console.error("comprobante de cancelación al huésped falló:", e);
   }
 
   booking.row.estado = "CANCELADA";

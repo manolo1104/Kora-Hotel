@@ -76,7 +76,9 @@ export async function POST(req: NextRequest) {
     // Mismo patrón que el webhook del motor (app/api/h/webhooks/stripe): aviso al
     // hotel con destinatario RESUELTO (panel → config → cuenta del dueño) y
     // confirmación PREMIUM al huésped con la marca del hotel.
-    notifyBookingEmails(req, ctx.hotel, confirmacion, data).catch(() => {});
+    // CON await: sin él Vercel congela la función al responder y el huésped se
+    // queda sin su confirmación (ver la nota en /api/panel/crear-hotel).
+    await notifyBookingEmails(req, ctx.hotel, confirmacion, data).catch(() => {});
 
     return NextResponse.json({ ok: true, confirmacion });
   } catch (e: any) {

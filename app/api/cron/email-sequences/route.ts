@@ -34,6 +34,21 @@ type EmailType =
 // No reprocesar reservas muy antiguas (espejo de mi-hotel).
 const MAX_LOOKBACK_DAYS = 45;
 
+// Tolerancia de las ventanas post-estancia, en días. Las condiciones eran
+// ABIERTAS ("checkout + N ya pasó"): al conectar un hotel con reservas
+// históricas, todos sus huéspedes de las últimas 6 semanas recibían los tres
+// correos post-estancia el mismo día. Con la ventana cerrada, un correo solo
+// sale si HOY cae dentro de sus días; una reserva vieja ya pasó de largo y se
+// queda callada.
+const TOLERANCIA_DIAS = 2;
+
+/** ¿Hoy cae en [ancla + offset, ancla + offset + TOLERANCIA]? */
+function enVentana(ancla: string, offset: number, hoy: string): boolean {
+  const desde = shiftDate(ancla, offset);
+  const hasta = shiftDate(ancla, offset + TOLERANCIA_DIAS);
+  return desde <= hoy && hoy <= hasta;
+}
+
 interface HotelRow {
   id: string;
   nombre: string | null;
@@ -94,8 +109,10 @@ function brandFromHotel(h: HotelRow): HotelBrand {
     email: str(config.email_from) || str(config.email),
     reviewUrl: str(extras.reviewUrl) || str(config.review_url),
     mapsUrl: str(extras.mapsUrl) || str(config.maps_url),
-    promoCode: str(config.promo_code),
-    promoDiscount: str(config.promo_discount),
+    // Sin promo configurada quedan undefined a propósito: el correo de +30 días
+    // NO debe inventar un descuento que el motor de reservas no reconoce.
+    promoCode: str(extras.promoCode) || str(config.promo_code),
+    promoDiscount: str(extras.promoDiscount) || str(config.promo_discount),
   };
 }
 
@@ -244,6 +261,14 @@ export async function GET(req: Request) {
       const checkin = b.checkin;
       const checkout = b.checkout;
       const first = b.cliente.trim().split(" ")[0];
+      // Idioma con el que reservó (columna `bookings.lang`). Sin ella, español.
+      const lang: "es" | "en" = b.lang === "en" ? "en" : "es";
+      const en = lang === "en";
+      // Página de reseña de Kora atada al folio. Canónico kora-hotel.com para
+      // que /h/[slug]/resena resuelva siempre.
+      const resenaUrl = hotel.slug
+        ? `https://kora-hotel.com/h/${hotel.slug}/resena?r=${b.id}&lang=${lang}`
+        : undefined;
 
       try {
         // pre_day3: ventana [checkin-3, checkin)
@@ -251,13 +276,16 @@ export async function GET(req: Request) {
           await sendOnce(
             b,
             "pre_day3",
-            `${first}, tu llegada a ${brand.nombre} se acerca`,
+            en
+              ? `${first}, your arrival at ${brand.nombre} is near`
+              : `${first}, tu llegada a ${brand.nombre} se acerca`,
             buildRestaurantEmailHtml({
               hotel: brand,
               customerName: b.cliente,
               confirmacion: b.confirmacion,
               checkin,
-              checkinFormatted: formatDateEs(checkin),
+              checkinFormatted: en ? undefined : formatDateEs(checkin),
+              lang,
             }),
           );
         }
@@ -267,7 +295,9 @@ export async function GET(req: Request) {
           await sendOnce(
             b,
             "pre_checkin",
-            `¡Hoy es el día, ${first}! — Tu habitación te espera`,
+            en
+              ? `Today's the day, ${first}! — Your room is ready`
+              : `¡Hoy es el día, ${first}! — Tu habitación te espera`,
             buildWelcomeGuideEmailHtml({
               hotel: brand,
               customerName: b.cliente,
@@ -277,16 +307,19 @@ export async function GET(req: Request) {
               checkinHora,
               checkoutHora,
               direccion,
+              lang,
             }),
           );
         }
 
-        // post_day1: checkout+1 <= hoy
-        if (shiftDate(checkout, 1) <= today) {
+        // post_day1: ventana cerrada [checkout+1, checkout+1+tolerancia]
+        if (enVentana(checkout, 1, today)) {
           await sendOnce(
             b,
             "post_day1",
-            `${first}, ¿cómo fue tu estancia en ${brand.nombre}?`,
+            en
+              ? `${first}, how was your stay at ${brand.nombre}?`
+              : `${first}, ¿cómo fue tu estancia en ${brand.nombre}?`,
             buildSurveyEmailHtml({
               hotel: brand,
               customerName: b.cliente,
@@ -294,43 +327,50 @@ export async function GET(req: Request) {
               checkin,
               checkout,
               habitaciones: b.habitaciones,
+              resenaUrl,
+              lang,
             }),
           );
         }
 
-        // post_day7: checkout+7 <= hoy
-        if (shiftDate(checkout, 7) <= today) {
-          // Link a la página de captura de Kora (atada al folio por el id de la
-          // reserva). Canónico kora-hotel.com para que la ruta /h/[slug]/resena
-          // resuelva siempre. Sin slug, el correo cae al Google directo.
-          const resenaUrl = hotel.slug
-            ? `https://kora-hotel.com/h/${hotel.slug}/resena?r=${b.id}&lang=es`
-            : undefined;
+        // post_day7: ventana cerrada [checkout+7, checkout+7+tolerancia]
+        if (enVentana(checkout, 7, today)) {
           await sendOnce(
             b,
             "post_day7",
-            `${first}, ¿nos dejas una reseña?`,
+            en ? `${first}, would you leave us a review?` : `${first}, ¿nos dejas una reseña?`,
             buildReviewEmailHtml({
               hotel: brand,
               customerName: b.cliente,
               confirmacion: b.confirmacion,
               checkin,
               resenaUrl,
+              lang,
             }),
           );
         }
 
-        // post_day30: checkout+30 <= hoy
-        if (shiftDate(checkout, 30) <= today) {
+        // post_day30: ventana cerrada [checkout+30, checkout+30+tolerancia].
+        // El asunto solo promete descuento si el hotel configuró uno de verdad.
+        if (enVentana(checkout, 30, today)) {
+          const conPromo = Boolean(brand.promoCode);
+          const asunto = conPromo
+            ? en
+              ? `${first}, ${brand.promoDiscount} off your next stay at ${brand.nombre}`
+              : `${first}, ${brand.promoDiscount} de descuento en tu próxima estancia`
+            : en
+              ? `${first}, your room at ${brand.nombre} is waiting`
+              : `${first}, tu habitación en ${brand.nombre} te espera`;
           await sendOnce(
             b,
             "post_day30",
-            `${first}, tu escapada te espera — ${brand.promoDiscount ?? "10%"} de descuento exclusivo`,
+            asunto,
             buildReturnOfferEmailHtml({
               hotel: brand,
               customerName: b.cliente,
               confirmacion: b.confirmacion,
-              promoExpiry: promoExpiry(),
+              promoExpiry: conPromo ? promoExpiry() : undefined,
+              lang,
             }),
           );
         }

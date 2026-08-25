@@ -25,11 +25,14 @@ export default async function ResenaPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ r?: string; lang?: string }>;
+  searchParams: Promise<{ r?: string; lang?: string; rating?: string }>;
 }) {
   const { slug } = await params;
-  const { r, lang: langParam } = await searchParams;
+  const { r, lang: langParam, rating } = await searchParams;
   const lang = normalizeLang(langParam) === "en" ? "en" : "es";
+  // `rating` viene de las estrellas del correo de +1 día: llega con la
+  // calificación ya elegida para que el huésped solo confirme.
+  const ratingInicial = /^[1-5]$/.test(rating ?? "") ? Number(rating) : 0;
 
   const hotel = await resolveHotel(slug);
 
@@ -105,6 +108,7 @@ export default async function ResenaPage({
       clienteName={clienteName}
       reviewUrl={reviewUrl}
       lang={lang}
+      ratingInicial={ratingInicial}
     />,
   );
 }

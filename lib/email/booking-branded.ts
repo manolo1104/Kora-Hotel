@@ -8,6 +8,21 @@
 
 import type { TourItem } from "@/lib/booking-html";
 import type { HotelRow } from "@/lib/tenant";
+// Tipografía, paleta y piezas: TODO viene del sistema de diseño único de
+// correos. Aquí solo se mantienen los alias con los nombres locales para no
+// reescribir el marcado, que ya seguía este mismo estilo.
+import {
+  T as TOK,
+  FONT as FONT_KORA,
+  doc as docKora,
+  esc as escKora,
+  money as moneyKora,
+  parteFecha as parteFechaKora,
+  gcalUrl as gcalUrlKora,
+  pieHotel as pieHotelKora,
+  waLink as waLinkKora,
+  type Lang as LangKora,
+} from "@/lib/email/design";
 
 export interface BookingBrand {
   nombre: string;
@@ -52,70 +67,27 @@ export function bookingFromHotel(h: HotelRow): string {
   return fromCfg || process.env.RESEND_FROM || "Kora <hola@kora-hotel.com>";
 }
 
-type Lang = "es" | "en";
+type Lang = LangKora;
 
-// ── Paleta y tipografía del diseño ───────────────────────────────────────────
-const VERDE = "#1B4332";
-const VERDE_CLARO = "#52B788";
-const FONT = "'Plus Jakarta Sans','Segoe UI',system-ui,-apple-system,Arial,sans-serif";
-const FONT_LINK =
-  '<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">';
+const VERDE = TOK.verde;
+const VERDE_CLARO = TOK.verdeClaro;
+const FONT = FONT_KORA;
 
-const money = (n: number) => `$${Math.round(n || 0).toLocaleString("es-MX")} MXN`;
-const esc = (s: unknown) =>
-  String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-
-const MESES_ES = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
-const MESES_EN = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-const DIAS_ES = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
-const DIAS_EN = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
-function parteFecha(s: string, en: boolean): { dia: string; mesAnio: string; diaSem: string } {
-  const [y, m, d] = (s || "").split("-").map(Number);
-  const dt = new Date(y || 2026, (m || 1) - 1, d || 1);
-  return {
-    dia: String(dt.getDate()),
-    mesAnio: `${(en ? MESES_EN : MESES_ES)[dt.getMonth()]} ${dt.getFullYear()}`,
-    diaSem: (en ? DIAS_EN : DIAS_ES)[dt.getDay()],
-  };
-}
+const money = moneyKora;
+const esc = escKora;
+const parteFecha = parteFechaKora;
+const doc = docKora;
 
 function gcalUrl(nombre: string, checkin: string, checkout: string): string {
-  const s = checkin.replace(/-/g, "");
-  const e = checkout.replace(/-/g, "");
-  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(
-    `Estancia en ${nombre}`,
-  )}&dates=${s}/${e}`;
+  return gcalUrlKora(`Estancia en ${nombre}`, checkin, checkout);
 }
 
 function waLink(brand: BookingBrand, texto: string): string | null {
-  if (!brand.whatsapp) return null;
-  return `https://wa.me/${brand.whatsapp}?text=${encodeURIComponent(texto)}`;
-}
-
-/** Documento HTML del correo (cabeza + fondo crema + fuente). */
-function doc(titulo: string, preheader: string, inner: string): string {
-  return `<!DOCTYPE html>
-<html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${esc(titulo)}</title>${FONT_LINK}</head>
-<body style="margin:0;padding:0;background:#e7e4dc;-webkit-font-smoothing:antialiased;">
-<span style="display:none;max-height:0;overflow:hidden;opacity:0;">${esc(preheader)}</span>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#e7e4dc;padding:26px 12px;">
-  <tr><td align="center">
-    <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;background:#faf8f5;border-radius:16px;overflow:hidden;">
-      ${inner}
-    </table>
-  </td></tr>
-</table>
-</body></html>`;
+  return waLinkKora(brand.whatsapp, texto) || null;
 }
 
 function pieHotel(brand: BookingBrand): string {
-  return `<tr><td style="background:#efe9df;padding:34px 40px;text-align:center;">
-    <div style="font-family:${FONT};font-weight:700;font-size:13px;letter-spacing:2px;text-transform:uppercase;color:#8a7d6b;">${esc(brand.nombre)}</div>
-    ${brand.ubicacion ? `<div style="font-family:${FONT};font-weight:400;font-size:11.5px;color:#a99a82;margin-top:8px;">${esc(brand.ubicacion)}</div>` : ""}
-    <div style="font-family:${FONT};font-weight:400;font-size:10.5px;color:#b8aa9a;margin-top:14px;">Enviado con <a href="https://kora-hotel.com" style="color:#8a7d6b;font-weight:600;text-decoration:none;">Kora</a> · sistema de reservas para hoteles</div>
-  </td></tr>`;
+  return pieHotelKora({ nombre: brand.nombre, ubicacion: brand.ubicacion });
 }
 
 // ── Confirmación / cotización (Correo 02) ────────────────────────────────────

@@ -1,168 +1,245 @@
-// Templates HTML para las 5 secuencias de email automatizadas (multi-tenant).
-// Portado de mi-hotel/lib/email-sequences.ts. El branding (nombre del hotel,
-// teléfono, WhatsApp, URL de reseñas, ubicación, código promo) NO está
-// hardcodeado a Paraíso: cada constructor recibe un objeto `hotel` con esos
-// datos. Lo que el hotel no provea cae a defaults neutros de Kora.
+// Plantillas de las secuencias automáticas del ciclo de estancia (multi-tenant).
+// Las manda el cron /api/cron/email-sequences: pre-estancia (−3 días y día de
+// llegada) y post-estancia (+1, +7 y +30 días), más la oferta personalizada que
+// el hotelero dispara a mano desde el CRM de clientes.
 //
-// Mismo diseño/ventanas que el origen: Cormorant Garamond + Jost, hero oscuro,
-// crema. SOLO se generan strings HTML (sin acceso a BD ni a env).
+// Todas usan el sistema de diseño de lib/email/design.ts — la misma tipografía
+// y los mismos colores que la confirmación de reserva y que los correos de la
+// cuenta. Antes vivían en un diseño serif aparte y el mismo huésped recibía
+// correos que no se parecían entre sí.
+//
+// Bilingüe es/en: el idioma sale de la reserva (columna `lang`), igual que la
+// confirmación. Sin idioma guardado, español.
+//
+// SOLO se generan strings HTML (sin acceso a BD ni a env).
+
+import {
+  T,
+  FONT,
+  doc,
+  esc,
+  cabecera,
+  titulo,
+  saludo,
+  parrafo,
+  boton,
+  botonesSecundarios,
+  caja,
+  lista,
+  contacto,
+  pieHotel,
+  respiro,
+  waLink,
+  fechaLarga,
+  gcalUrl,
+  type Lang,
+} from "@/lib/email/design";
 
 // ── BRANDING POR HOTEL ──────────────────────────────────────────────────────
-// Datos de marca que cada plantilla necesita. El cron (route.ts) lo arma a
-// partir de la fila `hoteles` (nombre, slug, whatsapp, config jsonb).
+// El cron arma esto a partir de la fila `hoteles`. Nada está hardcodeado a un
+// hotel concreto: lo que el hotel no provea simplemente no se pinta.
 export interface HotelBrand {
-  nombre: string; // p.ej. "Paraíso Encantado" — reemplaza el hardcode
+  nombre: string;
   baseUrl?: string; // sitio público del hotel (para enlaces de reserva)
-  ubicacion?: string; // p.ej. "Xilitla, San Luis Potosí · México"
-  telefono?: string; // tel sin formato, p.ej. "524891007679"
-  whatsapp?: string; // número de WhatsApp sin "+", p.ej. "524891007679"
-  email?: string; // correo de contacto / reservas
-  reviewUrl?: string; // URL de Google Maps "escribir reseña"
-  mapsUrl?: string; // URL de Google Maps del hotel
-  promoCode?: string; // código de la oferta de regreso
-  promoDiscount?: string; // texto del descuento, p.ej. "10%"
+  ubicacion?: string;
+  telefono?: string;
+  whatsapp?: string; // sin "+"
+  email?: string;
+  reviewUrl?: string; // URL de Google "escribir reseña"
+  mapsUrl?: string;
+  promoCode?: string; // SOLO si el hotelero configuró una promo real
+  promoDiscount?: string;
 }
 
-// Defaults neutros de Kora cuando el hotel no provee un dato.
+/**
+ * Rellena lo mínimo imprescindible. OJO: `promoCode`/`promoDiscount` NO tienen
+ * valor por defecto a propósito — antes caían a "REGRESA10 / 10%" y el correo
+ * de +30 días prometía un descuento que el hotel nunca autorizó y que el motor
+ * de reservas rechazaba al no existir el código.
+ */
 function brandDefaults(hotel: HotelBrand) {
   const nombre = hotel.nombre || "el hotel";
-  const ubicacion = hotel.ubicacion || "";
-  const telefono = hotel.telefono || "";
-  const whatsapp = hotel.whatsapp || telefono || "";
-  const email = hotel.email || "";
-  const baseUrl = hotel.baseUrl || "https://kora-hotel.com";
-  const reviewUrl =
-    hotel.reviewUrl || "https://search.google.com/local/writereview";
-  const mapsUrl =
-    hotel.mapsUrl ||
-    `https://maps.google.com/?q=${encodeURIComponent(nombre)}`;
-  const promoCode = hotel.promoCode || "REGRESA10";
-  const promoDiscount = hotel.promoDiscount || "10%";
   return {
     nombre,
-    ubicacion,
-    telefono,
-    whatsapp,
-    email,
-    baseUrl,
-    reviewUrl,
-    mapsUrl,
-    promoCode,
-    promoDiscount,
+    ubicacion: hotel.ubicacion || "",
+    telefono: hotel.telefono || "",
+    whatsapp: hotel.whatsapp || hotel.telefono || "",
+    email: hotel.email || "",
+    baseUrl: hotel.baseUrl || "https://kora-hotel.com",
+    reviewUrl: hotel.reviewUrl || "",
+    mapsUrl: hotel.mapsUrl || "",
+    promoCode: hotel.promoCode || "",
+    promoDiscount: hotel.promoDiscount || "",
   };
 }
 
-const BASE_CSS = `
-  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@300;400;500&display=swap');
-  *{margin:0;padding:0;}
-  body{font-family:'Jost','Helvetica Neue',Arial,sans-serif;background-color:#f0ebe3;line-height:1.6;}
-  table{border-collapse:collapse;}
-  a{color:#2a2218;text-decoration:none;}
-  .wrapper{background-color:#f0ebe3;padding:20px 0;}
-  .container{max-width:620px;margin:0 auto;background-color:#faf8f5;}
-  @media only screen and (max-width:640px){
-    .wrapper{padding:0!important;}
-    .container{width:100%!important;max-width:100%!important;}
-    .mp{padding-left:24px!important;padding-right:24px!important;}
-    .mplg{padding:34px 24px!important;}
-  }
-`;
+type Brand = ReturnType<typeof brandDefaults>;
 
-function formatDateEs(dateStr: string): string {
-  if (!dateStr) return "—";
-  const d = new Date(dateStr + "T12:00:00");
-  const f = d.toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long" });
-  return f.charAt(0).toUpperCase() + f.slice(1);
+const primerNombre = (n: string, en: boolean) =>
+  (n || "").trim().split(/\s+/)[0] || (en ? "there" : "hola");
+
+const HOLA = (en: boolean) => (en ? "Hi" : "Hola");
+
+/** Pie común de los correos del huésped: contacto del hotel + firma. */
+function cierre(b: Brand): string {
+  return (
+    contacto({ telefono: b.telefono, email: b.email, whatsapp: b.whatsapp }) +
+    respiro +
+    pieHotel({ nombre: b.nombre, ubicacion: b.ubicacion })
+  );
 }
 
-function hero(eyebrow: string, title: string, sub: string, badge?: string) {
-  return `
-  <tr><td class="mplg" style="padding:34px 40px 38px;background-color:#2f281f;">
-    <p style="margin:0 0 8px;font-family:'Jost','Helvetica Neue',Arial;font-size:11px;letter-spacing:3.5px;text-transform:uppercase;color:rgba(255,255,255,0.72);">${eyebrow}</p>
-    <h1 style="margin:0;font-family:'Cormorant Garamond',Georgia,serif;font-size:42px;font-style:italic;font-weight:300;color:#fff;line-height:1.1;">${title}</h1>
-    <p style="margin:14px 0 0;font-family:'Jost','Helvetica Neue',Arial;font-size:14px;font-weight:300;color:rgba(255,255,255,0.8);line-height:1.7;">${sub}</p>
-    ${badge ? `<div style="display:inline-block;margin-top:14px;background:${badge.startsWith("#") ? badge : "#2d7a34"};color:#fff;font-family:'Jost',sans-serif;font-size:10px;letter-spacing:2px;text-transform:uppercase;padding:5px 14px;">${badge.startsWith("#") ? "" : badge}</div>` : ""}
-  </td></tr>`;
+// ── 1. Pre-estancia −3 días: tu llegada se acerca ───────────────────────────
+
+export function buildRestaurantEmailHtml(data: {
+  hotel: HotelBrand;
+  customerName: string;
+  confirmacion: string;
+  checkin: string;
+  checkinFormatted?: string;
+  lang?: Lang;
+}): string {
+  const en = data.lang === "en";
+  const b = brandDefaults(data.hotel);
+  const first = primerNombre(data.customerName, en);
+  const fecha = data.checkinFormatted || fechaLarga(data.checkin, en);
+  const wa = waLink(
+    b.whatsapp,
+    en
+      ? `Hi, I'm arriving at ${b.nombre} soon (booking ${data.confirmacion}).`
+      : `Hola, ya se acerca mi llegada a ${b.nombre} (reserva ${data.confirmacion}).`,
+  );
+
+  const t = en
+    ? {
+        eyebrow: "Your arrival is near",
+        h: "We're getting everything ready",
+        intro: `Your stay starts <strong>${fecha}</strong>, in just 3 days. We want your arrival to be effortless — if you need anything set up beforehand, just tell us.`,
+        ideas: "Tell us before you arrive",
+        i1: "What time you expect to arrive",
+        i2: "Any dietary needs or allergies",
+        i3: "If you're celebrating something special",
+        i4: "Tours or transfers you'd like us to arrange",
+        cta: "Write to us on WhatsApp 💬",
+        cal: "📅 Add to calendar",
+        mapa: "📍 Directions",
+      }
+    : {
+        eyebrow: "Tu llegada se acerca",
+        h: "Ya estamos preparando todo",
+        intro: `Tu estancia empieza el <strong>${fecha}</strong>, en 3 días. Queremos que tu llegada sea fácil — si necesitas que dejemos algo listo, solo dinos.`,
+        ideas: "Cuéntanos antes de llegar",
+        i1: "A qué hora calculas llegar",
+        i2: "Alguna alergia o restricción de comida",
+        i3: "Si vienes celebrando algo especial",
+        i4: "Tours o traslados que quieras que te apartemos",
+        cta: "Escríbenos por WhatsApp 💬",
+        cal: "📅 Añadir al calendario",
+        mapa: "📍 Cómo llegar",
+      };
+
+  const inner =
+    cabecera({ nombre: b.nombre, eyebrow: t.eyebrow }) +
+    titulo(t.h) +
+    saludo(HOLA(en), first, t.intro) +
+    lista(t.ideas, [t.i1, t.i2, t.i3, t.i4].map((x) => `· ${esc(x)}`)) +
+    (wa ? boton(wa, t.cta) : "") +
+    botonesSecundarios([
+      { href: gcalUrl(`${en ? "Stay at" : "Estancia en"} ${b.nombre}`, data.checkin, data.checkin), texto: t.cal },
+      { href: b.mapsUrl, texto: t.mapa },
+    ]) +
+    cierre(b);
+
+  return doc(
+    `${b.nombre} — ${t.eyebrow}`,
+    en ? `3 days to go — ${b.nombre}` : `Faltan 3 días — ${b.nombre}`,
+    inner,
+  );
 }
 
-function greeting(name: string) {
-  const first = name.trim().split(" ")[0];
-  return `<p style="margin:0 0 8px;font-family:'Cormorant Garamond',Georgia,serif;font-size:28px;color:#2a2218;line-height:1.2;">Hola, <span style="font-style:italic;color:#7a6a52;">${first}</span></p>`;
+// ── 2. Día de llegada: guía de bienvenida ───────────────────────────────────
+
+export function buildWelcomeGuideEmailHtml(data: {
+  hotel: HotelBrand;
+  customerName: string;
+  confirmacion: string;
+  checkin: string;
+  habitaciones: string;
+  checkinHora?: string;
+  checkoutHora?: string;
+  direccion?: string;
+  lang?: Lang;
+}): string {
+  const en = data.lang === "en";
+  const b = brandDefaults(data.hotel);
+  const first = primerNombre(data.customerName, en);
+  const wa = waLink(
+    b.whatsapp,
+    en
+      ? `Hi, I'm on my way to ${b.nombre} (booking ${data.confirmacion}).`
+      : `Hola, voy en camino a ${b.nombre} (reserva ${data.confirmacion}).`,
+  );
+
+  const t = en
+    ? {
+        eyebrow: "Today's the day",
+        h: "Your room is ready",
+        intro: "You arrive today. Here's everything you need for a smooth check-in.",
+        datos: "Your check-in",
+        folio: "Confirmation",
+        hab: "Room",
+        entra: "Check-in from",
+        sale: "Check-out before",
+        dir: "Address",
+        cta: "Write to us on WhatsApp 💬",
+        mapa: "📍 Directions",
+        nota: "Running late or lost? Message us — someone always answers.",
+      }
+    : {
+        eyebrow: "Hoy es el día",
+        h: "Tu habitación te espera",
+        intro: "Hoy llegas. Aquí tienes todo lo que necesitas para entrar sin complicaciones.",
+        datos: "Tu llegada",
+        folio: "Folio",
+        hab: "Habitación",
+        entra: "Entrada a partir de",
+        sale: "Salida antes de",
+        dir: "Dirección",
+        cta: "Escríbenos por WhatsApp 💬",
+        mapa: "📍 Cómo llegar",
+        nota: "¿Se te hace tarde o te perdiste? Escríbenos — siempre hay quien conteste.",
+      };
+
+  const filas = [
+    `<strong style="color:${T.tinta};">${t.folio}:</strong> ${esc(data.confirmacion)}`,
+    data.habitaciones ? `<strong style="color:${T.tinta};">${t.hab}:</strong> ${esc(data.habitaciones)}` : "",
+    data.checkinHora ? `<strong style="color:${T.tinta};">${t.entra}:</strong> ${esc(data.checkinHora)}` : "",
+    data.checkoutHora ? `<strong style="color:${T.tinta};">${t.sale}:</strong> ${esc(data.checkoutHora)}` : "",
+    data.direccion ? `<strong style="color:${T.tinta};">${t.dir}:</strong> ${esc(data.direccion)}` : "",
+  ].filter(Boolean);
+
+  const inner =
+    cabecera({ nombre: b.nombre, eyebrow: t.eyebrow }) +
+    titulo(t.h) +
+    saludo(HOLA(en), first, t.intro) +
+    lista(t.datos, filas) +
+    caja(t.nota) +
+    (wa ? boton(wa, t.cta) : "") +
+    botonesSecundarios([{ href: b.mapsUrl, texto: t.mapa }]) +
+    cierre(b);
+
+  return doc(
+    `${b.nombre} — ${t.eyebrow}`,
+    en ? `See you today at ${b.nombre}` : `Hoy te esperamos en ${b.nombre}`,
+    inner,
+  );
 }
 
-function divider() {
-  return `<table role="presentation" width="48" cellspacing="0" cellpadding="0" border="0" style="margin:24px 0;"><tr><td style="height:1px;background-color:#c9b99a;"></td></tr></table>`;
-}
+// ── 3. Post-estancia +1 día: encuesta de 5 estrellas ────────────────────────
+// Las estrellas llevan a la página de reseña de Kora con la calificación ya
+// preseleccionada. ANTES apuntaban a `{baseUrl}/api/feedback`, una ruta que no
+// existe: todo huésped que hacía clic caía en un 404.
 
-function ctaButton(text: string, url: string, color = "#2a2218") {
-  return `
-  <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:32px auto;">
-    <tr><td style="background-color:${color};padding:16px 38px;">
-      <a href="${url}" style="font-family:'Jost','Helvetica Neue',Arial;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#faf8f5;text-decoration:none;display:block;">${text}</a>
-    </td></tr>
-  </table>`;
-}
-
-// Bloque de contacto: solo muestra las líneas que el hotel sí tiene.
-function contact(b: ReturnType<typeof brandDefaults>) {
-  const rows: string[] = [];
-  if (b.telefono) {
-    const display = b.telefono.replace(/^52/, "+52 ");
-    rows.push(`<p style="margin:0 0 8px;font-family:'Jost','Helvetica Neue',Arial;font-size:13px;color:#2a2218;">📞 <a href="tel:+${b.telefono}" style="color:#2a2218;">${display}</a></p>`);
-  }
-  if (b.email) {
-    rows.push(`<p style="margin:0 0 8px;font-family:'Jost','Helvetica Neue',Arial;font-size:13px;color:#2a2218;">📧 <a href="mailto:${b.email}" style="color:#2a2218;">${b.email}</a></p>`);
-  }
-  if (b.whatsapp) {
-    rows.push(`<p style="margin:0;font-family:'Jost','Helvetica Neue',Arial;font-size:13px;color:#2a2218;">💬 <a href="https://wa.me/${b.whatsapp}" style="color:#2a2218;">WhatsApp directo</a></p>`);
-  }
-  if (rows.length === 0) return "";
-  return `
-  <tr><td class="mp" style="background-color:#faf8f5;padding:32px 48px;border-top:1px solid #e4ddd3;">
-    ${rows.join("\n    ")}
-  </td></tr>`;
-}
-
-function footer(b: ReturnType<typeof brandDefaults>) {
-  const ubic = b.ubicacion
-    ? `<p style="margin:0 0 16px;font-family:'Jost','Helvetica Neue',Arial;font-size:11px;color:#a09080;line-height:1.6;">${b.ubicacion}</p>`
-    : "";
-  return `
-  <tr><td class="mplg" style="background-color:#f0ebe3;padding:44px 48px;text-align:center;">
-    <p style="margin:0 0 12px;font-family:'Cormorant Garamond',Georgia,serif;font-size:18px;letter-spacing:3px;text-transform:uppercase;color:#8a7d6b;">${b.nombre}</p>
-    ${ubic}
-    <p style="margin:0;font-family:'Jost','Helvetica Neue',Arial;font-size:10px;color:#b8aa9a;">© ${new Date().getFullYear()} ${b.nombre} · Todos los derechos reservados</p>
-  </td></tr>`;
-}
-
-function wrap(b: ReturnType<typeof brandDefaults>, subject: string, body: string) {
-  const topbar = b.ubicacion
-    ? `<tr><td style="padding:16px 0;text-align:center;">
-      <p style="margin:0;font-family:'Jost','Helvetica Neue',Arial;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#8a7d6b;">${b.ubicacion}</p>
-    </td></tr>`
-    : "";
-  return `<!DOCTYPE html>
-<html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${subject}</title>
-<style>${BASE_CSS}</style>
-</head><body>
-<div class="wrapper">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
-    ${topbar}
-  </table>
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
-    <tr><td align="center">
-      <table class="container" role="presentation" width="620" cellspacing="0" cellpadding="0" border="0">
-        ${body}
-        ${contact(b)}
-        ${footer(b)}
-      </table>
-    </td></tr>
-  </table>
-</div></body></html>`;
-}
-
-// ── 1. Post-stay +1 día: Encuesta de satisfacción ──────────────────────────
 export function buildSurveyEmailHtml(data: {
   hotel: HotelBrand;
   customerName: string;
@@ -170,110 +247,192 @@ export function buildSurveyEmailHtml(data: {
   checkin: string;
   checkout: string;
   habitaciones: string;
+  resenaUrl?: string; // /h/{slug}/resena?r={id}&lang=xx (sin el rating)
+  lang?: Lang;
 }): string {
+  const en = data.lang === "en";
   const b = brandDefaults(data.hotel);
-  const first = data.customerName.trim().split(" ")[0];
-  const starsHtml = [1, 2, 3, 4, 5]
-    .map((n) => {
-      const url = `${b.baseUrl}/api/feedback?conf=${encodeURIComponent(data.confirmacion)}&rating=${n}`;
-      return `<td style="padding:0 4px;">
-      <a href="${url}" style="display:block;background:#2a2218;padding:14px 16px;text-decoration:none;">
-        <span style="font-family:'Cormorant Garamond',Georgia,serif;font-size:28px;color:#c9b99a;">★</span>
-      </a>
-    </td>`;
-    })
-    .join("");
+  const first = primerNombre(data.customerName, en);
 
-  const body = `
-    ${hero(`Tu estancia en ${b.nombre}`, "¿Cómo fue tu escapada?", "Tu opinión nos ayuda a crear experiencias cada vez mejores.")}
-    <tr><td class="mplg" style="background-color:#faf8f5;padding:52px 48px;">
-      ${greeting(data.customerName)}
-      <p style="margin:16px 0 8px;font-family:'Jost','Helvetica Neue',Arial;font-size:15px;font-weight:300;color:#4a3f30;line-height:1.85;">
-        Tu estancia del <strong>${formatDateEs(data.checkin)}</strong> al <strong>${formatDateEs(data.checkout)}</strong> en ${data.habitaciones} terminó hace un día. ¿Cómo fue tu experiencia?
-      </p>
-      ${divider()}
-      <p style="margin:0 0 20px;font-family:'Jost','Helvetica Neue',Arial;font-size:13px;color:#9a8a74;text-align:center;letter-spacing:0.05em;">HAZ CLIC EN LAS ESTRELLAS PARA CALIFICARNOS</p>
-      <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:0 auto 32px;">
-        <tr>${starsHtml}</tr>
-      </table>
-      <p style="font-family:'Cormorant Garamond',Georgia,serif;font-size:17px;font-style:italic;color:#5a4e3c;text-align:center;line-height:1.7;margin:0 0 32px;">
-        "Cada opinión nos ayuda a hacer de ${b.nombre} un lugar mejor<br>para quienes vienen después de ti."
-      </p>
-      <p style="font-family:'Jost','Helvetica Neue',Arial;font-size:13px;color:#9a8a74;text-align:center;margin:0;">
-        También puedes respondernos directamente a este correo. 🌿
-      </p>
-    </td></tr>`;
-  return wrap(b, `${first}, ¿cómo fue tu estancia en ${b.nombre}?`, body);
+  const t = en
+    ? {
+        eyebrow: "Your stay at " + b.nombre,
+        h: "How was your escape?",
+        intro: `Your stay from <strong>${fechaLarga(data.checkin, true)}</strong> to <strong>${fechaLarga(data.checkout, true)}</strong> ended yesterday. How did it go?`,
+        pick: "Tap a star to rate us",
+        cita: `"Every opinion helps us make ${b.nombre} better for whoever comes next."`,
+        reply: "You can also just reply to this email. 🌿",
+        cta: "Rate my stay ★",
+      }
+    : {
+        eyebrow: "Tu estancia en " + b.nombre,
+        h: "¿Cómo estuvo tu escapada?",
+        intro: `Tu estancia del <strong>${fechaLarga(data.checkin)}</strong> al <strong>${fechaLarga(data.checkout)}</strong> terminó ayer. ¿Cómo te fue?`,
+        pick: "Toca una estrella para calificarnos",
+        cita: `"Cada opinión nos ayuda a hacer de ${b.nombre} un lugar mejor para quienes vienen después."`,
+        reply: "También puedes responder directo a este correo. 🌿",
+        cta: "Calificar mi estancia ★",
+      };
+
+  // Con resenaUrl: cada estrella abre la página con esa calificación puesta.
+  const estrellas = data.resenaUrl
+    ? `<tr><td style="padding:22px 40px 0;">
+        <div style="font-family:${FONT};font-weight:600;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:${T.tenue};text-align:center;margin-bottom:14px;">${esc(t.pick)}</div>
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;"><tr>
+          ${[1, 2, 3, 4, 5]
+            .map(
+              (n) =>
+                `<td style="padding:0 4px;"><a href="${data.resenaUrl}&rating=${n}" style="display:block;background:${T.verde};border-radius:10px;padding:13px 15px;text-decoration:none;"><span style="font-family:${FONT};font-size:24px;color:${T.verdeClaro};line-height:1;">★</span></a></td>`,
+            )
+            .join("")}
+        </tr></table>
+      </td></tr>`
+    : "";
+
+  const inner =
+    cabecera({ nombre: b.nombre, eyebrow: t.eyebrow }) +
+    titulo(t.h) +
+    saludo(HOLA(en), first, t.intro) +
+    estrellas +
+    (!estrellas && b.reviewUrl ? boton(b.reviewUrl, t.cta) : "") +
+    caja(`<span style="font-style:italic;">${esc(t.cita)}</span>`) +
+    parrafo(`<span style="font-size:13px;color:${T.tenue};">${esc(t.reply)}</span>`) +
+    cierre(b);
+
+  return doc(
+    `${b.nombre} — ${t.h}`,
+    en ? `${first}, how was your stay?` : `${first}, ¿cómo estuvo tu estancia?`,
+    inner,
+  );
 }
 
-// ── 2. Post-stay +7 días: Invitación a dejar reseña ────────────────────────
-// El CTA va a la PÁGINA DE CAPTURA de Kora (resenaUrl, atada al folio) en vez de
-// directo a Google: ahí el huésped califica, Kora guarda la reseña real, y luego
-// se le invita a Google. Sin resenaUrl (compat), cae al link de Google directo.
+// ── 4. Post-estancia +7 días: invitación a dejar reseña ─────────────────────
+// El CTA va a la página de captura de Kora (atada al folio): ahí el huésped
+// califica, Kora guarda la reseña real y luego se le invita a Google.
+
 export function buildReviewEmailHtml(data: {
   hotel: HotelBrand;
   customerName: string;
   confirmacion: string;
   checkin: string;
   resenaUrl?: string;
+  lang?: Lang;
 }): string {
+  const en = data.lang === "en";
   const b = brandDefaults(data.hotel);
-  const first = data.customerName.trim().split(" ")[0];
+  const first = primerNombre(data.customerName, en);
   const cta = data.resenaUrl || b.reviewUrl;
-  const body = `
-    ${hero("Una semana después", "Tu opinión llega más lejos de lo que imaginas.", `Hace 7 días dejaste ${b.nombre}. ¿Nos dejas una reseña?`)}
-    <tr><td class="mplg" style="background-color:#faf8f5;padding:52px 48px;">
-      ${greeting(data.customerName)}
-      <p style="margin:16px 0 32px;font-family:'Jost','Helvetica Neue',Arial;font-size:15px;font-weight:300;color:#4a3f30;line-height:1.85;">
-        Hace una semana te despediste de ${b.nombre}. Tu opinión ayuda a que otros viajeros encuentren su próximo destino — y solo toma 2 minutos. 🙏
-      </p>
-      ${ctaButton("Dejar mi reseña ★", cta)}
-      <p style="font-family:'Cormorant Garamond',Georgia,serif;font-size:17px;font-style:italic;color:#5a4e3c;text-align:center;line-height:1.7;margin:32px 0 0;">
-        "Cada reseña es una historia que llega a quienes todavía no nos descubren."
-      </p>
-    </td></tr>`;
-  return wrap(b, `${first}, ¿nos dejas una reseña?`, body);
+
+  const t = en
+    ? {
+        eyebrow: "One week later",
+        h: "Your words travel further than you think",
+        intro: `A week ago you said goodbye to ${b.nombre}. A short review helps other travelers find their next place — and it only takes two minutes. 🙏`,
+        btn: "Leave my review ★",
+        cita: `"Every review is a story that reaches people who haven't found us yet."`,
+      }
+    : {
+        eyebrow: "Una semana después",
+        h: "Tu opinión llega más lejos de lo que crees",
+        intro: `Hace una semana te despediste de ${b.nombre}. Una reseña corta ayuda a que otros viajeros encuentren su próximo destino — y solo toma dos minutos. 🙏`,
+        btn: "Dejar mi reseña ★",
+        cita: `"Cada reseña es una historia que llega a quienes todavía no nos descubren."`,
+      };
+
+  const inner =
+    cabecera({ nombre: b.nombre, eyebrow: t.eyebrow }) +
+    titulo(t.h) +
+    saludo(HOLA(en), first, t.intro) +
+    (cta ? boton(cta, t.btn) : "") +
+    caja(`<span style="font-style:italic;">${esc(t.cita)}</span>`) +
+    cierre(b);
+
+  return doc(
+    `${b.nombre} — ${t.eyebrow}`,
+    en ? `${first}, would you leave us a review?` : `${first}, ¿nos dejas una reseña?`,
+    inner,
+  );
 }
 
-// ── 3. Post-stay +30 días: Oferta de regreso ──────────────────────────────
+// ── 5. Post-estancia +30 días: invitación a regresar ────────────────────────
+// La caja del código SOLO aparece si el hotelero configuró una promo real.
+
 export function buildReturnOfferEmailHtml(data: {
   hotel: HotelBrand;
   customerName: string;
   confirmacion: string;
-  promoExpiry: string;
+  promoExpiry?: string;
+  lang?: Lang;
 }): string {
+  const en = data.lang === "en";
   const b = brandDefaults(data.hotel);
-  const first = data.customerName.trim().split(" ")[0];
-  const bookingUrl = `${b.baseUrl}/reservar?promo=${b.promoCode}`;
-  const body = `
-    ${hero("Una oferta solo para ti", "Vuelve cuando quieras.", `En ${b.nombre} te recordamos y tenemos algo especial para ti.`)}
-    <tr><td class="mplg" style="background-color:#faf8f5;padding:52px 48px;">
-      ${greeting(data.customerName)}
-      <p style="margin:16px 0 32px;font-family:'Jost','Helvetica Neue',Arial;font-size:15px;font-weight:300;color:#4a3f30;line-height:1.85;">
-        Han pasado 30 días desde que te fuiste y en ${b.nombre} todavía te recordamos. Como agradecimiento por haber confiado en nosotros, te ofrecemos <strong>${b.promoDiscount} de descuento</strong> en tu próxima estancia.
-      </p>
-      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border:1px solid #c9b99a;background-color:#fdf9f4;margin:0 0 32px;">
-        <tr><td style="padding:28px 32px;text-align:center;">
-          <p style="margin:0 0 10px;font-family:'Jost','Helvetica Neue',Arial;font-size:10px;letter-spacing:3px;text-transform:uppercase;color:#9a8a74;">Tu código de descuento exclusivo</p>
-          <p style="margin:0 0 8px;font-family:'Cormorant Garamond',Georgia,serif;font-size:38px;font-weight:500;color:#2a2218;letter-spacing:4px;">${b.promoCode}</p>
-          <p style="margin:0;font-family:'Jost','Helvetica Neue',Arial;font-size:12px;color:#9a8a74;">${b.promoDiscount} de descuento · Válido hasta el ${data.promoExpiry}</p>
-        </td></tr>
-      </table>
-      <p style="font-family:'Jost','Helvetica Neue',Arial;font-size:13px;color:#9a8a74;text-align:center;margin:0 0 8px;">
-        Aplica en cualquier habitación disponible. Menciona el código al reservar por WhatsApp o úsalo en el motor en línea.
-      </p>
-      ${ctaButton(`Reservar con ${b.promoDiscount} de descuento`, bookingUrl)}
-    </td></tr>`;
-  return wrap(b, `${first}, tu escapada te espera — ${b.promoDiscount} de descuento exclusivo`, body);
+  const first = primerNombre(data.customerName, en);
+  const hasPromo = Boolean(b.promoCode);
+  const bookingUrl = `${b.baseUrl}/reservar${hasPromo ? `?promo=${encodeURIComponent(b.promoCode)}` : ""}`;
+
+  const t = en
+    ? {
+        eyebrow: "An invitation for you",
+        h: "Come back whenever you like",
+        introPromo: `A month has passed since you left, and we still remember you at ${b.nombre}. As a thank-you for trusting us, here's <strong>${esc(b.promoDiscount)} off</strong> your next stay.`,
+        introSimple: `A month has passed since you left, and we still remember you at ${b.nombre}. Whenever you feel like coming back, your room is here.`,
+        codigo: "Your exclusive code",
+        validez: (d: string) => `${esc(b.promoDiscount)} off · valid until ${esc(d)}`,
+        btnPromo: `Book with ${esc(b.promoDiscount)} off`,
+        btnSimple: "See availability",
+        nota: `Applies to any available room. Mention the code when booking on WhatsApp or use it in the booking engine.`,
+      }
+    : {
+        eyebrow: "Una invitación para ti",
+        h: "Vuelve cuando quieras",
+        introPromo: `Ha pasado un mes desde que te fuiste y en ${b.nombre} todavía te recordamos. Como agradecimiento por confiar en nosotros, te dejamos <strong>${esc(b.promoDiscount)} de descuento</strong> en tu próxima estancia.`,
+        introSimple: `Ha pasado un mes desde que te fuiste y en ${b.nombre} todavía te recordamos. Cuando tengas ganas de volver, tu habitación está aquí.`,
+        codigo: "Tu código exclusivo",
+        validez: (d: string) => `${esc(b.promoDiscount)} de descuento · válido hasta el ${esc(d)}`,
+        btnPromo: `Reservar con ${esc(b.promoDiscount)} de descuento`,
+        btnSimple: "Ver disponibilidad",
+        nota: `Aplica en cualquier habitación disponible. Menciona el código al reservar por WhatsApp o úsalo en el motor de reservas.`,
+      };
+
+  const cajaPromo = hasPromo
+    ? `<tr><td style="padding:22px 40px 0;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${T.panel};border:1px solid ${T.borde};border-radius:14px;">
+          <tr><td style="padding:24px;text-align:center;">
+            <div style="font-family:${FONT};font-weight:600;font-size:10px;letter-spacing:3px;text-transform:uppercase;color:${T.tenue};margin-bottom:10px;">${esc(t.codigo)}</div>
+            <div style="font-family:${FONT};font-weight:800;font-size:30px;letter-spacing:3px;color:${T.tinta};line-height:1;">${esc(b.promoCode)}</div>
+            ${data.promoExpiry ? `<div style="font-family:${FONT};font-weight:400;font-size:12px;color:${T.suave};margin-top:10px;">${t.validez(data.promoExpiry)}</div>` : ""}
+          </td></tr>
+        </table>
+      </td></tr>`
+    : "";
+
+  const inner =
+    cabecera({ nombre: b.nombre, eyebrow: t.eyebrow }) +
+    titulo(t.h) +
+    saludo(HOLA(en), first, hasPromo ? t.introPromo : t.introSimple) +
+    cajaPromo +
+    boton(bookingUrl, hasPromo ? t.btnPromo : t.btnSimple) +
+    (hasPromo ? parrafo(`<span style="font-size:12.5px;color:${T.tenue};">${esc(t.nota)}</span>`) : "") +
+    cierre(b);
+
+  return doc(
+    `${b.nombre} — ${t.eyebrow}`,
+    hasPromo
+      ? en
+        ? `${b.promoDiscount} off your next stay at ${b.nombre}`
+        : `${b.promoDiscount} de descuento en tu próxima estancia`
+      : en
+        ? `Your room at ${b.nombre} is waiting`
+        : `Tu habitación en ${b.nombre} te espera`,
+    inner,
+  );
 }
 
 /**
- * Oferta de regreso PERSONALIZADA (manual, desde el CRM de clientes). A
- * diferencia de buildReturnOfferEmailHtml (copy FIJO del cron día 30), aquí el
- * cuerpo lo REDACTA la IA según el historial del huésped y se inyecta en el
- * shell de marca del hotel. `paragraphs` es texto plano ya personalizado: se
- * escapa a HTML (la salida de la IA no se inyecta cruda). La caja de código
- * solo aparece si el hotel configuró una promo (`hotel.promoCode`).
+ * Oferta de regreso PERSONALIZADA (CRM de clientes). A diferencia de la de
+ * +30 días, el cuerpo lo redacta la IA según el historial del huésped y aquí
+ * solo se le pone la marca. `paragraphs` es texto plano: se escapa, la salida
+ * de la IA nunca se inyecta cruda.
  */
 export function buildPersonalOfferEmailHtml(data: {
   hotel: HotelBrand;
@@ -281,169 +440,47 @@ export function buildPersonalOfferEmailHtml(data: {
   paragraphs: string[];
   ctaText?: string;
   promoExpiry?: string;
+  lang?: Lang;
 }): string {
+  const en = data.lang === "en";
   const b = brandDefaults(data.hotel);
-  const esc = (s: string) =>
-    String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  const hasPromo = Boolean(data.hotel.promoCode);
+  const first = primerNombre(data.customerName, en);
+  const hasPromo = Boolean(b.promoCode);
   const bookingUrl = `${b.baseUrl}/reservar${hasPromo ? `?promo=${encodeURIComponent(b.promoCode)}` : ""}`;
-  const paras = data.paragraphs
-    .map((p) => esc(p).trim())
-    .filter(Boolean)
+
+  const t = en
+    ? { eyebrow: "A note for you", h: "We have something for you", codigo: "Your exclusive code", btn: `Book at ${b.nombre}` }
+    : { eyebrow: "Una nota para ti", h: "Te tenemos algo especial", codigo: "Tu código exclusivo", btn: `Reservar en ${b.nombre}` };
+
+  const cuerpo = data.paragraphs
     .map(
       (p) =>
-        `<p style="margin:16px 0 0;font-family:'Jost','Helvetica Neue',Arial;font-size:15px;font-weight:300;color:#4a3f30;line-height:1.85;">${p}</p>`,
+        `<p style="font-family:${FONT};font-weight:400;font-size:14.5px;color:${T.cuerpo};line-height:1.75;margin:0 0 14px;">${esc(p)}</p>`,
     )
     .join("");
-  const promoBox = hasPromo
-    ? `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border:1px solid #c9b99a;background-color:#fdf9f4;margin:32px 0 0;">
-        <tr><td style="padding:28px 32px;text-align:center;">
-          <p style="margin:0 0 10px;font-family:'Jost','Helvetica Neue',Arial;font-size:10px;letter-spacing:3px;text-transform:uppercase;color:#9a8a74;">Tu código exclusivo</p>
-          <p style="margin:0 0 8px;font-family:'Cormorant Garamond',Georgia,serif;font-size:38px;font-weight:500;color:#2a2218;letter-spacing:4px;">${esc(b.promoCode)}</p>
-          <p style="margin:0;font-family:'Jost','Helvetica Neue',Arial;font-size:12px;color:#9a8a74;">${esc(b.promoDiscount)} de descuento${data.promoExpiry ? ` · Válido hasta el ${esc(data.promoExpiry)}` : ""}</p>
-        </td></tr>
-      </table>`
-    : "";
-  const body = `
-    ${hero("Una nota para ti", "Te tenemos algo especial", `Con cariño, desde ${esc(b.nombre)}.`)}
-    <tr><td class="mplg" style="background-color:#faf8f5;padding:52px 48px;">
-      ${greeting(data.customerName)}
-      ${paras}
-      ${promoBox}
-      ${ctaButton(data.ctaText || `Reservar en ${b.nombre}`, bookingUrl)}
-    </td></tr>`;
-  const first = data.customerName.trim().split(" ")[0];
-  return wrap(b, `${first}, algo especial de ${b.nombre}`, body);
-}
 
-// ── 4. Pre-llegada -3 días: Recordatorio / upsell de servicios ─────────────
-// El menú de restaurante de Paraíso se parametriza: el hotel puede pasar su
-// propia lista de `servicios`. Si no pasa nada, el correo se centra en confirmar
-// la llegada y ofrecer ayuda por WhatsApp (sin inventar un restaurante).
-export function buildRestaurantEmailHtml(data: {
-  hotel: HotelBrand;
-  customerName: string;
-  confirmacion: string;
-  checkin: string;
-  checkinFormatted: string;
-  /** Servicios/menú opcionales del hotel para el upsell. */
-  servicios?: { name: string; desc: string; precio: string }[];
-  /** Nombre del restaurante/servicio, si aplica (default: genérico). */
-  restauranteNombre?: string;
-}): string {
-  const b = brandDefaults(data.hotel);
-  const first = data.customerName.trim().split(" ")[0];
-  const restName = data.restauranteNombre || "nuestro restaurante";
-  const waText = encodeURIComponent(
-    `Hola, quisiera reservar una cena para el ${data.checkinFormatted}. Mi confirmación es ${data.confirmacion}.`,
-  );
-  const waUrl = b.whatsapp ? `https://wa.me/${b.whatsapp}?text=${waText}` : "";
-
-  const servicios = data.servicios && data.servicios.length > 0 ? data.servicios : null;
-  const serviciosHtml = servicios
-    ? servicios
-        .map(
-          (m) => `
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-bottom:1px solid #e4ddd3;margin-bottom:4px;">
-      <tr>
-        <td style="padding:16px 0;width:75%;vertical-align:top;">
-          <p style="font-family:'Cormorant Garamond',Georgia,serif;font-size:18px;color:#2a2218;margin:0 0 4px;">${m.name}</p>
-          <p style="font-family:'Jost','Helvetica Neue',Arial;font-size:12px;color:#9a8a74;margin:0;">${m.desc}</p>
-        </td>
-        <td style="padding:16px 0 16px 16px;text-align:right;vertical-align:top;white-space:nowrap;">
-          <p style="font-family:'Cormorant Garamond',Georgia,serif;font-size:16px;color:#2a2218;margin:0;">${m.precio}</p>
-        </td>
-      </tr>
-    </table>`,
-        )
-        .join("")
+  const cajaPromo = hasPromo
+    ? `<tr><td style="padding:22px 40px 0;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${T.panel};border:1px solid ${T.borde};border-radius:14px;">
+          <tr><td style="padding:24px;text-align:center;">
+            <div style="font-family:${FONT};font-weight:600;font-size:10px;letter-spacing:3px;text-transform:uppercase;color:${T.tenue};margin-bottom:10px;">${esc(t.codigo)}</div>
+            <div style="font-family:${FONT};font-weight:800;font-size:30px;letter-spacing:3px;color:${T.tinta};line-height:1;">${esc(b.promoCode)}</div>
+            ${data.promoExpiry ? `<div style="font-family:${FONT};font-weight:400;font-size:12px;color:${T.suave};margin-top:10px;">${esc(b.promoDiscount)} · ${esc(data.promoExpiry)}</div>` : ""}
+          </td></tr>
+        </table>
+      </td></tr>`
     : "";
 
-  const intro = servicios
-    ? `En <strong>3 días</strong> llegas a ${b.nombre}. ¿Te gustaría reservar una cena en ${restName}? Aquí nuestra selección:`
-    : `En <strong>3 días</strong> llegas a ${b.nombre}. Queremos que tu llegada sea perfecta: si necesitas algo antes de tu estancia, estamos a un mensaje de distancia.`;
+  const inner =
+    cabecera({ nombre: b.nombre, eyebrow: t.eyebrow }) +
+    titulo(t.h) +
+    `<tr><td style="padding:22px 40px 0;">
+      <p style="font-family:${FONT};font-weight:500;font-size:16px;color:${T.tinta};margin:0 0 12px;">${HOLA(en)}, ${esc(first)}</p>
+      ${cuerpo}
+    </td></tr>` +
+    cajaPromo +
+    boton(bookingUrl, data.ctaText || t.btn) +
+    cierre(b);
 
-  const cta = waUrl
-    ? `${ctaButton("Escríbenos por WhatsApp 💬", waUrl, "#2a2218")}` +
-      (b.telefono
-        ? `<p style="font-family:'Jost','Helvetica Neue',Arial;font-size:12px;color:#9a8a74;text-align:center;margin:0;">También puedes llamarnos al +${b.telefono}</p>`
-        : "")
-    : "";
-
-  const body = `
-    ${hero("Tu llegada se acerca", servicios ? "¿Una cena especial?" : "Te esperamos pronto", `${restName !== "nuestro restaurante" ? restName + " · " : ""}${b.nombre}`)}
-    <tr><td class="mplg" style="background-color:#faf8f5;padding:52px 48px;">
-      ${greeting(data.customerName)}
-      <p style="margin:16px 0 32px;font-family:'Jost','Helvetica Neue',Arial;font-size:15px;font-weight:300;color:#4a3f30;line-height:1.85;">
-        ${intro}
-      </p>
-      ${serviciosHtml}
-      ${servicios ? `<p style="font-family:'Jost','Helvetica Neue',Arial;font-size:12px;color:#9a8a74;margin:16px 0 0;">Sin costo de reserva</p>` : ""}
-      ${cta}
-    </td></tr>`;
-  return wrap(b, servicios ? `${first}, ¿una cena especial en ${b.nombre}?` : `${first}, tu llegada a ${b.nombre} se acerca`, body);
-}
-
-// ── 5. Pre-llegada día del checkin: Guía de bienvenida ────────────────────
-export function buildWelcomeGuideEmailHtml(data: {
-  hotel: HotelBrand;
-  customerName: string;
-  confirmacion: string;
-  checkin: string;
-  habitaciones: string;
-  /** Datos opcionales de la guía (de hotel.guia / config). */
-  checkinHora?: string; // default "3:00 PM"
-  checkoutHora?: string; // default "12:00 PM"
-  direccion?: string; // dirección física para "Cómo llegar"
-}): string {
-  const b = brandDefaults(data.hotel);
-  const first = data.customerName.trim().split(" ")[0];
-  const checkinHora = data.checkinHora || "3:00 PM";
-  const checkoutHora = data.checkoutHora || "12:00 PM";
-
-  const comoLlegarBody = data.direccion
-    ? `${data.direccion}<br><a href="${b.mapsUrl}" style="color:#8a6830;text-decoration:underline;">Ver en Google Maps</a>`
-    : `<a href="${b.mapsUrl}" style="color:#8a6830;text-decoration:underline;">Ver en Google Maps</a>`;
-
-  const waBlock = b.whatsapp
-    ? ctaButton("¿Alguna pregunta? Escríbenos por WhatsApp", `https://wa.me/${b.whatsapp}`)
-    : "";
-
-  const body = `
-    ${hero("Hoy es el día", `Tu estancia en ${b.nombre}, hoy.`, "¡El momento que esperabas ha llegado! Aquí todo lo que necesitas saber.")}
-    <tr><td class="mplg" style="background-color:#faf8f5;padding:52px 48px;">
-      ${greeting(data.customerName)}
-      <p style="margin:16px 0 32px;font-family:'Jost','Helvetica Neue',Arial;font-size:15px;font-weight:300;color:#4a3f30;line-height:1.85;">
-        ¡Hoy es el día! En unas horas estarás con nosotros. Aquí tu guía de llegada.
-      </p>
-
-      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border:1px solid #c9b99a;background-color:#fdf9f4;margin:0 0 32px;">
-        <tr><td style="padding:24px 32px;">
-          <p style="margin:0 0 8px;font-family:'Jost','Helvetica Neue',Arial;font-size:10px;letter-spacing:3px;text-transform:uppercase;color:#9a8a74;">Tu confirmación</p>
-          <p style="margin:0 0 16px;font-family:'Cormorant Garamond',Georgia,serif;font-size:28px;font-weight:500;color:#2a2218;">${data.confirmacion}</p>
-          <p style="margin:0;font-family:'Jost','Helvetica Neue',Arial;font-size:13px;color:#4a3f30;">
-            🏠 <strong>${data.habitaciones}</strong><br>
-            📅 Check-in a partir de las <strong>${checkinHora}</strong><br>
-            📅 Check-out antes de las <strong>${checkoutHora}</strong>
-          </p>
-        </td></tr>
-      </table>
-
-      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#f4f0e8;margin:0 0 32px;">
-        <tr>
-          <td style="width:100%;padding:20px;vertical-align:top;border-bottom:1px solid #e4ddd3;">
-            <p style="margin:0 0 8px;font-family:'Cormorant Garamond',Georgia,serif;font-size:17px;color:#2a2218;">📍 Cómo llegar</p>
-            <p style="margin:0;font-family:'Jost','Helvetica Neue',Arial;font-size:12px;color:#4a3f30;line-height:1.5;">
-              ${comoLlegarBody}
-            </p>
-          </td>
-        </tr>
-      </table>
-
-      <p style="font-family:'Cormorant Garamond',Georgia,serif;font-size:19px;font-style:italic;color:#5a4e3c;text-align:center;line-height:1.7;margin:0 0 32px;">
-        "Te esperamos con los brazos abiertos y el corazón lleno. 🌿"
-      </p>
-      ${waBlock}
-    </td></tr>`;
-  return wrap(b, `¡Hoy es el día, ${first}! — Tu habitación te espera`, body);
+  return doc(`${b.nombre} — ${t.eyebrow}`, `${first}, ${t.h.toLowerCase()}`, inner);
 }

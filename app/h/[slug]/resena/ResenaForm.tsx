@@ -9,6 +9,8 @@ interface Props {
   clienteName: string;
   reviewUrl: string; // link de Google "escribir reseña"
   lang: "es" | "en";
+  /** Calificación que el huésped ya eligió en las estrellas del correo. */
+  ratingInicial?: number;
 }
 
 const COPY = {
@@ -40,9 +42,9 @@ const COPY = {
   },
 };
 
-export function ResenaForm({ slug, r, clienteName, reviewUrl, lang }: Props) {
+export function ResenaForm({ slug, r, clienteName, reviewUrl, lang, ratingInicial = 0 }: Props) {
   const c = COPY[lang];
-  const [estrellas, setEstrellas] = useState(0);
+  const [estrellas, setEstrellas] = useState(ratingInicial);
   const [hover, setHover] = useState(0);
   const [texto, setTexto] = useState("");
   const [enviando, setEnviando] = useState(false);
