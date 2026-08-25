@@ -224,6 +224,16 @@ export default function CamilaClient({
         const res = await fetch("/api/admin/bot-qr", { cache: "no-store" });
         const d = await res.json().catch(() => ({}));
         if (!activo) return;
+        // Vincular el WhatsApp del hotel es cosa del dueño, así que la API
+        // responde 403 al resto del equipo. Sin este caso, el 403 caía en
+        // "sin-servicio" y a la recepcionista se le decía "estamos preparando tu
+        // conexión" — como si Camila estuviera caída, cuando lo único que pasa
+        // es que no le toca a ella.
+        if (res.status === 403) {
+          setQrStatus("sin-permiso");
+          setQrImg(null);
+          return;
+        }
         setQrStatus(typeof d.status === "string" ? d.status : "sin-servicio");
         setQrImg(typeof d.qr === "string" ? d.qr : null);
       } catch {
@@ -1059,6 +1069,14 @@ export default function CamilaClient({
                 <p className="font-semibold">¡Listo! {nombreBot} está conectada a tu WhatsApp.</p>
                 <p>Ya responde a tus huéspedes 24/7 (si está encendida en el paso 1).</p>
               </div>
+            ) : qrStatus === "sin-permiso" ? (
+              <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700">
+                <p className="font-semibold">Esto lo hace el dueño del hotel.</p>
+                <p>
+                  Escanear el código vincula un teléfono al WhatsApp del hotel de forma permanente, así
+                  que solo el dueño puede verlo. Pídele que entre a esta misma pantalla.
+                </p>
+              </div>
             ) : qrStatus === "sin-servicio" || qrStatus === "desconocido" ? (
               <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
                 <p className="font-semibold">Estamos preparando tu conexión.</p>
@@ -1165,6 +1183,7 @@ function BadgeEstado({ status, nombreBot }: { status: string | null; nombreBot: 
     error: { dot: "bg-red-500", txt: "Servicio no disponible" },
     "sin-servicio": { dot: "bg-gray-400", txt: "Preparando tu conexión" },
     desconocido: { dot: "bg-gray-400", txt: "Preparando tu conexión" },
+    "sin-permiso": { dot: "bg-gray-400", txt: "Solo el dueño puede vincular" },
   };
   const s = map[status ?? "sin-servicio"] ?? map["sin-servicio"];
   return (
