@@ -6,6 +6,7 @@
 
 import { NextResponse } from "next/server";
 import { getActiveHotel } from "@/lib/panel/active-hotel";
+import { requireRol, SOLO_DUENO } from "@/lib/panel/roles";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,6 +14,15 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   const ctx = await getActiveHotel();
   if (!ctx) return NextResponse.json({ error: "no-auth" }, { status: 401 });
+  // El QR no es una foto informativa: escanearlo VINCULA UN DISPOSITIVO a la
+  // cuenta de WhatsApp del hotel, de forma permanente y sin aviso. Quien lo
+  // escanee lee cada conversación con cada huésped (nombres, teléfonos, fechas,
+  // links de pago) y puede escribir haciéndose pasar por el hotel. Antes bastaba
+  // ser miembro, así que un rol `limpieza` podía pedirlo. Es la misma acción de
+  // alto privilegio que generar el token del bot, que sí exigía `dueno`.
+  const noPuede = requireRol(ctx, SOLO_DUENO, "Solo el dueño puede vincular el WhatsApp del hotel.");
+  if (noPuede) return noPuede;
+  console.warn(`[bot-qr] QR de vinculación solicitado por ${ctx.userId} en ${ctx.hotel.slug}`);
 
   const base = process.env.CAMILA_RUNTIME_URL;
   const secret = process.env.BOT_FLEET_SECRET;

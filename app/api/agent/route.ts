@@ -9,6 +9,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { logAgentActivity, setBotStatus, logCamilaConversacion } from "@/lib/db/admin";
 import type { TurnoConversacion } from "@/lib/db/admin";
 import { accesoDelHotel, bloqueoDelHotel } from "@/lib/suscripcion";
+import { hotelIdPorBotToken } from "@/lib/db/bot-token";
 import { crearLinkReservaAgente } from "@/lib/agent-booking";
 import { buildBotSystemPrompt } from "@/lib/bot/prompt";
 import { buildHotelKnowledge } from "@/lib/bot/knowledge";
@@ -17,16 +18,25 @@ import type { HotelRow } from "@/lib/tenant";
 
 export const dynamic = "force-dynamic";
 
+// El token ya no se busca dentro de `hoteles.config` —esa columna se puede leer
+// desde internet con la llave anónima— sino en `hotel_bot_tokens`, que sólo ve la
+// service-role. Son dos consultas en vez de una: token → hotel_id → hotel.
 async function hotelPorToken(token: string): Promise<HotelRow | null> {
   if (!token) return null;
+  const hotelId = await hotelIdPorBotToken(token);
+  if (!hotelId) return null;
   const supabase = createAdminClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("hoteles")
     .select(
       "id, owner_id, slug, nombre, ubicacion, descripcion, whatsapp, habitaciones, fotos, guia, extras, config, prefijo_confirmacion, stripe_account_id, publicado, created_at",
     )
-    .eq("config->>agent_token", token)
+    .eq("id", hotelId)
     .maybeSingle();
+  if (error) {
+    console.error("hotelPorToken:", error.message);
+    return null;
+  }
   return (data as HotelRow) ?? null;
 }
 

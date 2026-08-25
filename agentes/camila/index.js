@@ -289,17 +289,23 @@ function servidorEstado() {
       return;
     }
 
+    // El candado va ANTES del router: todo lo que no sea /health exige el secreto
+    // de flota. Antes vivía dentro de la rama /estado, así que cualquier otra URL
+    // (incluida la raíz) caía en la página HTML del final y servía el QR de
+    // vinculación de WhatsApp de cada hotel sin pedir nada. El runtime es público
+    // por diseño —Vercel le pega desde fuera— y el subdominio de Railway aparece
+    // en los registros de certificados, así que no conocerlo no era protección.
+    const auth = req.headers["authorization"] || "";
+    if (!FLEET_SECRET || auth !== `Bearer ${FLEET_SECRET}`) {
+      res.writeHead(401, { "content-type": "application/json" });
+      res.end(JSON.stringify({ error: "no-autorizado" }));
+      return;
+    }
+
     // API JSON para que el panel de Kora muestre el QR/estado de un hotel.
-    // Protegida con el mismo secreto de plataforma que /api/bots/fleet.
     // GET /estado            → { hotels: [{ slug, nombre, status, qr }] }
     // GET /estado?slug=xxx   → { slug, nombre, status, qr } (o 404)
     if (req.url && req.url.startsWith("/estado")) {
-      const auth = req.headers["authorization"] || "";
-      if (!FLEET_SECRET || auth !== `Bearer ${FLEET_SECRET}`) {
-        res.writeHead(401, { "content-type": "application/json" });
-        res.end(JSON.stringify({ error: "no-autorizado" }));
-        return;
-      }
       const url = new URL(req.url, "http://localhost");
       const slug = url.searchParams.get("slug");
       // El QR (dataURL) solo se expone cuando de verdad hay uno que escanear.
@@ -318,26 +324,15 @@ function servidorEstado() {
       }
       return;
     }
-    const filas = [...estado.values()]
-      .map((h) => {
-        const badge =
-          h.status === "ready"
-            ? "🟢 conectada"
-            : h.status === "qr"
-              ? "🟡 escanea el QR"
-              : `🔴 ${h.status}${h.err ? ` — ${h.err}` : ""}`;
-        const qrImg = h.status === "qr" && h.qr ? `<div><img src="${h.qr}" width="240" alt="QR"/></div>` : "";
-        return `<section style="margin:16px 0;padding:16px;border:1px solid #ddd;border-radius:12px">
-          <strong>${h.nombre}</strong> <code>${h.slug}</code><br/>${badge}${qrImg}
-        </section>`;
-      })
-      .join("");
-    res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
-    res.end(
-      `<!doctype html><meta charset="utf-8"><title>Camila · estado</title>` +
-        `<body style="font-family:system-ui;max-width:520px;margin:24px auto;padding:0 16px">` +
-        `<h1>Camila 🌿</h1><p>${estado.size} hotel(es) en la flota.</p>${filas || "<p>Sin hoteles.</p>"}</body>`,
-    );
+    // Aquí vivía una página HTML que listaba toda la flota —nombre y slug de cada
+    // hotel— e incrustaba el QR de vinculación de WhatsApp como imagen. Está
+    // borrada, no sólo protegida: ese QR es la credencial de emparejamiento, y
+    // quien lo escaneara quedaba como dispositivo enlazado del número del hotel,
+    // leyendo y contestando a sus huéspedes. Nadie la consumía: el panel de Kora
+    // habla con /estado?slug=… (bot-status y bot-qr) y Railway sólo necesita
+    // /health. Sin página no hay superficie que proteger.
+    res.writeHead(404, { "content-type": "application/json" });
+    res.end(JSON.stringify({ error: "no-encontrado" }));
   }).listen(PORT, () => console.log(`[camila] estado/health en :${PORT}`));
 }
 

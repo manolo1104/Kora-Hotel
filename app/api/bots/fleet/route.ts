@@ -12,9 +12,9 @@
 // ACCESO ACTIVO (plan pagado o prueba vigente). Sin plan → sin Camila.
 
 import { NextResponse } from "next/server";
-import { randomUUID } from "node:crypto";
 import { createAdminClient, adminEnvReady } from "@/lib/supabase/admin";
 import { accesoDelHotel } from "@/lib/suscripcion";
+import { asegurarBotToken } from "@/lib/db/bot-token";
 import type { HotelRow } from "@/lib/tenant";
 
 export const runtime = "nodejs";
@@ -51,7 +51,6 @@ export async function GET(req: Request) {
   for (const h of rows) {
     const cfg = (h.config ?? {}) as Record<string, unknown>;
     const extras = (h.extras ?? {}) as Record<string, unknown>;
-    let token = typeof cfg.agent_token === "string" ? cfg.agent_token : "";
 
     // Filtros: hotel publicado, no demo, y el dueño no lo apagó.
     if (!h.publicado) continue;
@@ -67,16 +66,12 @@ export async function GET(req: Request) {
     // tocaba eso quedaba FUERA del fleet y jamás veía su QR. Ahora todo hotel
     // elegible (publicado + acceso activo, incluida la prueba) recibe su token
     // aquí mismo y su Camila arranca sola.
+    // El token sale de `hotel_bot_tokens` (sólo service-role), no de `config`,
+    // que se puede leer desde internet con la llave anónima del navegador.
+    const token = await asegurarBotToken(h.id);
     if (!token) {
-      token = `kora_${randomUUID().replace(/-/g, "")}`;
-      const { error: tokErr } = await admin
-        .from("hoteles")
-        .update({ config: { ...cfg, agent_token: token } })
-        .eq("id", h.id);
-      if (tokErr) {
-        console.error(`[bots/fleet] no pude generar token para ${h.slug}:`, tokErr.message);
-        continue; // sin token persistido no puede hablar con /api/agent
-      }
+      console.error(`[bots/fleet] no pude obtener/generar token para ${h.slug}`);
+      continue; // sin token persistido no puede hablar con /api/agent
     }
 
     hotels.push({

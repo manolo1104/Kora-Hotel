@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getActiveHotel } from "@/lib/panel/active-hotel";
+import { requireRol, SOLO_DUENO } from "@/lib/panel/roles";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getStripe, stripeEnvReady } from "@/lib/stripe/server";
 import { deriveConnectState, upsertConnectState, ensureOxxoCapability } from "@/lib/stripe/connect";
@@ -15,6 +16,15 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   const ctx = await getActiveHotel();
   if (!ctx) return NextResponse.json({ error: "no-auth" }, { status: 401 });
+  // El POST de más abajo ya exigía `dueno`; el GET no comprobaba el rol y devuelve
+  // cosas más delicadas que el POST: `dashboardUrl` es un enlace de un solo uso
+  // que abre una sesión YA AUTENTICADA en el Express Dashboard de Stripe del
+  // hotel — donde se cambia la cuenta bancaria a la que caen los depósitos— más
+  // el saldo, los últimos 10 cobros y los últimos 5 depósitos. Cualquier miembro
+  // (limpieza, cocina, recepción) lo obtenía con un fetch desde la consola: la UI
+  // sólo escondía el botón. Es desvío de dinero, no una fuga de información.
+  const noPuede = requireRol(ctx, SOLO_DUENO, "Solo el dueño puede ver los pagos del hotel.");
+  if (noPuede) return noPuede;
   if (!stripeEnvReady) return NextResponse.json({ connected: false, stripe: false });
 
   const accountId = ctx.hotel.stripe_account_id;

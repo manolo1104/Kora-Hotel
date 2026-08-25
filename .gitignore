@@ -26,7 +26,13 @@ yarn-debug.log*
 yarn-error.log*
 
 # local env files
+# `.env` estaba RASTREADO en un repositorio público. Solo tenía variables
+# NEXT_PUBLIC_* (que el navegador ve de todos modos, así que no se filtró nada),
+# pero un archivo de entorno versionado es una trampa: el día que alguien le
+# añada una llave de verdad, se publica sola. Se rastrea únicamente .env.example.
+.env
 .env*.local
+!.env.example
 
 # vercel
 .vercel
@@ -39,3 +45,8 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 blog-agent/node_modules/
+
+# Auditoría interna. NO entra al repo: enumera los agujeros de seguridad del
+# producto y este repositorio es PÚBLICO. Vive en ~/Desktop/KORA-AUDITORIA/.
+AUDIT_KORA.md
+PLAN_ARREGLO_KORA.md

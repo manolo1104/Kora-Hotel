@@ -5,6 +5,7 @@
 
 import { NextResponse } from "next/server";
 import { getActiveHotel } from "@/lib/panel/active-hotel";
+import { requireRol, MANDO, SOLO_DUENO } from "@/lib/panel/roles";
 import { saveBotConfig, type BotTrainingInput } from "@/lib/db/admin";
 import { hotelRooms } from "@/lib/booking";
 import { normalizeFaqs } from "@/lib/bot/prompt";
@@ -72,11 +73,40 @@ export async function POST(req: Request) {
   const ctx = await getActiveHotel();
   if (!ctx) return NextResponse.json({ error: "no-auth" }, { status: 401 });
 
+  // Entrenar a Camila es trabajo operativo: lo hace también la encargada.
+  const noEsMando = requireRol(ctx, MANDO, "No tienes permiso para configurar el bot.");
+  if (noEsMando) return noEsMando;
+
   let body: Record<string, unknown>;
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: "bad-request" }, { status: 400 });
+  }
+
+  // Dos campos de este POST no son configuración, son dinero y credenciales, y
+  // sólo los toca el dueño:
+  //
+  // · `bot.pago` (titular/banco/CLABE/cuenta) entra LITERAL al prompt con el que
+  //   Camila habla con los huéspedes. Cambiar la CLABE ahí hace que el propio
+  //   hotel le dicte a cada huésped que pida transferencia una cuenta ajena,
+  //   pidiéndole el comprobante para "confirmar la reserva". El hotelero no se
+  //   entera hasta que llega alguien con un depósito que nunca aterrizó.
+  // · `adminPhone` es la ÚNICA credencial del comando de apagado por WhatsApp:
+  //   quien lo ponga en su celular se queda con el interruptor del bot.
+  //
+  // Antes ninguna de las seis rutas `bot-*` miraba el rol: bastaba ser miembro,
+  // así que recepción, cocina o limpieza podían hacer las dos cosas.
+  const tocaPago =
+    !!body.bot && typeof body.bot === "object" && "pago" in (body.bot as Record<string, unknown>);
+  const tocaAdminPhone = typeof body.adminPhone === "string";
+  if (tocaPago || tocaAdminPhone) {
+    const noEsDueno = requireRol(
+      ctx,
+      SOLO_DUENO,
+      "Solo el dueño puede cambiar los datos bancarios o el número administrador del bot.",
+    );
+    if (noEsDueno) return noEsDueno;
   }
 
   const input: {
