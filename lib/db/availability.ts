@@ -232,8 +232,18 @@ export async function extendHold(hotelId: string, sessionId: string, hours: numb
   if (error) console.error("extendHold error:", error);
 }
 
-/** Libera el hold de una sesión (al abandonar el carrito o tras confirmar). */
-export async function releaseHold(hotelId: string, sessionId: string): Promise<void> {
+/**
+ * Libera el hold de una sesión (al abandonar el carrito o tras confirmar).
+ *
+ * Devuelve `false` si el DELETE falló. Quien la llame ANTES de crear una reserva
+ * tiene que tratar ese `false` como error transitorio y reintentar: si el hold
+ * sigue en pie, el RPC atómico lo cuenta como solape contra sí mismo y responde
+ * CUARTO_NO_DISPONIBLE. El webhook de Stripe interpreta eso como falta real de
+ * cuarto y reembolsa —con correo de disculpa— una reserva pagada cuyo cuarto
+ * estaba libre. Antes esta función devolvía `void`, así que un timeout puntual de
+ * Supabase era indistinguible de un borrado correcto.
+ */
+export async function releaseHold(hotelId: string, sessionId: string): Promise<boolean> {
   const supabase = createAdminClient();
   const { error } = await supabase
     .from("blocks")
@@ -241,7 +251,11 @@ export async function releaseHold(hotelId: string, sessionId: string): Promise<v
     .eq("hotel_id", hotelId)
     .eq("status", "HOLD")
     .eq("hold_session", sessionId);
-  if (error) console.error("releaseHold error:", error);
+  if (error) {
+    console.error("releaseHold error:", error);
+    return false;
+  }
+  return true;
 }
 
 /** Bloqueo manual de fechas (BLOQUEADO / MANTENIMIENTO) desde el panel. */

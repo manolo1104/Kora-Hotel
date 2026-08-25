@@ -4,6 +4,7 @@ import { createAdminClient, adminEnvReady } from "@/lib/supabase/admin";
 import { getStripe, stripeEnvReady } from "@/lib/stripe/server";
 import { planPorClave, planPorPriceId } from "@/lib/oferta";
 import { enviarEmail, NOTIFY_EMAIL } from "@/lib/email/resend";
+import { alertar } from "@/lib/alertas";
 import { emailBienvenida } from "@/lib/email/templates";
 
 export const runtime = "nodejs";
@@ -13,6 +14,38 @@ export const dynamic = "force-dynamic";
 // La firma se verifica sobre el cuerpo CRUDO (req.text), nunca sobre JSON parseado.
 
 const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET ?? "";
+
+/**
+ * Comprueba una escritura a `suscripciones` y LANZA si falló, para que el catch
+ * de abajo responda 500 y Stripe reintente la entrega.
+ *
+ * supabase-js no lanza cuando algo sale mal: devuelve `{ data, error }` y sigue.
+ * Por eso el try/catch que envuelve el switch nunca se disparaba por un problema
+ * de base de datos, y la función llegaba al `return 200` final aunque la fila no
+ * se hubiera escrito. Stripe da entonces el evento por entregado y NO reintenta
+ * jamás: el cobro se pierde para siempre, el hotelero recibe su correo de
+ * bienvenida, y a los 30 días el motor se le apaga sin que nadie se entere.
+ * Simétricamente, una cancelación que fallara dejaba acceso gratis indefinido.
+ *
+ * Además comprueba las filas tocadas. Un `.update().eq(...)` que no encuentra
+ * nada devuelve `error: null` y cero filas: no es reintentable —la fila no
+ * existe— pero es exactamente la señal de que un `checkout.session.completed`
+ * anterior se perdió, así que queda en el log en vez de desaparecer.
+ */
+function exigirEscritura(
+  etiqueta: string,
+  res: { error: { message?: string } | null; data?: unknown },
+): void {
+  if (res.error) {
+    throw new Error(`suscripciones/${etiqueta}: ${res.error.message ?? JSON.stringify(res.error)}`);
+  }
+  if (Array.isArray(res.data) && res.data.length === 0) {
+    console.error(
+      `[webhook ${etiqueta}] la escritura no tocó ninguna fila: no hay suscripción con ese id. ` +
+        `Suele significar que se perdió un checkout.session.completed anterior. Revisar a mano.`,
+    );
+  }
+}
 
 // El API "basil" de Stripe movió algunos campos; estos helpers leen ambas formas.
 function subscriptionIdDeInvoice(inv: Stripe.Invoice): string | null {
@@ -91,7 +124,7 @@ export async function POST(req: Request) {
         const sub = await stripe.subscriptions.retrieve(subId);
         const plan = planDeSub(sub);
 
-        await admin.from("suscripciones").upsert(
+        const resAlta = await admin.from("suscripciones").upsert(
           {
             user_id: userId,
             stripe_customer_id:
@@ -105,6 +138,9 @@ export async function POST(req: Request) {
           },
           { onConflict: "user_id" }
         );
+        // Va ANTES del correo a propósito: si el alta no se guardó, el hotelero no
+        // debe leer "ya estás activo" mientras la fila no existe.
+        exigirEscritura("checkout.session.completed", resAlta);
 
         // Email de bienvenida al cliente + aviso interno al fundador.
         const email = session.customer_details?.email;
@@ -127,10 +163,14 @@ export async function POST(req: Request) {
         const subId = subscriptionIdDeInvoice(inv);
         if (!subId) break;
         const sub = await stripe.subscriptions.retrieve(subId);
-        await admin
-          .from("suscripciones")
-          .update({ estado: "activa", periodo_fin: periodoFinDeSub(sub), avisos_dunning: 0 })
-          .eq("stripe_subscription_id", subId);
+        exigirEscritura(
+          "invoice.paid",
+          await admin
+            .from("suscripciones")
+            .update({ estado: "activa", periodo_fin: periodoFinDeSub(sub), avisos_dunning: 0 })
+            .eq("stripe_subscription_id", subId)
+            .select("user_id"),
+        );
         break;
       }
 
@@ -138,33 +178,45 @@ export async function POST(req: Request) {
         const inv = event.data.object as Stripe.Invoice;
         const subId = subscriptionIdDeInvoice(inv);
         if (!subId) break;
-        await admin
-          .from("suscripciones")
-          .update({ estado: "pago_vencido" })
-          .eq("stripe_subscription_id", subId);
+        exigirEscritura(
+          "invoice.payment_failed",
+          await admin
+            .from("suscripciones")
+            .update({ estado: "pago_vencido" })
+            .eq("stripe_subscription_id", subId)
+            .select("user_id"),
+        );
         break;
       }
 
       case "customer.subscription.updated": {
         const sub = event.data.object as Stripe.Subscription;
-        await admin
-          .from("suscripciones")
-          .update({
-            plan: planDeSub(sub),
-            estado: estadoDeSub(sub),
-            periodo_fin: periodoFinDeSub(sub),
-            cancela_al_final: sub.cancel_at_period_end === true,
-          })
-          .eq("stripe_subscription_id", sub.id);
+        exigirEscritura(
+          "customer.subscription.updated",
+          await admin
+            .from("suscripciones")
+            .update({
+              plan: planDeSub(sub),
+              estado: estadoDeSub(sub),
+              periodo_fin: periodoFinDeSub(sub),
+              cancela_al_final: sub.cancel_at_period_end === true,
+            })
+            .eq("stripe_subscription_id", sub.id)
+            .select("user_id"),
+        );
         break;
       }
 
       case "customer.subscription.deleted": {
         const sub = event.data.object as Stripe.Subscription;
-        await admin
-          .from("suscripciones")
-          .update({ estado: "cancelada", cancela_al_final: false })
-          .eq("stripe_subscription_id", sub.id);
+        exigirEscritura(
+          "customer.subscription.deleted",
+          await admin
+            .from("suscripciones")
+            .update({ estado: "cancelada", cancela_al_final: false })
+            .eq("stripe_subscription_id", sub.id)
+            .select("user_id"),
+        );
         if (NOTIFY_EMAIL) {
           await enviarEmail({
             to: NOTIFY_EMAIL,
@@ -178,7 +230,13 @@ export async function POST(req: Request) {
       }
     }
   } catch (e) {
-    console.error(`Error procesando webhook ${event.type}:`, e);
+    // Aquí caen ahora las escrituras fallidas de `exigirEscritura`. Un cobro que
+    // no se guarda es dinero cobrado sin servicio entregado: tiene que llegar a
+    // una bandeja, no quedarse en los logs de Vercel.
+    await alertar(
+      `webhook de suscripciones falló (${event.type})`,
+      e instanceof Error ? `${e.message}\n${e.stack ?? ""}` : String(e),
+    );
     // 500 para que Stripe reintente la entrega.
     return NextResponse.json({ error: "Error interno." }, { status: 500 });
   }

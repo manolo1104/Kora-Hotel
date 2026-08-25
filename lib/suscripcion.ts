@@ -22,15 +22,39 @@ export interface Suscripcion {
   avisos_dunning: number;
 }
 
-export async function getSuscripcion(userId: string): Promise<Suscripcion | null> {
-  if (!adminEnvReady) return null;
+/**
+ * Resultado de leer la suscripción, distinguiendo "este dueño no tiene plan" de
+ * "no pude consultar si tiene plan". Antes ambos casos devolvían `null` y eran
+ * indistinguibles: ver `accesoDelHotel`.
+ */
+export interface LecturaSuscripcion {
+  /** false = la CONSULTA falló. No significa que el usuario no tenga plan. */
+  ok: boolean;
+  sub: Suscripcion | null;
+}
+
+export async function leerSuscripcion(userId: string): Promise<LecturaSuscripcion> {
+  // Sin service-role no hay nada que consultar; se conserva el comportamiento de
+  // siempre (sin plan → mandan las reglas de la prueba), porque esto es un estado
+  // de configuración y no un fallo pasajero.
+  if (!adminEnvReady) return { ok: true, sub: null };
   const supabase = createAdminClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("suscripciones")
     .select("*")
     .eq("user_id", userId)
     .maybeSingle();
-  return (data as Suscripcion) ?? null;
+  if (error) {
+    // Antes este error se descartaba y ni siquiera quedaba en el log.
+    console.error(`leerSuscripcion: no se pudo leer la suscripción de ${userId}:`, error);
+    return { ok: false, sub: null };
+  }
+  return { ok: true, sub: (data as Suscripcion) ?? null };
+}
+
+/** La suscripción del usuario, o null si no tiene —o si no se pudo leer. */
+export async function getSuscripcion(userId: string): Promise<Suscripcion | null> {
+  return (await leerSuscripcion(userId)).sub;
 }
 
 // Días de gracia con pago vencido: cubre los reintentos de cobro de Stripe
@@ -150,10 +174,26 @@ export async function accesoDelHotel(hotel: {
     };
   }
 
-  const planActivo = await ownerTienePlanActivo(hotel.owner_id);
-  if (planActivo) {
+  const lectura = await leerSuscripcion(hotel.owner_id);
+  if (tienePlanActivo(lectura.sub)) {
     return { activo: true, planActivo: true, prueba: null, bloqueado: false, mensajeBloqueo: null };
   }
+
+  // No se pudo LEER la suscripción. Eso NO es "no tiene plan": antes las dos
+  // cosas devolvían null, así que un hipo de Supabase degradaba a un hotel de
+  // pago con más de 30 días de antigüedad a "prueba vencida" y le apagaba el
+  // motor — los CTA de su página dejaban de llevar al motor y el checkout
+  // rechazaba el cobro, sin mensaje y sin traza. Se falla ABIERTO: se mantiene el
+  // acceso durante el incidente. `planActivo` queda en false a propósito, para no
+  // regalar los extras de Pro que no se pudieron verificar; lo único que cambia
+  // es que la marca de Kora sigue visible mientras dure.
+  if (!lectura.ok) {
+    console.error(
+      `accesoDelHotel: suscripción ilegible del dueño ${hotel.owner_id}; se mantiene el acceso abierto`,
+    );
+    return { activo: true, planActivo: false, prueba: null, bloqueado: false, mensajeBloqueo: null };
+  }
+
   const prueba = pruebaDelHotel(hotel);
   return {
     activo: !prueba || !prueba.vencida,

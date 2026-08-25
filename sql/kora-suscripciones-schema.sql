@@ -10,7 +10,10 @@ create table if not exists public.suscripciones (
   user_id                uuid not null unique references auth.users(id) on delete cascade,
   stripe_customer_id     text unique,
   stripe_subscription_id text unique,
-  plan                   text check (plan in ('boutique','hotel','grande')),
+  -- 'kora' es el ÚNICO plan vivo (lib/oferta.ts). Los tres viejos se conservan
+  -- para no invalidar filas históricas. Antes faltaba 'kora' aquí y la base
+  -- rechazaba toda alta de suscripción: el hotelero pagaba y no recibía nada.
+  plan                   text check (plan is null or plan in ('kora','boutique','hotel','grande')),
   estado                 text not null default 'incompleta'
                            check (estado in ('activa','pago_vencido','cancelada','incompleta','cortesia')),
   periodo_fin            timestamptz,          -- fin del periodo pagado actual

@@ -9,9 +9,10 @@ import {
   setBookingLang,
   type CrearReservaResult,
 } from "@/lib/db/bookings";
-import { releaseHold, extendHold } from "@/lib/db/availability";
+import { releaseHold, extendHold, createTemporaryHold } from "@/lib/db/availability";
 import { registrarExperienciaVentas, liberarExperienciaVentas } from "@/lib/db/experiencias";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { alertar } from "@/lib/alertas";
 import {
   sendConfirmacionReserva,
   sendAvisoReservaHotel,
@@ -186,7 +187,23 @@ async function confirmarReserva(
 
     // CLAVE anti-overbooking: liberar el HOLD de ESTA sesión ANTES de crear la
     // reserva, para que el RPC no lo cuente como solape contra sí mismo.
-    if (md.holdSession) await releaseHold(hotelId, md.holdSession).catch(() => {});
+    //
+    // Si el DELETE falla no se puede continuar: el RPC vería el hold propio como
+    // solape, devolvería CUARTO_NO_DISPONIBLE, y más abajo eso se interpreta como
+    // falta real de cuarto → reembolso automático y correo de disculpa por una
+    // reserva pagada cuyo cuarto estaba libre. Un timeout de Supabase bastaba.
+    // Se responde 500 para que Stripe reintente, que es la salida segura.
+    if (md.holdSession) {
+      const holdLiberado = await releaseHold(hotelId, md.holdSession);
+      if (!holdLiberado) {
+        await alertar(
+          "no se pudo liberar el hold de una reserva pagada",
+          `Hotel ${hotelId}, sesión ${md.holdSession}. Se responde 500 para que Stripe reintente. ` +
+            `Si se repite, la reserva pagada corre riesgo de acabar reembolsada.`,
+        );
+        return NextResponse.json({ error: "hold-no-liberado" }, { status: 500 });
+      }
+    }
 
     // El folio corto puede chocar con el índice único (hotel_id, confirmacion):
     // se reintenta con folio nuevo (el pago ya ocurrió; perderlo no es opción).
@@ -227,7 +244,24 @@ async function confirmarReserva(
       // Error transitorio (BD caída, timeout): 500 para que Stripe REINTENTE.
       // El RPC es idempotente por payment_intent, así que reintentar es seguro
       // — jamás perder en silencio una reserva ya pagada.
-      console.error("createBookingAtomic falló en webhook (transitorio):", result.error);
+      //
+      // Pero antes hay que DEVOLVER el hold que se liberó arriba. Sin esto el
+      // cuarto quedaba libre durante toda la ventana de reintentos de Stripe (el
+      // primero tarda del orden de una hora): otro huésped lo compraba y, al
+      // reintentar, ya no había cuarto → se le reembolsaba al que pagó primero.
+      // Así, un tropiezo pasajero de la base —que el diseño quería reintentable y
+      // sin daño— se convertía en la pérdida real de una reserva pagada.
+      // 240 min cubren varios reintentos sin dejar el cuarto apartado para
+      // siempre si el pago acabara sin resolverse. La siguiente pasada del
+      // webhook vuelve a liberarlo por `hold_session`, así que no se acumulan.
+      if (md.holdSession) {
+        await createTemporaryHold(hotelId, habitaciones, md.checkin, md.checkout, md.holdSession, 240);
+      }
+      await alertar(
+        "no se pudo crear una reserva ya pagada",
+        `Hotel ${hotelId}. Error: ${result.error}. Se devolvió el hold y se responde 500 ` +
+          `para que Stripe reintente. Si los reintentos se agotan, hay un huésped que pagó sin reserva.`,
+      );
       return NextResponse.json({ error: result.error }, { status: 500 });
     }
 
@@ -336,7 +370,14 @@ export async function POST(req: NextRequest) {
   const raw = await req.text();
   const event = verificarFirma(raw, sig || "");
   if (!event) {
-    console.error("Firma de webhook inválida (reservas)");
+    // Antes esto era un console.error que nadie miraba. Una firma inválida en el
+    // webhook de reservas significa o que un secreto de Vercel está mal, o que
+    // alguien está intentando inyectar eventos: en los dos casos hay que verlo.
+    await alertar(
+      "firma de webhook inválida (reservas)",
+      "Ninguno de los secretos configurados validó la firma. Revisar " +
+        "STRIPE_WEBHOOK_SECRET_RESERVAS y STRIPE_WEBHOOK_SECRET_RESERVAS_CONNECT en Vercel.",
+    );
     return NextResponse.json({ error: "firma-invalida" }, { status: 400 });
   }
 
