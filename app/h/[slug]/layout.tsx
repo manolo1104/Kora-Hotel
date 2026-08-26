@@ -32,7 +32,26 @@ export default async function HotelPublicoLayout({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const hotel = await resolveHotel(slug);
+
+  // El try NO es un descuido: es la única forma de que la pantalla de error se
+  // vea. Medido con la llave de Supabase rota, en build de producción: cuando
+  // `resolveHotel` lanzaba AQUÍ, la respuesta era un 500 con el cuerpo VACÍO —
+  // ningún `error.tsx` alcanza lo que lanza el layout de su propio segmento, y
+  // en el arranque del render aún no hay nada donde montar el de arriba.
+  //
+  // Dejando pasar el fallo, la MISMA lectura vuelve a hacerse en la página, que
+  // sí está dentro de `app/h/[slug]/error.tsx` — y entonces el visitante ve
+  // "No pudimos cargar esta página" en vez de una página en blanco.
+  //
+  // Lo único que se pierde durante el incidente es la comprobación de bloqueo, y
+  // eso no abre ninguna puerta: la página del hotel no cobra ni guarda nada, y
+  // el checkout, el panel y el bot comprueban el bloqueo por su cuenta.
+  let hotel = null;
+  try {
+    hotel = await resolveHotel(slug);
+  } catch (e) {
+    console.error(`[h/${slug}/layout] no se pudo leer el hotel:`, e);
+  }
 
   if (hotel && bloqueoDelHotel(hotel.extras as Record<string, unknown> | null)) {
     notFound();

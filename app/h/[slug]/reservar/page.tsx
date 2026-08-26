@@ -10,6 +10,27 @@ import ReservarClient from "./ReservarClient";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * Lo que ve el huésped cuando la base no responde. Sin marca del hotel a
+ * propósito: no tenemos sus datos, y adivinarlos sería peor que no ponerlos.
+ */
+function MotorNoDisponible() {
+  return (
+    <div className="min-h-screen w-full bg-kora-bg flex items-center justify-center px-4">
+      <meta name="robots" content="noindex, nofollow" />
+      <div className="max-w-md w-full rounded-2xl border border-gray-100 bg-white p-8 text-center shadow-sm">
+        <h1 className="text-xl font-bold text-kora-text">
+          No pudimos cargar la disponibilidad
+        </h1>
+        <p className="mt-3 text-sm text-kora-muted leading-relaxed">
+          Es un problema nuestro, no de tu conexión, y dura poco. Vuelve a cargar
+          la página en un minuto — no se te cobró nada.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 // Motor de reservas PÚBLICO y embebible por hotel. Server component delgado:
 // resuelve el hotel por slug (sin auth), pasa los cuartos y el branding al cliente.
 export default async function ReservarPage({
@@ -18,7 +39,26 @@ export default async function ReservarPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const hotel = await resolveHotel(slug);
+
+  // Por qué un try aquí y no un `error.tsx`: medido en build de producción con la
+  // llave de Supabase rota, una excepción en la RAÍZ de una página
+  // `force-dynamic` no llega a ninguna frontera de error en una carga directa —
+  // Next responde 500 con el cuerpo VACÍO, porque todavía no hay nada montado
+  // donde pintar el fallback. `app/h/[slug]/error.tsx` sigue sirviendo para
+  // navegaciones dentro del sitio y para lo que falle más abajo del árbol.
+  //
+  // Esta es la página del motor: aquí hay un huésped a punto de pagar. Una
+  // página en blanco es lo peor que le puede pasar, así que este camino devuelve
+  // HTML de verdad. El código sigue siendo 200 —un componente de servidor no
+  // puede fijar el estado de la respuesta— así que lleva `noindex` para que
+  // ningún buscador se lleve esto como si fuera la página del hotel.
+  let hotel;
+  try {
+    hotel = await resolveHotel(slug);
+  } catch (e) {
+    console.error(`[h/${slug}/reservar] no se pudo leer el hotel:`, e);
+    return <MotorNoDisponible />;
+  }
   if (!hotel) notFound();
 
   const rooms = hotelRooms(hotel);
