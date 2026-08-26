@@ -19,6 +19,9 @@ import type { HotelRow } from "@/lib/tenant";
 
 export const dynamic = "force-dynamic";
 
+/** Las acciones que APAGAN el bot o TOCAN inventario y dinero. */
+const ACCIONES_PROTEGIDAS = new Set(["set-status", "reservar"]);
+
 // El token ya no se busca dentro de `hoteles.config` —esa columna se puede leer
 // desde internet con la llave anónima— sino en `hotel_bot_tokens`, que sólo ve la
 // service-role. Son dos consultas en vez de una: token → hotel_id → hotel.
@@ -75,6 +78,28 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "servicio-no-disponible" }, { status: 503 });
   }
   if (!hotel) return NextResponse.json({ error: "token-invalido" }, { status: 401 });
+
+  // SEGUNDO FACTOR para lo que hace daño.
+  //
+  // El `agent_token` identifica al hotel y es una sola credencial. Si se filtra,
+  // quien la tenga puede apagar a Camila (`set-status`) o generar links de pago
+  // a nombre del hotel y bloquearle cuartos reales (`reservar`). Estas dos
+  // acciones exigen además el secreto de plataforma, que vive en el RUNTIME de
+  // Railway y no viaja con el token: así un token filtrado se queda de SÓLO
+  // LECTURA — sirve para leer el cerebro del hotel, que ya es público en su
+  // propio sitio, y para nada más.
+  //
+  // No es un rate limit (que es lo que proponía la auditoría): en Vercel Hobby,
+  // sin Redis ni almacenamiento compartido, un contador en memoria es decorativo
+  // porque cada petición puede caer en otra instancia. Este secreto YA existía y
+  // YA estaba en Railway, así que no añade infraestructura.
+  if (ACCIONES_PROTEGIDAS.has(body.action ?? "")) {
+    const secreto = process.env.BOT_FLEET_SECRET ?? "";
+    if (!secreto || req.headers.get("authorization") !== `Bearer ${secreto}`) {
+      console.error(`[agent] ${body.action} sin secreto de flota (hotel ${hotel.slug})`);
+      return NextResponse.json({ error: "no-autorizado" }, { status: 403 });
+    }
+  }
 
   const cfg = (hotel.config ?? {}) as Record<string, unknown>;
 

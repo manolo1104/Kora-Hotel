@@ -369,7 +369,8 @@ ${reglasLineas.join("\n")}\n`;
   · min-noches → esas fechas piden mínimo N noches.
   · no-disponible / capacidad-insuficiente → ya no hay ese cuarto para esas fechas; ofrece otro tipo u otras fechas.
   · datos-incompletos → pide el dato que falta.
-  · sin-pago / stripe-error → NO digas que hay un "problema técnico". Ofrece directamente las FORMAS DE PAGO de abajo (el link de reserva en línea con sus fechas y/o los datos de transferencia).`;
+  · sin-pago / stripe-error → NO digas que hay un "problema técnico". Ofrece directamente las FORMAS DE PAGO de abajo (el link de reserva en línea con sus fechas y/o los datos de transferencia).
+  · servicio-no-disponible → no se pudo apartar el cuarto en este momento. NUNCA digas que está lleno: ofrécele las FORMAS DE PAGO o el link de reserva en línea para que él mismo vea el calendario.`;
 
   // FORMAS DE PAGO: link del motor con fechas precargadas + datos de transferencia
   // (transferencia/depósito/OXXO). Solo se listan las opciones con datos reales.

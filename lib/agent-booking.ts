@@ -1,3 +1,5 @@
+import { alertar } from "@/lib/alertas";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { construirMetadataBase } from "@/lib/booking/metadata";
 // Reserva TRANSACCIONAL del bot de WhatsApp (Camila). El bot manda el cuarto +
 // fechas + datos del huésped; aquí se calcula el precio SIEMPRE en el servidor,
@@ -35,6 +37,32 @@ const MIN_CENTS = 1000; // $10 MXN mínimo de Stripe
 const OXXO_MAX_CENTS = 10_000_00; // tope de OXXO por transacción ($10,000 MXN)
 const MAX_UNIDADES = 5; // el bot cierra reservas chicas; grupos grandes van a la web
 const HOLD_MIN = 45; // apartar el cuarto 45 min (el chat es más lento que la web)
+
+/**
+ * Cuántos cuartos puede tener apartados el BOT a la vez en un mismo hotel.
+ * 20 deja holgura de sobra: el hotel más grande de Kora tiene 11 unidades, y
+ * estos apartados duran 45 minutos. Pasado ese número no es demanda, es un
+ * bucle.
+ */
+const MAX_HOLDS_BOT = 20;
+
+/** Apartados VIVOS creados por el bot en un hotel (los del motor web no cuentan). */
+async function contarHoldsDelBot(hotelId: string): Promise<number> {
+  const { count, error } = await createAdminClient()
+    .from("blocks")
+    .select("id", { count: "exact", head: true })
+    .eq("hotel_id", hotelId)
+    .eq("status", "HOLD")
+    .like("hold_session", "bot_%")
+    .gt("expires_at", new Date().toISOString());
+  // Falla ABIERTO a propósito: no dejar reservar a un huésped de verdad porque
+  // no se pudo contar sería peor que el abuso del que protege este tope.
+  if (error) {
+    console.error("[agent-booking] no se pudo contar los apartados del bot:", error.message);
+    return 0;
+  }
+  return count ?? 0;
+}
 const SESSION_MIN = 40; // la sesión de pago expira ANTES que el hold (nunca pago-sin-cuarto)
 
 export interface AgentBookingInput {
@@ -77,7 +105,8 @@ export type AgentBookingResult =
         | "no-disponible"
         | "sin-pago"
         | "monto-invalido"
-        | "stripe-error";
+        | "stripe-error"
+        | "servicio-no-disponible";
       detalle?: string;
       minNoches?: number;
       maxHuespedes?: number;
@@ -174,6 +203,26 @@ export async function crearLinkReservaAgente(
   if (!direct) return { ok: false, error: "sin-pago", detalle: "hotel-sin-connect" };
   const amountCents = Math.round(deposit * 100);
   if (amountCents < MIN_CENTS) return { ok: false, error: "monto-invalido" };
+
+  // TERCERA CAPA contra un runtime comprometido.
+  //
+  // Las dos primeras (el token fuera de una tabla pública, y el segundo factor
+  // de `/api/agent`) protegen contra un token filtrado. Ésta protege contra el
+  // caso peor: que alguien controle el runtime de Camila. Sin tope, un bucle de
+  // "reservar" apartaría el hotel entero en minutos — y como los holds duran 45
+  // min, el motor web mostraría todo agotado sin que nadie haya pagado nada.
+  //
+  // El tope es por hotel y sólo cuenta los apartados VIVOS del BOT (prefijo
+  // `bot_`), así que ni el motor web ni los bloqueos del panel lo consumen.
+  const holdsVivos = await contarHoldsDelBot(hotel.id);
+  if (holdsVivos >= MAX_HOLDS_BOT) {
+    await alertar(
+      "el bot llegó al tope de cuartos apartados",
+      `Hotel ${hotel.slug} (${hotel.id}) tiene ${holdsVivos} apartados vivos del bot, tope ${MAX_HOLDS_BOT}. ` +
+        `Si el hotel no es enorme, alguien está pidiendo links de reserva en bucle.`,
+    );
+    return { ok: false, error: "servicio-no-disponible", detalle: "tope-de-apartados" };
+  }
 
   // Hold de 45 min. El id lleva prefijo `bot_` para distinguir en BD/métricas los
   // apartados del bot de los del motor web (`web_`). Lo libera el webhook al
