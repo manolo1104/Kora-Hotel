@@ -1,3 +1,5 @@
+import { negar } from "@/lib/panel/permisos";
+import { z } from "zod";
 import { rutaSegura } from "@/lib/api/responder";
 import { NextRequest, NextResponse } from 'next/server';
 import { getActiveHotel } from '@/lib/panel/active-hotel';
@@ -9,6 +11,27 @@ import { bookingBrandFromHotel, bookingFromHotel } from '@/lib/email/booking-bra
 
 export const dynamic = 'force-dynamic';
 
+// Los campos que el modal de reservas puede mandar. `habitacion` (singular) es
+// el nombre que usa el modal; se traduce abajo. `.strict()` rechaza el resto —
+// incluido `hotel_id`, que era la llave para mover una reserva de hotel.
+const PATCH_RESERVA = z
+  .object({
+    cliente: z.string().max(200).optional(),
+    telefono: z.string().max(50).optional(),
+    email: z.string().max(200).optional(),
+    checkin: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    checkout: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    noches: z.number().int().min(0).max(365).optional(),
+    huespedes: z.number().int().min(0).max(100).optional(),
+    total: z.number().min(0).optional(),
+    anticipo: z.number().min(0).optional(),
+    habitacion: z.string().max(500).optional(),
+    habitaciones: z.string().max(500).optional(),
+    notas: z.string().max(20000).optional(),
+    estado: z.enum(["CONFIRMADA", "MANUAL", "CANCELADA", "REEMBOLSADA", "PENDIENTE"]).optional(),
+  })
+  .strict();
+
 /** ¿Es un correo al que sí se le puede escribir? */
 const correoValido = (e?: string | null) => Boolean(e && e !== 'N/A' && e.includes('@'));
 
@@ -16,15 +39,25 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   return rutaSegura("admin.reservas.id.patch", async () => {
   const ctx = await getActiveHotel();
   if (!ctx) return NextResponse.json({ error: 'no-auth' }, { status: 401 });
+  const no = negar(ctx, "reservas:escribir");
+  if (no) return no;
 
   const { id } = await params; // el cliente envía la confirmación (folio)
-  const raw = await req.json();
 
-  // El modal envía "habitacion" (singular) pero updateBooking espera "habitaciones".
-  if (raw.habitacion && !raw.habitaciones) {
-    raw.habitaciones = raw.habitacion;
-    delete raw.habitacion;
+  // Se valida ANTES de tocar nada, y con `.strict()`: una clave que no esté en
+  // la lista es un 400 explícito, no un silencio. La lista blanca de
+  // `updateBooking` es la segunda capa; ésta es la que le dice al que lo intenta
+  // que se le vio.
+  const parseado = PATCH_RESERVA.safeParse(await req.json());
+  if (!parseado.success) {
+    return NextResponse.json(
+      { error: "Datos inválidos. Revisa los campos e intenta de nuevo." },
+      { status: 400 },
+    );
   }
+  // El modal envía "habitacion" (singular) pero updateBooking espera "habitaciones".
+  const { habitacion, ...resto } = parseado.data;
+  const raw = { ...resto, habitaciones: resto.habitaciones ?? habitacion };
 
   const bookings = await getAllBookings(ctx.hotelId);
   const booking = bookings.find(b => b.confirmacion === id);
@@ -148,6 +181,8 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   return rutaSegura("admin.reservas.id.delete", async () => {
   const ctx = await getActiveHotel();
   if (!ctx) return NextResponse.json({ error: 'no-auth' }, { status: 401 });
+  const no = negar(ctx, "reservas:cancelar");
+  if (no) return no;
 
   const { id } = await params;
 

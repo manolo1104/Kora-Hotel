@@ -376,6 +376,25 @@ export async function createManualBooking(
   return confirmacion;
 }
 
+/**
+ * Los ÚNICOS campos de una reserva que el panel puede editar. Cualquier otra
+ * clave del body se ignora — en particular `hotel_id`, `id` y `confirmacion`.
+ */
+const CAMPOS_EDITABLES = [
+  "cliente",
+  "telefono",
+  "email",
+  "checkin",
+  "checkout",
+  "noches",
+  "huespedes",
+  "total",
+  "habitaciones",
+  "notas",
+  "estado",
+  "anticipo",
+] as const;
+
 /** Edita campos de una reserva (por id, dentro del hotel). */
 export async function updateBooking(
   hotelId: string,
@@ -396,11 +415,18 @@ export async function updateBooking(
   }>,
 ): Promise<void> {
   const supabase = createAdminClient();
-  // Solo pasamos las columnas presentes en `changes` (mapeo 1:1 de nombres).
+  // LISTA BLANCA, no `Object.entries(changes)`.
+  //
+  // El `Partial<{…}>` del parámetro es SÓLO TypeScript: en tiempo de ejecución
+  // el bucle copiaba CUALQUIER clave del body a la fila. El `.eq("hotel_id",…)`
+  // de abajo acota el WHERE, pero no el SET, así que un
+  // `PATCH {"hotel_id":"<otro-hotel>"}` movía la reserva —con su dinero y los
+  // datos del huésped— al hotel del atacante, y dejaba sus `blocks` huérfanos.
   const patch: Record<string, string | number> = {};
-  for (const [key, value] of Object.entries(changes)) {
+  for (const campo of CAMPOS_EDITABLES) {
+    const value = (changes as Record<string, unknown>)[campo];
     if (value === undefined) continue;
-    patch[key] = value as string | number;
+    patch[campo] = value as string | number;
   }
   if (Object.keys(patch).length === 0) return;
 
