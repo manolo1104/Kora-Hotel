@@ -17,21 +17,27 @@ const KORA_BASE = (process.env.KORA_BASE_URL || "https://kora-hotel.com").replac
  * @returns {Promise<{ ok: boolean, hotels: Array<{id:string,slug:string,nombre:string,token:string,whatsapp:string|null,lang:"es"|"en"}> }>}
  */
 export async function loadFleet() {
-  // Fallback explícito por env (útil en local, o para forzar un solo hotel).
-  const raw = process.env.KORA_FLEET;
-  if (raw) {
-    try {
-      const arr = JSON.parse(raw);
-      if (Array.isArray(arr) && arr.length) {
-        return { ok: true, hotels: arr.filter((h) => h && h.slug && h.token) };
-      }
-    } catch (e) {
-      console.error("[fleet] KORA_FLEET no es JSON válido:", e.message);
-    }
-  }
-
   const secret = process.env.BOT_FLEET_SECRET;
+
+  // KORA_FLEET es el respaldo de LOCAL, y sólo se usa cuando no hay secreto de
+  // flota. Antes ganaba SIEMPRE: si esa variable existía en Railway, el runtime
+  // no consultaba nunca `/api/bots/fleet` y por tanto se saltaba todos los
+  // controles de negocio de golpe — plan vencido, cuenta bloqueada por Kora, bot
+  // apagado desde el panel, hotel despublicado. Un hotel al que Kora le cortó el
+  // servicio seguía contestando WhatsApp.
   if (!secret) {
+    const raw = process.env.KORA_FLEET;
+    if (raw) {
+      try {
+        const arr = JSON.parse(raw);
+        if (Array.isArray(arr) && arr.length) {
+          console.warn("[fleet] usando KORA_FLEET (sin BOT_FLEET_SECRET): SIN controles de negocio.");
+          return { ok: true, hotels: arr.filter((h) => h && h.slug && h.token) };
+        }
+      } catch (e) {
+        console.error("[fleet] KORA_FLEET no es JSON válido:", e.message);
+      }
+    }
     console.error("[fleet] falta BOT_FLEET_SECRET (y no hay KORA_FLEET). Sin hoteles.");
     return { ok: false, hotels: [] };
   }

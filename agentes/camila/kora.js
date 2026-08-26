@@ -30,7 +30,21 @@ export class KoraHotel {
   async _post(body) {
     const res = await fetch(`${KORA_BASE}/api/agent`, {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: {
+        "content-type": "application/json",
+        // SEGUNDO FACTOR. El `agent_token` identifica al hotel, pero es una sola
+        // credencial: si se filtra, quien la tenga puede apagar a Camila o
+        // generar links de pago y bloquear cuartos a nombre del hotel. Este
+        // secreto lo tiene el RUNTIME (Railway), no el token, así que un token
+        // filtrado se queda de sólo lectura: sirve para leer el cerebro del
+        // hotel —que ya es público en su sitio— y para nada más.
+        //
+        // No es un rate limit: en Vercel Hobby, sin Redis, un contador en
+        // memoria es decorativo (cada petición puede caer en otra instancia).
+        // Un segundo factor con un secreto que YA existe es más barato y no
+        // depende de infraestructura que no hay.
+        authorization: `Bearer ${process.env.BOT_FLEET_SECRET || ""}`,
+      },
       body: JSON.stringify({ token: this.token, ...body }),
     });
     let data = null;

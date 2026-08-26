@@ -15,7 +15,7 @@ import qrcodeTerminal from "qrcode-terminal";
 import QRCode from "qrcode";
 import { createServer } from "node:http";
 import path from "node:path";
-import { rmSync } from "node:fs";
+import { rmSync, existsSync, renameSync } from "node:fs";
 import { loadFleet } from "./fleet.js";
 import { KoraHotel } from "./kora.js";
 import { handleTurn } from "./brain.js";
@@ -84,14 +84,42 @@ function limpiarLocks(slug) {
   }
 }
 
+/**
+ * La sesión de WhatsApp se guarda por SLUG, y los slugs se reutilizan: al borrar
+ * un hotel su slug queda libre y `crear-hotel` se lo puede dar a otro. Ese hotel
+ * nuevo heredaba la sesión de WhatsApp del anterior — o sea, el número y los
+ * chats de un hotel que ya no es suyo.
+ *
+ * El uuid del hotel no se reutiliza jamás, así que la sesión pasa a llamarse por
+ * él. Y para no obligar a los cinco hoteles a re-escanear su QR, la carpeta
+ * vieja se RENOMBRA sola la primera vez. El plan pedía hacer esto a mano con el
+ * runtime apagado; renombrar aquí no necesita ventana de mantenimiento ni que
+ * nadie se acuerde del paso.
+ */
+function migrarSesion(slug, id) {
+  if (!slug || !id || slug === id) return;
+  const vieja = path.join(DATA_PATH, `session-${slug}`);
+  const nueva = path.join(DATA_PATH, `session-${id}`);
+  try {
+    if (existsSync(vieja) && !existsSync(nueva)) {
+      renameSync(vieja, nueva);
+      console.log(`[${slug}] sesión migrada a session-${id} (el QR no hay que re-escanearlo)`);
+    }
+  } catch (e) {
+    // Si falla, el hotel pide QR de nuevo una vez: molesto, nunca peligroso.
+    console.error(`[${slug}] no se pudo migrar la sesión:`, e && e.message);
+  }
+}
+
 function arrancarHotel(hotel) {
   const slug = hotel.slug;
   const kora = new KoraHotel(hotel);
   estado.set(slug, { slug, nombre: hotel.nombre, status: "starting", qr: null, err: null });
-  limpiarLocks(slug);
+  migrarSesion(slug, hotel.id);
+  limpiarLocks(hotel.id || slug);
 
   const client = new Client({
-    authStrategy: new LocalAuth({ clientId: slug, dataPath: DATA_PATH }),
+    authStrategy: new LocalAuth({ clientId: hotel.id || slug, dataPath: DATA_PATH }),
     puppeteer: {
       headless: true,
       executablePath: CHROMIUM,
@@ -339,6 +367,17 @@ function servidorEstado() {
 // Apaga y limpia por completo a un hotel que salió del fleet (prueba vencida sin
 // pago, bot apagado, despublicado). Cierra su sesión de WhatsApp (destroy, NO
 // logout: no desvincula el dispositivo, solo deja de atender) y borra su estado.
+//
+// La carpeta de sesión en disco NO se borra, a propósito: desde aquí no se
+// distingue "el hotel se dio de baja" de "se le venció la prueba", y borrarla en
+// el segundo caso obligaría a re-escanear el QR el día que pague. El plan pedía
+// borrarla "cuando la salida es definitiva", pero esa distinción no existe en la
+// información que tiene el runtime.
+//
+// Y ya no hace falta para lo que importaba: el riesgo era que un hotel NUEVO
+// heredara la sesión de uno viejo al reutilizarse el slug. Ahora las sesiones se
+// llaman por el uuid del hotel, que no se reutiliza nunca. Lo que queda en disco
+// es basura, no una puerta abierta.
 async function pararHotel(slug) {
   const client = clientes.get(slug);
   clientes.delete(slug);
