@@ -206,7 +206,7 @@ export async function POST(req: Request) {
       hotelNombre: (body.nombre || "").trim() || creado.slug,
       slug: creado.slug,
       nombreUsuario: usuario,
-    }).catch(() => {});
+    }).catch((e) => console.error("[panel/crear-hotel] ignorado:", e));
   }
 
   await enviarEmail({
@@ -220,7 +220,7 @@ export async function POST(req: Request) {
       usuario,
       count,
     }),
-  }).catch(() => {});
+  }).catch((e) => console.error("[panel/crear-hotel] ignorado:", e));
 
   return NextResponse.json({ ok: true, slug: creado.slug });
 }

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { escribir, escribirMejorEsfuerzo } from "@/lib/db/result";
 import { createAdminClient, adminEnvReady } from "@/lib/supabase/admin";
 import { enviarEmail, NOTIFY_EMAIL } from "@/lib/email/resend";
 import { emailLeadNuevo, emailLeadDay0 } from "@/lib/email/templates";
@@ -165,12 +166,16 @@ export async function POST(req: Request) {
     );
   }
 
-  // Actividad automática en el timeline del lead.
-  await admin.from("crm_actividades").insert({
-    lead_id: lead.id,
-    tipo: "nota",
-    nota: `Lead entró solo desde ${herramienta ? `la herramienta "${herramienta}"` : "el formulario de contacto"}.`,
-  });
+  // Actividad automática en el timeline del lead. Mejor-esfuerzo declarado: el
+  // lead ya está guardado y perder una línea del timeline no cuesta un cliente.
+  await escribirMejorEsfuerzo(
+    "crm_actividades.leadNuevo",
+    admin.from("crm_actividades").insert({
+      lead_id: lead.id,
+      tipo: "nota",
+      nota: `Lead entró solo desde ${herramienta ? `la herramienta "${herramienta}"` : "el formulario de contacto"}.`,
+    }),
+  );
 
   // Aviso instantáneo al fundador (best-effort: el lead ya quedó guardado).
   if (NOTIFY_EMAIL) {
@@ -185,7 +190,7 @@ export async function POST(req: Request) {
         origen,
         detalles: notas ?? undefined,
       }),
-    }).catch(() => {});
+    }).catch((e) => console.error("[leads] ignorado:", e));
   }
 
   // Primer toque de la secuencia AL LEAD, en el momento: acusa recibo, aterriza
@@ -202,16 +207,29 @@ export async function POST(req: Request) {
   // nunca lo reintentaba. El lead se quedaba sin su primer correo, para siempre.
   if (emailLead.includes("@")) {
     try {
-      await admin
-        .from("lead_email_log")
-        .upsert(
-          { lead_id: lead.id, email_type: "lead_day0", email_destino: emailLead },
-          { onConflict: "lead_id,email_type", ignoreDuplicates: true },
-        );
-      await enviarEmail({
+      await escribir(
+        "lead_email_log.day0",
+        admin
+          .from("lead_email_log")
+          .upsert(
+            { lead_id: lead.id, email_type: "lead_day0", email_destino: emailLead },
+            { onConflict: "lead_id,email_type", ignoreDuplicates: true },
+          ),
+      );
+      const envio = await enviarEmail({
         to: emailLead,
         ...emailLeadDay0({ nombre: name, hotel: hotel || undefined }),
       });
+      // La marca se escribe ANTES para que dos peticiones a la vez no manden dos
+      // correos. Pero si el envío falla hay que retirarla: si no, el cron ve el
+      // toque como enviado y el lead se queda sin su primer correo para siempre.
+      if (!envio.ok) {
+        await escribirMejorEsfuerzo(
+          "lead_email_log.day0.liberar",
+          admin.from("lead_email_log").delete().eq("lead_id", lead.id).eq("email_type", "lead_day0"),
+        );
+        console.error("primer correo al lead falló:", envio.error);
+      }
     } catch (e) {
       console.error("primer correo al lead falló:", e);
     }
@@ -224,12 +242,16 @@ export async function POST(req: Request) {
       if (typeof v === "string" && k !== "_gotcha") fd.append(k, v);
     }
     // CON await, por lo mismo: es la única ruta de esta función que lanzaba una
-    // petición sin esperarla, y en Vercel eso se pierde al responder.
+    // petición sin esperarla, y en Vercel eso se pierde al responder. Con tope de
+    // 3 s: esperar sin límite a un respaldo convierte su caída en la caída del
+    // alta de leads, que es el camino comercial más caro que tiene Kora.
+    const corte = AbortSignal.timeout(3000);
     await fetch(FORMSPREE_URL, {
       method: "POST",
       body: fd,
       headers: { Accept: "application/json" },
-    }).catch(() => {});
+      signal: corte,
+    }).catch((e) => console.error("[leads] respaldo Formspree falló:", e));
   }
 
   return NextResponse.json({ ok: true });

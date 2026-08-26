@@ -110,8 +110,9 @@ export async function POST(req: Request) {
     customerName: nombre,
     paragraphs: draft.paragraphs,
   });
-  const sent = await enviarEmail({ to: email, subject: draft.subject, html, from: fromForHotel(hotel) });
-  if (!sent) {
+  const envio = await enviarEmail({ to: email, subject: draft.subject, html, from: fromForHotel(hotel) });
+  if (!envio.ok) {
+    console.error("[send-offer] no salió el correo:", envio.error);
     return NextResponse.json(
       { ok: false, error: "No se pudo enviar el correo. Revisa la configuración de correo del hotel." },
       { status: 502 },

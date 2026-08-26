@@ -6,7 +6,7 @@
 //
 // Mismo sistema de diseño que el resto de los correos (lib/email/design.ts).
 
-import { enviarEmail } from "@/lib/email/resend";
+import { enviarEmail, type ResultadoEmail } from "@/lib/email/resend";
 import {
   T as TOK,
   doc,
@@ -76,7 +76,7 @@ export function buildBienvenidaHotelHtml(a: BienvenidaHotelArgs): string {
   );
 }
 
-export async function sendBienvenidaHotel(to: string, args: BienvenidaHotelArgs): Promise<boolean> {
+export async function sendBienvenidaHotel(to: string, args: BienvenidaHotelArgs): Promise<ResultadoEmail> {
   return enviarEmail({
     to,
     subject: `${args.hotelNombre} ya está en Kora — así lo dejas listo`,
@@ -141,7 +141,7 @@ export function buildPruebaPausadaHtml(a: { hotelNombre: string }): string {
   );
 }
 
-export async function sendRecordatorioPrueba(to: string, args: PruebaEmailArgs): Promise<boolean> {
+export async function sendRecordatorioPrueba(to: string, args: PruebaEmailArgs): Promise<ResultadoEmail> {
   const dias = args.diasRestantes;
   return enviarEmail({
     to,
@@ -153,7 +153,7 @@ export async function sendRecordatorioPrueba(to: string, args: PruebaEmailArgs):
   });
 }
 
-export async function sendPruebaPausada(to: string, hotelNombre: string): Promise<boolean> {
+export async function sendPruebaPausada(to: string, hotelNombre: string): Promise<ResultadoEmail> {
   return enviarEmail({
     to,
     subject: `Tu motor de reservas está en pausa — ${hotelNombre}`,

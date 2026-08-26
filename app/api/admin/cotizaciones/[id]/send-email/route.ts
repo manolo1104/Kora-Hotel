@@ -3,7 +3,8 @@ import { getActiveHotel } from '@/lib/panel/active-hotel';
 import { getQuote, updateQuoteStatus, logAgentActivity } from '@/lib/db/admin';
 import { type TourItem } from '@/lib/booking-html';
 import { buildBrandedBookingEmailHtml, bookingBrandFromHotel, bookingFromHotel } from '@/lib/email/booking-branded';
-import { Resend } from 'resend';
+import { enviarEmailOFallar } from '@/lib/email/resend';
+import { rutaSegura } from '@/lib/api/responder';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,6 +30,7 @@ function parseNotasCliente(notas: string): string {
 }
 
 export async function POST(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  return rutaSegura('admin.cotizaciones.sendEmail', async () => {
   const ctx = await getActiveHotel();
   if (!ctx) return NextResponse.json({ error: 'no-auth' }, { status: 401 });
 
@@ -67,18 +69,20 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     tourItems,
   });
 
-  try {
-    const resend = new Resend(process.env.RESEND_API_KEY);
-    await resend.emails.send({
-      from: FROM,
-      to: q.email,
-      subject: `Tu cotización ${q.id} — ${ctx.hotel.nombre}`,
-      html,
-    });
-    await updateQuoteStatus(ctx.hotelId, q.id, 'ENVIADA');
-    await logAgentActivity(ctx.hotelId, 'email_confirmacion', q.id);
-    return NextResponse.json({ ok: true });
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
-  }
+  // El orden importa y antes estaba mal. `resend.emails.send()` NUNCA lanza:
+  // ante un fallo de red o un dominio sin verificar devuelve `{data:null,error}`
+  // y sigue, así que el try/catch de aquí no se disparaba nunca y la cotización
+  // se marcaba ENVIADA con el correo perdido. Ahora primero sale el correo —o
+  // `enviarEmailOFallar` lanza y `rutaSegura` responde 500— y sólo después se
+  // cambia el estado.
+  await enviarEmailOFallar({
+    from: FROM,
+    to: q.email,
+    subject: `Tu cotización ${q.id} — ${ctx.hotel.nombre}`,
+    html,
+  });
+  await updateQuoteStatus(ctx.hotelId, q.id, 'ENVIADA');
+  await logAgentActivity(ctx.hotelId, 'email_confirmacion', q.id);
+  return NextResponse.json({ ok: true });
+  });
 }

@@ -37,8 +37,13 @@ export async function POST(req: NextRequest) {
   const ok = await cancelGuestBooking(booking);
   if (!ok) return NextResponse.json({ error: "error-interno" }, { status: 500 });
 
+  // Los dos avisos son mejor-esfuerzo (la cancelación ya quedó hecha), pero su
+  // resultado viaja en la respuesta: el portal puede decir "cancelada, pero no
+  // pudimos avisar al hotel" en vez de un ✓ que no distingue las dos cosas.
+  let avisoHotel = true;
+  let comprobanteHuesped = true;
+
   // Aviso inmediato al hotel: sin esto solo se enteraría revisando el panel.
-  // Best-effort: la cancelación ya quedó hecha.
   try {
     const h = booking.row.hoteles;
     if (h) {
@@ -63,6 +68,7 @@ export async function POST(req: NextRequest) {
     }
   } catch (e) {
     console.error("aviso de cancelación al hotel falló:", e);
+    avisoHotel = false;
   }
 
   // Comprobante al HUÉSPED. Antes solo se avisaba al hotel y el huésped se
@@ -96,10 +102,18 @@ export async function POST(req: NextRequest) {
     }
   } catch (e) {
     console.error("comprobante de cancelación al huésped falló:", e);
+    comprobanteHuesped = false;
   }
 
   booking.row.estado = "CANCELADA";
   booking.cancelable = false;
   booking.motivoNoCancelable = "estado";
-  return NextResponse.json({ ok: true, booking: serializeGuestBooking(booking) });
+  // La cancelación se hizo pase lo que pase, pero el portal necesita saber si los
+  // avisos salieron: si no, el huésped se va creyendo que el hotel ya se enteró.
+  return NextResponse.json({
+    ok: true,
+    avisoHotel,
+    comprobanteHuesped,
+    booking: serializeGuestBooking(booking),
+  });
 }

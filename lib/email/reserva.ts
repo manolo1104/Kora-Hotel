@@ -1,3 +1,5 @@
+import { leer } from "@/lib/db/result";
+import { enviarEmail, type ResultadoEmail } from "@/lib/email/resend";
 // Emails del motor de reservas público. SOLO servidor.
 //  - Confirmación al huésped (webhook de Stripe + reenvío desde el portal).
 //  - Avisos al hotel: nueva reserva (webhook) y cancelación (portal).
@@ -83,25 +85,27 @@ export function buildConfirmacionEmailHtml(a: ConfirmacionEmailArgs): string {
   });
 }
 
-/** Envío base (gated por RESEND_API_KEY; nunca lanza). */
+/**
+ * Envío base del motor (gated por RESEND_API_KEY; nunca lanza).
+ *
+ * Antes se creaba aquí su propio `new Resend(...)`: era uno de los cinco
+ * clientes sueltos del repo. Ahora pasa por la puerta única de
+ * `lib/email/resend.ts`, así que un fallo trae MOTIVO y no sólo un `false` —
+ * que es lo que necesita el webhook para poder decir en la alerta qué pasó.
+ */
 async function sendMotorEmail(
   to: string,
   subject: string,
   html: string,
   fromOverride?: string | null,
-): Promise<boolean> {
-  if (!process.env.RESEND_API_KEY || !to.includes("@")) return false;
-  try {
-    const { Resend } = await import("resend");
-    const resend = new Resend(process.env.RESEND_API_KEY);
-    const from = fromOverride || process.env.RESEND_FROM || "reservas@kora-hotel.com";
-    const { error } = await resend.emails.send({ from, to: [to], subject, html });
-    if (error) throw new Error(error.message);
-    return true;
-  } catch (e) {
-    console.error(`sendMotorEmail error (${subject}):`, e);
-    return false;
-  }
+): Promise<ResultadoEmail> {
+  if (!to.includes("@")) return { ok: false, error: `destinatario inválido: ${to || "(vacío)"}` };
+  return enviarEmail({
+    to,
+    subject,
+    html,
+    from: fromOverride || process.env.RESEND_FROM || "reservas@kora-hotel.com",
+  });
 }
 
 /** Envía la confirmación (gated por RESEND_API_KEY; nunca lanza). */
@@ -109,7 +113,7 @@ export async function sendConfirmacionReserva(
   to: string,
   args: ConfirmacionEmailArgs,
   fromOverride?: string | null,
-): Promise<boolean> {
+): Promise<ResultadoEmail> {
   return sendMotorEmail(
     to,
     args.lang === "en"
@@ -147,15 +151,20 @@ export async function resolveHotelAvisoEmail(hotel: HotelAvisoLike): Promise<str
     const admin = createAdminClient();
     let ownerId = hotel.owner_id ?? null;
     if (!ownerId) {
-      const { data } = await admin
-        .from("hoteles")
-        .select("owner_id")
-        .eq("id", hotel.id)
-        .maybeSingle();
-      ownerId = (data as { owner_id: string } | null)?.owner_id ?? null;
+      const fila = await leer<{ owner_id: string }>(
+        "hotel.ownerId",
+        admin.from("hoteles").select("owner_id").eq("id", hotel.id).maybeSingle(),
+      );
+      ownerId = fila?.owner_id ?? null;
     }
     if (!ownerId) return "";
-    const { data } = await admin.auth.admin.getUserById(ownerId);
+    const { data, error } = await admin.auth.admin.getUserById(ownerId);
+    if (error) {
+      // Sin esto, el hotel se queda sin su aviso de reserva nueva y el único
+      // rastro era un string vacío indistinguible de "no configuró correo".
+      console.error(`[aviso-hotel] no se pudo resolver el correo del dueño ${ownerId}:`, error.message);
+      return "";
+    }
     return str(data?.user?.email);
   } catch (e) {
     console.error("resolveHotelAvisoEmail error:", e);
@@ -221,7 +230,7 @@ export function buildAvisoReservaHotelHtml(a: AvisoReservaHotelArgs): string {
 export async function sendAvisoReservaHotel(
   to: string,
   args: AvisoReservaHotelArgs,
-): Promise<boolean> {
+): Promise<ResultadoEmail> {
   return sendMotorEmail(
     to,
     `Nueva reserva ${args.confirmacion} — ${args.checkin} (${args.cliente || "sin nombre"})`,
@@ -276,7 +285,7 @@ export function buildAvisoCancelacionHotelHtml(a: AvisoCancelacionHotelArgs): st
 export async function sendAvisoCancelacionHotel(
   to: string,
   args: AvisoCancelacionHotelArgs,
-): Promise<boolean> {
+): Promise<ResultadoEmail> {
   return sendMotorEmail(
     to,
     `Reserva cancelada ${args.confirmacion} — ${args.checkin}`,
@@ -386,7 +395,7 @@ export async function sendPagoSinCuartoHuesped(
   to: string,
   args: PagoSinCuartoArgs,
   fromOverride?: string | null,
-): Promise<boolean> {
+): Promise<ResultadoEmail> {
   return sendMotorEmail(
     to,
     args.lang === "en"
@@ -401,7 +410,7 @@ export async function sendPagoSinCuartoHuesped(
 export async function sendPagoSinCuartoHotel(
   to: string,
   args: PagoSinCuartoArgs,
-): Promise<boolean> {
+): Promise<ResultadoEmail> {
   return sendMotorEmail(
     to,
     `⚠️ URGENTE: pago sin cuarto — ${args.hotelNombre} (${args.checkin})`,
@@ -448,7 +457,7 @@ export async function sendRecordatorioAbandono(
   to: string,
   args: AbandonoEmailArgs,
   fromOverride?: string | null,
-): Promise<boolean> {
+): Promise<ResultadoEmail> {
   const en = args.lang === "en";
   return sendMotorEmail(
     to,
@@ -537,7 +546,7 @@ export async function sendCancelacionHuesped(
   to: string,
   args: CancelacionHuespedArgs,
   fromOverride?: string | null,
-): Promise<boolean> {
+): Promise<ResultadoEmail> {
   return sendMotorEmail(
     to,
     args.lang === "en"
@@ -646,7 +655,7 @@ export async function sendModificacionHuesped(
   to: string,
   args: ModificacionHuespedArgs,
   fromOverride?: string | null,
-): Promise<boolean> {
+): Promise<ResultadoEmail> {
   return sendMotorEmail(
     to,
     args.lang === "en"

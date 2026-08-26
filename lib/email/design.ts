@@ -65,10 +65,20 @@ const MESES_EN = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep",
 const DIAS_ES = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 const DIAS_EN = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-/** "2026-09-10" → { dia:"10", mesAnio:"Sep 2026", diaSem:"Jue" } */
+/**
+ * "2026-09-10" → { dia:"10", mesAnio:"Sep 2026", diaSem:"Jue" }
+ *
+ * Con una cadena vacía o mal formada devuelve guiones. Antes los `|| 2026`,
+ * `|| 1` y `|| 1` de los valores por defecto convertían `undefined` en una fecha
+ * perfectamente válida, así que una cotización sin fecha de salida le llegaba al
+ * huésped diciendo **"1 · Ene 2026"** — un dato inventado dentro de un correo
+ * que parece oficial. Un guion se ve como lo que es: falta el dato.
+ */
 export function parteFecha(s: string, en = false): { dia: string; mesAnio: string; diaSem: string } {
-  const [y, m, d] = (s || "").split("-").map(Number);
-  const dt = new Date(y || 2026, (m || 1) - 1, d || 1);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s || "")) return { dia: "—", mesAnio: "—", diaSem: "" };
+  const [y, m, d] = s.split("-").map(Number);
+  const dt = new Date(y, m - 1, d);
+  if (Number.isNaN(dt.getTime())) return { dia: "—", mesAnio: "—", diaSem: "" };
   return {
     dia: String(dt.getDate()),
     mesAnio: `${(en ? MESES_EN : MESES_ES)[dt.getMonth()]} ${dt.getFullYear()}`,

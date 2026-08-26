@@ -40,6 +40,9 @@ export async function POST(req: NextRequest) {
     (booking.row.hoteles?.config?.email_from as string) || null,
   );
 
-  if (!sent) return NextResponse.json({ error: "email-no-disponible" }, { status: 503 });
+  if (!sent.ok) {
+    console.error("[reserva/reenviar] no salió el correo:", sent.error);
+    return NextResponse.json({ error: "email-no-disponible" }, { status: 503 });
+  }
   return NextResponse.json({ ok: true });
 }

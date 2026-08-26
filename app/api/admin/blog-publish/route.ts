@@ -1,3 +1,4 @@
+import { leer } from "@/lib/db/result";
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { getActiveHotel } from "@/lib/panel/active-hotel";
@@ -35,12 +36,15 @@ export async function POST(req: Request) {
   // páginas públicas (revalidate 1 h) se refrescan al momento sin tocar el
   // estado ni la fecha de publicación.
   if (body.revalidar === true) {
-    const { data: post } = await admin
-      .from("hotel_blog_posts")
-      .select("slug, publicado")
-      .eq("id", postId)
-      .eq("hotel_id", ctx.hotelId)
-      .maybeSingle();
+    const post = await leer<{ slug: string; publicado: boolean }>(
+      "blog.postParaRevalidar",
+      admin
+        .from("hotel_blog_posts")
+        .select("slug, publicado")
+        .eq("id", postId)
+        .eq("hotel_id", ctx.hotelId)
+        .maybeSingle(),
+    );
     if (!post) return NextResponse.json({ error: "No se encontró el artículo." }, { status: 404 });
     const slugHotel = ctx.hotel.slug;
     if (post.publicado) {
@@ -72,8 +76,10 @@ export async function POST(req: Request) {
   revalidatePath(`/h/${slugHotel}/blog/${data.slug}`);
   revalidatePath("/sitemap.xml");
   if (publicado) {
-    // Mejor-esfuerzo: no bloquea la respuesta si IndexNow anda lento.
-    void pingIndexNow([`/h/${slugHotel}/blog/${data.slug}`, `/h/${slugHotel}/blog`]);
+    // CON await y tope de 3 s dentro de pingIndexNow: el `void` de antes hacía
+    // que en Vercel el ping se cancelara al responder, así que las entradas
+    // nuevas del blog no se avisaban a los buscadores casi nunca.
+    await pingIndexNow([`/h/${slugHotel}/blog/${data.slug}`, `/h/${slugHotel}/blog`]);
   }
 
   return NextResponse.json({ ok: true, publicado });

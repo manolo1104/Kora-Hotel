@@ -3,7 +3,8 @@ import { getActiveHotel } from '@/lib/panel/active-hotel';
 import { getAllBookings, logAgentActivity } from '@/lib/db/admin';
 import { type TourItem } from '@/lib/booking-html';
 import { buildBrandedBookingEmailHtml, bookingBrandFromHotel, bookingFromHotel } from '@/lib/email/booking-branded';
-import { Resend } from 'resend';
+import { enviarEmailOFallar } from '@/lib/email/resend';
+import { rutaSegura } from '@/lib/api/responder';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,6 +24,7 @@ function parseNotasCliente(notas: string): string {
 }
 
 export async function POST(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  return rutaSegura('admin.reservas.sendEmail', async () => {
   const ctx = await getActiveHotel();
   if (!ctx) return NextResponse.json({ error: 'no-auth' }, { status: 401 });
 
@@ -59,17 +61,16 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     tourItems: parseTours(b.notas || ''),
   });
 
-  try {
-    const resend = new Resend(process.env.RESEND_API_KEY);
-    await resend.emails.send({
-      from: FROM,
-      to: b.email,
-      subject: `Tu estadía está confirmada — ${b.confirmacion}`,
-      html,
-    });
-    await logAgentActivity(ctx.hotelId, 'email_confirmacion', b.confirmacion);
-    return NextResponse.json({ ok: true });
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
-  }
+  // Mismo bug que en el reenvío de cotizaciones: el SDK de Resend no lanza, así
+  // que este `{ok:true}` se devolvía igual con el correo perdido. Y aquí el
+  // hotelero cree que su huésped ya recibió la confirmación.
+  await enviarEmailOFallar({
+    from: FROM,
+    to: b.email,
+    subject: `Tu estadía está confirmada — ${b.confirmacion}`,
+    html,
+  });
+  await logAgentActivity(ctx.hotelId, 'email_confirmacion', b.confirmacion);
+  return NextResponse.json({ ok: true });
+  });
 }

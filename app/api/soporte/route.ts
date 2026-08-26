@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextResponse } from "next/server";
 import { createAdminClient, adminEnvReady } from "@/lib/supabase/admin";
+import { escribirMejorEsfuerzo } from "@/lib/db/result";
 import { buildSystemPrompt, MARCADOR_ESCALAR } from "@/lib/soporte/prompt";
 
 export const runtime = "nodejs";
@@ -110,20 +111,23 @@ export async function POST(req: Request) {
         ...turnos.map((t) => ({ rol: t.rol, texto: t.texto })),
         { rol: "assistant", texto, ts },
       ];
-      admin
-        .from("soporte_conversaciones")
-        .upsert(
+      // CON await. Sin él, en Vercel la función responde y se congela antes de
+      // que la escritura llegue a Supabase: la conversación se perdía a veces, y
+      // las escaladas —el mecanismo por el que un visitante atascado llega a
+      // Manolo— con ella. Mejor-esfuerzo declarado: si falla, la respuesta al
+      // visitante sale igual.
+      await escribirMejorEsfuerzo(
+        "soporte.conversacion",
+        admin.from("soporte_conversaciones").upsert(
           {
             session_id: sessionId,
             pagina: typeof body.pagina === "string" ? body.pagina.slice(0, 200) : null,
             mensajes,
             escalado: escalar,
           },
-          { onConflict: "session_id" }
-        )
-        .then(({ error }) => {
-          if (error) console.error("Error guardando conversación de soporte:", error);
-        });
+          { onConflict: "session_id" },
+        ),
+      );
     }
 
     return NextResponse.json({ texto, escalar });
