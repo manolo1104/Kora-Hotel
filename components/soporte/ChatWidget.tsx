@@ -25,9 +25,9 @@ const SALUDO: Turno = {
     "¡Hola! Soy el asistente de Kora 🤖 Pregúntame lo que quieras: precios, cómo funciona tu página gratis, pagos… Te contesto al instante.",
 };
 
-function nuevoSessionId(): string {
-  return `s_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
-}
+// El id de la conversación ya NO se inventa aquí: lo genera el servidor y
+// vuelve en la respuesta. El de antes (`s_<fecha>_<8 al azar>`) se podía
+// adivinar, y con él se pisaba la conversación de otra persona.
 
 // Convierte rutas internas (/precios, /ayuda…) en links.
 function ConTexto({ texto }: { texto: string }) {
@@ -59,9 +59,8 @@ export function ChatWidget({ elevado = false }: { elevado?: boolean }) {
 
   useEffect(() => {
     if (!sessionRef.current) {
-      const guardado = sessionStorage.getItem("kora_soporte_sid");
-      sessionRef.current = guardado || nuevoSessionId();
-      sessionStorage.setItem("kora_soporte_sid", sessionRef.current);
+      // Vacío en la primera pregunta: el servidor devuelve el suyo y se guarda.
+      sessionRef.current = sessionStorage.getItem("kora_soporte_sid") ?? "";
     }
   }, []);
 
@@ -90,6 +89,14 @@ export function ChatWidget({ elevado = false }: { elevado?: boolean }) {
         }),
       });
       const data = await res.json().catch(() => ({}));
+      if (typeof data.sessionId === "string" && data.sessionId) {
+        sessionRef.current = data.sessionId;
+        try {
+          sessionStorage.setItem("kora_soporte_sid", data.sessionId);
+        } catch {
+          /* modo privado o almacenamiento lleno: el hilo sigue en memoria */
+        }
+      }
       if (res.ok && data.texto) {
         setMensajes((m) => [
           ...m,

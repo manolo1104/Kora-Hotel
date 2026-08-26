@@ -492,8 +492,23 @@ export function PanelEditor({
   useEffect(() => {
     let activo = true;
     (async () => {
-      // Por slug (multi-tenant) si viene; si no, el hotel del usuario por owner_id.
-      const query = supabase.from("hoteles").select("*");
+      // Lista EXPLÍCITA de columnas, no `select("*")`.
+      //
+      // `hoteles.config` guarda secretos y ajustes que el navegador no tiene por
+      // qué ver, y la única policy de lectura es `for select using (true)` — RLS
+      // filtra FILAS, no columnas. La forma de tapar eso en Postgres es
+      // `revoke select (config, stripe_account_id) ... from anon, authenticated`
+      // (va en sql/kora-e5-aislamiento.sql), y PostgREST lo respeta.
+      //
+      // Pero con `select("*")` y un revoke de columna, PostgREST responde
+      // *permission denied* y el editor se queda EN BLANCO. Por eso esta lista va
+      // primero, y el revoke después. `owner_id` no se revoca: esta misma
+      // consulta filtra por él dos líneas más abajo.
+      const query = supabase
+        .from("hoteles")
+        .select(
+          "id, owner_id, slug, nombre, ubicacion, descripcion, whatsapp, habitaciones, fotos, guia, extras, publicado, prefijo_confirmacion, created_at",
+        );
       const { data } = await (hotelSlug
         ? query.eq("slug", hotelSlug)
         : query.eq("owner_id", userId)

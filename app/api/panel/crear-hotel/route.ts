@@ -5,7 +5,8 @@ import { supabaseEnvReady } from "@/lib/supabase/env";
 import { enviarEmail, NOTIFY_EMAIL } from "@/lib/email/resend";
 import { sendBienvenidaHotel } from "@/lib/email/prueba";
 import { emailHotelNuevo } from "@/lib/email/templates";
-import { contarHotelesPropios, MAX_HOTELES_POR_CUENTA } from "@/lib/tenant";
+import { contarHotelesPropios, MAX_HOTELES_POR_CUENTA, getHotelesDelUsuario } from "@/lib/tenant";
+import { bloqueoDelHotel } from "@/lib/suscripcion";
 
 export const dynamic = "force-dynamic";
 
@@ -63,12 +64,42 @@ export async function POST(req: Request) {
   // Tope por cuenta: una cuenta puede tener hasta MAX_HOTELES_POR_CUENTA hoteles
   // propios. Es la barrera real (la UI también oculta el botón, pero esto cierra
   // el paso directo por API).
-  const propios = await contarHotelesPropios(user.id);
+  // `contarHotelesPropios` LANZA si la consulta falla (antes devolvía 0 y el
+  // tope se desactivaba en silencio). Aquí se traduce a un 503 con mensaje
+  // humano: mejor no crear el hotel que crearlo sin límite.
+  let propios: number;
+  try {
+    propios = await contarHotelesPropios(user.id);
+  } catch (e) {
+    console.error("[crear-hotel] no se pudo contar los hoteles del dueño:", e);
+    return NextResponse.json(
+      { ok: false, error: "No pudimos verificar tu cuenta. Inténtalo en un momento." },
+      { status: 503 },
+    );
+  }
   if (propios >= MAX_HOTELES_POR_CUENTA) {
     return NextResponse.json(
       {
         ok: false,
         error: `Máximo ${MAX_HOTELES_POR_CUENTA} hoteles por cuenta. ¿Necesitas más? Escríbenos.`,
+      },
+      { status: 403 },
+    );
+  }
+
+  // Si Kora bloqueó alguno de sus hoteles, no puede darse de alta otro. Sin
+  // esto, el bloqueo —que es la palanca comercial de Kora— se esquivaba en dos
+  // clics: creas un hotel nuevo y sigues operando igual.
+  const suyos = await getHotelesDelUsuario();
+  const bloqueado = suyos.find(({ hotel }) =>
+    bloqueoDelHotel(hotel.extras as Record<string, unknown> | null),
+  );
+  if (bloqueado) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error:
+          "Tu cuenta está en pausa. Escríbenos para reactivarla antes de dar de alta otro hotel.",
       },
       { status: 403 },
     );

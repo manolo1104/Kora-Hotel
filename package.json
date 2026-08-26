@@ -12,7 +12,8 @@
     "test": "TZ=UTC vitest run",
     "test:watch": "TZ=UTC vitest",
     "verificar": "npm run lint && npx tsc --noEmit && npm test && npm run check:inventario && npm run check:permisos",
-    "check:permisos": "node scripts/check-permisos.mjs"
+    "check:permisos": "node scripts/check-permisos.mjs",
+    "check:aislamiento": "node scripts/verificar-aislamiento.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.100.1",

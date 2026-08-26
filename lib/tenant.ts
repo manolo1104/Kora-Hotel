@@ -5,6 +5,7 @@
 // contra hotel_members con la service-role key. El hotel_id NUNCA se toma del
 // body de un request. Todo lib/db debe recibir el hotelId resuelto aquí.
 
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient, adminEnvReady } from "@/lib/supabase/admin";
@@ -51,14 +52,14 @@ const HOTEL_COLS =
  * servía como un 404 perfectamente formado — y Google indexa 404. Ahora salta a
  * la pantalla de error (`app/h/[slug]/error.tsx`), que es un 500 y no se indexa.
  */
-export async function resolveHotel(slug: string): Promise<HotelRow | null> {
+export const resolveHotel = cache(async (slug: string): Promise<HotelRow | null> => {
   if (!adminEnvReady) return null;
   const supabase = createAdminClient();
   return await leer<HotelRow>(
     "hotel.porSlug",
     supabase.from("hoteles").select(HOTEL_COLS).eq("slug", slug).maybeSingle(),
   );
-}
+});
 
 /** Hoteles donde el usuario autenticado es miembro (para el selector). */
 export async function getHotelesDelUsuario(): Promise<{ hotel: HotelRow; rol: RolHotel }[]> {
@@ -112,8 +113,13 @@ export async function contarHotelesPropios(userId: string): Promise<number> {
  * Resuelve el contexto del hotel para el usuario autenticado SIN redirigir.
  * Devuelve null si: faltan envs, no hay sesión, el hotel no existe, o el
  * usuario no es miembro. Úsalo en route handlers para responder 401/404.
+ *
+ * Envuelta en `cache()` de React: cada pantalla del panel resuelve el mismo
+ * tenant DOS veces (`app/panel/[slug]/layout.tsx` y el layout del grupo
+ * operativo), y con ella `accesoDelHotel` corría dos veces también. Eran 4
+ * consultas de más a Supabase por render — latencia que el hotelero siente.
  */
-export async function getHotelMember(slug: string): Promise<TenantContext | null> {
+export const getHotelMember = cache(async (slug: string): Promise<TenantContext | null> => {
   if (!supabaseEnvReady || !adminEnvReady) return null;
 
   const supabase = await createClient();
@@ -141,7 +147,7 @@ export async function getHotelMember(slug: string): Promise<TenantContext | null
   if (!member) return null;
 
   return { hotelId: hotel.id, hotel, rol: member.rol, userId: user.id };
-}
+});
 
 /**
  * Igual que getHotelMember pero para PÁGINAS del panel: si no hay sesión manda

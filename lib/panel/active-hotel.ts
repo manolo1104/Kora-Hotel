@@ -24,6 +24,7 @@
 import { cookies, headers } from "next/headers";
 import { getHotelMember, type TenantContext } from "@/lib/tenant";
 import { bloqueoDelHotel } from "@/lib/suscripcion";
+import { alertar } from "@/lib/alertas";
 
 /** Segmentos de /panel/… que NO son el slug de un hotel. */
 const RESERVADOS = new Set(["onboarding", "herramientas"]);
@@ -63,9 +64,18 @@ export async function getActiveHotel(): Promise<TenantContext | null> {
   const { slug, fuente } = await slugActivo();
   if (!slug) return null;
   if (fuente === "cookie") {
-    // Deja rastro de las rutas que TODAVÍA dependen de la cookie: es la lista
-    // que hay que ver vacía antes de poder jubilarla.
-    console.warn("[active-hotel] slug resuelto por COOKIE (frágil):", slug);
+    // El respaldo se AUTODENUNCIA. No basta con un console.warn en Vercel: nadie
+    // mira esos logs, y sin mirarlos no hay forma de saber cuándo se puede
+    // borrar la cookie sin romper nada. Con la alerta, el criterio para
+    // ejecutar el paso 5.3 es concreto: una jornada de uso del panel sin que
+    // llegue este correo.
+    await alertar(
+      "el panel usó la cookie del hotel activo",
+      `Slug ${slug}. Alguna ruta del panel llegó SIN la cabecera x-kora-hotel y ` +
+        `SIN Referer, así que hubo que caer al respaldo. Ese camino es el que ` +
+        `permitía que dos pestañas se pisaran. Hay que encontrarlo antes de ` +
+        `borrar la cookie.`,
+    );
   }
   const ctx = await getHotelMember(slug);
   if (!ctx) return null;

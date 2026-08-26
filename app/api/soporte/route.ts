@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { createAdminClient, adminEnvReady } from "@/lib/supabase/admin";
 import { escribirMejorEsfuerzo } from "@/lib/db/result";
@@ -6,6 +7,8 @@ import { buildSystemPrompt, MARCADOR_ESCALAR } from "@/lib/soporte/prompt";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 // Chat de soporte de Kora (mismo patrón que /api/herramientas/generar):
 // haiku + rate limit por IP + tope de entrada. El system prompt va con caché
@@ -103,7 +106,14 @@ export async function POST(req: Request) {
     if (escalar) texto = texto.replaceAll(MARCADOR_ESCALAR, "").trim();
 
     // Guardar la conversación (best-effort, no bloquea la respuesta).
-    const sessionId = typeof body.sessionId === "string" ? body.sessionId.slice(0, 64) : "";
+    //
+    // El id lo genera el SERVIDOR. Antes venía del navegador con el formato
+    // `s_<fecha>_<8 al azar>`: repetir o adivinar el de otra persona PISABA su
+    // conversación entera, incluidas las escaladas. Un uuid v4 no se adivina, y
+    // cualquier cosa que no lo sea se descarta y se sustituye por uno nuevo —
+    // así una sesión vieja no se cae, sólo empieza un hilo limpio.
+    const propuesto = typeof body.sessionId === "string" ? body.sessionId : "";
+    const sessionId = UUID_V4.test(propuesto) ? propuesto : randomUUID();
     if (adminEnvReady && sessionId) {
       const admin = createAdminClient();
       const ts = new Date().toISOString();
@@ -130,7 +140,8 @@ export async function POST(req: Request) {
       );
     }
 
-    return NextResponse.json({ texto, escalar });
+    // `sessionId` viaja de vuelta para que el navegador use EL DEL SERVIDOR.
+    return NextResponse.json({ texto, escalar, sessionId });
   } catch (e) {
     console.error("Error en el chat de soporte:", e);
     return NextResponse.json(
