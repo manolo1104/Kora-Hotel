@@ -113,6 +113,15 @@ export default async function ConfirmacionPage({
       }
       if (!session) session = await stripe.checkout.sessions.retrieve(session_id);
       const md = (session.metadata ?? {}) as Record<string, string>;
+
+      // La sesión tiene que ser DE ESTE HOTEL. Sin esto, pegar el `session_id`
+      // de una reserva del hotel A en la URL de confirmación del hotel B
+      // enseñaba el resumen entero del huésped ajeno: fechas, cuartos, total y
+      // folio. La metadata sí trae el dato — `checkout/route.ts` escribe
+      // `hotel_id` y `slug` en cada sesión (ver lib/booking/metadata.ts).
+      if (!hotel || (md.hotel_id && md.hotel_id !== hotel.id) || (md.slug && md.slug !== slug)) {
+        throw new Error("sesion-de-otro-hotel");
+      }
       // El folio lo genera el webhook al confirmar el pago: se busca la reserva
       // real por payment_intent (si el webhook aún no corre, se muestra sin folio).
       let folioReal: string | undefined;

@@ -165,6 +165,36 @@ async function confirmarReserva(
     const notasReserva = notasPartes.join(" · ") || null;
 
     const hotel = md.slug ? await resolveHotel(md.slug) : null;
+
+    // La sesión tiene que cuadrar con el hotel Y con la cuenta que la firmó.
+    //
+    // `hotelId` sale de `md.hotel_id`, o sea del propio cuerpo del evento. Quien
+    // tenga una cuenta conectada bajo Kora puede crear una Checkout Session con
+    // su llave y poner el `hotel_id` de OTRO hotel: al pagarla, este webhook le
+    // crearía una reserva confirmada en el hotel ajeno y le bloquearía cuartos
+    // reales. `event.account` —la cuenta que FIRMÓ el evento— es lo único que no
+    // se puede falsificar desde el cuerpo.
+    //
+    // Se responde 200 (reintentar no arreglaría un desajuste de cuentas) y se
+    // ALERTA con todo el detalle: si algún día esto rechazara una reserva
+    // legítima —por ejemplo un hotel que rotó su cuenta de Stripe y todavía
+    // tenía una sesión abierta de la anterior— el correo trae lo necesario para
+    // crearla a mano en minutos, en vez de que el huésped pague y desaparezca.
+    const cuentaNoCuadra =
+      Boolean(stripeAccount) &&
+      Boolean(hotel?.stripe_account_id) &&
+      hotel!.stripe_account_id !== stripeAccount;
+    if (!hotel || hotel.id !== hotelId || cuentaNoCuadra) {
+      await alertar(
+        "sesión de pago que no cuadra con su hotel",
+        `metadata.hotel_id=${hotelId}, metadata.slug=${md.slug ?? "(ninguno)"}, ` +
+          `hotel resuelto=${hotel?.id ?? "(ninguno)"}, cuenta del hotel=${hotel?.stripe_account_id ?? "(ninguna)"}, ` +
+          `cuenta que firmó=${stripeAccount ?? "(plataforma)"}. NO se creó la reserva. ` +
+          `Pago: ${paymentRef || "(sin referencia)"}, huésped: ${md.customerEmail || "(sin correo)"}.`,
+      );
+      return NextResponse.json({ received: true, ignored: "hotel-no-cuadra" });
+    }
+
     const huespedes = (Number(md.adults) || 0) + (Number(md.children) || 0) || 1;
     const email = md.customerEmail || session.customer_details?.email || "";
     const esPagoHotel = md.payMode === "hotel";
