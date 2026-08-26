@@ -41,12 +41,43 @@ create unique index if not exists ota_channels_hotel_id_uidx
 -- cualquier visitante— se podía bajar `config` y `stripe_account_id` de todos
 -- los hoteles. Los privilegios por columna sí existen en Postgres, y PostgREST
 -- los respeta.
-revoke select (config, stripe_account_id) on public.hoteles from anon, authenticated;
+-- 🔴 CORRECCIÓN (26 ago 2026, medido después de correrlo la primera vez).
+--
+-- El `revoke select (columna)` de abajo NO SIRVIÓ DE NADA, y no fue culpa de
+-- cómo se ejecutó: es una regla de Postgres que la auditoría y este archivo
+-- pasaron por alto. Los privilegios son ADITIVOS, y `anon`/`authenticated`
+-- tienen un GRANT SELECT sobre la TABLA ENTERA. Mientras ese grant exista, quitar
+-- una columna suelta no restringe nada — la comprobación con la anon key seguía
+-- devolviendo `config` y `stripe_account_id` de todos los hoteles.
+--
+-- La forma que sí funciona es al revés: quitar el permiso de tabla y volver a
+-- darlo COLUMNA POR COLUMNA, con las 15 que el navegador sí necesita (la tabla
+-- tiene 17). Las dos statements van JUNTAS en una sola ejecución del editor:
+-- entre una y otra, nadie puede leer `hoteles`, y de ahí cuelga el sitio público.
+--
+-- Verificado que ninguna lectura del navegador usa `config` ni
+-- `stripe_account_id`: PanelEditor, EditorVisual, el onboarding, el sitemap, los
+-- llms.txt, las páginas /g y /hoteles-en y la imagen de OpenGraph piden todas
+-- listas explícitas, y ninguna las incluye.
+
+revoke select on public.hoteles from anon, authenticated;
+
+grant select (
+  id, owner_id, slug, nombre, ubicacion, descripcion, whatsapp,
+  habitaciones, fotos, guia, extras, publicado, prefijo_confirmacion,
+  created_at, updated_at
+) on public.hoteles to anon, authenticated;
+
+-- (La línea de abajo es la que NO funcionaba. Se deja escrita, tachada, para que
+--  nadie vuelva a intentarlo creyendo que basta:)
+-- revoke select (config, stripe_account_id) on public.hoteles from anon, authenticated;
 
 -- COMPROBACIÓN (pégalo en una terminal, con la ANON key, no la service-role):
 --   curl -s "$NEXT_PUBLIC_SUPABASE_URL/rest/v1/hoteles?select=slug,config" \
 --        -H "apikey: $NEXT_PUBLIC_SUPABASE_ANON_KEY"
 --   → esperado: error de permiso sobre `config`.
+--   Si devuelve el JSON con `config` dentro, el revoke NO surtió efecto: es
+--   exactamente lo que pasó la primera vez (ver la corrección de arriba).
 --   curl -s "$NEXT_PUBLIC_SUPABASE_URL/rest/v1/hoteles?select=slug,nombre" \
 --        -H "apikey: $NEXT_PUBLIC_SUPABASE_ANON_KEY"
 --   → esperado: la lista de hoteles, como siempre (el sitio público no se rompe).
@@ -107,5 +138,23 @@ create trigger hoteles_proteger before update on public.hoteles
 
 -- ─── CÓMO DESHACER (inmediato y sin pérdida de datos) ───────────────────────
 --   drop trigger if exists hoteles_proteger on public.hoteles;
---   grant select (config, stripe_account_id) on public.hoteles to anon, authenticated;
+--   grant select on public.hoteles to anon, authenticated;   -- devuelve la tabla entera
 --   drop index if exists ota_channels_hotel_id_uidx;
+
+
+-- ─── COMPROBAR QUE LOS TRES BLOQUES ESTÁN PUESTOS ──────────────────────────
+-- Pégalo entero en el editor SQL; devuelve una fila por bloque.
+--
+-- select 'A · índice de canales' as bloque,
+--        count(*) filter (where indexname = 'ota_channels_hotel_id_uidx') as puesto
+--   from pg_indexes where tablename = 'ota_channels'
+-- union all
+-- select 'B · columnas ocultas al navegador',
+--        (15 - count(*))::bigint
+--   from information_schema.column_privileges
+--  where table_name = 'hoteles' and grantee = 'anon' and privilege_type = 'SELECT'
+-- union all
+-- select 'C · trigger de columnas protegidas',
+--        count(*) from pg_trigger where tgname = 'hoteles_proteger';
+--
+-- Esperado: A → 1 · B → 0 (o sea, exactamente 15 columnas visibles) · C → 1.
