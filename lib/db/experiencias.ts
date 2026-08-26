@@ -9,6 +9,7 @@
 // (es decir, sin cupo aplicado). SOLO servidor.
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import { alertar } from "@/lib/alertas";
 
 export interface ExperienciaVenta {
   experiencia: string; // nombre (identidad, como las habitaciones en blocks)
@@ -84,9 +85,17 @@ export async function registrarExperienciaVentas(
         qty: Math.max(1, Math.floor(i.qty)),
       })),
     );
-    if (error) console.error("registrarExperienciaVentas:", error.message);
+    if (error) throw new Error(error.message);
   } catch (e) {
-    console.error("registrarExperienciaVentas:", e);
+    // Fail-safe DELIBERADO: esto corre después de que la reserva ya está creada
+    // y cobrada. Lanzar aquí haría que Stripe reintentara el webhook y duplicara
+    // trabajo ya hecho. Pero el cupo de experiencias queda mal contado, así que
+    // se avisa: es un lugar que se puede vender dos veces.
+    await alertar(
+      "no se registró el cupo de una experiencia",
+      `Hotel ${hotelId}, reserva ${confirmacion}. ${e instanceof Error ? e.message : String(e)}. ` +
+        `La reserva SÍ existe; lo que no quedó contado son los lugares.`,
+    );
   }
 }
 
@@ -103,8 +112,13 @@ export async function liberarExperienciaVentas(
       .delete()
       .eq("hotel_id", hotelId)
       .eq("confirmacion", confirmacion);
-    if (error) console.error("liberarExperienciaVentas:", error.message);
+    if (error) throw new Error(error.message);
   } catch (e) {
-    console.error("liberarExperienciaVentas:", e);
+    // Mismo caso al revés: si no se liberan, quedan lugares fantasma ocupados.
+    await alertar(
+      "no se liberó el cupo de una experiencia",
+      `Hotel ${hotelId}, reserva ${confirmacion}. ${e instanceof Error ? e.message : String(e)}. ` +
+        `Quedan lugares contados como vendidos que ya no lo están.`,
+    );
   }
 }

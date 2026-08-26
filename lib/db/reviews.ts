@@ -1,3 +1,4 @@
+import { leer } from "@/lib/db/result";
 // Capa de datos de RESEÑAS reales de huéspedes sobre Supabase (multi-tenant).
 // Las deja el huésped desde la página de captura (app/h/[slug]/resena) atadas al
 // folio de su reserva → verificables (a diferencia de hoteles.extras.resenas,
@@ -84,12 +85,18 @@ export async function crearResena(
     // huésped reenvía el formulario). El índice único es parcial, así que la
     // dedupe se hace explícita en vez de con upsert.
     if (confirmacion) {
-      const { data: existing } = await supabase
-        .from("reviews")
-        .select("id")
-        .eq("hotel_id", hotelId)
-        .eq("confirmacion", confirmacion)
-        .maybeSingle();
+      // Lanza si falla: con `?? null`, un error de lectura se leía como "no hay
+      // reseña previa" y se insertaba una SEGUNDA reseña del mismo huésped. El
+      // índice único es parcial, así que la base no lo impide.
+      const existing = await leer<{ id: string }>(
+        "reviews.dedupe",
+        supabase
+          .from("reviews")
+          .select("id")
+          .eq("hotel_id", hotelId)
+          .eq("confirmacion", confirmacion)
+          .maybeSingle(),
+      );
       if (existing?.id) {
         const { error } = await supabase
           .from("reviews")

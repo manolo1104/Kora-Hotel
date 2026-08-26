@@ -1,3 +1,4 @@
+import { escribirMejorEsfuerzo } from "@/lib/db/result";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { resolveHotel } from "@/lib/tenant";
@@ -37,7 +38,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
 
   try {
     const supabase = createAdminClient();
-    const { error } = await supabase.from("booking_intents").upsert(
+    await escribirMejorEsfuerzo("booking_intents.capturar", supabase.from("booking_intents").upsert(
       {
         hotel_id: hotel.id,
         email: email.toLowerCase(),
@@ -49,8 +50,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
         updated_at: new Date().toISOString(),
       },
       { onConflict: "hotel_id,email" },
-    );
-    if (error) console.error("booking_intents upsert error:", error);
+    ));
   } catch (e) {
     console.error("intento error:", e);
   }

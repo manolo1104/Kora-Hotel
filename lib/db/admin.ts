@@ -11,6 +11,7 @@
 // SOLO servidor.
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import { leer, escribir, escribirMejorEsfuerzo } from "@/lib/db/result";
 import { generarConfirmacion } from "@/lib/db/bookings";
 import { blockDates, unblock } from "@/lib/db/availability";
 
@@ -266,6 +267,49 @@ export async function getAllBookings(hotelId: string): Promise<AdminBooking[]> {
   return ((data ?? []) as BookingRow[]).map(mapBooking);
 }
 
+/** El insert de `createManualBooking`, aparte para poder reintentarlo con folio nuevo. */
+async function insertarReservaManual(
+  supabase: ReturnType<typeof createAdminClient>,
+  hotelId: string,
+  confirmacion: string,
+  data: {
+    cliente: string;
+    telefono: string;
+    email: string;
+    habitacion: string;
+    checkin: string;
+    checkout: string;
+    noches: number;
+    huespedes: number;
+    total: number;
+    notas: string;
+    anticipo?: number;
+  },
+) {
+  return supabase
+    .from("bookings")
+    .insert({
+      hotel_id: hotelId,
+      confirmacion,
+      cliente: data.cliente,
+      telefono: data.telefono,
+      email: data.email,
+      checkin: data.checkin,
+      checkout: data.checkout,
+      noches: data.noches,
+      huespedes: data.huespedes,
+      habitaciones: data.habitacion,
+      total: data.total,
+      anticipo: data.anticipo ?? 0,
+      notas: data.notas,
+      estado: "MANUAL",
+      origen: "manual",
+    })
+    .select("id")
+    .single();
+}
+
+
 /**
  * Alta manual de una reserva desde el panel. NO usa el RPC anti-overbooking
  * (el dueño la fuerza a propósito): inserta el booking (estado MANUAL, origen
@@ -294,29 +338,19 @@ export async function createManualBooking(
   // Prefijo de confirmación por hotel (hotel.prefijo_confirmacion). Si es NULL
   // (p. ej. Paraíso) generarConfirmacion cae a "KO". Antes estaba fijo en "PE-M"
   // → todos los hoteles emitían folios con prefijo de Paraíso.
-  const confirmacion = generarConfirmacion(prefijo);
-
-  const { data: inserted, error } = await supabase
-    .from("bookings")
-    .insert({
-      hotel_id: hotelId,
-      confirmacion,
-      cliente: data.cliente,
-      telefono: data.telefono,
-      email: data.email,
-      checkin: data.checkin,
-      checkout: data.checkout,
-      noches: data.noches,
-      huespedes: data.huespedes,
-      habitaciones: data.habitacion,
-      total: data.total,
-      anticipo: data.anticipo ?? 0,
-      notas: data.notas,
-      estado: "MANUAL",
-      origen: "manual",
-    })
-    .select("id")
-    .single();
+  // El folio son 4 caracteres al azar: choca con el índice único
+  // (hotel_id, confirmacion) más a menudo de lo que sugiere la intuición, y hoy
+  // ese choque salía como el texto crudo de Postgres en la pantalla del
+  // hotelero. Se reintenta con folio nuevo, igual que ya hace el webhook del
+  // motor (app/api/h/webhooks/stripe/route.ts).
+  let confirmacion = "";
+  let inserted: unknown = null;
+  let error: { message: string } | null = null;
+  for (let intento = 0; intento < 3; intento++) {
+    confirmacion = generarConfirmacion(prefijo);
+    ({ data: inserted, error } = await insertarReservaManual(supabase, hotelId, confirmacion, data));
+    if (!error || !/duplicate key|confirmacion/i.test(error.message)) break;
+  }
 
   if (error || !inserted) {
     throw new Error(`createManualBooking error: ${error?.message ?? "sin id"}`);
@@ -334,8 +368,9 @@ export async function createManualBooking(
       status: "RESERVADO",
       booking_id: bookingId,
     }));
-    const { error: blkErr } = await supabase.from("blocks").insert(rows);
-    if (blkErr) console.error("createManualBooking blocks error:", blkErr.message);
+    // La reserva ya existe; si su bloqueo no queda, el cuarto sigue en venta y
+    // se vuelve a vender. Lanza y la ruta responde 500.
+    await escribir("blocks.reservaManual", supabase.from("blocks").insert(rows));
   }
 
   return confirmacion;
@@ -369,40 +404,49 @@ export async function updateBooking(
   }
   if (Object.keys(patch).length === 0) return;
 
-  const { error } = await supabase
+  // Antes: `if (error) { console.error(...); return; }` — la ruta respondía
+  // {ok:true} igual y el hotelero veía su cambio "guardado" hasta que recargaba.
+  await escribir("bookings.editar", supabase
     .from("bookings")
     .update(patch)
     .eq("hotel_id", hotelId)
-    .eq("id", id);
-  if (error) {
-    console.error("updateBooking error:", error.message);
-    return;
-  }
+    .eq("id", id));
 
   // Si cambiaron fechas o cuartos, re-sincronizar los bloqueos RESERVADO (ligados
   // por booking_id) para que la disponibilidad refleje los nuevos datos. Sin esto,
   // las fechas viejas quedan ocupadas y las nuevas libres (riesgo de overbooking).
+  //
+  // Son un DELETE y un INSERT sin transacción, y ninguno de los dos se miraba: si
+  // el borrado pasaba y el alta no, quedaban noches VENDIDAS marcadas como libres
+  // y nadie se enteraba. Ahora los dos lanzan, así que ese hueco se ve como un
+  // error en pantalla en vez de como una sobreventa dentro de tres semanas.
+  // (Hacerlo de verdad atómico es trabajo de la etapa de concurrencia.)
   if (patch.checkin !== undefined || patch.checkout !== undefined || patch.habitaciones !== undefined) {
-    const { data: b } = await supabase
-      .from("bookings")
-      .select("checkin, checkout, habitaciones, estado")
-      .eq("hotel_id", hotelId)
-      .eq("id", id)
-      .maybeSingle();
-    await supabase.from("blocks").delete().eq("hotel_id", hotelId).eq("booking_id", id);
-    const row = b as {
+    const row = await leer<{
       checkin: string | null;
       checkout: string | null;
       habitaciones: string | null;
       estado: string | null;
-    } | null;
+    }>(
+      "bookings.trasEditar",
+      supabase
+        .from("bookings")
+        .select("checkin, checkout, habitaciones, estado")
+        .eq("hotel_id", hotelId)
+        .eq("id", id)
+        .maybeSingle(),
+    );
+    await escribir(
+      "blocks.resyncBorrar",
+      supabase.from("blocks").delete().eq("hotel_id", hotelId).eq("booking_id", id),
+    );
     if (row && row.estado !== "CANCELADA" && row.checkin && row.checkout) {
       const rooms = String(row.habitaciones || "")
         .split(",")
         .map((r) => r.replace(/\s*\([^)]*\)/g, "").trim())
         .filter(Boolean);
       if (rooms.length) {
-        await supabase.from("blocks").insert(
+        await escribir("blocks.resyncInsertar", supabase.from("blocks").insert(
           rooms.map((habitacion) => ({
             hotel_id: hotelId,
             habitacion,
@@ -411,7 +455,7 @@ export async function updateBooking(
             status: "RESERVADO",
             booking_id: id,
           })),
-        );
+        ));
       }
     }
   }
@@ -424,23 +468,19 @@ export async function updateBooking(
 export async function cancelBooking(hotelId: string, id: string): Promise<void> {
   const supabase = createAdminClient();
 
-  const { error } = await supabase
+  await escribir("bookings.cancelar", supabase
     .from("bookings")
     .update({ estado: "CANCELADA" })
     .eq("hotel_id", hotelId)
-    .eq("id", id);
-  if (error) {
-    console.error("cancelBooking error:", error.message);
-    return;
-  }
+    .eq("id", id));
 
-  // Libera la disponibilidad: borra los bloqueos de esta reserva.
-  const { error: blkErr } = await supabase
-    .from("blocks")
-    .delete()
-    .eq("hotel_id", hotelId)
-    .eq("booking_id", id);
-  if (blkErr) console.error("cancelBooking unblock error:", blkErr.message);
+  // Libera la disponibilidad: borra los bloqueos de esta reserva. Si esto se
+  // pierde, el cuarto queda ocupado por una reserva que ya no existe — el hotel
+  // deja de poder venderlo y nadie sabe por qué.
+  await escribir(
+    "blocks.liberarPorCancelacion",
+    supabase.from("blocks").delete().eq("hotel_id", hotelId).eq("booking_id", id),
+  );
 }
 
 // ── BLOQUEOS (DISPONIBILIDAD) ────────────────────────────────────────────────
@@ -474,15 +514,14 @@ export async function unblockRooms(
   if (rooms.length === 0) return;
   const supabase = createAdminClient();
   // Solape half-open: b.checkin < checkout AND checkin < b.checkout.
-  const { error } = await supabase
+  await escribir("blocks.desbloquear", supabase
     .from("blocks")
     .delete()
     .eq("hotel_id", hotelId)
     .eq("status", "BLOQUEADO")
     .in("habitacion", rooms)
     .lt("checkin", checkout)
-    .gt("checkout", checkin);
-  if (error) console.error("unblockRooms error:", error.message);
+    .gt("checkout", checkin));
 }
 
 /** Desbloqueo puntual de un block por id (reusa unblock de availability). */
@@ -583,12 +622,11 @@ export async function updateQuote(
   }
   if (Object.keys(patch).length === 0) return;
 
-  const { error } = await supabase
+  await escribir("quotes.editar", supabase
     .from("quotes")
     .update(patch)
     .eq("hotel_id", hotelId)
-    .eq("id", id);
-  if (error) console.error("updateQuote error:", error.message);
+    .eq("id", id));
 }
 
 /** Cambia solo el estado de una cotización. */
@@ -598,23 +636,21 @@ export async function updateQuoteStatus(
   estado: AdminQuote["estado"],
 ): Promise<void> {
   const supabase = createAdminClient();
-  const { error } = await supabase
+  await escribir("quotes.estado", supabase
     .from("quotes")
     .update({ estado })
     .eq("hotel_id", hotelId)
-    .eq("id", id);
-  if (error) console.error("updateQuoteStatus error:", error.message);
+    .eq("id", id));
 }
 
 /** Elimina una cotización (por id, dentro del hotel). */
 export async function deleteQuote(hotelId: string, id: string): Promise<void> {
   const supabase = createAdminClient();
-  const { error } = await supabase
+  await escribir("quotes.borrar", supabase
     .from("quotes")
     .delete()
     .eq("hotel_id", hotelId)
-    .eq("id", id);
-  if (error) console.error("deleteQuote error:", error.message);
+    .eq("id", id));
 }
 
 // ── DOCUMENTOS BRANDED (overrides del editor "modificar antes de descargar") ──
@@ -685,13 +721,12 @@ export async function saveGuestNote(
   notas: string,
 ): Promise<void> {
   const supabase = createAdminClient();
-  const { error } = await supabase
+  await escribir("guest_notes.guardar", supabase
     .from("guest_notes")
     .upsert(
       { hotel_id: hotelId, email, notas, updated_at: new Date().toISOString() },
       { onConflict: "hotel_id,email" },
-    );
-  if (error) console.error("saveGuestNote error:", error.message);
+    ));
 }
 
 /**
@@ -785,13 +820,12 @@ export async function setRoomStatus(
   notas = "",
 ): Promise<void> {
   const supabase = createAdminClient();
-  const { error } = await supabase
+  await escribir("room_status.fijar", supabase
     .from("room_statuses")
     .upsert(
       { hotel_id: hotelId, suite, estado, notas, updated_at: new Date().toISOString() },
       { onConflict: "hotel_id,suite" },
-    );
-  if (error) console.error("setRoomStatus error:", error.message);
+    ));
 }
 
 // ── OPERACIONES: LIMPIEZA ──────────────────────────────────────────────────────
@@ -877,12 +911,11 @@ export async function updateCleaningTask(
     patch[key] = value as string;
   }
   if (Object.keys(patch).length === 0) return;
-  const { error } = await supabase
+  await escribir("limpieza.actualizar", supabase
     .from("cleaning_tasks")
     .update(patch)
     .eq("hotel_id", hotelId)
-    .eq("id", id);
-  if (error) console.error("updateCleaningTask error:", error.message);
+    .eq("id", id));
 }
 
 // ── OPERACIONES: MANTENIMIENTO ─────────────────────────────────────────────────
@@ -980,12 +1013,11 @@ export async function updateMaintenanceTask(
     patch[key] = value as string;
   }
   if (Object.keys(patch).length === 0) return;
-  const { error } = await supabase
+  await escribir("mantenimiento.actualizar", supabase
     .from("maintenance_tasks")
     .update(patch)
     .eq("hotel_id", hotelId)
-    .eq("id", id);
-  if (error) console.error("updateMaintenanceTask error:", error.message);
+    .eq("id", id));
 }
 
 // ── OTA CALENDARS ─────────────────────────────────────────────────────────────
@@ -1013,7 +1045,7 @@ export async function saveOTACalendar(
   cal: Omit<OTACalendar, "lastSync" | "status" | "blocksFound">,
 ): Promise<void> {
   const supabase = createAdminClient();
-  const { error } = await supabase.from("ota_channels").upsert(
+  await escribir("ota.guardarCalendario", supabase.from("ota_channels").upsert(
     {
       id: cal.id,
       hotel_id: hotelId,
@@ -1026,8 +1058,7 @@ export async function saveOTACalendar(
       blocks_found: 0,
     },
     { onConflict: "id" },
-  );
-  if (error) console.error("saveOTACalendar error:", error.message);
+  ));
 }
 
 /** Registra el resultado de una sincronización iCal. */
@@ -1038,7 +1069,7 @@ export async function updateOTASyncResult(
   blocksFound: number,
 ): Promise<void> {
   const supabase = createAdminClient();
-  const { error } = await supabase
+  await escribir("ota.resultadoSync", supabase
     .from("ota_channels")
     .update({
       ultima_sync: new Date().toISOString(),
@@ -1046,19 +1077,17 @@ export async function updateOTASyncResult(
       blocks_found: blocksFound,
     })
     .eq("hotel_id", hotelId)
-    .eq("id", id);
-  if (error) console.error("updateOTASyncResult error:", error.message);
+    .eq("id", id));
 }
 
 /** Elimina un canal OTA (por id, dentro del hotel). */
 export async function deleteOTACalendar(hotelId: string, id: string): Promise<void> {
   const supabase = createAdminClient();
-  const { error } = await supabase
+  await escribir("ota.borrarCalendario", supabase
     .from("ota_channels")
     .delete()
     .eq("hotel_id", hotelId)
-    .eq("id", id);
-  if (error) console.error("deleteOTACalendar error:", error.message);
+    .eq("id", id));
 }
 
 // ── CONFIG / BOT (columna jsonb `config` del hotel) ────────────────────────────
@@ -1218,20 +1247,23 @@ export async function logAgentActivity(
     const supabase = createAdminClient();
     const fecha = hoyMX();
     if (dedupe && detalle) {
-      const { data } = await supabase
-        .from("agent_activity")
-        .select("id")
-        .eq("hotel_id", hotelId)
-        .eq("tipo", tipo)
-        .eq("fecha", fecha)
-        .eq("detalle", detalle)
-        .limit(1);
-      if (data && data.length > 0) return;
+      const yaHay = await leer<{ id: string }[]>(
+        "agent_activity.dedupe",
+        supabase
+          .from("agent_activity")
+          .select("id")
+          .eq("hotel_id", hotelId)
+          .eq("tipo", tipo)
+          .eq("fecha", fecha)
+          .eq("detalle", detalle)
+          .limit(1),
+      );
+      if (yaHay && yaHay.length > 0) return;
     }
-    const { error } = await supabase
-      .from("agent_activity")
-      .insert({ hotel_id: hotelId, tipo, fecha, detalle });
-    if (error) console.error("logAgentActivity:", error.message);
+    await escribirMejorEsfuerzo(
+      "agent_activity.registrar",
+      supabase.from("agent_activity").insert({ hotel_id: hotelId, tipo, fecha, detalle }),
+    );
   } catch (e) {
     console.error("logAgentActivity:", e);
   }
@@ -1297,24 +1329,31 @@ export async function logCamilaConversacion(
     if (!id || nuevos.length === 0) return;
 
     const supabase = createAdminClient();
-    const { data: fila } = await supabase
-      .from("camila_conversaciones")
-      .select("mensajes")
-      .eq("hotel_id", hotelId)
-      .eq("chat_id", id)
-      .maybeSingle();
+    // Lanza si falla, y el catch de esta función lo recoge SIN escribir. Es lo
+    // correcto: con `?? []` un error de lectura hacía que `previos` quedara
+    // vacío y el upsert de abajo PISARA el historial entero de la conversación
+    // con sólo los turnos nuevos. Perder los turnos nuevos es mucho más barato
+    // que borrar el hilo completo.
+    const fila = await leer<{ mensajes: unknown }>(
+      "camila.historial",
+      supabase
+        .from("camila_conversaciones")
+        .select("mensajes")
+        .eq("hotel_id", hotelId)
+        .eq("chat_id", id)
+        .maybeSingle(),
+    );
 
-    const previos = Array.isArray(fila?.mensajes) ? (fila!.mensajes as TurnoConversacion[]) : [];
+    const previos = Array.isArray(fila?.mensajes) ? (fila.mensajes as TurnoConversacion[]) : [];
     const mensajes = [...previos, ...nuevos].slice(-CAMILA_MAX_TURNOS);
     const ultimo_at = nuevos[nuevos.length - 1].ts;
 
-    const { error } = await supabase
+    await escribirMejorEsfuerzo("camila.conversacion", supabase
       .from("camila_conversaciones")
       .upsert(
         { hotel_id: hotelId, chat_id: id, mensajes, ultimo_at },
         { onConflict: "hotel_id,chat_id" },
-      );
-    if (error) console.error("logCamilaConversacion:", error.message);
+      ));
   } catch (e) {
     console.error("logCamilaConversacion:", e);
   }

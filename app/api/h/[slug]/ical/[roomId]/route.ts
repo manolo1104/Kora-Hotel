@@ -1,3 +1,4 @@
+import { leer } from "@/lib/db/result";
 // Export iCal PÚBLICO por cuarto (multi-tenant). Portado de
 // mi-hotel/app/api/ical/[roomId] pero generalizado: el hotel se resuelve por
 // slug (sin auth) y los bloqueos se leen de la tabla `blocks` (no de Sheets).
@@ -70,16 +71,21 @@ export async function GET(
   // Bloqueos vigentes (checkout > hoy) del cuarto en este hotel.
   const supabase = createAdminClient();
   const today = new Date().toLocaleDateString("en-CA", { timeZone: "America/Mexico_City" });
-  const { data, error } = await supabase
-    .from("blocks")
-    .select("id, checkin, checkout, status")
-    .eq("hotel_id", hotel.id)
-    .eq("habitacion", roomName)
-    .in("status", OCCUPYING_STATUSES)
-    .gt("checkout", today);
-
-  if (error) console.error("ical export blocks error:", error.message);
-  const blocks = (data ?? []) as BlockRow[];
+  // LANZA si falla, y eso es exactamente lo que se quiere. Antes el error se
+  // registraba y se seguía con `data ?? []`: el feed salía VACÍO y con 200, así
+  // que Booking y Expedia leían "este cuarto está libre todos los días" y lo
+  // ponían a la venta entero. Con un 500, la OTA conserva el último calendario
+  // que sí pudo leer.
+  const blocks = ((await leer<BlockRow[]>(
+    "ical.blocks",
+    supabase
+      .from("blocks")
+      .select("id, checkin, checkout, status")
+      .eq("hotel_id", hotel.id)
+      .eq("habitacion", roomName)
+      .in("status", OCCUPYING_STATUSES)
+      .gt("checkout", today),
+  )) ?? []) as BlockRow[];
 
   const lines: string[] = [
     "BEGIN:VCALENDAR",

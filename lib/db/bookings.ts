@@ -1,3 +1,4 @@
+import { leer } from "@/lib/db/result";
 // Capa de datos de RESERVAS sobre Supabase (multi-tenant). La creación pasa por
 // el RPC transaccional crear_reserva_atomica (anti-overbooking real). SOLO servidor.
 //
@@ -88,25 +89,28 @@ export async function findBookingByPaymentIntent(
 ): Promise<{ id: string; confirmacion: string } | null> {
   if (!paymentIntentId) return null;
   const supabase = createAdminClient();
-  const { data } = await supabase
-    .from("bookings")
-    .select("id, confirmacion")
-    .eq("hotel_id", hotelId)
-    .eq("payment_intent_id", paymentIntentId)
-    .maybeSingle();
-  return (data as { id: string; confirmacion: string }) ?? null;
+  // Lanza si falla, y aquí es CRÍTICO: esta consulta es la idempotencia del
+  // webhook de reservas. Devolver null ante un error de lectura significa "esta
+  // reserva no existe todavía", así que un reintento de Stripe la crearía por
+  // segunda vez — dos reservas y dos cuartos apartados por un solo pago.
+  return await leer<{ id: string; confirmacion: string }>(
+    "booking.porPaymentIntent",
+    supabase
+      .from("bookings")
+      .select("id, confirmacion")
+      .eq("hotel_id", hotelId)
+      .eq("payment_intent_id", paymentIntentId)
+      .maybeSingle(),
+  );
 }
 
 /** Una reserva completa por id (dentro del hotel). */
 export async function getBooking(hotelId: string, id: string) {
   const supabase = createAdminClient();
-  const { data } = await supabase
-    .from("bookings")
-    .select("*")
-    .eq("hotel_id", hotelId)
-    .eq("id", id)
-    .maybeSingle();
-  return data;
+  return await leer(
+    "booking.porId",
+    supabase.from("bookings").select("*").eq("hotel_id", hotelId).eq("id", id).maybeSingle(),
+  );
 }
 
 /**

@@ -10,6 +10,7 @@
 // SOLO servidor.
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import { escribir } from "@/lib/db/result";
 import { hotelRooms } from "@/lib/booking";
 
 export interface AvailabilityResult {
@@ -240,8 +241,12 @@ export async function createTemporaryHold(
     expires_at: expires,
     hold_session: sessionId,
   }));
-  const { error } = await supabase.from("blocks").insert(rows);
-  if (error) console.error("createTemporaryHold error:", error);
+  // LANZA si falla. Un hold que no se escribe es un cuarto que sigue pareciendo
+  // libre mientras un huésped lo está pagando: dos personas compran la misma
+  // noche y el webhook acaba reembolsándole a una de las dos. Los llamadores
+  // (checkout web y Camila) responden 500 y el huésped reintenta, que es
+  // infinitamente más barato que la sobreventa.
+  await escribir("blocks.holdTemporal", supabase.from("blocks").insert(rows));
 }
 
 /**
@@ -251,13 +256,16 @@ export async function createTemporaryHold(
 export async function extendHold(hotelId: string, sessionId: string, hours: number): Promise<void> {
   const supabase = createAdminClient();
   const expires = new Date(Date.now() + hours * 3_600_000).toISOString();
-  const { error } = await supabase
+  // LANZA si falla: si el hold no se extiende, el cuarto se libera mientras el
+  // huésped va al OXXO a pagar. El único llamador lo envuelve en `.catch()` a
+  // propósito (un webhook no puede caerse por esto), pero ahora ese `catch` es
+  // una decisión visible y no la ausencia de comprobación.
+  await escribir("blocks.extenderHold", supabase
     .from("blocks")
     .update({ expires_at: expires })
     .eq("hotel_id", hotelId)
     .eq("status", "HOLD")
-    .eq("hold_session", sessionId);
-  if (error) console.error("extendHold error:", error);
+    .eq("hold_session", sessionId));
 }
 
 /**
@@ -303,8 +311,10 @@ export async function blockDates(
     checkout,
     status,
   }));
-  const { error } = await supabase.from("blocks").insert(rows);
-  if (error) console.error("blockDates error:", error);
+  // LANZA si falla. Es la escritura más cara del repo: si no queda, la noche
+  // vendida sigue apareciendo libre en el motor, en el panel y en el feed de las
+  // OTAs. Sobreventa silenciosa.
+  await escribir("blocks.bloquear", supabase.from("blocks").insert(rows));
 }
 
 /** Elimina un bloqueo por id (desbloquear desde el panel). */
