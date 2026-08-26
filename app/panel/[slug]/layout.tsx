@@ -1,6 +1,7 @@
 import { requireHotelMember } from "@/lib/tenant";
 import { accesoDelHotel } from "@/lib/suscripcion";
 import { HotelBloqueado } from "@/components/panel/PruebaEstado";
+import HotelActivoFetch from "@/components/panel/HotelActivoFetch";
 
 export const dynamic = "force-dynamic";
 
@@ -39,5 +40,13 @@ export default async function PanelHotelLayout({
     );
   }
 
-  return <>{children}</>;
+  // `HotelActivoFetch` va aquí porque este layout es la puerta de entrada de
+  // TODO /panel/[slug]/… — panel operativo, editor del sitio y onboarding — así
+  // que ninguna pantalla se queda sin marcar sus peticiones.
+  return (
+    <>
+      <HotelActivoFetch />
+      {children}
+    </>
+  );
 }
