@@ -4,7 +4,12 @@
 // recibe nada. No tenía ni una prueba.
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import Stripe from "stripe";
-import { verificarFirma, secretosDeReservas } from "@/lib/stripe/firma";
+import {
+  verificarFirma,
+  secretosDeReservas,
+  pareceDeStripe,
+  diagnosticoFirma,
+} from "@/lib/stripe/firma";
 
 const SECRETO_PROPIO = "whsec_cuentaPropia_00000000000000000000";
 const SECRETO_CONNECT = "whsec_connect_11111111111111111111111";
@@ -68,5 +73,50 @@ describe("verificarFirma", () => {
     delete process.env.STRIPE_WEBHOOK_SECRET_RESERVAS_CONNECT;
     expect(secretosDeReservas()).toEqual([]);
     expect(verificarFirma(CUERPO, firmar(CUERPO, SECRETO_PROPIO))).toBeNull();
+  });
+});
+
+// Un POST sin cabecera de firma no es un secreto mal puesto: es un robot. Antes
+// los dos mandaban el MISMO correo, y por eso el correo dejaba de creerse.
+describe("pareceDeStripe", () => {
+  it("reconoce una cabecera de Stripe de verdad", () => {
+    expect(pareceDeStripe(firmar(CUERPO, SECRETO_PROPIO))).toBe(true);
+  });
+
+  it("descarta lo que no trae cabecera, o trae basura", () => {
+    expect(pareceDeStripe(null)).toBe(false);
+    expect(pareceDeStripe("")).toBe(false);
+    expect(pareceDeStripe("hola")).toBe(false);
+    expect(pareceDeStripe("t=123")).toBe(false); // sin v1=
+    expect(pareceDeStripe("v1=abc")).toBe(false); // sin t= y v1 corto
+  });
+});
+
+describe("diagnosticoFirma", () => {
+  it("señala el secreto de CUENTAS CONECTADAS cuando el evento trae account", () => {
+    const cuerpo = JSON.stringify({ id: "evt_1", type: "charge.refunded", account: "acct_X", livemode: true });
+    const texto = diagnosticoFirma(cuerpo, firmar(cuerpo, AJENO));
+    expect(texto).toContain("STRIPE_WEBHOOK_SECRET_RESERVAS_CONNECT");
+    expect(texto).toContain("acct_X");
+  });
+
+  it("avisa de que un evento de modo prueba nunca va a validar", () => {
+    const cuerpo = JSON.stringify({ id: "evt_2", type: "checkout.session.completed", livemode: false });
+    const texto = diagnosticoFirma(cuerpo, firmar(cuerpo, AJENO));
+    expect(texto).toContain("MODO PRUEBA");
+    expect(texto).toContain("No se perdió ninguna reserva real");
+  });
+
+  it("dice que no es JSON cuando el cuerpo no viene de Stripe", () => {
+    const texto = diagnosticoFirma("<html>hola</html>", "t=1,v1=" + "a".repeat(64));
+    expect(texto).toContain("no es JSON");
+  });
+
+  // El correo va a la bandeja de Manolo: no puede llevar el secreto dentro.
+  it("nunca imprime un secreto, sólo su huella", () => {
+    const texto = diagnosticoFirma(CUERPO, firmar(CUERPO, AJENO));
+    expect(texto).not.toContain(SECRETO_PROPIO);
+    expect(texto).not.toContain(SECRETO_CONNECT);
+    expect(texto).toContain("huella");
   });
 });

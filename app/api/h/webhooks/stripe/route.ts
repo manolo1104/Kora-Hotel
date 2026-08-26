@@ -24,7 +24,7 @@ import {
 import { bookingBrandFromHotel } from "@/lib/email/booking-branded";
 import { NOTIFY_EMAIL } from "@/lib/email/resend";
 import { deriveConnectState, upsertConnectState } from "@/lib/stripe/connect";
-import { verificarFirma } from "@/lib/stripe/firma";
+import { verificarFirma, pareceDeStripe, diagnosticoFirma } from "@/lib/stripe/firma";
 import { leer, escribir } from "@/lib/db/result";
 
 export const dynamic = "force-dynamic";
@@ -401,11 +401,18 @@ export async function POST(req: NextRequest) {
     // Antes esto era un console.error que nadie miraba. Una firma inválida en el
     // webhook de reservas significa o que un secreto de Vercel está mal, o que
     // alguien está intentando inyectar eventos: en los dos casos hay que verlo.
-    await alertar(
-      "firma de webhook inválida (reservas)",
-      "Ninguno de los secretos configurados validó la firma. Revisar " +
-        "STRIPE_WEBHOOK_SECRET_RESERVAS y STRIPE_WEBHOOK_SECRET_RESERVAS_CONNECT en Vercel.",
-    );
+    //
+    // Pero un POST a esta URL SIN cabecera de firma no es ninguna de las dos: es
+    // un robot rastreando internet, y esta ruta es pública. `alertar()` sólo
+    // deduplica dentro de una invocación, así que cada robot mandaba un correo
+    // idéntico al de un secreto mal puesto — que es el que sí hay que creerse.
+    if (!pareceDeStripe(sig)) {
+      console.error(
+        "[h/webhooks/stripe] POST sin cabecera de firma de Stripe: no viene de Stripe, no se alerta",
+      );
+      return NextResponse.json({ error: "firma-invalida" }, { status: 400 });
+    }
+    await alertar("firma de webhook inválida (reservas)", diagnosticoFirma(raw, sig));
     return NextResponse.json({ error: "firma-invalida" }, { status: 400 });
   }
 
