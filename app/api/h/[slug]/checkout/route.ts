@@ -1,3 +1,4 @@
+import { construirMetadataBase } from "@/lib/booking/metadata";
 import { NextRequest, NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { z } from "zod";
@@ -296,7 +297,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
         minNights: rules.anticipoMinNoches,
       });
   const pending = stayTotal - deposit;
-  const isDeposit = deposit > 0 && deposit < stayTotal;
 
   // Sin Stripe → flujo WhatsApp (degradación elegante).
   if (!stripeEnvReady) {
@@ -350,32 +350,35 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     }
   }
 
+  // La parte compartida sale de `lib/booking/metadata.ts` — el mismo constructor
+  // que usa Camila. Encima van sólo los extras que el motor web sí vende.
   const md: Record<string, string> = {
-    hotel_id: hotel.id,
-    slug,
-    rooms: roomsMeta,
+    ...construirMetadataBase({
+      hotelId: hotel.id,
+      slug,
+      rooms: roomsMeta,
+      checkin: String(checkin),
+      checkout: String(checkout),
+      nights,
+      stayTotal,
+      deposit,
+      pending,
+      anticipoPct: rules.anticipoPct,
+      ratePlan: esNrf ? "nrf" : "flex",
+      payMode: payMode === "hotel" ? "hotel" : "online",
+      adults,
+      children,
+      customerName: customerName || "",
+      customerEmail: customerEmail || "",
+      customerPhone: customerPhone || "",
+      holdSession: sessionId,
+      lang,
+    }),
     addons: addonNames.join("|").slice(0, 200),
     experiencias: experienciaNames.join("|").slice(0, 480),
     experiencias_data: experienciasData,
     bundleDiscount: String(bundleDiscount),
-    checkin: String(checkin),
-    checkout: String(checkout),
-    nights: String(nights),
-    stayTotal: String(stayTotal),
-    depositPaid: String(deposit),
-    pending: String(pending),
-    isDeposit: String(isDeposit),
-    anticipoPct: String(rules.anticipoPct),
-    ratePlan: esNrf ? "nrf" : "flex",
     nrfDiscount: String(nrfDiscount),
-    payMode,
-    adults: String(adults),
-    children: String(children),
-    customerName: customerName || "",
-    customerEmail: customerEmail || "",
-    customerPhone: customerPhone || "",
-    holdSession: sessionId,
-    lang,
   };
 
   // DIRECT CHARGES: la sesión se crea EN la cuenta Stripe del hotel — el dinero
@@ -466,7 +469,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     return NextResponse.json({ url: session.url });
   } catch (e) {
     // Si Stripe falló, el hold no debe quedarse apartando el cuarto.
-    await releaseHold(hotel.id, sessionId).catch(() => {});
+    await releaseHold(hotel.id, sessionId).catch((e) => console.error("[h/[slug]/checkout] ignorado:", e));
     console.error("checkout session error:", e);
     return NextResponse.json({ error: "No se pudo iniciar el pago" }, { status: 500 });
   }

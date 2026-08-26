@@ -24,6 +24,8 @@ import {
 import { bookingBrandFromHotel } from "@/lib/email/booking-branded";
 import { NOTIFY_EMAIL } from "@/lib/email/resend";
 import { deriveConnectState, upsertConnectState } from "@/lib/stripe/connect";
+import { verificarFirma } from "@/lib/stripe/firma";
+import { leer, escribir } from "@/lib/db/result";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -40,22 +42,6 @@ export const runtime = "nodejs";
 // reserva), async_payment_failed / expired (liberan el hold), account.updated
 // (persiste el estado Connect) y charge.refunded (marca reembolso y libera
 // inventario). El hotel_id viaja en la metadata (nunca del body abierto).
-
-function verificarFirma(raw: string, sig: string): Stripe.Event | null {
-  const stripe = getStripe();
-  const secrets = [
-    process.env.STRIPE_WEBHOOK_SECRET_RESERVAS,
-    process.env.STRIPE_WEBHOOK_SECRET_RESERVAS_CONNECT,
-  ].filter(Boolean) as string[];
-  for (const secret of secrets) {
-    try {
-      return stripe.webhooks.constructEvent(raw, sig, secret);
-    } catch {
-      // probar el siguiente secreto
-    }
-  }
-  return null;
-}
 
 function refOf(session: Stripe.Checkout.Session): string {
   // Referencia de idempotencia: el payment_intent, o el setup_intent cuando la
@@ -121,13 +107,13 @@ async function manejarPagoSinCuarto(
       args.email,
       args,
       (hotel?.config?.email_from as string) || null,
-    ).catch(() => {});
+    ).catch((e) => console.error("[h/webhooks/stripe] ignorado:", e));
   }
   if (hotel) {
     const avisoTo = await resolveHotelAvisoEmail(hotel).catch(() => "");
-    if (avisoTo) await sendPagoSinCuartoHotel(avisoTo, args).catch(() => {});
+    if (avisoTo) await sendPagoSinCuartoHotel(avisoTo, args).catch((e) => console.error("[h/webhooks/stripe] ignorado:", e));
   }
-  if (NOTIFY_EMAIL) await sendPagoSinCuartoHotel(NOTIFY_EMAIL, args).catch(() => {});
+  if (NOTIFY_EMAIL) await sendPagoSinCuartoHotel(NOTIFY_EMAIL, args).catch((e) => console.error("[h/webhooks/stripe] ignorado:", e));
 }
 
 // Crea la reserva (atómica e idempotente) a partir de una sesión de Checkout
@@ -300,7 +286,11 @@ async function confirmarReserva(
     }
 
     // Email de confirmación (gated por RESEND dentro del helper).
-    await sendConfirmacionReserva(
+    // El resultado NO se tira: este correo es el comprobante del huésped, y
+    // perderlo en silencio es el fallo del que uno se entera por WhatsApp tres
+    // días después. No se devuelve 500 a propósito —la reserva ya está creada y
+    // reintentar duplicaría correos—; lo que faltaba era enterarse.
+    const correoConfirmacionOk = await sendConfirmacionReserva(
       email,
       {
         hotelNombre: hotel?.nombre ?? "el hotel",
@@ -323,6 +313,14 @@ async function confirmarReserva(
       },
       (hotel?.config?.email_from as string) || null,
     );
+    if (!correoConfirmacionOk.ok) {
+      await alertar(
+        "confirmación de reserva NO enviada",
+        `Reserva ${confirmacion} (hotel ${hotelId}, huésped ${email || "sin email"}). ` +
+          `Motivo: ${correoConfirmacionOk.error}. La reserva SÍ se creó; lo que falló fue el ` +
+          `correo. Reenviarlo desde el panel.`,
+      );
+    }
 
     // Aviso INMEDIATO al hotel (además del digest). Best-effort: nunca tumba
     // el webhook — la reserva ya quedó creada.
@@ -383,6 +381,20 @@ export async function POST(req: NextRequest) {
 
   const origin = new URL(req.url).origin;
 
+  try {
+    return await manejarEvento(event, origin);
+  } catch (e) {
+    // Aquí caen las lecturas y escrituras que ahora LANZAN. 500 es lo correcto:
+    // Stripe reintenta hasta 3 días, y estos eventos son idempotentes.
+    await alertar(
+      `webhook de reservas falló (${event.type})`,
+      e instanceof Error ? `${e.message}\n${e.stack ?? ""}` : String(e),
+    );
+    return NextResponse.json({ error: "handler-error" }, { status: 500 });
+  }
+}
+
+async function manejarEvento(event: Stripe.Event, origin: string): Promise<NextResponse> {
   switch (event.type) {
     // Pago inmediato (tarjeta) o garantía completada (pagar en hotel). Con OXXO
     // la sesión llega "completed" pero SIN pagar: se extiende el hold mientras
@@ -395,7 +407,7 @@ export async function POST(req: NextRequest) {
       if (session.mode === "setup" || session.payment_status === "paid") {
         return confirmarReserva(session, origin, event.account ?? null);
       }
-      if (md.holdSession) await extendHold(md.hotel_id, md.holdSession, 48).catch(() => {});
+      if (md.holdSession) await extendHold(md.hotel_id, md.holdSession, 48).catch((e) => console.error("[h/webhooks/stripe] ignorado:", e));
       return NextResponse.json({ received: true, pendingPayment: true });
     }
 
@@ -411,7 +423,7 @@ export async function POST(req: NextRequest) {
       const session = event.data.object as Stripe.Checkout.Session;
       const md = session.metadata || {};
       if (md.hotel_id && md.holdSession) {
-        await releaseHold(md.hotel_id, md.holdSession).catch(() => {});
+        await releaseHold(md.hotel_id, md.holdSession).catch((e) => console.error("[h/webhooks/stripe] ignorado:", e));
       }
       return NextResponse.json({ received: true, released: true });
     }
@@ -422,12 +434,15 @@ export async function POST(req: NextRequest) {
       const acct = event.data.object as Stripe.Account;
       let hotelId = acct.metadata?.hotel_id ?? null;
       if (!hotelId) {
-        const { data } = await createAdminClient()
-          .from("hoteles")
-          .select("id")
-          .eq("stripe_account_id", acct.id)
-          .maybeSingle();
-        hotelId = (data as { id: string } | null)?.id ?? null;
+        const fila = await leer<{ id: string }>(
+          "hotel.porStripeAccount",
+          createAdminClient()
+            .from("hoteles")
+            .select("id")
+            .eq("stripe_account_id", acct.id)
+            .maybeSingle(),
+        );
+        hotelId = fila?.id ?? null;
       }
       if (hotelId) await upsertConnectState(hotelId, deriveConnectState(acct));
       return NextResponse.json({ received: true, account: acct.id });
@@ -445,26 +460,72 @@ export async function POST(req: NextRequest) {
       if (!pi) return NextResponse.json({ received: true, ignored: "sin-pi" });
 
       const admin = createAdminClient();
-      const { data } = await admin
-        .from("bookings")
-        .select("id, hotel_id, estado, confirmacion")
-        .eq("payment_intent_id", pi)
-        .maybeSingle();
-      const booking = data as { id: string; hotel_id: string; estado: string; confirmacion: string | null } | null;
-      if (booking && booking.estado !== "REEMBOLSADA") {
+      // Esta búsqueda recorre `bookings` ENTERA, sin filtro de hotel: es la única
+      // del repo que no puede llevarlo, porque el evento no trae `hotel_id`. Lo
+      // que ata el evento a su hotel es `event.account`, la cuenta conectada
+      // desde la que llegó, y hay que comprobarlo ANTES de cancelar nada: marcar
+      // REEMBOLSADA la reserva equivocada libera un cuarto vendido y de verdad.
+      const booking = await leer<{
+        id: string;
+        hotel_id: string;
+        estado: string;
+        confirmacion: string | null;
+      }>(
+        "booking.porPaymentIntent",
+        admin
+          .from("bookings")
+          .select("id, hotel_id, estado, confirmacion")
+          .eq("payment_intent_id", pi)
+          .maybeSingle(),
+      );
+      if (!booking) return NextResponse.json({ received: true, refunded: false });
+
+      const hotelDeLaReserva = await leer<{ stripe_account_id: string | null }>(
+        "hotel.cuentaStripe",
+        admin
+          .from("hoteles")
+          .select("stripe_account_id")
+          .eq("id", booking.hotel_id)
+          .maybeSingle(),
+      );
+      const cuentaDelEvento = event.account ?? null;
+      const cuentaDelHotel = hotelDeLaReserva?.stripe_account_id ?? null;
+      if (cuentaDelEvento !== cuentaDelHotel) {
+        // Se responde 200 y NO se toca nada: reintentar no arreglaría un
+        // desajuste de cuentas. Puede ser legítimo (una reserva vieja cobrada en
+        // la cuenta de Kora cuyo hotel se conectó a Connect después), y entonces
+        // hay que marcarla a mano desde el panel; o puede ser el caso grave, y
+        // entonces esta línea es la que impide cancelar una reserva ajena.
+        await alertar(
+          "reembolso que no cuadra con su hotel",
+          `Cargo ${pi} llegó desde la cuenta ${cuentaDelEvento ?? "(plataforma)"} pero la ` +
+            `reserva ${booking.confirmacion ?? booking.id} es del hotel ${booking.hotel_id}, ` +
+            `cuya cuenta es ${cuentaDelHotel ?? "(ninguna)"}. NO se tocó la reserva.`,
+        );
+        return NextResponse.json({ received: true, ignored: "cuenta-no-coincide" });
+      }
+
+      if (booking.estado !== "REEMBOLSADA") {
         const { error } = await admin
           .from("bookings")
           .update({ estado: "REEMBOLSADA" })
           .eq("id", booking.id);
-        // Si la BD aún no admite REEMBOLSADA (SQL fase 3 sin aplicar), cae a CANCELADA.
+        // Si la BD aún no admite REEMBOLSADA (SQL fase 3 sin aplicar), cae a
+        // CANCELADA. Este try SÍ es deliberado; el respaldo ya no es silencioso.
         if (error) {
-          await admin.from("bookings").update({ estado: "CANCELADA" }).eq("id", booking.id);
+          await escribir(
+            "booking.reembolso.respaldoCancelada",
+            admin.from("bookings").update({ estado: "CANCELADA" }).eq("id", booking.id),
+          );
         }
-        await admin.from("blocks").delete().eq("hotel_id", booking.hotel_id).eq("booking_id", booking.id);
+        await escribir(
+          "blocks.liberarPorReembolso",
+          admin.from("blocks").delete().eq("hotel_id", booking.hotel_id).eq("booking_id", booking.id),
+        );
         // Cupo de experiencias: reembolso total también libera los lugares.
         await liberarExperienciaVentas(booking.hotel_id, booking.confirmacion ?? "");
       }
-      return NextResponse.json({ received: true, refunded: Boolean(booking) });
+      return NextResponse.json({ received: true, refunded: true });
     }
 
     // Cubierto por checkout.session.completed; se acusa recibo sin duplicar.

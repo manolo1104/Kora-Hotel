@@ -1,3 +1,4 @@
+import { construirMetadataBase } from "@/lib/booking/metadata";
 // Reserva TRANSACCIONAL del bot de WhatsApp (Camila). El bot manda el cuarto +
 // fechas + datos del huésped; aquí se calcula el precio SIEMPRE en el servidor,
 // se aparta el cuarto (hold) y se genera un LINK de pago de Stripe (direct charge
@@ -164,7 +165,6 @@ export async function crearLinkReservaAgente(
     minNights: rules.anticipoMinNoches,
   });
   const pending = Math.max(0, stayTotal - deposit);
-  const isDeposit = deposit > 0 && deposit < stayTotal;
 
   // Cobro: exige la cuenta Stripe del hotel lista (direct charges). Sin ella el
   // bot no puede cobrar → cae con gracia a "coordina por WhatsApp con el hotel".
@@ -184,28 +184,33 @@ export async function crearLinkReservaAgente(
   // Metadata: contrato EXACTO que lee el webhook (una entrada "unidad:huéspedes"
   // por unidad apartada). origen:"bot" marca la reserva como cerrada por Camila.
   const roomsMeta = unidades.map((u, i) => `${u}:${repartos[i]}`).join("|").slice(0, 480);
+  // Mismo constructor que el motor web: si el webhook empieza a leer una clave
+  // nueva, las dos puntas la reciben a la vez. Antes eran dos objetos escritos a
+  // mano y una diferencia entre ellos sólo se descubría con un huésped que ya
+  // había pagado y no recibía reserva.
   const md: Record<string, string> = {
-    hotel_id: hotel.id,
-    slug: hotel.slug,
-    rooms: roomsMeta,
-    checkin: input.checkin,
-    checkout: input.checkout,
-    nights: String(nights),
-    stayTotal: String(stayTotal),
-    depositPaid: String(deposit),
-    pending: String(pending),
-    isDeposit: String(isDeposit),
-    anticipoPct: String(rules.anticipoPct),
-    ratePlan: "flex",
-    payMode: "online",
-    adults: String(adults),
-    children: String(children),
-    customerName: nombre.slice(0, 120),
-    customerEmail: email.slice(0, 160),
-    customerPhone: telefono.slice(0, 30),
-    holdSession: sessionId,
+    ...construirMetadataBase({
+      hotelId: hotel.id,
+      slug: hotel.slug,
+      rooms: roomsMeta,
+      checkin: input.checkin,
+      checkout: input.checkout,
+      nights,
+      stayTotal,
+      deposit,
+      pending,
+      anticipoPct: rules.anticipoPct,
+      ratePlan: "flex",
+      payMode: "online",
+      adults,
+      children,
+      customerName: nombre,
+      customerEmail: email,
+      customerPhone: telefono,
+      holdSession: sessionId,
+      lang,
+    }),
     origen: "bot",
-    lang,
   };
 
   const conOxxo = connect.oxxoEnabled && amountCents <= OXXO_MAX_CENTS;
@@ -264,7 +269,7 @@ export async function crearLinkReservaAgente(
     };
   } catch (e) {
     // Si Stripe falló, el hold no debe quedarse apartando el cuarto.
-    await releaseHold(hotel.id, sessionId).catch(() => {});
+    await releaseHold(hotel.id, sessionId).catch((e) => console.error("[lib/agent-booking] ignorado:", e));
     console.error("crearLinkReservaAgente stripe error:", e);
     return { ok: false, error: "stripe-error" };
   }

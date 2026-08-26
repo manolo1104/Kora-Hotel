@@ -1,3 +1,4 @@
+import { leer } from "@/lib/db/result";
 import { NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { createClient } from "@/lib/supabase/server";
@@ -58,11 +59,17 @@ export async function POST() {
   }
 
   const admin = createAdminClient();
-  const { data: susc } = await admin
-    .from("suscripciones")
-    .select("stripe_customer_id")
-    .eq("user_id", user.id)
-    .maybeSingle();
+  // Lanza si falla. Antes un error se le presentaba al cliente como "no
+  // encontramos una suscripción tuya", que es exactamente lo contrario de lo que
+  // pasa — y lo deja sin poder cambiar su tarjeta ni cancelar.
+  const susc = await leer<{ stripe_customer_id: string | null }>(
+    "portal.suscripcion",
+    admin
+      .from("suscripciones")
+      .select("stripe_customer_id")
+      .eq("user_id", user.id)
+      .maybeSingle(),
+  );
 
   if (!susc?.stripe_customer_id) {
     return NextResponse.json(

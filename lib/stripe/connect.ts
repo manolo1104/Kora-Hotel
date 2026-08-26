@@ -4,6 +4,8 @@
 // account.updated y el panel de Pagos). SOLO servidor.
 
 import type Stripe from "stripe";
+import { leer, escribirMejorEsfuerzo } from "@/lib/db/result";
+import { alertar } from "@/lib/alertas";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getStripe, stripeEnvReady } from "@/lib/stripe/server";
 
@@ -52,7 +54,9 @@ export function deriveConnectState(acct: Stripe.Account): ConnectState {
 export async function upsertConnectState(hotelId: string, state: ConnectState): Promise<void> {
   if (!state.accountId) return;
   try {
-    const { error } = await createAdminClient()
+    // Mejor-esfuerzo declarado: es un cache. La verdad vive en Stripe y
+    // `getConnectState` sabe consultarla en vivo si esto no está.
+    await escribirMejorEsfuerzo("connect.cacheEscribir", createAdminClient()
       .from("hotel_stripe_accounts")
       .upsert(
         {
@@ -67,8 +71,7 @@ export async function upsertConnectState(hotelId: string, state: ConnectState): 
           updated_at: new Date().toISOString(),
         },
         { onConflict: "hotel_id" },
-      );
-    if (error) console.error("upsertConnectState error:", error);
+      ));
   } catch (e) {
     console.error("upsertConnectState error:", e);
   }
@@ -109,13 +112,16 @@ export async function getConnectState(
   }
 
   try {
-    const { data } = await createAdminClient()
-      .from("hotel_stripe_accounts")
-      .select(
-        "stripe_account_id, onboarding_status, charges_enabled, payouts_enabled, oxxo_enabled, details_submitted, requirements_due",
-      )
-      .eq("hotel_id", hotelId)
-      .maybeSingle();
+    const data = await leer<ConnectRow>(
+      "connect.cache",
+      createAdminClient()
+        .from("hotel_stripe_accounts")
+        .select(
+          "stripe_account_id, onboarding_status, charges_enabled, payouts_enabled, oxxo_enabled, details_submitted, requirements_due",
+        )
+        .eq("hotel_id", hotelId)
+        .maybeSingle(),
+    );
     if (data) {
       const row = data as ConnectRow;
       // Si la cuenta cambió (reconexión), se ignora el cache viejo.
@@ -131,8 +137,16 @@ export async function getConnectState(
         };
       }
     }
-  } catch {
-    // Tabla sin crear o error transitorio → sigue al retrieve en vivo.
+  } catch (e) {
+    // Sigue al retrieve en vivo, así que el checkout no se cae — pero ya no en
+    // silencio: si esta tabla deja de leerse, cada checkout y cada carga del
+    // panel se van a Stripe en vivo, y eso se nota como lentitud sin causa
+    // aparente hasta que alguien mira los logs.
+    await alertar(
+      "no se pudo leer el cache de Stripe Connect",
+      `Hotel ${hotelId}. ${e instanceof Error ? e.message : String(e)}. ` +
+        `Se consulta a Stripe en vivo mientras tanto.`,
+    );
   }
 
   try {

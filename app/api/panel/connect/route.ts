@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { escribir } from "@/lib/db/result";
 import { getActiveHotel } from "@/lib/panel/active-hotel";
 import { requireRol, SOLO_DUENO } from "@/lib/panel/roles";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -166,7 +167,14 @@ export async function POST(req: NextRequest) {
       },
       metadata: { hotel_id: tenant.hotelId, slug: tenant.hotel.slug },
     });
-    await admin.from("hoteles").update({ stripe_account_id: account.id }).eq("id", tenant.hotelId);
+    // LANZA si falla. Es la escritura que ata la cuenta de Stripe recién creada a
+    // su hotel: si se pierde, el hotelero termina el onboarding con Stripe, el
+    // dinero tiene a dónde llegar y Kora no lo sabe — a la siguiente le crea otra
+    // cuenta distinta, y el panel de Pagos le dice que no ha conectado nada.
+    await escribir(
+      "hoteles.stripeAccountId",
+      admin.from("hoteles").update({ stripe_account_id: account.id }).eq("id", tenant.hotelId),
+    );
     await upsertConnectState(tenant.hotelId, deriveConnectState(account));
     return account.id;
   }

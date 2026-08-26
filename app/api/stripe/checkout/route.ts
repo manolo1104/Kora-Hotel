@@ -1,3 +1,4 @@
+import { leer } from "@/lib/db/result";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient, adminEnvReady } from "@/lib/supabase/admin";
@@ -46,11 +47,17 @@ export async function POST(req: Request) {
 
   try {
     // Reusar el customer si ya existe; si no, crearlo y guardarlo.
-    const { data: susc } = await admin
-      .from("suscripciones")
-      .select("stripe_customer_id, estado")
-      .eq("user_id", user.id)
-      .maybeSingle();
+    // Lanza si falla. Con `?? null`, un error de lectura hacía que la guarda de
+    // "ya tienes un plan activo" fallara en ABIERTO: el cliente que ya paga
+    // llega a Stripe otra vez y acaba con dos suscripciones cobrándole.
+    const susc = await leer<{ stripe_customer_id: string | null; estado: string }>(
+      "checkout.suscripcionExistente",
+      admin
+        .from("suscripciones")
+        .select("stripe_customer_id, estado")
+        .eq("user_id", user.id)
+        .maybeSingle(),
+    );
 
     if (susc && (susc.estado === "activa" || susc.estado === "cortesia")) {
       return NextResponse.json(
@@ -97,13 +104,18 @@ export async function POST(req: Request) {
     // ni 30 días extra encima de su prueba, ni cobrarle antes de tiempo. Sin
     // hotel aún (paga primero, carga después) → 30 días desde hoy. Prueba
     // vencida (o a <48 h, mínimo de Stripe) → el cobro corre desde hoy.
-    const { data: primerHotel } = await admin
-      .from("hoteles")
-      .select("created_at, extras")
-      .eq("owner_id", user.id)
-      .order("created_at", { ascending: true })
-      .limit(1)
-      .maybeSingle();
+    // Lanza si falla: sin este dato la prueba se recalcula como 30 días desde
+    // hoy, y a un hotelero que lleva 28 días de prueba se le regalarían otros 30.
+    const primerHotel = await leer<{ created_at: string | null; extras: Record<string, unknown> | null }>(
+      "checkout.primerHotel",
+      admin
+        .from("hoteles")
+        .select("created_at, extras")
+        .eq("owner_id", user.id)
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle(),
+    );
     const prueba = primerHotel
       ? pruebaDelHotel(primerHotel as { created_at: string | null; extras: Record<string, unknown> | null })
       : null;

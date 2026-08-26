@@ -1,3 +1,4 @@
+import { leer } from "@/lib/db/result";
 import { NextResponse } from "next/server";
 import { createClient as createSSRClient } from "@/lib/supabase/server";
 import { createClient as createSbClient } from "@supabase/supabase-js";
@@ -78,11 +79,17 @@ export async function POST(req: Request) {
     const esUltimoHotel = hoteles.length <= 1;
     if (esUltimoHotel && stripeEnvReady) {
       const admin = createAdminClient();
-      const { data: susc } = await admin
-        .from("suscripciones")
-        .select("stripe_subscription_id, estado")
-        .eq("user_id", user.id)
-        .maybeSingle();
+      // Lanza si falla. Con `?? null` el hotel se borraba y la suscripción se
+      // quedaba viva: a alguien que se dio de baja le seguían cobrando $550 al
+      // mes por una cuenta que ya no existe.
+      const susc = await leer<{ stripe_subscription_id: string | null; estado: string }>(
+        "eliminarHotel.suscripcion",
+        admin
+          .from("suscripciones")
+          .select("stripe_subscription_id, estado")
+          .eq("user_id", user.id)
+          .maybeSingle(),
+      );
       if (susc?.stripe_subscription_id && susc.estado !== "cancelada") {
         try {
           await getStripe().subscriptions.cancel(susc.stripe_subscription_id);
