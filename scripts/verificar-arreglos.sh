@@ -26,7 +26,11 @@ FALLOS=0; VERDES=0
 ok(){   printf '  \033[32m OK \033[0m %s\n' "$1"; VERDES=$((VERDES+1)); }
 bad(){  printf '  \033[31mROJO\033[0m %s\n' "$1"; FALLOS=$((FALLOS+1)); }
 sec(){  printf '\n\033[1m── %s\033[0m\n' "$1"; }
-G(){ grep -rnI --exclude=verificar-arreglos.sh "$@" 2>/dev/null; }
+G(){ grep -rnI --exclude=verificar-arreglos.sh "$@" 2>/dev/null | sinComentarios; }
+# Descarta los aciertos que caen DENTRO de un comentario (// … o * …).
+# Sin esto, documentar por escrito el bug que acabas de arreglar lo vuelve a
+# marcar en rojo: A1.2, A2.3 y A3.1 salían rojos por sus propios comentarios.
+sinComentarios(){ grep -vE '^[^:]+:[0-9]+:[[:space:]]*(//|\*|/\*)'; }
 # cero <nombre> <comando…>  → verde si el comando no imprime ninguna línea
 cero(){ local nom="$1"; shift; local s n; s="$("$@" 2>/dev/null)"; n=$(printf '%s' "$s" | grep -c .)
   if [ "$n" -eq 0 ]; then ok "$nom"; else bad "$nom — $n resultado(s), deberían ser 0"
@@ -44,7 +48,10 @@ cero "A1.4 ningún error de Postgres al navegador"  bash -c 'grep -rnI --exclude
 
 sec "A2 · Cero errores tragados y cero promesas flotantes"
 cero "A2.1 sin .catch(() => {})"                   bash -c 'grep -rnI --exclude=verificar-arreglos.sh --include="*.ts" --include="*.tsx" -e ".catch(() => {})" -e ".catch(()=>{})" app lib components agentes'
-cero "A2.2 sin 'void ' a nivel de sentencia"       bash -c 'grep -rnIE --include="*.ts" --include="*.tsx" "^[[:space:]]*void " app lib components'
+# `void` sólo pierde trabajo en el SERVIDOR (Vercel congela la función al
+# responder). En un componente de navegador es la forma idiomática de decir
+# "esta promesa va sin await a propósito", así que ahí no es un hallazgo.
+cero "A2.2 sin 'void ' a nivel de sentencia (servidor)" bash -c 'grep -rnIE --include="*.ts" "^[[:space:]]*void " app/api lib'
 cero "A2.3 sin 'void (async'"                      G --include="*.ts" --include="*.tsx" "void (async" app lib components
 
 sec "A3 · Tipos contra unidades"
