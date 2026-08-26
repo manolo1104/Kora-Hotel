@@ -1,3 +1,4 @@
+import { negar } from "@/lib/panel/permisos";
 // Comprobante branded de una RESERVA (imprimible / descargable). Usa la marca
 // del hotel activo + los datos de la reserva + los overrides guardados (columna
 // doc). Reemplaza al viejo buildBookingHtml hardcodeado a Paraíso.
@@ -14,6 +15,8 @@ export const dynamic = "force-dynamic";
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const ctx = await getActiveHotel();
   if (!ctx) return NextResponse.json({ error: "no-auth" }, { status: 401 });
+  const no = negar(ctx, "reservas:leer");
+  if (no) return no;
 
   const { id } = await params; // confirmación (folio)
   const bookings = await getAllBookings(ctx.hotelId);

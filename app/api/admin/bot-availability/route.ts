@@ -1,3 +1,4 @@
+import { negar } from "@/lib/panel/permisos";
 // Verificador de disponibilidad del panel: dadas unas fechas, devuelve EXACTAMENTE
 // lo que Camila ofrecería (mismos cuartos y precios), reusando botAvailability —
 // la misma función que consume el bot vivo y el chat de prueba. Sin IA, determinista.
@@ -15,6 +16,8 @@ const ISO = /^\d{4}-\d{2}-\d{2}$/;
 export async function POST(req: Request) {
   const ctx = await getActiveHotel();
   if (!ctx) return NextResponse.json({ error: "no-auth" }, { status: 401 });
+  const no = negar(ctx, "bot:leer");
+  if (no) return no;
 
   let body: { checkin?: unknown; checkout?: unknown };
   try {

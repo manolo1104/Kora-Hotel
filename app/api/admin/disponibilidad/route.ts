@@ -1,3 +1,4 @@
+import { negar } from "@/lib/panel/permisos";
 import { z } from "zod";
 import { rutaSegura } from "@/lib/api/responder";
 // Disponibilidad del calendario (multi-tenant, Supabase).
@@ -76,6 +77,8 @@ export async function GET(req: NextRequest) {
   return rutaSegura("admin.disponibilidad.get", async () => {
   const ctx = await getActiveHotel();
   if (!ctx) return NextResponse.json({ error: "no-auth" }, { status: 401 });
+  const no = negar(ctx, "reservas:leer");
+  if (no) return no;
 
   const url = new URL(req.url);
   const today = isoToday();
@@ -134,6 +137,8 @@ export async function POST(req: NextRequest) {
   return rutaSegura("admin.disponibilidad.post", async () => {
   const ctx = await getActiveHotel();
   if (!ctx) return NextResponse.json({ error: "no-auth" }, { status: 401 });
+  const no = negar(ctx, "calendario:escribir");
+  if (no) return no;
 
   const cuerpo = CUARTO_FECHA.safeParse(await req.json());
   if (!cuerpo.success) {
@@ -152,6 +157,8 @@ export async function DELETE(req: NextRequest) {
   return rutaSegura("admin.disponibilidad.delete", async () => {
   const ctx = await getActiveHotel();
   if (!ctx) return NextResponse.json({ error: "no-auth" }, { status: 401 });
+  const no = negar(ctx, "calendario:escribir");
+  if (no) return no;
 
   const cuerpo = CUARTO_FECHA.safeParse(await req.json());
   if (!cuerpo.success) {

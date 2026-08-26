@@ -1,3 +1,4 @@
+import { negar } from "@/lib/panel/permisos";
 import { NextRequest, NextResponse } from 'next/server';
 import { getActiveHotel } from '@/lib/panel/active-hotel';
 import { getQuote, updateQuoteStatus, logAgentActivity } from '@/lib/db/admin';
@@ -33,6 +34,8 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
   return rutaSegura('admin.cotizaciones.sendEmail', async () => {
   const ctx = await getActiveHotel();
   if (!ctx) return NextResponse.json({ error: 'no-auth' }, { status: 401 });
+  const no = negar(ctx, "marketing:enviar");
+  if (no) return no;
 
   const { id } = await params;
   const q = await getQuote(ctx.hotelId, id);

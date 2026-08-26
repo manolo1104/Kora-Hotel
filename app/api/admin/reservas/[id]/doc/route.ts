@@ -1,3 +1,4 @@
+import { negar } from "@/lib/panel/permisos";
 // Guarda los overrides del documento de una RESERVA (editor "modificar antes de
 // descargar") en la columna doc. Auth por getActiveHotel(). El id es la
 // confirmación (folio).
@@ -11,6 +12,8 @@ export const dynamic = "force-dynamic";
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const ctx = await getActiveHotel();
   if (!ctx) return NextResponse.json({ error: "no-auth" }, { status: 401 });
+  const no = negar(ctx, "reservas:escribir");
+  if (no) return no;
 
   const { id } = await params; // confirmación (folio)
   let body: unknown;

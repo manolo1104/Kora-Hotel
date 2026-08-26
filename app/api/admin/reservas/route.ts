@@ -1,3 +1,4 @@
+import { negar } from "@/lib/panel/permisos";
 import { NextRequest, NextResponse } from 'next/server';
 import { getActiveHotel } from '@/lib/panel/active-hotel';
 import { getAllBookings, createManualBooking } from '@/lib/db/admin';
@@ -15,6 +16,8 @@ export const dynamic = 'force-dynamic';
 export async function GET(req: NextRequest) {
   const ctx = await getActiveHotel();
   if (!ctx) return NextResponse.json({ error: 'no-auth' }, { status: 401 });
+  const no = negar(ctx, "reservas:leer");
+  if (no) return no;
 
   const { searchParams } = new URL(req.url);
   const search = searchParams.get('search')?.toLowerCase() || '';
@@ -35,6 +38,8 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const ctx = await getActiveHotel();
   if (!ctx) return NextResponse.json({ error: 'no-auth' }, { status: 401 });
+  const no = negar(ctx, "reservas:escribir");
+  if (no) return no;
 
   try {
     const data = await req.json();

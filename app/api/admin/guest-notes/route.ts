@@ -1,3 +1,4 @@
+import { negar } from "@/lib/panel/permisos";
 import { rutaSegura } from "@/lib/api/responder";
 import { NextResponse } from "next/server";
 import { getActiveHotel } from "@/lib/panel/active-hotel";
@@ -10,6 +11,8 @@ export async function GET() {
   return rutaSegura("admin.guestNotes.get", async () => {
   const ctx = await getActiveHotel();
   if (!ctx) return NextResponse.json({ error: "no-auth" }, { status: 401 });
+  const no = negar(ctx, "clientes:leer");
+  if (no) return no;
   const notas = await getGuestNotes(ctx.hotelId);
   return NextResponse.json(notas);
   });
@@ -20,6 +23,8 @@ export async function POST(req: Request) {
   return rutaSegura("admin.guestNotes.post", async () => {
   const ctx = await getActiveHotel();
   if (!ctx) return NextResponse.json({ error: "no-auth" }, { status: 401 });
+  const no = negar(ctx, "clientes:escribir");
+  if (no) return no;
   const { email, notas } = await req.json();
   if (!email || typeof email !== "string") {
     return NextResponse.json({ error: "email requerido" }, { status: 400 });

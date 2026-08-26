@@ -11,7 +11,11 @@
 //  - Los errores son POR CANAL: un iCal caído marca ese canal en 'error' y sigue
 //    con el resto; nunca aborta la corrida completa.
 //
-// El mismo botón "Sync ahora" del panel pega aquí con NEXT_PUBLIC_CRON_SECRET.
+// El botón "Sync ahora" del panel NO pega aquí: usa /api/admin/canales/sync,
+// que va con la sesión del hotelero y acotado a SU hotel. (Este comentario decía
+// lo contrario y nombraba un NEXT_PUBLIC_CRON_SECRET que no existe en ninguna
+// parte; dejarlo escrito invita a que alguien publique el secreto de los crons
+// en el navegador para "arreglar" el botón.)
 
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";

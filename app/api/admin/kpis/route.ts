@@ -1,3 +1,4 @@
+import { negar } from "@/lib/panel/permisos";
 import { NextResponse } from "next/server";
 import { getActiveHotel } from "@/lib/panel/active-hotel";
 import { getAllBookings } from "@/lib/db/admin";
@@ -9,6 +10,8 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   const ctx = await getActiveHotel();
   if (!ctx) return NextResponse.json({ error: "no-auth" }, { status: 401 });
+  const no = negar(ctx, "ia:usar");
+  if (no) return no;
   const bookings = await getAllBookings(ctx.hotelId);
   const kpis = calcKPIs(bookings, totalUnits(ctx.hotel) || undefined);
   return NextResponse.json(kpis);

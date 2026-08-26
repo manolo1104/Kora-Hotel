@@ -1,3 +1,4 @@
+import { negar } from "@/lib/panel/permisos";
 import { NextResponse } from "next/server";
 import { getActiveHotel } from "@/lib/panel/active-hotel";
 import { enviarEmail, resendEnvReady } from "@/lib/email/resend";
@@ -46,6 +47,8 @@ export async function POST(req: Request) {
   // 1) Tenant: identidad por sesión, hotel por cookie verificada contra members.
   const ctx = await getActiveHotel();
   if (!ctx) return NextResponse.json({ ok: false, error: "no-auth" }, { status: 401 });
+  const no = negar(ctx, "marketing:enviar");
+  if (no) return no;
 
   // 2) Dependencias de infraestructura (fallan con status != 200, no 200/ok:false).
   if (!process.env.ANTHROPIC_API_KEY) {

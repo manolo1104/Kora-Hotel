@@ -1,3 +1,4 @@
+import { negar } from "@/lib/panel/permisos";
 import { NextResponse } from "next/server";
 import { getActiveHotel } from "@/lib/panel/active-hotel";
 import { getBotStatus, setBotStatus } from "@/lib/db/admin";
@@ -41,6 +42,8 @@ export async function GET() {
   const ctx = await getActiveHotel();
   // Igual que el POST: sin sesión/hotel activo no hay estado que reportar.
   if (!ctx) return NextResponse.json({ error: "no-auth" }, { status: 401 });
+  const no = negar(ctx, "bot:leer");
+  if (no) return no;
   const enabled = await getBotStatus(ctx.hotelId);
   const conexion = await conexionRuntime(ctx.hotel.slug);
   return NextResponse.json({ enabled, conexion });
@@ -49,6 +52,8 @@ export async function GET() {
 export async function POST(req: Request) {
   const ctx = await getActiveHotel();
   if (!ctx) return NextResponse.json({ error: "no-auth" }, { status: 401 });
+  const no = negar(ctx, "bot:entrenar");
+  if (no) return no;
   const { enabled } = await req.json();
   await setBotStatus(ctx.hotelId, Boolean(enabled));
   return NextResponse.json({ ok: true });

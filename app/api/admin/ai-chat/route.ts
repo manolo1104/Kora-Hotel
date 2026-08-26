@@ -1,3 +1,4 @@
+import { negar } from "@/lib/panel/permisos";
 import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { getActiveHotel } from "@/lib/panel/active-hotel";
@@ -58,6 +59,8 @@ export async function POST(req: Request) {
   // 1) Tenant: identidad por sesión, hotel por cookie verificada contra members.
   const ctx = await getActiveHotel();
   if (!ctx) return new Response("no-auth", { status: 401 });
+  const no = negar(ctx, "ia:usar");
+  if (no) return no;
 
   // 2) Historial del cliente.
   let body: { messages?: ChatMsg[] };

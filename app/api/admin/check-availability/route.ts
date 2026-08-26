@@ -1,3 +1,4 @@
+import { negar } from "@/lib/panel/permisos";
 import { NextRequest, NextResponse } from 'next/server';
 import { getActiveHotel } from '@/lib/panel/active-hotel';
 import { checkAvailability } from '@/lib/db/availability';
@@ -10,6 +11,8 @@ export const dynamic = 'force-dynamic';
 export async function POST(req: NextRequest) {
   const ctx = await getActiveHotel();
   if (!ctx) return NextResponse.json({ error: 'no-auth' }, { status: 401 });
+  const no = negar(ctx, "reservas:leer");
+  if (no) return no;
 
   const { checkin, checkout, rooms } = await req.json();
   const roomNames = Array.isArray(rooms)

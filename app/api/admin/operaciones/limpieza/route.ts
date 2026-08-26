@@ -1,3 +1,4 @@
+import { negar } from "@/lib/panel/permisos";
 import { rutaSegura } from "@/lib/api/responder";
 import { NextRequest, NextResponse } from "next/server";
 import { getActiveHotel } from "@/lib/panel/active-hotel";
@@ -24,6 +25,8 @@ export async function GET(req: NextRequest) {
   return rutaSegura("admin.limpieza.get", async () => {
   const ctx = await getActiveHotel();
   if (!ctx) return NextResponse.json({ error: "no autorizado" }, { status: 401 });
+  const no = negar(ctx, "operaciones:leer");
+  if (no) return no;
 
   const fecha = req.nextUrl.searchParams.get("fecha") || undefined;
   const tasks = await getCleaningTasks(ctx.hotelId);
@@ -38,6 +41,8 @@ export async function POST(req: NextRequest) {
   return rutaSegura("admin.limpieza.post", async () => {
   const ctx = await getActiveHotel();
   if (!ctx) return NextResponse.json({ error: "no autorizado" }, { status: 401 });
+  const no = negar(ctx, "operaciones:escribir");
+  if (no) return no;
 
   try {
     const data = await req.json();
@@ -62,6 +67,8 @@ export async function PATCH(req: NextRequest) {
   return rutaSegura("admin.limpieza.patch", async () => {
   const ctx = await getActiveHotel();
   if (!ctx) return NextResponse.json({ error: "no autorizado" }, { status: 401 });
+  const no = negar(ctx, "operaciones:escribir");
+  if (no) return no;
 
   try {
     const { id, estado, asignado, notas } = await req.json();

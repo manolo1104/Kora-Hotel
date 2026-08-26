@@ -1,3 +1,4 @@
+import { negar } from "@/lib/panel/permisos";
 // Chat de PRUEBA de Camila dentro del panel (sin QR, sin WhatsApp). Corre el
 // mismo cerebro (buildBotSystemPrompt + herramientas) del lado servidor, con los
 // datos REALES del hotel de la cuenta activa. `checar_disponibilidad` es real
@@ -21,6 +22,8 @@ const MAX_TOOL_ITERS = 6;
 export async function POST(req: Request) {
   const ctx = await getActiveHotel();
   if (!ctx) return NextResponse.json({ error: "no-auth" }, { status: 401 });
+  const no = negar(ctx, "bot:leer");
+  if (no) return no;
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return NextResponse.json({ ok: false, error: "sin-ia" }, { status: 503 });

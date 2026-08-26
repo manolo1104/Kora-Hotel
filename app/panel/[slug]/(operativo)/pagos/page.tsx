@@ -1,5 +1,6 @@
 import { requireHotelMember } from "@/lib/tenant";
 import PagosClient from "./PagosClient";
+import { puede } from "@/lib/panel/permisos";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +14,7 @@ export default async function PagosPage({ params }: { params: Promise<{ slug: st
   // que abre el Express Dashboard de Stripe del hotel ya autenticado, donde se
   // cambia la cuenta bancaria a la que caen los depósitos. La API ya devuelve 403
   // (app/api/panel/connect/route.ts); esto evita además la pantalla a medias.
-  if (ctx.rol !== "dueno") {
+  if (!puede(ctx.rol, "pagos:ver")) {
     return (
       <div className="mx-auto max-w-lg px-4 py-16 text-center">
         <h1 className="text-xl font-semibold text-[#1B4332]">Pagos</h1>

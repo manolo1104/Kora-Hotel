@@ -1,3 +1,4 @@
+import { negar } from "@/lib/panel/permisos";
 import { rutaSegura } from "@/lib/api/responder";
 // Sincronización iCal MANUAL desde el panel ("Sync ahora"), AUTENTICADA y
 // acotada al hotel activo (getActiveHotel). A diferencia del cron global
@@ -51,6 +52,8 @@ export async function POST() {
   return rutaSegura("admin.canales.sync.post", async () => {
   const ctx = await getActiveHotel();
   if (!ctx) return NextResponse.json({ error: "no-auth" }, { status: 401 });
+  const no = negar(ctx, "canales:escribir");
+  if (no) return no;
 
   const supabase = createAdminClient();
   const { data, error } = await supabase

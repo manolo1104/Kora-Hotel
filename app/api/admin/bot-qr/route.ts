@@ -1,3 +1,4 @@
+import { negar } from "@/lib/panel/permisos";
 // Estado + QR del bot de WhatsApp de un hotel, para mostrarlo en el panel.
 // El QR lo genera el runtime de Camila (whatsapp-web.js en Railway); aquí Kora
 // hace de proxy: valida que quien pide sea miembro del hotel y consulta al
@@ -6,7 +7,6 @@
 
 import { NextResponse } from "next/server";
 import { getActiveHotel } from "@/lib/panel/active-hotel";
-import { requireRol, SOLO_DUENO } from "@/lib/panel/roles";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,7 +20,7 @@ export async function GET() {
   // links de pago) y puede escribir haciéndose pasar por el hotel. Antes bastaba
   // ser miembro, así que un rol `limpieza` podía pedirlo. Es la misma acción de
   // alto privilegio que generar el token del bot, que sí exigía `dueno`.
-  const noPuede = requireRol(ctx, SOLO_DUENO, "Solo el dueño puede vincular el WhatsApp del hotel.");
+  const noPuede = negar(ctx, "bot:vincular");
   if (noPuede) return noPuede;
   console.warn(`[bot-qr] QR de vinculación solicitado por ${ctx.userId} en ${ctx.hotel.slug}`);
 

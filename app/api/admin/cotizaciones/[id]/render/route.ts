@@ -1,3 +1,4 @@
+import { negar } from "@/lib/panel/permisos";
 // Documento branded de una COTIZACIÓN (imprimible / descargable). Usa la marca
 // del hotel activo (bookingBrandFromHotel) + los datos de la cotización + los
 // overrides guardados (columna doc). Reemplaza al viejo buildBookingHtml
@@ -14,6 +15,8 @@ export const dynamic = "force-dynamic";
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const ctx = await getActiveHotel();
   if (!ctx) return NextResponse.json({ error: "no-auth" }, { status: 401 });
+  const no = negar(ctx, "cotizaciones:leer");
+  if (no) return no;
 
   const { id } = await params;
   const q = await getQuote(ctx.hotelId, id);

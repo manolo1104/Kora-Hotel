@@ -1,3 +1,4 @@
+import { negar } from "@/lib/panel/permisos";
 import { rutaSegura } from "@/lib/api/responder";
 import { NextResponse } from "next/server";
 import { getActiveHotel } from "@/lib/panel/active-hotel";
@@ -31,9 +32,8 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   return rutaSegura("admin.cotizaciones.convertir.post", async () => {
   const ctx = await getActiveHotel();
   if (!ctx) return NextResponse.json({ error: "no-auth" }, { status: 401 });
-  if (ctx.rol !== "dueno" && ctx.rol !== "encargada" && ctx.rol !== "recepcion") {
-    return NextResponse.json({ error: "Sin permiso para crear reservas." }, { status: 403 });
-  }
+  const no = negar(ctx, "reservas:escribir");
+  if (no) return no;
 
   const { id } = await params;
   const q = await getQuote(ctx.hotelId, id);

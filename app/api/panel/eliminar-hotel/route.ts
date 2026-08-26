@@ -1,3 +1,4 @@
+import { negar } from "@/lib/panel/permisos";
 import { leer } from "@/lib/db/result";
 import { NextResponse } from "next/server";
 import { createClient as createSSRClient } from "@/lib/supabase/server";
@@ -46,12 +47,8 @@ export async function POST(req: Request) {
   if (!ctx) {
     return NextResponse.json({ error: "No tienes acceso a ese hotel." }, { status: 403 });
   }
-  if (ctx.rol !== "dueno") {
-    return NextResponse.json(
-      { error: "Solo el dueño de la cuenta puede eliminar el hotel." },
-      { status: 403 }
-    );
-  }
+  const noBorra = negar(ctx, "hotel:eliminar");
+  if (noBorra) return noBorra;
 
   // 4) Re-verificar la contraseña de la cuenta con un cliente EFÍMERO
   //    (persistSession:false) para no rotar la sesión viva del usuario.

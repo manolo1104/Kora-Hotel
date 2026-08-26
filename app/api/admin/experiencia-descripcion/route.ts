@@ -1,3 +1,4 @@
+import { negar } from "@/lib/panel/permisos";
 import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { getActiveHotel } from "@/lib/panel/active-hotel";
@@ -23,6 +24,8 @@ const CATEGORIAS: Record<string, string> = {
 export async function POST(req: Request) {
   const ctx = await getActiveHotel();
   if (!ctx) return NextResponse.json({ error: "no-auth" }, { status: 401 });
+  const no = negar(ctx, "sitio:editar");
+  if (no) return no;
   if (!process.env.ANTHROPIC_API_KEY) {
     return NextResponse.json({ error: "La IA no está configurada (falta ANTHROPIC_API_KEY)." }, { status: 503 });
   }

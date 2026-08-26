@@ -1,7 +1,7 @@
+import { negar } from "@/lib/panel/permisos";
 import { NextRequest, NextResponse } from "next/server";
 import { escribir } from "@/lib/db/result";
 import { getActiveHotel } from "@/lib/panel/active-hotel";
-import { requireRol, SOLO_DUENO } from "@/lib/panel/roles";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getStripe, stripeEnvReady } from "@/lib/stripe/server";
 import { deriveConnectState, upsertConnectState, ensureOxxoCapability } from "@/lib/stripe/connect";
@@ -24,7 +24,7 @@ export async function GET() {
   // el saldo, los últimos 10 cobros y los últimos 5 depósitos. Cualquier miembro
   // (limpieza, cocina, recepción) lo obtenía con un fetch desde la consola: la UI
   // sólo escondía el botón. Es desvío de dinero, no una fuga de información.
-  const noPuede = requireRol(ctx, SOLO_DUENO, "Solo el dueño puede ver los pagos del hotel.");
+  const noPuede = negar(ctx, "pagos:ver");
   if (noPuede) return noPuede;
   if (!stripeEnvReady) return NextResponse.json({ connected: false, stripe: false });
 
@@ -140,9 +140,8 @@ export async function POST(req: NextRequest) {
   if (!stripeEnvReady) {
     return NextResponse.json({ error: "Pagos aún no configurados." }, { status: 503 });
   }
-  if (ctx.rol !== "dueno") {
-    return NextResponse.json({ error: "Solo el dueño puede conectar pagos." }, { status: 403 });
-  }
+  const noConecta = negar(ctx, "pagos:conectar");
+  if (noConecta) return noConecta;
 
   const stripe = getStripe();
   const admin = createAdminClient();

@@ -1,3 +1,4 @@
+import { negar } from "@/lib/panel/permisos";
 import { rutaSegura } from "@/lib/api/responder";
 import { NextRequest, NextResponse } from 'next/server';
 import { getActiveHotel } from '@/lib/panel/active-hotel';
@@ -9,6 +10,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   return rutaSegura("admin.cotizaciones.id.patch", async () => {
   const ctx = await getActiveHotel();
   if (!ctx) return NextResponse.json({ error: 'no-auth' }, { status: 401 });
+  const no = negar(ctx, "cotizaciones:escribir");
+  if (no) return no;
 
   const { id } = await params;
   const changes = await req.json();
@@ -36,6 +39,8 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   return rutaSegura("admin.cotizaciones.id.delete", async () => {
   const ctx = await getActiveHotel();
   if (!ctx) return NextResponse.json({ error: 'no-auth' }, { status: 401 });
+  const no = negar(ctx, "cotizaciones:escribir");
+  if (no) return no;
 
   const { id } = await params;
   const quote = await getQuote(ctx.hotelId, id);

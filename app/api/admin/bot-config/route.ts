@@ -1,3 +1,4 @@
+import { negar } from "@/lib/panel/permisos";
 // Configuración + entrenamiento de Camila para el hotel de la cuenta activa.
 // GET: estado (on/off, idioma), entrenamiento actual (extras.bot) y un resumen de
 // "lo que Camila ya sabe" (sacado ESTRICTAMENTE de los datos de este hotel).
@@ -5,7 +6,6 @@
 
 import { NextResponse } from "next/server";
 import { getActiveHotel } from "@/lib/panel/active-hotel";
-import { requireRol, MANDO, SOLO_DUENO } from "@/lib/panel/roles";
 import { saveBotConfig, type BotTrainingInput } from "@/lib/db/admin";
 import { hotelRooms } from "@/lib/booking";
 import { normalizeFaqs } from "@/lib/bot/prompt";
@@ -19,6 +19,8 @@ const str = (v: unknown, max = 4000) =>
 export async function GET() {
   const ctx = await getActiveHotel();
   if (!ctx) return NextResponse.json({ error: "no-auth" }, { status: 401 });
+  const noLee = negar(ctx, "bot:leer");
+  if (noLee) return noLee;
 
   const hotel = ctx.hotel;
   const cfg = (hotel.config ?? {}) as Record<string, unknown>;
@@ -74,7 +76,7 @@ export async function POST(req: Request) {
   if (!ctx) return NextResponse.json({ error: "no-auth" }, { status: 401 });
 
   // Entrenar a Camila es trabajo operativo: lo hace también la encargada.
-  const noEsMando = requireRol(ctx, MANDO, "No tienes permiso para configurar el bot.");
+  const noEsMando = negar(ctx, "bot:entrenar");
   if (noEsMando) return noEsMando;
 
   let body: Record<string, unknown>;
@@ -101,11 +103,7 @@ export async function POST(req: Request) {
     !!body.bot && typeof body.bot === "object" && "pago" in (body.bot as Record<string, unknown>);
   const tocaAdminPhone = typeof body.adminPhone === "string";
   if (tocaPago || tocaAdminPhone) {
-    const noEsDueno = requireRol(
-      ctx,
-      SOLO_DUENO,
-      "Solo el dueño puede cambiar los datos bancarios o el número administrador del bot.",
-    );
+    const noEsDueno = negar(ctx, "bot:configurar");
     if (noEsDueno) return noEsDueno;
   }
 

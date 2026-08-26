@@ -1,3 +1,4 @@
+import { negar } from "@/lib/panel/permisos";
 import { NextResponse } from "next/server";
 import { getActiveHotel } from "@/lib/panel/active-hotel";
 import { getResenasHotel, responderResena, ocultarResena } from "@/lib/db/reviews";
@@ -10,6 +11,8 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   const ctx = await getActiveHotel();
   if (!ctx) return NextResponse.json({ error: "no-auth" }, { status: 401 });
+  const no = negar(ctx, "sitio:leer");
+  if (no) return no;
   const resenas = await getResenasHotel(ctx.hotelId);
   return NextResponse.json({ resenas });
 }
@@ -17,6 +20,8 @@ export async function GET() {
 export async function POST(req: Request) {
   const ctx = await getActiveHotel();
   if (!ctx) return NextResponse.json({ error: "no-auth" }, { status: 401 });
+  const no = negar(ctx, "sitio:editar");
+  if (no) return no;
 
   const body = (await req.json().catch(() => null)) as
     | { action?: string; id?: string; respuesta?: string; publicada?: boolean }

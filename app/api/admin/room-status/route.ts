@@ -1,3 +1,4 @@
+import { negar } from "@/lib/panel/permisos";
 import { z } from "zod";
 import { rutaSegura } from "@/lib/api/responder";
 import { NextRequest, NextResponse } from "next/server";
@@ -32,6 +33,8 @@ export async function GET() {
   return rutaSegura("admin.roomStatus.get", async () => {
   const ctx = await getActiveHotel();
   if (!ctx) return NextResponse.json({ error: "no autorizado" }, { status: 401 });
+  const no = negar(ctx, "operaciones:leer");
+  if (no) return no;
 
   const [statuses, bookings] = await Promise.all([
     getRoomStatuses(ctx.hotelId),
@@ -87,6 +90,8 @@ export async function PATCH(req: NextRequest) {
   return rutaSegura("admin.roomStatus.patch", async () => {
   const ctx = await getActiveHotel();
   if (!ctx) return NextResponse.json({ error: "no autorizado" }, { status: 401 });
+  const no = negar(ctx, "operaciones:escribir");
+  if (no) return no;
 
   // El `as RoomStatusType` de antes era una promesa que nadie comprobaba: un
   // estado inventado llegaba a Postgres, chocaba con el CHECK de la columna, y

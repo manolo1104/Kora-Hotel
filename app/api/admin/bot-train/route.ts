@@ -1,3 +1,4 @@
+import { negar } from "@/lib/panel/permisos";
 // Entrena a Camila con IA para el hotel de la cuenta activa. La IA propone
 // personalidad/saludo/instrucciones SOLO a partir de los datos de ESE hotel; el
 // dueño revisa y ajusta antes de guardar (con /api/admin/bot-config).
@@ -12,6 +13,8 @@ export const dynamic = "force-dynamic";
 export async function POST() {
   const ctx = await getActiveHotel();
   if (!ctx) return NextResponse.json({ error: "no-auth" }, { status: 401 });
+  const no = negar(ctx, "bot:entrenar");
+  if (no) return no;
 
   try {
     const draft = await draftBotTraining(ctx.hotel);

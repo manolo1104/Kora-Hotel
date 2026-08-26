@@ -1,3 +1,4 @@
+import { negar } from "@/lib/panel/permisos";
 // Expande un link CORTO de Google Maps (maps.app.goo.gl / goo.gl) siguiendo su
 // redirección, y devuelve { embedUrl, mapsUrl } listos para el editor. Solo
 // resuelve dominios de Google (evita usarse como proxy SSRF) y requiere sesión.
@@ -15,6 +16,8 @@ const HOSTS_PERMITIDOS = ["maps.app.goo.gl", "goo.gl", "g.co", "maps.google.com"
 export async function POST(req: Request) {
   const ctx = await getActiveHotel();
   if (!ctx) return NextResponse.json({ error: "no-auth" }, { status: 401 });
+  const no = negar(ctx, "sitio:editar");
+  if (no) return no;
 
   let input = "";
   try {

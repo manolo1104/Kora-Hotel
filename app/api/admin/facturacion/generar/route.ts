@@ -1,3 +1,4 @@
+import { negar } from "@/lib/panel/permisos";
 import { NextRequest, NextResponse } from 'next/server';
 import { getActiveHotel } from '@/lib/panel/active-hotel';
 import { getAllBookings } from '@/lib/db/admin';
@@ -9,6 +10,8 @@ export async function POST(req: NextRequest) {
   // Aislamiento multi-tenant: el hotel sale de la sesión + cookie, nunca del body.
   const ctx = await getActiveHotel();
   if (!ctx) return NextResponse.json({ error: 'no-auth' }, { status: 401 });
+  const no = negar(ctx, "facturacion:usar");
+  if (no) return no;
 
   // Degradación elegante: si el PAC no está configurado (CSD/credenciales), no truena.
   if (!facturamaConfigured()) {

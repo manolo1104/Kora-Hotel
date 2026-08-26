@@ -1,3 +1,4 @@
+import { negar } from "@/lib/panel/permisos";
 // Guarda los overrides del documento de una COTIZACIÓN (editor "modificar antes
 // de descargar") en la columna doc. Auth por getActiveHotel().
 
@@ -10,6 +11,8 @@ export const dynamic = "force-dynamic";
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const ctx = await getActiveHotel();
   if (!ctx) return NextResponse.json({ error: "no-auth" }, { status: 401 });
+  const no = negar(ctx, "cotizaciones:escribir");
+  if (no) return no;
 
   const { id } = await params;
   let body: unknown;

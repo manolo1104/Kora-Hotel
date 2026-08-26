@@ -1,3 +1,4 @@
+import { negar } from "@/lib/panel/permisos";
 import { leer } from "@/lib/db/result";
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
@@ -16,6 +17,8 @@ export const dynamic = "force-dynamic";
 export async function POST(req: Request) {
   const ctx = await getActiveHotel();
   if (!ctx) return NextResponse.json({ error: "no-auth" }, { status: 401 });
+  const no = negar(ctx, "sitio:editar");
+  if (no) return no;
   if (!adminEnvReady) {
     return NextResponse.json({ error: "Configuración incompleta." }, { status: 503 });
   }

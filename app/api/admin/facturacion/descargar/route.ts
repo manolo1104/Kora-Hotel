@@ -1,3 +1,4 @@
+import { negar } from "@/lib/panel/permisos";
 import { NextRequest, NextResponse } from 'next/server';
 import { getActiveHotel } from '@/lib/panel/active-hotel';
 import { getCfdiFile, facturamaConfigured, FacturamaError } from '@/lib/admin/facturama';
@@ -8,6 +9,8 @@ export async function GET(req: NextRequest) {
   // Aislamiento multi-tenant: solo miembros del hotel activo descargan.
   const ctx = await getActiveHotel();
   if (!ctx) return NextResponse.json({ error: 'no-auth' }, { status: 401 });
+  const no = negar(ctx, "facturacion:usar");
+  if (no) return no;
 
   // Degradación elegante: sin PAC configurado no truena.
   if (!facturamaConfigured()) {

@@ -11,7 +11,8 @@
     "check:inventario": "node scripts/check-inventario.mjs",
     "test": "TZ=UTC vitest run",
     "test:watch": "TZ=UTC vitest",
-    "verificar": "npm run lint && npx tsc --noEmit && npm test && npm run check:inventario"
+    "verificar": "npm run lint && npx tsc --noEmit && npm test && npm run check:inventario && npm run check:permisos",
+    "check:permisos": "node scripts/check-permisos.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.100.1",
