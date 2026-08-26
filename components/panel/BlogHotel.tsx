@@ -247,14 +247,15 @@ function EditorPost({
 
   useEffect(() => {
     let cancelado = false;
-    void fetch("/api/admin/blog-post")
+    // Sin `void`: el resultado no se usa, pero el fallo ya deja rastro abajo.
+    fetch("/api/admin/blog-post")
       .then((r) => (r.ok ? r.json() : null))
       .then((d: { usados?: number; limite?: number } | null) => {
         if (!cancelado && d && typeof d.usados === "number") {
           setCuota({ usados: d.usados, limite: d.limite ?? LIMITE_IA_MENSUAL });
         }
       })
-      .catch(() => {});
+      .catch((e) => console.error("[components/panel/BlogHotel] ignorado:", e));
     return () => {
       cancelado = true;
     };
@@ -301,11 +302,11 @@ function EditorPost({
       // Si ya está publicado, refrescar las páginas públicas al momento para
       // que la corrección se vea sin esperar la revalidación de 1 h.
       if (fresco.publicado) {
-        void fetch("/api/admin/blog-publish", {
+        fetch("/api/admin/blog-publish", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ postId: fresco.id, revalidar: true }),
-        }).catch(() => {});
+        }).catch((e) => console.error("[components/panel/BlogHotel] ignorado:", e));
       }
       return fresco;
     } finally {

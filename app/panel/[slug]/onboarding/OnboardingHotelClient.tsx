@@ -241,10 +241,17 @@ export function OnboardingHotelClient(props: Props) {
         .eq("id", props.hotelId);
       if (upErr) throw upErr;
       setPublicado(true);
-      await mergeExtras((ex) => ({
+      // El hotel YA está en línea (el update de `publicado` sí pasó), así que la
+      // pantalla de "¡listo!" no miente. Lo que puede fallar aparte es la marca
+      // de onboarding terminado, y eso sólo significa que el asistente
+      // reaparecerá: se avisa en vez de ignorarlo, que era lo de antes.
+      const marcado = await mergeExtras((ex) => ({
         ...ex,
         onboarding: { paso: 6, completado: true },
       }));
+      if (!marcado) {
+        setError("Tu hotel ya está en línea, pero no pudimos guardar que terminaste el asistente. Puede que vuelva a aparecer.");
+      }
       setFinalizado(true);
     } catch {
       setError("No se pudo publicar. Inténtalo de nuevo.");

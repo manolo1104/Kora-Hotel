@@ -1,3 +1,4 @@
+import { rutaSegura } from "@/lib/api/responder";
 import { NextRequest, NextResponse } from 'next/server';
 import { getActiveHotel } from '@/lib/panel/active-hotel';
 import { getQuote, updateQuote, deleteQuote, type AdminQuote } from '@/lib/db/admin';
@@ -5,6 +6,7 @@ import { getQuote, updateQuote, deleteQuote, type AdminQuote } from '@/lib/db/ad
 export const dynamic = 'force-dynamic';
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  return rutaSegura("admin.cotizaciones.id.patch", async () => {
   const ctx = await getActiveHotel();
   if (!ctx) return NextResponse.json({ error: 'no-auth' }, { status: 401 });
 
@@ -27,9 +29,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   await updateQuote(ctx.hotelId, id, patch);
   return NextResponse.json({ ok: true });
+  });
 }
 
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  return rutaSegura("admin.cotizaciones.id.delete", async () => {
   const ctx = await getActiveHotel();
   if (!ctx) return NextResponse.json({ error: 'no-auth' }, { status: 401 });
 
@@ -39,4 +43,5 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
 
   await deleteQuote(ctx.hotelId, id);
   return NextResponse.json({ ok: true });
+  });
 }

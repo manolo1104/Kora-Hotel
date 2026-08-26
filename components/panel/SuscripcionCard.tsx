@@ -3,6 +3,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Loader2, CreditCard, Sparkles } from "lucide-react";
+import { postJson, mensajeDeError } from "@/lib/ui/api";
+
+const WA_KORA = process.env.NEXT_PUBLIC_WHATSAPP_KORA || "";
 
 // Tarjeta de suscripción en el panel: muestra el plan/estado y abre el
 // Customer Portal de Stripe (cambiar tarjeta, recibos, cancelar) sin
@@ -33,17 +36,27 @@ export function SuscripcionCard({
 }) {
   const [abriendo, setAbriendo] = useState(false);
   const [error, setError] = useState("");
+  const [atascado, setAtascado] = useState(false);
 
   async function abrirPortal() {
     setAbriendo(true);
     setError("");
+    setAtascado(false);
     try {
-      const res = await fetch("/api/stripe/portal", { method: "POST" });
-      const data = await res.json().catch(() => ({}));
-      if (res.ok && data.url) window.location.href = data.url;
-      else setError(data.error || "No pudimos abrir el portal de pagos.");
-    } catch {
+      const data = await postJson<{ url?: string }>("/api/stripe/portal");
+      if (data.url) {
+        window.location.href = data.url;
+        return;
+      }
       setError("No pudimos abrir el portal de pagos.");
+      setAtascado(true);
+    } catch (e) {
+      // El portal de Stripe es la ÚNICA salida que tiene un cliente para cambiar
+      // su tarjeta o cancelar. Si no abre —un stripe_customer_id que ya no
+      // existe, por ejemplo— quedaba encerrado con un mensaje genérico y sin a
+      // dónde ir. Se le enseña el motivo real y una salida humana.
+      setError(mensajeDeError(e));
+      setAtascado(true);
     } finally {
       setAbriendo(false);
     }
@@ -89,7 +102,27 @@ export function SuscripcionCard({
         <p className="text-sm font-semibold text-kora-text">
           Plan {plan ? plan.charAt(0).toUpperCase() + plan.slice(1) : "Kora"}
         </p>
-        {error && <p className="text-xs text-red-600">{error}</p>}
+        {error && (
+          <p className="text-xs text-red-600">
+            {error}
+            {atascado && WA_KORA && (
+              <>
+                {" "}
+                <a
+                  href={`https://wa.me/${WA_KORA.replace(/\D/g, "")}?text=${encodeURIComponent(
+                    "Hola, no puedo abrir el portal de pagos de Kora.",
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline"
+                >
+                  Escríbenos por WhatsApp
+                </a>{" "}
+                y lo resolvemos.
+              </>
+            )}
+          </p>
+        )}
       </div>
       {esStripe && (
         <div className="flex items-center gap-4 flex-wrap">

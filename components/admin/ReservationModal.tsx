@@ -8,6 +8,7 @@ import { type TourCat, type PaqueteCat } from '@/lib/admin/cotizaciones-catalogo
 import type { TourItem } from '@/lib/booking-html';
 import type { PaqueteItem } from '@/app/panel/[slug]/(operativo)/cotizaciones/CotizacionesClient';
 import styles from './Modal.module.css';
+import { postJson } from '@/lib/ui/api';
 
 interface HabItem { suite: string; huespedes: number; precioOverride?: number }
 
@@ -238,7 +239,7 @@ export default function ReservationModal({ booking, rooms, slug, defaultCheckin,
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [availStatus, setAvailStatus] = useState<'idle' | 'checking' | 'available' | 'unavailable'>('idle');
+  const [availStatus, setAvailStatus] = useState<'idle' | 'checking' | 'available' | 'unavailable' | 'error'>('idle');
   // Bug fix: start with totalOverride=true when editing to preserve stored total
   const [totalOverride, setTotalOverride] = useState(isEdit);
   const [successData, setSuccessData] = useState<SuccessData | null>(null);
@@ -263,7 +264,7 @@ export default function ReservationModal({ booking, rooms, slug, defaultCheckin,
         telefono: c.telefono || '',
         totalReservas: c.totalReservas || 0,
       }))))
-      .catch(() => {});
+      .catch((e) => console.error("[components/admin/ReservationModal] ignorado:", e));
   }, [isEdit]);
 
   // Close suggestions when clicking outside
@@ -349,14 +350,16 @@ export default function ReservationModal({ booking, rooms, slug, defaultCheckin,
     setAvailStatus('checking');
     const timer = setTimeout(async () => {
       try {
-        const res = await fetch('/api/admin/check-availability', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ checkin, checkout, rooms: habitaciones.map(h => h.suite) }),
-        });
-        const data = await res.json();
+        // Este indicador era fail-OPEN y de la peor manera: un 500 llegaba al
+        // `data.unavailableRooms || []`, salía vacío, y la ventana pintaba
+        // "Disponible en esas fechas" en verde. Recepción confirmaba encima de
+        // una noche vendida. Ahora un error se ve como error y NUNCA como verde.
+        const data = await postJson<{ unavailableRooms?: string[] }>(
+          '/api/admin/check-availability',
+          { checkin, checkout, rooms: habitaciones.map(h => h.suite) },
+        );
         setAvailStatus((data.unavailableRooms || []).length > 0 ? 'unavailable' : 'available');
-      } catch { setAvailStatus('idle'); }
+      } catch { setAvailStatus('error'); }
     }, 600);
     return () => clearTimeout(timer);
   }, [form.checkin, form.checkout, habitaciones, isEdit]);
@@ -716,12 +719,13 @@ export default function ReservationModal({ booking, rooms, slug, defaultCheckin,
           {!isEdit && form.checkin && form.checkout && (
             <div className={`${styles.availBadge} ${
               availStatus === 'available' ? styles.availOk :
-              availStatus === 'unavailable' ? styles.availNo :
+              availStatus === 'unavailable' || availStatus === 'error' ? styles.availNo :
               availStatus === 'checking' ? styles.availChecking : ''
             }`}>
               {availStatus === 'checking' && <><Loader2 size={13} className={styles.spin} /> Verificando disponibilidad…</>}
               {availStatus === 'available' && <><CheckCircle size={13} /> Disponible en esas fechas</>}
               {availStatus === 'unavailable' && <><AlertTriangle size={13} /> No disponible en esas fechas</>}
+              {availStatus === 'error' && <><AlertTriangle size={13} /> No se pudo verificar la disponibilidad</>}
             </div>
           )}
 

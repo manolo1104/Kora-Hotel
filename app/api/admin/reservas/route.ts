@@ -78,11 +78,14 @@ export async function POST(req: NextRequest) {
     // confirmación PREMIUM al huésped con la marca del hotel.
     // CON await: sin él Vercel congela la función al responder y el huésped se
     // queda sin su confirmación (ver la nota en /api/panel/crear-hotel).
-    await notifyBookingEmails(req, ctx.hotel, confirmacion, data).catch(() => {});
+    await notifyBookingEmails(req, ctx.hotel, confirmacion, data).catch((e) => console.error("[admin/reservas] ignorado:", e));
 
     return NextResponse.json({ ok: true, confirmacion });
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+  } catch (e) {
+    // El detalle (nombres de tabla, restricciones, columnas) se queda en el log
+    // del servidor; al navegador sólo va un mensaje que el hotelero pueda leer.
+    console.error("[admin.reservas.crear]", e);
+    return NextResponse.json({ error: "No se pudo guardar. Intenta de nuevo." }, { status: 500 });
   }
 }
 
@@ -127,7 +130,7 @@ async function notifyBookingEmails(
       total,
       anticipo,
       pagoEnHotel: anticipo <= 0,
-    }).catch(() => {});
+    }).catch((e) => console.error("[admin/reservas] ignorado:", e));
   }
 
   // 2) Confirmación al huésped (gated por email válido dentro del helper).
@@ -149,6 +152,6 @@ async function notifyBookingEmails(
         brand: bookingBrandFromHotel(hotel),
       },
       (hotel.config?.email_from as string) || null,
-    ).catch(() => {});
+    ).catch((e) => console.error("[admin/reservas] ignorado:", e));
   }
 }

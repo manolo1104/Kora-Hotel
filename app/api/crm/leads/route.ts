@@ -27,7 +27,10 @@ export async function GET(req: Request) {
     );
 
   const { data, error } = await query;
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error("[crm.leads.listar]", error.message);
+    return NextResponse.json({ error: "No se pudo completar la operación. Intenta de nuevo." }, { status: 500 });
+  }
   return NextResponse.json({ leads: data });
 }
 

@@ -1,3 +1,4 @@
+import { rutaSegura } from "@/lib/api/responder";
 import { NextResponse } from "next/server";
 import { getActiveHotel } from "@/lib/panel/active-hotel";
 import { getQuote, updateQuoteStatus } from "@/lib/db/admin";
@@ -27,6 +28,7 @@ function huespedesDeNotas(notas: string, nSuites: number): number {
 }
 
 export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  return rutaSegura("admin.cotizaciones.convertir.post", async () => {
   const ctx = await getActiveHotel();
   if (!ctx) return NextResponse.json({ error: "no-auth" }, { status: 401 });
   if (ctx.rol !== "dueno" && ctx.rol !== "encargada" && ctx.rol !== "recepcion") {
@@ -57,13 +59,11 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     pct: rules.anticipoPct,
     minNights: rules.anticipoMinNoches,
   });
-  const confirmacion = generarConfirmacion(ctx.hotel.prefijo_confirmacion);
-
-  const res = await createBookingAtomic(ctx.hotelId, {
+  const crearDesdeCotizacion = (folio: string) => createBookingAtomic(ctx.hotelId, {
     habitaciones,
     checkin: q.checkin,
     checkout: q.checkout,
-    confirmacion,
+    confirmacion: folio,
     cliente: q.cliente || null,
     telefono: q.telefono || null,
     email: q.email || null,
@@ -74,6 +74,18 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     origen: "cotizacion",
     notas: q.notas || null, // conserva ||TOURS||/||PAQUETES||/||HABS|| para render/email
   });
+
+  // El folio son 4 caracteres al azar: si choca con el índice único
+  // (hotel_id, confirmacion), se reintenta con uno nuevo. Es el mismo bucle que
+  // ya usa el webhook del motor; aquí faltaba, así que una colisión le decía al
+  // hotelero que su cotización no se podía convertir.
+  let confirmacion = "";
+  let res: Awaited<ReturnType<typeof createBookingAtomic>> = { ok: false };
+  for (let intento = 0; intento < 3; intento++) {
+    confirmacion = generarConfirmacion(ctx.hotel.prefijo_confirmacion);
+    res = await crearDesdeCotizacion(confirmacion);
+    if (res.ok || !/duplicate key|confirmacion/i.test(res.error ?? "")) break;
+  }
 
   if (!res.ok) {
     if (res.unavailable) {
@@ -87,4 +99,5 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
 
   await updateQuoteStatus(ctx.hotelId, q.id, "ACEPTADA");
   return NextResponse.json({ ok: true, confirmacion, bookingId: res.bookingId });
+  });
 }

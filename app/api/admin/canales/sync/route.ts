@@ -1,3 +1,4 @@
+import { rutaSegura } from "@/lib/api/responder";
 // Sincronización iCal MANUAL desde el panel ("Sync ahora"), AUTENTICADA y
 // acotada al hotel activo (getActiveHotel). A diferencia del cron global
 // (/api/cron/ical-sync, protegido por CRON_SECRET), aquí NO se usa ningún secreto
@@ -47,6 +48,7 @@ interface ChannelRow {
 }
 
 export async function POST() {
+  return rutaSegura("admin.canales.sync.post", async () => {
   const ctx = await getActiveHotel();
   if (!ctx) return NextResponse.json({ error: "no-auth" }, { status: 401 });
 
@@ -86,4 +88,5 @@ export async function POST() {
   }
 
   return NextResponse.json({ synced, blocks, total: channels.length });
+  });
 }

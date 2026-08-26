@@ -23,7 +23,10 @@ export async function GET() {
     .from("crm_leads")
     .select("*")
     .order("created_at", { ascending: false });
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error("[crm.export]", error.message);
+    return NextResponse.json({ error: "No se pudo completar la operación. Intenta de nuevo." }, { status: 500 });
+  }
 
   const cols: [keyof Lead, string][] = [
     ["hotel_nombre", "Hotel"],

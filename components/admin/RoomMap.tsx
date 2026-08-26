@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { X, AlertTriangle, Sparkles, BedDouble, CheckCircle } from 'lucide-react';
+import { postJson, mensajeDeError } from '@/lib/ui/api';
 import styles from './RoomMap.module.css';
 
 export type RoomStatusType = 'DISPONIBLE' | 'OCUPADA' | 'MANTENIMIENTO' | 'LIMPIEZA';
@@ -32,6 +33,7 @@ export default function RoomMap() {
   const [loading, setLoading] = useState(true);
   const [editModal, setEditModal] = useState<EditModal | null>(null);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -52,18 +54,19 @@ export default function RoomMap() {
   async function saveStatus() {
     if (!editModal || saving) return;
     setSaving(true);
+    setError('');
     try {
-      await fetch('/api/admin/room-status', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          suite: editModal.room.suite,
-          estado: editModal.estado,
-          notas: editModal.notas,
-        }),
-      });
+      // Antes el modal se cerraba pasara lo que pasara: recepción cambiaba el
+      // estado de un cuarto, la ventana se cerraba, y el mapa seguía igual.
+      await postJson('/api/admin/room-status', {
+        suite: editModal.room.suite,
+        estado: editModal.estado,
+        notas: editModal.notas,
+      }, 'PATCH');
       setEditModal(null);
       await load();
+    } catch (e) {
+      setError(mensajeDeError(e));
     } finally {
       setSaving(false);
     }
@@ -169,6 +172,9 @@ export default function RoomMap() {
               />
             </div>
 
+            {error && (
+              <p role="alert" style={{ color: '#b42318', fontSize: 13, margin: '0 0 8px' }}>{error}</p>
+            )}
             <div className={styles.modalFooter}>
               <button className={styles.cancelBtn} onClick={() => setEditModal(null)}>Cancelar</button>
               <button className={styles.saveBtn} onClick={saveStatus} disabled={saving}>

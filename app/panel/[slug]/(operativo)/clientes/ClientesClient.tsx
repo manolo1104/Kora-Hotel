@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { Search, MessageSquare, X, Loader2, Send, Star, History, StickyNote } from 'lucide-react';
 import type { GuestProfile } from '@/lib/admin/sheets-admin';
 import styles from './clientes.module.css';
+import { postJson, mensajeDeError } from '@/lib/ui/api';
 
 interface Props { initialClientes: GuestProfile[]; slug: string }
 
@@ -11,20 +12,24 @@ function ClienteDrawer({ cliente, hotelName, onClose }: { cliente: GuestProfile;
   const [notas, setNotas] = useState(cliente.notas || '');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState('');
   const [sendingOffer, setSendingOffer] = useState(false);
   const [offerSent, setOfferSent] = useState(false);
   const [activeTab, setActiveTab] = useState<'perfil' | 'historial' | 'notas'>('perfil');
 
   async function saveNotas() {
     setSaving(true);
+    setError('');
     try {
-      await fetch('/api/admin/guest-notes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: cliente.email, notas }),
-      });
+      // El fetch de antes no miraba `res.ok`. fetch sólo lanza si falla la RED:
+      // un 500 entraba por el camino feliz y pintaba el ✓ verde con la nota
+      // perdida. Y 25 líneas más abajo, `sendOffer` ya traía el arreglo con su
+      // comentario — nunca se propagó a esta función de al lado.
+      await postJson('/api/admin/guest-notes', { email: cliente.email, notas });
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
+    } catch (e) {
+      setError(mensajeDeError(e));
     } finally { setSaving(false); }
   }
 
@@ -32,22 +37,19 @@ function ClienteDrawer({ cliente, hotelName, onClose }: { cliente: GuestProfile;
     if (sendingOffer) return;
     if (!confirm(`¿Enviar oferta personalizada a ${cliente.nombre} (${cliente.email})?`)) return;
     setSendingOffer(true);
+    setError('');
     try {
-      const res = await fetch('/api/admin/send-offer', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: cliente.email, nombre: cliente.nombre,
-          suitesFavoritas: cliente.suitesFavoritas,
-          ultimaEstancia: cliente.ultimaEstancia,
-          totalReservas: cliente.totalReservas, notas: cliente.notas,
-        }),
+      // Éxito real = HTTP ok Y {ok:true}. Un 200 con {ok:false} NO es enviado.
+      const d = await postJson<{ ok?: boolean; error?: string }>('/api/admin/send-offer', {
+        email: cliente.email, nombre: cliente.nombre,
+        suitesFavoritas: cliente.suitesFavoritas,
+        ultimaEstancia: cliente.ultimaEstancia,
+        totalReservas: cliente.totalReservas, notas: cliente.notas,
       });
-      // Éxito real = HTTP ok Y {ok:true}. Un 200 con {ok:false} NO es enviado
-      // (antes marcaba "✓ enviada" en falso con cualquier 200).
-      const d = await res.json().catch(() => ({}));
-      if (res.ok && d.ok) { setOfferSent(true); setTimeout(() => setOfferSent(false), 4000); }
-      else { alert('Error: ' + (d.error || 'No se pudo enviar')); }
+      if (d.ok) { setOfferSent(true); setTimeout(() => setOfferSent(false), 4000); }
+      else { setError(d.error || 'No se pudo enviar el correo.'); }
+    } catch (e) {
+      setError(mensajeDeError(e));
     } finally { setSendingOffer(false); }
   }
 
@@ -166,6 +168,9 @@ function ClienteDrawer({ cliente, hotelName, onClose }: { cliente: GuestProfile;
                 {saving ? <Loader2 size={13} className={styles.spin} /> : null}
                 {saved ? '✓ Guardado' : 'Guardar notas'}
               </button>
+              {error && (
+                <p role="alert" style={{ color: '#b42318', fontSize: 13, marginTop: 8 }}>{error}</p>
+              )}
             </div>
           )}
         </div>

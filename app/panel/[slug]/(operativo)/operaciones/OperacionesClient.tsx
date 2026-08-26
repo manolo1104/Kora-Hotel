@@ -12,6 +12,7 @@ import type {
 import { getChecklistItems, type ChecklistItem } from '@/lib/admin/cleaning-config';
 import RoomMap from '@/components/admin/RoomMap';
 import styles from './operaciones.module.css';
+import { postJson, mensajeDeError } from '@/lib/ui/api';
 
 interface Props {
   initialCleaning: CleaningTask[];
@@ -34,6 +35,7 @@ function ChecklistModal({ suite, today, onClose, onSaved }: {
   const [personal, setPersonal] = useState('');
   const [observaciones, setObservaciones] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   function toggle(id: string) {
     setChecked(prev => {
@@ -47,6 +49,7 @@ function ChecklistModal({ suite, today, onClose, onSaved }: {
 
   async function handleSave(estado: CleaningTaskEstado) {
     setLoading(true);
+    setError('');
     try {
       const completados = items.filter(i => checked.has(i.id)).map(i => i.label);
       const pendientes = items.filter(i => !checked.has(i.id)).map(i => i.label);
@@ -55,13 +58,15 @@ function ChecklistModal({ suite, today, onClose, onSaved }: {
         pendientes.length ? `Pendientes: ${pendientes.join(', ')}` : '',
         observaciones ? `Obs: ${observaciones}` : '',
       ].filter(Boolean).join(' · ');
-      await fetch('/api/admin/operaciones/limpieza', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ suite, fecha: today, asignado: personal, notas: resumen, estado }),
+      // Antes se cerraba el modal pasara lo que pasara: la camarista marcaba la
+      // habitación como limpia, la pantalla se cerraba, y el registro no existía.
+      await postJson('/api/admin/operaciones/limpieza', {
+        suite, fecha: today, asignado: personal, notas: resumen, estado,
       });
       onSaved();
       onClose();
+    } catch (e) {
+      setError(mensajeDeError(e));
     } finally { setLoading(false); }
   }
 
@@ -92,6 +97,9 @@ function ChecklistModal({ suite, today, onClose, onSaved }: {
             <textarea rows={2} value={observaciones} onChange={e => setObservaciones(e.target.value)} placeholder="Notas adicionales..." />
           </label>
         </div>
+        {error && (
+          <p role="alert" style={{ color: '#b42318', fontSize: 13, margin: '0 16px 8px' }}>{error}</p>
+        )}
         <div className={styles.modalFooter}>
           <button className={styles.secondaryBtn} onClick={onClose}>Cancelar</button>
           <button className={styles.warnBtn} onClick={() => handleSave('PENDIENTE')} disabled={loading}>
@@ -116,16 +124,18 @@ function AddTaskModal({ onClose, onSaved, suites }: { onClose: () => void; onSav
     notas: '',
   });
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   function set(k: string, v: string) { setForm(f => ({ ...f, [k]: v })); }
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    await fetch('/api/admin/operaciones/mantenimiento', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form),
-    });
-    setLoading(false);
-    onSaved(); onClose();
+    setError('');
+    try {
+      await postJson('/api/admin/operaciones/mantenimiento', form);
+      onSaved(); onClose();
+    } catch (err) {
+      setError(mensajeDeError(err));
+    } finally { setLoading(false); }
   }
   return (
     <div className={styles.overlay} onClick={e => e.target === e.currentTarget && onClose()}>
@@ -153,6 +163,9 @@ function AddTaskModal({ onClose, onSaved, suites }: { onClose: () => void; onSav
           <label className={styles.field}><span>Notas</span>
             <textarea rows={2} value={form.notas} onChange={e => set('notas', e.target.value)} />
           </label>
+          {error && (
+            <p role="alert" style={{ color: '#b42318', fontSize: 13, margin: '0 0 8px' }}>{error}</p>
+          )}
           <div className={styles.modalFooter}>
             <button type="button" className={styles.secondaryBtn} onClick={onClose}>Cancelar</button>
             <button type="submit" className={styles.primaryBtn} disabled={loading}>
@@ -180,6 +193,7 @@ export default function OperacionesClient({ initialCleaning, initialMaintenance,
   const [selectedSuite, setSelectedSuite] = useState<string | null>(null);
   const [showAddTask, setShowAddTask] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const [openAccordion, setOpenAccordion] = useState<string | null>(null);
 
   const refreshCleaning = useCallback(async () => {
@@ -199,12 +213,13 @@ export default function OperacionesClient({ initialCleaning, initialMaintenance,
 
   async function setMaintField(id: string, changes: Partial<{ estado: MaintenanceEstado; prioridad: MaintenancePrioridad }>) {
     setLoading(true);
-    await fetch('/api/admin/operaciones/mantenimiento', {
-      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, ...changes }),
-    });
-    await refreshMaintenance();
-    setLoading(false);
+    setError('');
+    try {
+      await postJson('/api/admin/operaciones/mantenimiento', { id, ...changes }, 'PATCH');
+      await refreshMaintenance();
+    } catch (e) {
+      setError(mensajeDeError(e));
+    } finally { setLoading(false); }
   }
 
   const statusIcon = (estado: CleaningTaskEstado | 'none') => {
@@ -236,6 +251,10 @@ export default function OperacionesClient({ initialCleaning, initialMaintenance,
           )}
         </div>
       </div>
+
+      {error && (
+        <p role="alert" style={{ color: '#b42318', fontSize: 13, margin: '0 0 12px' }}>{error}</p>
+      )}
 
       {/* Resumen */}
       <div className={styles.summaryBar}>

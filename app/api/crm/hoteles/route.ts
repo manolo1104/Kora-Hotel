@@ -37,7 +37,8 @@ export async function GET() {
 
   if (error) {
     console.error("[crm/hoteles] error leyendo hoteles:", error.message);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("[crm.hoteles]", error.message);
+    return NextResponse.json({ error: "No se pudo completar la operación. Intenta de nuevo." }, { status: 500 });
   }
 
   const hoteles = ((data ?? []) as HotelRow[]).map((h) => {

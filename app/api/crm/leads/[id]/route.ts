@@ -1,3 +1,4 @@
+import { leer } from "@/lib/db/result";
 import { NextResponse } from "next/server";
 import { requireCrmAuth } from "@/lib/crm/auth";
 import { createAdminClient, adminEnvReady } from "@/lib/supabase/admin";
@@ -18,13 +19,19 @@ export async function GET(_req: Request, { params }: Ctx) {
 
   const supabase = createAdminClient();
   const { data: lead, error } = await supabase.from("crm_leads").select("*").eq("id", id).single();
-  if (error) return NextResponse.json({ error: error.message }, { status: 404 });
-  const { data: actividades } = await supabase
-    .from("crm_actividades")
-    .select("*")
-    .eq("lead_id", id)
-    .order("fecha", { ascending: false })
-    .order("created_at", { ascending: false });
+  if (error) {
+    console.error("[crm.lead.leer]", error.message);
+    return NextResponse.json({ error: "No se pudo completar la operación. Intenta de nuevo." }, { status: 404 });
+  }
+  const actividades = await leer(
+    "crm.lead.actividades",
+    supabase
+      .from("crm_actividades")
+      .select("*")
+      .eq("lead_id", id)
+      .order("fecha", { ascending: false })
+      .order("created_at", { ascending: false }),
+  );
   return NextResponse.json({ lead, actividades: actividades ?? [] });
 }
 
@@ -68,6 +75,9 @@ export async function DELETE(_req: Request, { params }: Ctx) {
 
   const supabase = createAdminClient();
   const { error } = await supabase.from("crm_leads").delete().eq("id", id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error("[crm.lead.editar]", error.message);
+    return NextResponse.json({ error: "No se pudo completar la operación. Intenta de nuevo." }, { status: 500 });
+  }
   return NextResponse.json({ ok: true });
 }

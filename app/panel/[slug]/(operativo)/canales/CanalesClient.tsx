@@ -9,6 +9,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import styles from './canales.module.css';
+import { postJson, getJson, mensajeDeError } from '@/lib/ui/api';
 
 type Platform = 'booking_com' | 'expedia';
 const PLATFORMS: { value: Platform; label: string }[] = [
@@ -48,13 +49,19 @@ export default function CanalesClient({ initial, rooms, slug }: Props) {
   const [syncResult, setSyncResult] = useState<string>('');
   const [modal, setModal] = useState<ModalState | null>(null);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
 
   const reload = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/admin/canales');
-      const data = await res.json();
+      // Antes no se miraba `res.ok`: un 500 devolvía un cuerpo sin forma de
+      // arreglo y la lista se vaciaba, así que el hotelero veía "no tienes
+      // ningún canal conectado" cuando sí los tenía.
+      const data = await getJson<OTACalendar[]>('/api/admin/canales');
       setCalendars(Array.isArray(data) ? data : []);
+      setError('');
+    } catch (e) {
+      setError(mensajeDeError(e));
     } finally {
       setLoading(false);
     }
@@ -66,14 +73,13 @@ export default function CanalesClient({ initial, rooms, slug }: Props) {
   async function handleSave() {
     if (!modal) return;
     setSaving(true);
+    setError('');
     try {
-      await fetch('/api/admin/canales', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(modal),
-      });
+      await postJson('/api/admin/canales', modal);
       setModal(null);
       await reload();
+    } catch (e) {
+      setError(mensajeDeError(e));
     } finally {
       setSaving(false);
     }
@@ -81,17 +87,26 @@ export default function CanalesClient({ initial, rooms, slug }: Props) {
 
   async function handleDelete(id: string) {
     if (!confirm('¿Eliminar esta conexión?')) return;
-    await fetch(`/api/admin/canales/${id}`, { method: 'DELETE' });
-    await reload();
+    setError('');
+    try {
+      await postJson(`/api/admin/canales/${id}`, undefined, 'DELETE');
+      await reload();
+    } catch (e) {
+      setError(mensajeDeError(e));
+    }
   }
 
   async function handleToggle(cal: OTACalendar) {
-    await fetch('/api/admin/canales', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...cal, active: !cal.active }),
-    });
-    await reload();
+    setError('');
+    try {
+      // Este es el peor de los tres: apagar o encender un canal decide si las
+      // OTAs reciben la disponibilidad del hotel. Un fallo silencioso aquí deja
+      // el interruptor visualmente en la posición contraria a la real.
+      await postJson('/api/admin/canales', { ...cal, active: !cal.active });
+      await reload();
+    } catch (e) {
+      setError(mensajeDeError(e));
+    }
   }
 
   async function handleSyncNow() {
@@ -165,6 +180,7 @@ export default function CanalesClient({ initial, rooms, slug }: Props) {
         </div>
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center' }}>
           {syncResult && <span style={{ color: '#6b7280', fontSize: 13 }}>{syncResult}</span>}
+          {error && <span role="alert" style={{ color: '#b42318', fontSize: 13 }}>{error}</span>}
           <button
             onClick={handleSyncNow}
             disabled={syncing}

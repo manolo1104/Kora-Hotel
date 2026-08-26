@@ -17,6 +17,9 @@ export async function DELETE(_req: Request, { params }: Ctx) {
 
   const supabase = createAdminClient();
   const { error } = await supabase.from("crm_actividades").delete().eq("id", id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error("[crm.actividades.borrar]", error.message);
+    return NextResponse.json({ error: "No se pudo completar la operación. Intenta de nuevo." }, { status: 500 });
+  }
   return NextResponse.json({ ok: true });
 }

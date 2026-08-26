@@ -1,3 +1,4 @@
+import { escribirMejorEsfuerzo } from "@/lib/db/result";
 import { NextResponse } from "next/server";
 import { requireCrmAuth } from "@/lib/crm/auth";
 import { createAdminClient, adminEnvReady } from "@/lib/supabase/admin";
@@ -24,7 +25,10 @@ export async function GET(_req: Request, { params }: Ctx) {
     .eq("lead_id", id)
     .order("fecha", { ascending: false })
     .order("created_at", { ascending: false });
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error("[crm.actividades.listar]", error.message);
+    return NextResponse.json({ error: "No se pudo cargar. Intenta de nuevo." }, { status: 500 });
+  }
   return NextResponse.json({ actividades: data });
 }
 
@@ -56,8 +60,16 @@ export async function POST(req: Request, { params }: Ctx) {
     .insert({ lead_id: id, tipo, nota, fecha })
     .select("*")
     .single();
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  // Toca el lead para que suba en la lista por updated_at.
-  await supabase.from("crm_leads").update({ updated_at: new Date().toISOString() }).eq("id", id);
+  // El mensaje crudo de Postgres ya no sale al navegador; queda en el log.
+  if (error) {
+    console.error("[crm/actividades] insert:", error.message);
+    return NextResponse.json({ error: "No se pudo guardar. Intenta de nuevo." }, { status: 500 });
+  }
+  // Toca el lead para que suba en la lista por updated_at. Mejor-esfuerzo
+  // declarado: sólo afecta el orden de una lista.
+  await escribirMejorEsfuerzo(
+    "crm_leads.tocar",
+    supabase.from("crm_leads").update({ updated_at: new Date().toISOString() }).eq("id", id),
+  );
   return NextResponse.json({ actividad: data });
 }

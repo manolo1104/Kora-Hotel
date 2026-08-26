@@ -1,3 +1,5 @@
+import { z } from "zod";
+import { rutaSegura } from "@/lib/api/responder";
 // Disponibilidad del calendario (multi-tenant, Supabase).
 //
 // Portado de mi-hotel/app/api/admin/disponibilidad (que leía la hoja
@@ -62,16 +64,28 @@ function addDays(iso: string, n: number): string {
   return d.toISOString().slice(0, 10);
 }
 
+// Una fecha mal formada hacía que `addDays` produjera un Invalid Date y que
+// `toISOString()` lanzara un RangeError sin manejar: 500 sin explicación. Se
+// valida antes de tocarla.
+const FECHA = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "fecha inválida (YYYY-MM-DD)");
+const CUARTO_FECHA = z.object({ room: z.string().min(1).max(200), date: FECHA });
+
 // GET ?from=YYYY-MM-DD&to=YYYY-MM-DD (opcionales) — por defecto los próximos N meses.
 // Devuelve Record<room, Record<dateISO, status>>.
 export async function GET(req: NextRequest) {
+  return rutaSegura("admin.disponibilidad.get", async () => {
   const ctx = await getActiveHotel();
   if (!ctx) return NextResponse.json({ error: "no-auth" }, { status: 401 });
 
   const url = new URL(req.url);
   const today = isoToday();
-  const from = url.searchParams.get("from") || today;
-  let to = url.searchParams.get("to");
+  const fromRaw = url.searchParams.get("from");
+  const toRaw = url.searchParams.get("to");
+  if ((fromRaw && !FECHA.safeParse(fromRaw).success) || (toRaw && !FECHA.safeParse(toRaw).success)) {
+    return NextResponse.json({ error: "Fechas inválidas (YYYY-MM-DD)." }, { status: 400 });
+  }
+  const from = fromRaw || today;
+  let to = toRaw;
   if (!to) {
     const d = new Date(`${from}T00:00:00`);
     d.setMonth(d.getMonth() + 12); // ventana amplia por defecto (1 año)
@@ -112,41 +126,38 @@ export async function GET(req: NextRequest) {
   }
 
   return NextResponse.json(result);
+  });
 }
 
 // POST { room, date } — bloquea manualmente UNA fecha (1 noche → [date, date+1)).
 export async function POST(req: NextRequest) {
+  return rutaSegura("admin.disponibilidad.post", async () => {
   const ctx = await getActiveHotel();
   if (!ctx) return NextResponse.json({ error: "no-auth" }, { status: 401 });
 
-  const { room, date } = await req.json();
-  if (!room || !date) {
-    return NextResponse.json({ error: "room y date requeridos" }, { status: 400 });
+  const cuerpo = CUARTO_FECHA.safeParse(await req.json());
+  if (!cuerpo.success) {
+    return NextResponse.json({ error: "room y date (YYYY-MM-DD) requeridos" }, { status: 400 });
   }
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-    return NextResponse.json({ error: "date inválida (YYYY-MM-DD)" }, { status: 400 });
-  }
-
-  try {
-    await blockDates(ctx.hotelId, [room], date, addDays(date, 1), "BLOQUEADO");
-    return NextResponse.json({ ok: true });
-  } catch (e) {
-    console.error("POST disponibilidad error:", e);
-    return NextResponse.json({ error: "No se pudo bloquear la fecha" }, { status: 500 });
-  }
+  const { room, date } = cuerpo.data;
+  await blockDates(ctx.hotelId, [room], date, addDays(date, 1), "BLOQUEADO");
+  return NextResponse.json({ ok: true });
+  });
 }
 
 // DELETE { room, date } — desbloquea UNA fecha bloqueada manualmente.
 // Solo borra bloques BLOQUEADO/MANTENIMIENTO que cubran esa noche; NUNCA toca
 // RESERVADO ni OTA (esas se cancelan desde Reservas / Canales).
 export async function DELETE(req: NextRequest) {
+  return rutaSegura("admin.disponibilidad.delete", async () => {
   const ctx = await getActiveHotel();
   if (!ctx) return NextResponse.json({ error: "no-auth" }, { status: 401 });
 
-  const { room, date } = await req.json();
-  if (!room || !date) {
-    return NextResponse.json({ error: "room y date requeridos" }, { status: 400 });
+  const cuerpo = CUARTO_FECHA.safeParse(await req.json());
+  if (!cuerpo.success) {
+    return NextResponse.json({ error: "room y date (YYYY-MM-DD) requeridos" }, { status: 400 });
   }
+  const { room, date } = cuerpo.data;
 
   const supabase = createAdminClient();
   const dayEnd = addDays(date, 1);
@@ -202,4 +213,5 @@ export async function DELETE(req: NextRequest) {
   }
 
   return NextResponse.json({ ok: true });
+  });
 }

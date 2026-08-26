@@ -1,3 +1,4 @@
+import { rutaSegura } from "@/lib/api/responder";
 // Canales OTA del hotel activo. Portado de mi-hotel/app/api/admin/canales.
 // El hotel sale de getActiveHotel() (cookie kora_active_slug + sesión); el
 // hotelId NUNCA viene del body. saveOTACalendar recibe hotelId primero.
@@ -10,14 +11,17 @@ import { randomUUID } from "crypto";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  return rutaSegura("admin.canales.get", async () => {
   const ctx = await getActiveHotel();
   if (!ctx) return NextResponse.json({ error: "no-auth" }, { status: 401 });
 
   const calendars = await getAllOTACalendars(ctx.hotelId);
   return NextResponse.json(calendars);
+  });
 }
 
 export async function POST(req: NextRequest) {
+  return rutaSegura("admin.canales.post", async () => {
   const ctx = await getActiveHotel();
   if (!ctx) return NextResponse.json({ error: "no-auth" }, { status: 401 });
 
@@ -35,4 +39,5 @@ export async function POST(req: NextRequest) {
     active,
   });
   return NextResponse.json({ ok: true });
+  });
 }

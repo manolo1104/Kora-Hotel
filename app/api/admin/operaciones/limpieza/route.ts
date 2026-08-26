@@ -1,3 +1,4 @@
+import { rutaSegura } from "@/lib/api/responder";
 import { NextRequest, NextResponse } from "next/server";
 import { getActiveHotel } from "@/lib/panel/active-hotel";
 import {
@@ -20,6 +21,7 @@ function todayMX(): string {
 
 // GET → CleaningTask[] (opcional ?fecha=YYYY-MM-DD para filtrar a ese día).
 export async function GET(req: NextRequest) {
+  return rutaSegura("admin.limpieza.get", async () => {
   const ctx = await getActiveHotel();
   if (!ctx) return NextResponse.json({ error: "no autorizado" }, { status: 401 });
 
@@ -27,11 +29,13 @@ export async function GET(req: NextRequest) {
   const tasks = await getCleaningTasks(ctx.hotelId);
   const filtered = fecha ? tasks.filter((t) => t.fecha === fecha) : tasks;
   return NextResponse.json(filtered);
+  });
 }
 
 // POST → crea una tarea de limpieza. Acepta { suite, fecha?, asignado?, notas? }.
 // Devuelve { ok, id }.
 export async function POST(req: NextRequest) {
+  return rutaSegura("admin.limpieza.post", async () => {
   const ctx = await getActiveHotel();
   if (!ctx) return NextResponse.json({ error: "no autorizado" }, { status: 401 });
 
@@ -50,10 +54,12 @@ export async function POST(req: NextRequest) {
   } catch (e: unknown) {
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });
   }
+  });
 }
 
 // PATCH → edita una tarea de limpieza. Requiere { id } + (estado|asignado|notas).
 export async function PATCH(req: NextRequest) {
+  return rutaSegura("admin.limpieza.patch", async () => {
   const ctx = await getActiveHotel();
   if (!ctx) return NextResponse.json({ error: "no autorizado" }, { status: 401 });
 
@@ -69,4 +75,5 @@ export async function PATCH(req: NextRequest) {
   } catch (e: unknown) {
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });
   }
+  });
 }

@@ -30,7 +30,10 @@ export async function POST(req: NextRequest) {
       notas: data.notas,
     });
     return NextResponse.json({ ok: true, id });
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+  } catch (e) {
+    // El detalle (nombres de tabla, restricciones, columnas) se queda en el log
+    // del servidor; al navegador sólo va un mensaje que el hotelero pueda leer.
+    console.error("[admin.cotizaciones.crear]", e);
+    return NextResponse.json({ error: "No se pudo guardar. Intenta de nuevo." }, { status: 500 });
   }
 }

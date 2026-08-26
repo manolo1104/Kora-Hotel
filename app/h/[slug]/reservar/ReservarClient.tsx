@@ -284,7 +284,7 @@ export default function ReservarClient({
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ session: hs }),
-        }).catch(() => {});
+        }).catch((e) => console.error("[h/[slug]/reservar/ReservarClient] ignorado:", e));
       }
       const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
       const qIn = q.get("checkin") ?? "";
@@ -321,7 +321,7 @@ export default function ReservarClient({
     fetch(`/api/h/${slug}/fully-booked`)
       .then((r) => r.json())
       .then((d) => setFullDates(Array.isArray(d?.dates) ? d.dates : []))
-      .catch(() => {});
+      .catch((e) => console.error("[h/[slug]/reservar/ReservarClient] ignorado:", e));
   }, [slug]);
 
   // ── Carrito ─────────────────────────────────────────────
@@ -728,7 +728,7 @@ export default function ReservarClient({
         lang,
         payload: { checkin, checkout, adults, children, cart, addons: selectedAddons, experiencias: expSelections },
       }),
-    }).catch(() => {});
+    }).catch((e) => console.error("[h/[slug]/reservar/ReservarClient] ignorado:", e));
   }
 
   // ── Avanzar de paso ────────────────────────────────────

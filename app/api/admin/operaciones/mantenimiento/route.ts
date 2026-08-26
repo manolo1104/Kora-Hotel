@@ -1,3 +1,4 @@
+import { rutaSegura } from "@/lib/api/responder";
 import { NextRequest, NextResponse } from "next/server";
 import { getActiveHotel } from "@/lib/panel/active-hotel";
 import {
@@ -12,15 +13,18 @@ export const dynamic = "force-dynamic";
 
 // GET → MaintenanceTask[]
 export async function GET() {
+  return rutaSegura("admin.mantenimiento.get", async () => {
   const ctx = await getActiveHotel();
   if (!ctx) return NextResponse.json({ error: "no autorizado" }, { status: 401 });
 
   const tasks = await getMaintenanceTasks(ctx.hotelId);
   return NextResponse.json(tasks);
+  });
 }
 
 // POST → crea tarea. Acepta { titulo, suite?, prioridad?, notas? }. Devuelve { ok, id }.
 export async function POST(req: NextRequest) {
+  return rutaSegura("admin.mantenimiento.post", async () => {
   const ctx = await getActiveHotel();
   if (!ctx) return NextResponse.json({ error: "no autorizado" }, { status: 401 });
 
@@ -38,10 +42,12 @@ export async function POST(req: NextRequest) {
   } catch (e: unknown) {
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });
   }
+  });
 }
 
 // PATCH → edita tarea. Requiere { id } + (estado|prioridad|titulo|notas).
 export async function PATCH(req: NextRequest) {
+  return rutaSegura("admin.mantenimiento.patch", async () => {
   const ctx = await getActiveHotel();
   if (!ctx) return NextResponse.json({ error: "no autorizado" }, { status: 401 });
 
@@ -58,4 +64,5 @@ export async function PATCH(req: NextRequest) {
   } catch (e: unknown) {
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });
   }
+  });
 }
