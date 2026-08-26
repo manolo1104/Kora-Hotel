@@ -9,6 +9,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient, adminEnvReady } from "@/lib/supabase/admin";
 import { supabaseEnvReady } from "@/lib/supabase/env";
+import { leer, DbError } from "@/lib/db/result";
 
 export type RolHotel = "dueno" | "encargada" | "recepcion" | "limpieza" | "cocina";
 
@@ -41,16 +42,22 @@ export interface TenantContext {
 const HOTEL_COLS =
   "id, owner_id, slug, nombre, ubicacion, descripcion, whatsapp, habitaciones, fotos, guia, extras, config, prefijo_confirmacion, stripe_account_id, publicado, created_at";
 
-/** Lee un hotel por slug (datos públicos). Devuelve null si no existe. */
+/**
+ * Lee un hotel por slug (datos públicos). Devuelve null si no existe y LANZA si
+ * la consulta falla.
+ *
+ * La distinción importa más de lo que parece: esta función alimenta el sitio
+ * público de cada hotel. Con el `null` de antes, un parpadeo de Supabase se
+ * servía como un 404 perfectamente formado — y Google indexa 404. Ahora salta a
+ * la pantalla de error (`app/h/[slug]/error.tsx`), que es un 500 y no se indexa.
+ */
 export async function resolveHotel(slug: string): Promise<HotelRow | null> {
   if (!adminEnvReady) return null;
   const supabase = createAdminClient();
-  const { data } = await supabase
-    .from("hoteles")
-    .select(HOTEL_COLS)
-    .eq("slug", slug)
-    .maybeSingle();
-  return (data as HotelRow) ?? null;
+  return await leer<HotelRow>(
+    "hotel.porSlug",
+    supabase.from("hoteles").select(HOTEL_COLS).eq("slug", slug).maybeSingle(),
+  );
 }
 
 /** Hoteles donde el usuario autenticado es miembro (para el selector). */
@@ -63,10 +70,15 @@ export async function getHotelesDelUsuario(): Promise<{ hotel: HotelRow; rol: Ro
   if (!user) return [];
 
   const admin = createAdminClient();
-  const { data: members } = await admin
-    .from("hotel_members")
-    .select("rol, hoteles:hotel_id (" + HOTEL_COLS + ")")
-    .eq("user_id", user.id);
+  // Lanza si falla: un selector vacío se lee como "no tienes hoteles", que es
+  // justo lo que le diría a un hotelero que sí los tiene.
+  const members = await leer<unknown[]>(
+    "hotel_members.delUsuario",
+    admin
+      .from("hotel_members")
+      .select("rol, hoteles:hotel_id (" + HOTEL_COLS + ")")
+      .eq("user_id", user.id),
+  );
 
   return (members ?? [])
     .map((m) => {
@@ -86,10 +98,13 @@ export const MAX_HOTELES_POR_CUENTA = 2;
 export async function contarHotelesPropios(userId: string): Promise<number> {
   if (!adminEnvReady) return 0;
   const admin = createAdminClient();
-  const { count } = await admin
+  // Lanza si falla. Antes devolvía 0, así que el tope fallaba en ABIERTO: con la
+  // base caída, cualquiera daba de alta hoteles sin límite.
+  const { count, error } = await admin
     .from("hoteles")
     .select("id", { count: "exact", head: true })
     .eq("owner_id", userId);
+  if (error) throw new DbError("hoteles.contarPropios", error.message, error.code);
   return count ?? 0;
 }
 
@@ -111,15 +126,21 @@ export async function getHotelMember(slug: string): Promise<TenantContext | null
   if (!hotel) return null;
 
   const admin = createAdminClient();
-  const { data: member } = await admin
-    .from("hotel_members")
-    .select("rol")
-    .eq("hotel_id", hotel.id)
-    .eq("user_id", user.id)
-    .maybeSingle();
+  // Aquí SÍ se deja lanzar: un error leyendo membresías tiene que dar 500 en el
+  // panel. Devolver null expulsaba al hotelero de su propio hotel sin decirle
+  // por qué, y desde fuera se ve idéntico a "te quitaron el acceso".
+  const member = await leer<{ rol: RolHotel }>(
+    "hotel_members.rol",
+    admin
+      .from("hotel_members")
+      .select("rol")
+      .eq("hotel_id", hotel.id)
+      .eq("user_id", user.id)
+      .maybeSingle(),
+  );
   if (!member) return null;
 
-  return { hotelId: hotel.id, hotel, rol: (member as { rol: RolHotel }).rol, userId: user.id };
+  return { hotelId: hotel.id, hotel, rol: member.rol, userId: user.id };
 }
 
 /**

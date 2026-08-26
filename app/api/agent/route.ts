@@ -10,6 +10,7 @@ import { logAgentActivity, setBotStatus, logCamilaConversacion } from "@/lib/db/
 import type { TurnoConversacion } from "@/lib/db/admin";
 import { accesoDelHotel, bloqueoDelHotel } from "@/lib/suscripcion";
 import { hotelIdPorBotToken } from "@/lib/db/bot-token";
+import { leer } from "@/lib/db/result";
 import { crearLinkReservaAgente } from "@/lib/agent-booking";
 import { buildBotSystemPrompt } from "@/lib/bot/prompt";
 import { buildHotelKnowledge } from "@/lib/bot/knowledge";
@@ -26,18 +27,16 @@ async function hotelPorToken(token: string): Promise<HotelRow | null> {
   const hotelId = await hotelIdPorBotToken(token);
   if (!hotelId) return null;
   const supabase = createAdminClient();
-  const { data, error } = await supabase
-    .from("hoteles")
-    .select(
-      "id, owner_id, slug, nombre, ubicacion, descripcion, whatsapp, habitaciones, fotos, guia, extras, config, prefijo_confirmacion, stripe_account_id, publicado, created_at",
-    )
-    .eq("id", hotelId)
-    .maybeSingle();
-  if (error) {
-    console.error("hotelPorToken:", error.message);
-    return null;
-  }
-  return (data as HotelRow) ?? null;
+  return await leer<HotelRow>(
+    "hotel.porBotToken",
+    supabase
+      .from("hoteles")
+      .select(
+        "id, owner_id, slug, nombre, ubicacion, descripcion, whatsapp, habitaciones, fotos, guia, extras, config, prefijo_confirmacion, stripe_account_id, publicado, created_at",
+      )
+      .eq("id", hotelId)
+      .maybeSingle(),
+  );
 }
 
 export async function POST(req: Request) {
@@ -64,7 +63,17 @@ export async function POST(req: Request) {
   } catch {
     return NextResponse.json({ error: "bad-request" }, { status: 400 });
   }
-  const hotel = await hotelPorToken(body.token ?? "");
+  // Distinguir las dos cosas es lo que evita que Camila se apague sola: un fallo
+  // de base de datos se le reportaba como "token-invalido", y el runtime concluía
+  // que lo habían desautorizado. Un 503 lo hace reintentar; un 401 sigue siendo
+  // un token que de verdad no existe.
+  let hotel: HotelRow | null;
+  try {
+    hotel = await hotelPorToken(body.token ?? "");
+  } catch (e) {
+    console.error("[agent] no se pudo resolver el hotel del token:", e);
+    return NextResponse.json({ error: "servicio-no-disponible" }, { status: 503 });
+  }
   if (!hotel) return NextResponse.json({ error: "token-invalido" }, { status: 401 });
 
   const cfg = (hotel.config ?? {}) as Record<string, unknown>;

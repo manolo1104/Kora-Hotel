@@ -15,6 +15,7 @@ import { NextResponse } from "next/server";
 import { createAdminClient, adminEnvReady } from "@/lib/supabase/admin";
 import { accesoDelHotel } from "@/lib/suscripcion";
 import { asegurarBotToken } from "@/lib/db/bot-token";
+import { alertar } from "@/lib/alertas";
 import type { HotelRow } from "@/lib/tenant";
 
 export const runtime = "nodejs";
@@ -35,7 +36,8 @@ export async function GET(req: Request) {
     .select("id, owner_id, slug, nombre, whatsapp, publicado, created_at, config, extras");
   if (error) {
     console.error("[bots/fleet] error leyendo hoteles:", error.message);
-    return NextResponse.json({ ok: false, error: error.message, hotels: [] }, { status: 500 });
+    console.error("[bots.fleet]", error.message);
+    return NextResponse.json({ ok: false, error: "No se pudo completar la operación. Intenta de nuevo.", hotels: [] }, { status: 500 });
   }
 
   const rows = (data ?? []) as HotelRow[];
@@ -47,6 +49,7 @@ export async function GET(req: Request) {
     whatsapp: string | null;
     lang: "es" | "en";
   }[] = [];
+  const fallos: string[] = [];
 
   for (const h of rows) {
     const cfg = (h.config ?? {}) as Record<string, unknown>;
@@ -68,9 +71,14 @@ export async function GET(req: Request) {
     // aquí mismo y su Camila arranca sola.
     // El token sale de `hotel_bot_tokens` (sólo service-role), no de `config`,
     // que se puede leer desde internet con la llave anónima del navegador.
-    const token = await asegurarBotToken(h.id);
-    if (!token) {
-      console.error(`[bots/fleet] no pude obtener/generar token para ${h.slug}`);
+    // Un hotel que falle NO puede tumbar al resto: se salta y se avisa. Pero si
+    // al final no salió NINGUNO y hubo fallos, la ruta responde 500 (abajo), y el
+    // runtime conserva los bots que ya tiene corriendo en vez de apagarlos todos.
+    let token: string;
+    try {
+      token = await asegurarBotToken(h.id);
+    } catch (e) {
+      fallos.push(`${h.slug}: ${e instanceof Error ? e.message : String(e)}`);
       continue; // sin token persistido no puede hablar con /api/agent
     }
 
@@ -82,6 +90,18 @@ export async function GET(req: Request) {
       whatsapp: h.whatsapp,
       lang: cfg.bot_lang === "en" ? "en" : "es",
     });
+  }
+
+  if (fallos.length) {
+    await alertar(
+      "hoteles sin token de bot en el fleet",
+      `No se pudo obtener/generar el token de ${fallos.length} hotel(es):\n${fallos.join("\n")}`,
+    );
+    // Ninguno salió y todos fallaron: es un fallo de la tabla, no de los hoteles.
+    // 500 hace que el runtime CONSERVE los bots vivos (ver agentes/camila/fleet.js).
+    if (!hotels.length) {
+      return NextResponse.json({ error: "fleet-ilegible" }, { status: 500 });
+    }
   }
 
   return NextResponse.json({ ok: true, hotels });

@@ -1,5 +1,6 @@
 import { createAdminClient, adminEnvReady } from "@/lib/supabase/admin";
 import type { PlanClave } from "@/lib/oferta";
+import { alertar } from "@/lib/alertas";
 
 // Estado de suscripción de un usuario. SOLO servidor (usa la service-role key).
 
@@ -188,8 +189,11 @@ export async function accesoDelHotel(hotel: {
   // regalar los extras de Pro que no se pudieron verificar; lo único que cambia
   // es que la marca de Kora sigue visible mientras dure.
   if (!lectura.ok) {
-    console.error(
-      `accesoDelHotel: suscripción ilegible del dueño ${hotel.owner_id}; se mantiene el acceso abierto`,
+    await alertar(
+      "no se pudo leer una suscripción",
+      `Dueño ${hotel.owner_id}. Se le MANTIENE el acceso abierto mientras dure el ` +
+        `incidente (fallar cerrado le apagaría el motor a un cliente que paga). ` +
+        `Si esto se repite, la plataforma está operando sin saber quién tiene plan.`,
     );
     return { activo: true, planActivo: false, prueba: null, bloqueado: false, mensajeBloqueo: null };
   }

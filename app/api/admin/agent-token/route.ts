@@ -5,11 +5,13 @@
 import { NextResponse } from "next/server";
 import { getActiveHotel } from "@/lib/panel/active-hotel";
 import { getBotToken, setBotToken, nuevoBotToken } from "@/lib/db/bot-token";
+import { rutaSegura } from "@/lib/api/responder";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  return rutaSegura("admin.agentToken.get", async () => {
   const ctx = await getActiveHotel();
   if (!ctx) return NextResponse.json({ error: "no-auth" }, { status: 401 });
 
@@ -20,10 +22,10 @@ export async function GET() {
     return NextResponse.json({ error: "Solo el dueño puede generar el token del bot." }, { status: 403 });
   }
   const token = nuevoBotToken();
-  // Antes no se comprobaba el resultado: si el guardado fallaba, al dueño se le
-  // enseñaba un token que no existía en ninguna parte y su bot nunca conectaba.
-  if (!(await setBotToken(ctx.hotelId, token))) {
-    return NextResponse.json({ error: "No se pudo guardar el token. Inténtalo de nuevo." }, { status: 500 });
-  }
+  // `setBotToken` LANZA si el guardado falla, y `rutaSegura` lo convierte en 500:
+  // si no se comprobara, al dueño se le enseñaría un token que no existe en
+  // ninguna parte y su bot nunca conectaría.
+  await setBotToken(ctx.hotelId, token);
   return NextResponse.json({ token, endpoint: "/api/agent" });
+  });
 }
