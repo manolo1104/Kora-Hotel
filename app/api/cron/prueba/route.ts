@@ -1,3 +1,5 @@
+import { leer } from "@/lib/db/result";
+import { rutaSegura } from "@/lib/api/responder";
 import { NextResponse } from "next/server";
 import { createAdminClient, adminEnvReady } from "@/lib/supabase/admin";
 import { pruebaDelHotel, tienePlanActivo, type Suscripcion } from "@/lib/suscripcion";
@@ -18,6 +20,7 @@ export const dynamic = "force-dynamic";
 const DIAS_RECORDATORIO = new Set([10, 3, 1]);
 
 export async function GET(req: Request) {
+  return rutaSegura("cron.prueba", async () => {
   const secreto = process.env.CRON_SECRET ?? "";
   if (!secreto || req.headers.get("authorization") !== `Bearer ${secreto}`) {
     return NextResponse.json({ error: "No autorizado." }, { status: 401 });
@@ -29,14 +32,24 @@ export async function GET(req: Request) {
   const admin = createAdminClient();
 
   // Dueños con plan (o gracia) vigente: sus hoteles no entran al ciclo.
-  const { data: suscs } = await admin.from("suscripciones").select("*");
+  //
+  // Las DOS consultas lanzan si fallan, y la ruta aborta ANTES de mandar un solo
+  // correo. Antes se leía `?? []`: con la lista de suscripciones vacía por un
+  // error, `conPlan` quedaba vacío y este cron le escribía a TODOS los clientes
+  // de pago diciéndoles que su motor está pausado. Un cron que decide a quién
+  // escribirle según una lista no puede operar sobre una lista que falló.
+  const suscs = await leer<Suscripcion[]>(
+    "cron.prueba.suscripciones",
+    admin.from("suscripciones").select("*"),
+  );
   const conPlan = new Set(
     ((suscs ?? []) as Suscripcion[]).filter((s) => tienePlanActivo(s)).map((s) => s.user_id),
   );
 
-  const { data: hoteles } = await admin
-    .from("hoteles")
-    .select("id, owner_id, nombre, extras, config, created_at, publicado");
+  const hoteles = await leer<Array<Record<string, unknown>>>(
+    "cron.prueba.hoteles",
+    admin.from("hoteles").select("id, owner_id, nombre, extras, config, created_at, publicado"),
+  );
 
   let recordatorios = 0;
   let pausados = 0;
@@ -66,12 +79,13 @@ export async function GET(req: Request) {
         hotelNombre: hotel.nombre,
         diasRestantes: prueba.diasRestantes,
       });
-      if (ok) recordatorios++;
+      if (ok.ok) recordatorios++;
     } else {
       const ok = await sendPruebaPausada(to, hotel.nombre);
-      if (ok) pausados++;
+      if (ok.ok) pausados++;
     }
   }
 
   return NextResponse.json({ ok: true, recordatorios, pausados });
+  });
 }

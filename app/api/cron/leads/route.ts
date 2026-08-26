@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { escribirMejorEsfuerzo } from "@/lib/db/result";
 import { createAdminClient, adminEnvReady } from "@/lib/supabase/admin";
 import { enviarEmail, resendEnvReady } from "@/lib/email/resend";
 import { emailLeadSecuencia, type LeadSecuencia } from "@/lib/email/templates";
@@ -77,7 +78,8 @@ export async function GET(req: Request) {
   if (error) {
     // Columnas nuevas sin aplicar (falta el SQL) u otro error: reportar sin tronar.
     console.error("[cron/leads] error leyendo leads:", error.message);
-    return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+    console.error("[cron.leads]", error.message);
+    return NextResponse.json({ ok: false, error: "No se pudo completar la operación. Intenta de nuevo." }, { status: 500 });
   }
 
   const leads = ((leadsRaw ?? []) as LeadRow[]).filter(
@@ -117,11 +119,14 @@ export async function GET(req: Request) {
         nombre: lead.tomador_nombre ?? "",
         hotel: lead.hotel_nombre ?? undefined,
       });
-      const ok = await enviarEmail({ to: lead.email as string, ...contenido });
-      if (ok) {
+      const envio = await enviarEmail({ to: lead.email as string, ...contenido });
+      if (envio.ok) {
         totals.enviados++;
       } else {
-        await admin.from("lead_email_log").delete().eq("id", logId);
+        await escribirMejorEsfuerzo(
+          "lead_email_log.liberar",
+          admin.from("lead_email_log").delete().eq("id", logId),
+        );
         totals.errores++;
       }
     }

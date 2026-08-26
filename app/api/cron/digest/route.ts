@@ -1,3 +1,4 @@
+import { alertar } from "@/lib/alertas";
 import { NextResponse } from "next/server";
 import { createAdminClient, adminEnvReady } from "@/lib/supabase/admin";
 import { enviarEmail, NOTIFY_EMAIL } from "@/lib/email/resend";
@@ -72,6 +73,31 @@ export async function GET(req: Request) {
 
   const secciones: { encabezado: string; lineas: string[] }[] = [];
 
+  // El silencio y el cero tienen que verse distintos. Antes cada sección se
+  // comprobaba sólo con `.data?.length`, así que una consulta rota era
+  // indistinguible de "no hay nada" y el resumen —el mecanismo entero de que
+  // nada se pierda— omitía la sección sin decirlo. Un lead sin contactar
+  // desaparecía del correo y nadie se enteraba nunca.
+  const rotas: string[] = [];
+  for (const [nombre, r] of [
+    ["leads nuevos", leadsNuevos],
+    ["seguimientos de hoy", seguimientos],
+    ["pagos vencidos", vencidos],
+    ["chats escalados", escalados],
+    ["suscripciones activas", activas],
+  ] as const) {
+    if (r.error) {
+      console.error(`[cron/digest] no se pudo leer ${nombre}:`, r.error.message);
+      rotas.push(nombre);
+    }
+  }
+  if (rotas.length) {
+    secciones.push({
+      encabezado: "⚠️ Datos que no se pudieron leer",
+      lineas: rotas.map((n) => `⚠️ No se pudo leer ${n}`),
+    });
+  }
+
   if (leadsNuevos.data?.length) {
     // Los más viejos primero y con los días que llevan esperando: un lead de 5
     // días sin contactar debe verse peor que uno de hoy.
@@ -136,11 +162,20 @@ export async function GET(req: Request) {
   if (secciones.length === 0) {
     return NextResponse.json({ ok: true, enviado: false, motivo: "Nada que reportar." });
   }
+  if (rotas.length === 5) {
+    // Las cinco consultas rotas no es "un resumen con avisos": es la base caída.
+    await alertar("el resumen diario no pudo leer nada", `Fallaron las 5 consultas del digest.`);
+  }
 
-  const enviado = await enviarEmail({
+  const envio = await enviarEmail({
     to: NOTIFY_EMAIL,
     ...emailDigest({ titulo: "☀️ Tu resumen de Kora de hoy", secciones }),
   });
 
-  return NextResponse.json({ ok: true, enviado, secciones: secciones.length });
+  return NextResponse.json({
+    ok: true,
+    enviado: envio.ok,
+    error: envio.ok ? undefined : envio.error,
+    secciones: secciones.length,
+  });
 }

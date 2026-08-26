@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { Resend } from "resend";
 import { createAdminClient, adminEnvReady } from "@/lib/supabase/admin";
+import { enviarEmail } from "@/lib/email/resend";
+import { escribirMejorEsfuerzo } from "@/lib/db/result";
 import { getAllBookings, logAgentActivity, type AdminBooking } from "@/lib/db/admin";
 import {
   buildSurveyEmailHtml,
@@ -137,8 +138,7 @@ export async function GET(req: Request) {
   const maxPastDate = shiftDate(today, -MAX_LOOKBACK_DAYS);
 
   // Envío gated: si no hay API key, no enviamos (pero tampoco marcamos email_log).
-  const apiKey = process.env.RESEND_API_KEY ?? "";
-  const resend = apiKey ? new Resend(apiKey) : null;
+  const puedeEnviar = Boolean(process.env.RESEND_API_KEY);
 
   // ── Todos los hoteles ──
   const { data: hotelesRaw, error: hotelesErr } = await admin
@@ -226,19 +226,25 @@ export async function GET(req: Request) {
       }
       const logId = (claimed[0] as { id: string }).id;
 
-      // 2) Enviar (gated). Si no hay resend, deshacemos la marca para reintentar luego.
-      if (!resend) {
-        await admin.from("email_log").delete().eq("id", logId);
+      // 2) Enviar (gated). Sin API key deshacemos la marca para reintentar luego.
+      if (!puedeEnviar) {
+        await escribirMejorEsfuerzo(
+          "email_log.liberarSinApiKey",
+          admin.from("email_log").delete().eq("id", logId),
+        );
         hres.skipped++;
         totals.skipped++;
         return;
       }
 
       try {
-        const res = await resend.emails.send({ from, to: b.email, subject, html });
-        if (res.error) throw new Error(res.error.message);
+        const res = await enviarEmail({ from, to: b.email, subject, html });
+        if (!res.ok) throw new Error(res.error);
         // 3) Guardar el resend_id en la marca.
-        await admin.from("email_log").update({ resend_id: res.data?.id ?? null }).eq("id", logId);
+        await escribirMejorEsfuerzo(
+          "email_log.resendId",
+          admin.from("email_log").update({ resend_id: res.id }).eq("id", logId),
+        );
         // Métrica de agentes (dashboard Insights): correo del ciclo de estancia
         // enviado. Fail-safe: si la tabla no existe, no afecta el envío.
         await logAgentActivity(
@@ -250,7 +256,12 @@ export async function GET(req: Request) {
         totals.sent++;
       } catch (e) {
         // Envío falló: liberar la marca para reintentar en la próxima corrida.
-        await admin.from("email_log").delete().eq("id", logId);
+        // Mejor-esfuerzo a propósito: si tampoco se puede borrar la marca, el
+        // correo se saltará mañana, y eso queda en el log en vez de en la nada.
+        await escribirMejorEsfuerzo(
+          "email_log.liberarTrasFallo",
+          admin.from("email_log").delete().eq("id", logId),
+        );
         hres.errors++;
         totals.errors++;
         console.error(`[cron/email-sequences] envío ${emailType} → ${b.email}:`, e);
@@ -388,13 +399,13 @@ export async function GET(req: Request) {
   console.log(
     `[cron/email-sequences] ${today} hoteles:${totals.hoteles} ` +
       `sent:${totals.sent} skipped:${totals.skipped} errors:${totals.errors}` +
-      (resend ? "" : " (RESEND_API_KEY ausente — sin envíos)"),
+      (puedeEnviar ? "" : " (RESEND_API_KEY ausente — sin envíos)"),
   );
 
   return NextResponse.json({
     ok: true,
     date: today,
-    enviosActivos: Boolean(resend),
+    enviosActivos: puedeEnviar,
     ...totals,
     perHotel,
   });

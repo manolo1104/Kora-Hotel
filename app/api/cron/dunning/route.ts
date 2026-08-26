@@ -1,3 +1,6 @@
+import { alertar } from "@/lib/alertas";
+import { leer, escribir } from "@/lib/db/result";
+import { rutaSegura } from "@/lib/api/responder";
 import { NextResponse } from "next/server";
 import { createAdminClient, adminEnvReady } from "@/lib/supabase/admin";
 import { enviarEmail } from "@/lib/email/resend";
@@ -14,6 +17,7 @@ export const dynamic = "force-dynamic";
 const MAX_AVISOS = 3;
 
 export async function GET(req: Request) {
+  return rutaSegura("cron.dunning", async () => {
   const secreto = process.env.CRON_SECRET ?? "";
   if (!secreto || req.headers.get("authorization") !== `Bearer ${secreto}`) {
     return NextResponse.json({ error: "No autorizado." }, { status: 401 });
@@ -23,29 +27,57 @@ export async function GET(req: Request) {
   }
 
   const admin = createAdminClient();
-  const { data: vencidas } = await admin
-    .from("suscripciones")
-    .select("id, user_id, avisos_dunning")
-    .eq("estado", "pago_vencido")
-    .lt("avisos_dunning", MAX_AVISOS);
+  // Lanza si falla: una lista vacía por error es indistinguible de "nadie debe",
+  // y este cron es el único aviso que recibe un hotelero antes de perder acceso.
+  const vencidas = await leer<Array<{ id: string; user_id: string; avisos_dunning: number }>>(
+    "cron.dunning.vencidas",
+    admin
+      .from("suscripciones")
+      .select("id, user_id, avisos_dunning")
+      .eq("estado", "pago_vencido")
+      .lt("avisos_dunning", MAX_AVISOS),
+  );
 
   let enviados = 0;
+  const sinCorreo: string[] = [];
   for (const s of vencidas ?? []) {
-    // El correo del dueño vive en auth.users.
-    const { data: userData } = await admin.auth.admin.getUserById(s.user_id);
+    // El correo del dueño vive en auth.users. Un fallo aquí NO puede pasar por
+    // "este usuario no tiene correo": es el único aviso que recibe alguien antes
+    // de perder el acceso por falta de pago.
+    const { data: userData, error: userErr } = await admin.auth.admin.getUserById(s.user_id);
+    if (userErr) {
+      sinCorreo.push(`${s.user_id}: ${userErr.message}`);
+      continue;
+    }
     const email = userData?.user?.email;
-    if (!email) continue;
+    if (!email) {
+      sinCorreo.push(`${s.user_id}: la cuenta no tiene correo`);
+      continue;
+    }
 
     const intento = s.avisos_dunning + 1;
-    const ok = await enviarEmail({ to: email, ...emailPagoVencido({ intento }) });
-    if (ok) {
-      await admin
-        .from("suscripciones")
-        .update({ avisos_dunning: intento })
-        .eq("id", s.id);
+    const envio = await enviarEmail({ to: email, ...emailPagoVencido({ intento }) });
+    if (envio.ok) {
+      await escribir(
+        "suscripciones.avisosDunning",
+        admin.from("suscripciones").update({ avisos_dunning: intento }).eq("id", s.id),
+      );
       enviados++;
     }
   }
 
-  return NextResponse.json({ ok: true, pendientes: vencidas?.length ?? 0, enviados });
+  if (sinCorreo.length) {
+    await alertar(
+      "avisos de pago vencido que no se pudieron enviar",
+      `No se pudo resolver el correo de ${sinCorreo.length} dueño(s):\n${sinCorreo.join("\n")}`,
+    );
+  }
+
+  return NextResponse.json({
+    ok: true,
+    pendientes: vencidas?.length ?? 0,
+    enviados,
+    sinCorreo: sinCorreo.length,
+  });
+  });
 }

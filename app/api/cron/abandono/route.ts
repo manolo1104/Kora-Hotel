@@ -1,3 +1,4 @@
+import { leer } from "@/lib/db/result";
 import { NextResponse } from "next/server";
 import { createAdminClient, adminEnvReady } from "@/lib/supabase/admin";
 import { sendRecordatorioAbandono } from "@/lib/email/reserva";
@@ -89,10 +90,18 @@ export async function GET(req: Request) {
 
   // Hoteles de los intents (una sola consulta).
   const hotelIds = [...new Set(intents.map((i) => i.hotel_id))];
-  const { data: hotelesRaw } = await admin
-    .from("hoteles")
-    .select("id, nombre, slug, publicado, extras, config, habitaciones")
-    .in("id", hotelIds);
+  // Lanza si falla, y aborta ANTES de reclamar ninguna fila. Antes se leía
+  // `?? []`: con la consulta rota el cron seguía, no encontraba el hotel de
+  // ningún intent, y los marcaba como procesados sin enviar nada — quemando los
+  // 200 recordatorios de abandono del día. (La consulta de intents de arriba ya
+  // estaba bien hecha: este es el mismo patrón, no uno nuevo.)
+  const hotelesRaw = await leer<HotelRow[]>(
+    "cron.abandono.hoteles",
+    admin
+      .from("hoteles")
+      .select("id, nombre, slug, publicado, extras, config, habitaciones")
+      .in("id", hotelIds),
+  );
   const hoteles = new Map(((hotelesRaw ?? []) as HotelRow[]).map((h) => [h.id, h]));
 
   const hoy = todayMX();
@@ -191,7 +200,7 @@ export async function GET(req: Request) {
       fromCfg || null,
     );
 
-    if (enviado) {
+    if (enviado.ok) {
       totals.sent++;
     } else {
       // Liberar la marca para reintentar en la próxima corrida.
