@@ -1,3 +1,4 @@
+import { leer } from "@/lib/db/result";
 import { createClient } from "@supabase/supabase-js";
 import { getPostsPublicados } from "@/lib/hotel-blog";
 import { AMENIDADES_MAP } from "@/lib/amenidades";
@@ -39,13 +40,15 @@ export async function GET(
   const { slug } = await params;
   if (!supabaseEnvReady) return new Response("Not found", { status: 404 });
   const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  const { data } = await supabase
-    .from("hoteles")
-    .select("id, slug, nombre, ubicacion, descripcion, habitaciones, extras")
-    .eq("slug", slug)
-    .eq("publicado", true)
-    .maybeSingle();
-  const hotel = (data as HotelFicha | null) ?? null;
+  const hotel = await leer<HotelFicha>(
+    "llms.hotel",
+    supabase
+      .from("hoteles")
+      .select("id, slug, nombre, ubicacion, descripcion, habitaciones, extras")
+      .eq("slug", slug)
+      .eq("publicado", true)
+      .maybeSingle(),
+  );
   if (!hotel) return new Response("Not found", { status: 404 });
 
   const extras = hotel.extras ?? {};

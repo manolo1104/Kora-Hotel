@@ -1,3 +1,4 @@
+import { leer } from "@/lib/db/result";
 import type { MetadataRoute } from "next";
 import { createClient } from "@supabase/supabase-js";
 import { getAllArticles } from "@/lib/blog-db";
@@ -24,10 +25,10 @@ async function miniPaginas(): Promise<MetadataRoute.Sitemap> {
   if (!supabaseEnvReady) return [];
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    const { data } = await supabase
-      .from("hoteles")
-      .select("slug, updated_at, habitaciones, extras")
-      .eq("publicado", true);
+    const data = await leer<Array<{ slug: string; updated_at: string | null; habitaciones: unknown; extras: unknown }>>(
+      "sitemap.hoteles",
+      supabase.from("hoteles").select("slug, updated_at, habitaciones, extras").eq("publicado", true),
+    );
     if (!data) return [];
     return data
       .filter((h) => h.slug && !TENANTS_PRUEBA.has(h.slug))
@@ -65,7 +66,11 @@ async function miniPaginas(): Promise<MetadataRoute.Sitemap> {
           }));
         return [...hotel, ...cuartos, ...propias];
       });
-  } catch {
+  } catch (e) {
+    // Degradar a vacío es DELIBERADO (no romper la página por esto), pero
+    // ya no en silencio: sin este log, un fallo aquí se publica como "no
+    // hay contenido" y nadie lo nota hasta que el tráfico baja.
+    console.error("[sitemap.hoteles]", e instanceof Error ? e.message : e);
     return [];
   }
 }
@@ -75,10 +80,13 @@ async function blogsHoteles(): Promise<MetadataRoute.Sitemap> {
   if (!supabaseEnvReady) return [];
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    const { data } = await supabase
-      .from("hotel_blog_posts")
-      .select("slug, updated_at, publicado_at, hoteles:hotel_id (slug, publicado)")
-      .eq("publicado", true);
+    const data = await leer<unknown[]>(
+      "sitemap.blog",
+      supabase
+        .from("hotel_blog_posts")
+        .select("slug, updated_at, publicado_at, hoteles:hotel_id (slug, publicado)")
+        .eq("publicado", true),
+    );
     if (!data) return [];
     const entradas: MetadataRoute.Sitemap = [];
     const indicesVistos = new Set<string>();
@@ -108,7 +116,11 @@ async function blogsHoteles(): Promise<MetadataRoute.Sitemap> {
       });
     }
     return entradas;
-  } catch {
+  } catch (e) {
+    // Degradar a vacío es DELIBERADO (no romper la página por esto), pero
+    // ya no en silencio: sin este log, un fallo aquí se publica como "no
+    // hay contenido" y nadie lo nota hasta que el tráfico baja.
+    console.error("[sitemap.blog]", e instanceof Error ? e.message : e);
     return [];
   }
 }

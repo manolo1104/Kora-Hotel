@@ -1,3 +1,4 @@
+import { leer } from "@/lib/db/result";
 import { createClient } from "@supabase/supabase-js";
 import { herramientasDisponibles } from "@/lib/herramientas";
 import { glosario } from "@/lib/glosario";
@@ -25,14 +26,18 @@ async function hotelesPublicados(): Promise<HotelListado[]> {
   if (!supabaseEnvReady) return [];
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    const { data } = await supabase
-      .from("hoteles")
-      .select("slug, nombre, ubicacion")
-      .eq("publicado", true);
+    const data = await leer<Array<{ slug: string; nombre: string; ubicacion: string | null }>>(
+      "llms.hoteles",
+      supabase.from("hoteles").select("slug, nombre, ubicacion").eq("publicado", true),
+    );
     return (data ?? []).filter(
       (h) => h.slug && h.nombre && !TENANTS_PRUEBA.has(h.slug),
     );
-  } catch {
+  } catch (e) {
+    // Degradar a vacío es DELIBERADO (no romper la página por esto), pero
+    // ya no en silencio: sin este log, un fallo aquí se publica como "no
+    // hay contenido" y nadie lo nota hasta que el tráfico baja.
+    console.error("[llms.hoteles]", e instanceof Error ? e.message : e);
     return [];
   }
 }

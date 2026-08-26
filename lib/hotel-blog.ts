@@ -1,3 +1,4 @@
+import { leer } from "@/lib/db/result";
 // Blog por hotel: tipos, consultas públicas y el render del contenido.
 //
 // El contenido de un post es MARKDOWN MÍNIMO (párrafos separados por línea en
@@ -40,14 +41,21 @@ export async function getPostsPublicados(hotelId: string): Promise<HotelBlogPost
   if (!supabaseEnvReady) return [];
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    const { data } = await supabase
-      .from("hotel_blog_posts")
-      .select(COLS)
-      .eq("hotel_id", hotelId)
-      .eq("publicado", true)
-      .order("publicado_at", { ascending: false });
-    return (data as HotelBlogPost[] | null) ?? [];
-  } catch {
+    const data = await leer<HotelBlogPost[]>(
+      "blog.listaPublicada",
+      supabase
+        .from("hotel_blog_posts")
+        .select(COLS)
+        .eq("hotel_id", hotelId)
+        .eq("publicado", true)
+        .order("publicado_at", { ascending: false }),
+    );
+    return data ?? [];
+  } catch (e) {
+    // Degradar a vacío es DELIBERADO (no romper la página por esto), pero
+    // ya no en silencio: sin este log, un fallo aquí se publica como "no
+    // hay contenido" y nadie lo nota hasta que el tráfico baja.
+    console.error("[blog.listaPublicada]", e instanceof Error ? e.message : e);
     return [];
   }
 }
@@ -59,15 +67,21 @@ export async function getPostPublicado(
   if (!supabaseEnvReady) return null;
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    const { data } = await supabase
-      .from("hotel_blog_posts")
-      .select(COLS)
-      .eq("hotel_id", hotelId)
-      .eq("slug", slug)
-      .eq("publicado", true)
-      .maybeSingle();
-    return (data as HotelBlogPost | null) ?? null;
-  } catch {
+    return await leer<HotelBlogPost>(
+      "blog.porSlug",
+      supabase
+        .from("hotel_blog_posts")
+        .select(COLS)
+        .eq("hotel_id", hotelId)
+        .eq("slug", slug)
+        .eq("publicado", true)
+        .maybeSingle(),
+    );
+  } catch (e) {
+    // Degradar a vacío es DELIBERADO (no romper la página por esto), pero
+    // ya no en silencio: sin este log, un fallo aquí se publica como "no
+    // hay contenido" y nadie lo nota hasta que el tráfico baja.
+    console.error("[blog.porSlug]", e instanceof Error ? e.message : e);
     return null;
   }
 }
