@@ -7,6 +7,7 @@ import { createAdminClient, adminEnvReady } from "@/lib/supabase/admin";
 import { getHotelMember, getHotelesDelUsuario } from "@/lib/tenant";
 import { SUPABASE_URL, SUPABASE_ANON_KEY, supabaseEnvReady } from "@/lib/supabase/env";
 import { getStripe, stripeEnvReady } from "@/lib/stripe/server";
+import { alertar } from "@/lib/alertas";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -89,7 +90,14 @@ export async function POST(req: Request) {
       );
       if (susc?.stripe_subscription_id && susc.estado !== "cancelada") {
         try {
-          await getStripe().subscriptions.cancel(susc.stripe_subscription_id);
+          // AL FINAL DEL PERIODO, no de inmediato. Cancelar desde el portal de
+          // Stripe conserva el acceso que el hotelero ya pagó (así está montada
+          // su configuración: `mode: "at_period_end"`), y borrar el hotel desde
+          // el panel no puede ser un camino más duro a la misma salida: con
+          // `subscriptions.cancel()` perdía el resto del mes ya cobrado.
+          await getStripe().subscriptions.update(susc.stripe_subscription_id, {
+            cancel_at_period_end: true,
+          });
         } catch (e) {
           // No bloqueamos el borrado si Stripe falla: se puede cancelar aparte.
           console.error("No se pudo cancelar la suscripción de Stripe al eliminar el hotel:", e);
@@ -102,6 +110,32 @@ export async function POST(req: Request) {
 
   // 6) Borrar el hotel (cascade). Con el admin client (service-role).
   const admin = createAdminClient();
+
+  // ANTES de borrar: soltar el vínculo `suscripciones.hotel_id`, que es
+  // `on delete cascade`. Si no, borrar el hotel se lleva por delante la fila de
+  // la suscripción — y con ella el `stripe_subscription_id` de una suscripción
+  // que en Stripe sigue VIVA hasta el corte del periodo (ver el paso 5). Kora la
+  // olvidaría, y si el hotelero da de alta otro hotel esa misma semana el
+  // checkout le abriría una SEGUNDA suscripción cobrándole dos veces. Soltando
+  // el vínculo la fila sobrevive y el webhook la sigue sincronizando.
+  const { error: desvincularError } = await admin
+    .from("suscripciones")
+    .update({ hotel_id: null })
+    .eq("hotel_id", ctx.hotelId);
+  // 42703 / PGRST204 = la columna no existe en esta base; entonces tampoco hay
+  // cascade del que protegerse y no hay nada que avisar.
+  if (desvincularError && !["42703", "PGRST204"].includes(desvincularError.code ?? "")) {
+    console.error("No se pudo desvincular la suscripción del hotel:", desvincularError);
+    await alertar(
+      "una suscripción pudo perderse al borrar un hotel",
+      `Al eliminar el hotel ${ctx.hotelId} (usuario ${user.id}) no se pudo poner ` +
+        `suscripciones.hotel_id a NULL, así que el borrado en cascada puede haberse ` +
+        `llevado la fila. Comprueba en Stripe si a ese cliente le sigue viva una ` +
+        `suscripción y, si es así, vuelve a crear su fila en \`suscripciones\`.\n\n` +
+        `${desvincularError.message}`,
+    );
+  }
+
   const { error: delError } = await admin.from("hoteles").delete().eq("id", ctx.hotelId);
   if (delError) {
     console.error("Error eliminando hotel:", delError);

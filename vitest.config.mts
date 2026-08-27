@@ -4,7 +4,7 @@ import path from "node:path";
 export default defineConfig({
   test: {
     environment: "node",
-    include: ["tests/**/*.test.ts"],
+    include: ["tests/**/*.test.ts", "tests/**/*.test.tsx"],
     // Varios módulos leen `process.env` AL IMPORTARSE (lib/stripe/server.ts:6,
     // por ejemplo), así que ponerlas en un beforeEach llega tarde. Son valores
     // de mentira: ningún test toca la red ni la base de datos.

@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient, adminEnvReady } from "@/lib/supabase/admin";
 import { getStripe, stripeEnvReady } from "@/lib/stripe/server";
 import { planPorClave } from "@/lib/oferta";
-import { pruebaDelHotel } from "@/lib/suscripcion";
+import { pruebaDelHotel, trialEndParaStripe } from "@/lib/suscripcion";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -120,10 +120,15 @@ export async function POST(req: Request) {
       ? pruebaDelHotel(primerHotel as { created_at: string | null; extras: Record<string, unknown> | null })
       : null;
     const subMeta = { user_id: user.id, plan: plan.clave };
+    // `trialEndParaStripe` es quien conoce el mínimo de 48 h de Stripe. Antes la
+    // condición era `prueba.diasRestantes >= 2` y `diasRestantes` se redondea
+    // hacia arriba, así que a 25 h del final se pedía un `trial_end` que Stripe
+    // rechazaba: el hotelero NO PODÍA PAGAR en las últimas 24-48 h de su prueba.
+    const trialEnd = trialEndParaStripe(prueba);
     const subscriptionData = !primerHotel
       ? { trial_period_days: 30, metadata: subMeta }
-      : prueba && !prueba.vencida && prueba.diasRestantes >= 2
-        ? { trial_end: Math.floor(prueba.fin.getTime() / 1000), metadata: subMeta }
+      : trialEnd !== null
+        ? { trial_end: trialEnd, metadata: subMeta }
         : { metadata: subMeta };
 
     const comun = {

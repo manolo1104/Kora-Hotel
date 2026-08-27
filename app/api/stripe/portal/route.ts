@@ -4,6 +4,7 @@ import type Stripe from "stripe";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient, adminEnvReady } from "@/lib/supabase/admin";
 import { getStripe, stripeEnvReady } from "@/lib/stripe/server";
+import { alertar } from "@/lib/alertas";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,7 +17,10 @@ const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
 // Se crea una vez y se reutiliza (identificada por metadata.kora).
 async function portalConfigId(stripe: Stripe): Promise<string | undefined> {
   try {
-    const existentes = await stripe.billingPortal.configurations.list({ limit: 20 });
+    // 100 es el máximo de Stripe. Con `limit: 20`, en cuanto hubiera 20
+    // configuraciones la nuestra podía quedar fuera de la página y el `find`
+    // fallaba: cada visita al portal creaba OTRA configuración, y así sin fin.
+    const existentes = await stripe.billingPortal.configurations.list({ limit: 100 });
     const propia = existentes.data.find((c) => c.metadata?.kora === "portal-v1" && c.active);
     if (propia) return propia.id;
     const creada = await stripe.billingPortal.configurations.create({
@@ -37,8 +41,22 @@ async function portalConfigId(stripe: Stripe): Promise<string | undefined> {
     });
     return creada.id;
   } catch (e) {
-    // Sin configuración propia, Stripe usa la default del dashboard (si existe).
+    // ME APARTO DEL PLAN, que pedía devolverle el error al panel. El portal es
+    // la ÚNICA salida del cliente para cambiar su tarjeta, bajar recibos Y
+    // cancelar: cerrárselo entero porque la API de configuraciones tuvo un hipo
+    // es el mismo error que fallar cerrado al leer una suscripción (K-53). Se
+    // sigue abriendo con la configuración por defecto del dashboard —conserva
+    // tarjeta y recibos— pero DEJA DE SER SILENCIOSO: la promesa "cancela en un
+    // clic" queda sin garantizar y eso hay que saberlo el mismo día, no cuando
+    // un cliente se queje de que no encuentra cómo darse de baja.
     console.error("No se pudo asegurar la configuración del portal:", e);
+    await alertar(
+      "el portal de Stripe se abrió SIN la configuración de Kora",
+      `No se pudo leer ni crear la configuración "portal-v1". El portal se abre ` +
+        `con la del dashboard de Stripe, así que "cancela en un clic" NO está ` +
+        `garantizado hasta que esto se resuelva. Revisa que la configuración por ` +
+        `defecto del dashboard tenga habilitado cancelar la suscripción.\n\n${String(e)}`,
+    );
     return undefined;
   }
 }
@@ -89,6 +107,27 @@ export async function POST() {
     return NextResponse.json({ url: session.url });
   } catch (e) {
     console.error("Error creando portal de Stripe:", e);
+    // Un `stripe_customer_id` que Stripe ya no reconoce (el caso típico es una
+    // fila que quedó de las llaves de PRUEBA, o un cliente borrado a mano) no se
+    // arregla reintentando: el cliente se quedaba dando clics contra un 500
+    // genérico, sin poder cambiar su tarjeta ni cancelar, y sin que nadie en Kora
+    // se enterara. Se le dice la verdad y se le da una salida humana.
+    if ((e as { code?: string })?.code === "resource_missing") {
+      await alertar(
+        "un cliente no puede abrir su portal de pagos",
+        `El usuario ${user.id} tiene stripe_customer_id=${susc.stripe_customer_id}, ` +
+          `y Stripe responde que no existe (resource_missing). Suele ser una fila ` +
+          `creada con llaves de prueba. Hay que corregir esa fila a mano; mientras ` +
+          `tanto el cliente NO puede cambiar su tarjeta ni cancelar.`,
+      );
+      return NextResponse.json(
+        {
+          error:
+            "Tu cuenta de pagos necesita una corrección de nuestro lado. Escríbenos y lo resolvemos hoy mismo — no te preocupes, no se te cobra de más.",
+        },
+        { status: 409 }
+      );
+    }
     return NextResponse.json(
       { error: "No pudimos abrir el portal de pagos. Inténtalo de nuevo." },
       { status: 500 }

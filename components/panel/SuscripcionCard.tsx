@@ -63,9 +63,16 @@ export function SuscripcionCard({
   }
 
   const info = estado ? ESTADOS[estado] : null;
+  // "Cerrada" = tuvo plan y ya no lo tiene (canceló) o nunca llegó a completarlo.
+  const cerrada = estado === "cancelada" || estado === "incompleta";
 
-  // Sin suscripción: invitación discreta a los planes.
-  if (!info || estado === "cancelada" || estado === "incompleta") {
+  // Invitación a los planes SOLO para quien nunca llegó a Stripe.
+  //
+  // Antes caía aquí también quien había CANCELADO, y pasaban dos cosas malas: se
+  // le hablaba de "prueba gratis, 30 días sin tarjeta" —que ya no es cierto y que
+  // suena a burla cuando acabas de darte de baja— y, sobre todo, se le quitaba el
+  // botón del portal de Stripe, que es su única vía para bajar sus recibos.
+  if (!info || (cerrada && !esStripe)) {
     return (
       <div className="mt-6 flex items-center justify-between gap-4 flex-wrap rounded-2xl border border-kora-primary/15 bg-white px-5 py-4">
         <div className="flex items-center gap-3">
@@ -102,6 +109,13 @@ export function SuscripcionCard({
         <p className="text-sm font-semibold text-kora-text">
           Plan {plan ? plan.charAt(0).toUpperCase() + plan.slice(1) : "Kora"}
         </p>
+        {cerrada && (
+          <p className="text-xs text-kora-muted">
+            {estado === "cancelada"
+              ? "Tus recibos siguen disponibles y puedes reactivarlo cuando quieras."
+              : "Tu pago quedó a medias. Puedes retomarlo cuando quieras."}
+          </p>
+        )}
         {error && (
           <p className="text-xs text-red-600">
             {error}
@@ -124,8 +138,8 @@ export function SuscripcionCard({
           </p>
         )}
       </div>
-      {esStripe && (
-        <div className="flex items-center gap-4 flex-wrap">
+      <div className="flex items-center gap-4 flex-wrap">
+        {esStripe && (
           <button
             type="button"
             onClick={abrirPortal}
@@ -137,10 +151,24 @@ export function SuscripcionCard({
             ) : (
               <CreditCard size={14} aria-hidden="true" />
             )}
-            Administrar mi pago
+            {cerrada ? "Mis recibos" : "Administrar mi pago"}
           </button>
-          {/* La promesa del sitio ("cancela en un clic") debe verse aquí, no
-              escondida: mismo portal, sin llamadas ni correos. */}
+        )}
+        {/* Reactivar: el portal de Stripe no revive una suscripción ya cancelada,
+            así que la única vía de vuelta es un checkout nuevo. Sin este botón,
+            quien canceló no tenía forma de volver desde su panel. */}
+        {cerrada && (
+          <Link
+            href="/pago/iniciar?plan=kora"
+            className="btn-press inline-flex items-center px-4 py-2 rounded-full bg-kora-accent text-kora-primary font-bold text-sm hover:bg-kora-accent-dark transition-colors"
+          >
+            Activar mi plan
+          </Link>
+        )}
+        {/* La promesa del sitio ("cancela en un clic") debe verse aquí, no
+            escondida: mismo portal, sin llamadas ni correos. No se ofrece a quien
+            ya canceló: no hay nada que cancelar. */}
+        {esStripe && !cerrada && (
           <button
             type="button"
             onClick={abrirPortal}
@@ -149,8 +177,8 @@ export function SuscripcionCard({
           >
             Cancelar suscripción
           </button>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

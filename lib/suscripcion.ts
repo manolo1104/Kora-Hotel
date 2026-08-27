@@ -120,6 +120,35 @@ export function pruebaDelHotel(hotel: {
   };
 }
 
+// ─── El mínimo de Stripe para respetar la prueba que le QUEDA ────────────────
+// Stripe rechaza cualquier `trial_end` a menos de 48 h de distancia. La guarda
+// vieja del checkout miraba `prueba.diasRestantes >= 2`, y `diasRestantes` se
+// calcula con `Math.ceil`: con 25 h restantes ya vale 2, así que se le mandaba a
+// Stripe un `trial_end` a 25 h, Stripe rechazaba la sesión y el hotelero veía
+// "No pudimos iniciar el pago". Traducido: NO SE TE PODÍA PAGAR durante las
+// últimas 24-48 h de la prueba — justo cuando le llega el correo de "mañana
+// termina" y cuando más ganas tiene de contratar.
+//
+// La comparación va en MILISEGUNDOS, nunca en días redondeados, y con una hora
+// de holgura sobre el mínimo de Stripe para cubrir el rato que pasa entre que se
+// arma la sesión de pago y el hotelero la completa.
+const STRIPE_TRIAL_END_MIN_MS = 49 * 3_600_000;
+
+/**
+ * El `trial_end` en segundos Unix que se le manda a Stripe para respetar lo que
+ * le queda de prueba al hotelero, o `null` si ya no cabe una prueba en Stripe y
+ * el cobro tiene que correr desde hoy (que es lo que la pantalla de Stripe le
+ * enseña antes de confirmar, así que no hay sorpresa).
+ */
+export function trialEndParaStripe(
+  prueba: PruebaHotel | null,
+  ahora: number = Date.now(),
+): number | null {
+  if (!prueba || prueba.vencida) return null;
+  if (prueba.fin.getTime() - ahora < STRIPE_TRIAL_END_MIN_MS) return null;
+  return Math.floor(prueba.fin.getTime() / 1000);
+}
+
 export interface AccesoHotel {
   activo: boolean; // puede operar (plan pagado, cortesía, demo o prueba vigente)
   planActivo: boolean;
