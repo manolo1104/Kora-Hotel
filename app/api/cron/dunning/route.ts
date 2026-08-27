@@ -1,5 +1,5 @@
 import { alertar } from "@/lib/alertas";
-import { leer, escribir } from "@/lib/db/result";
+import { leer, escribir, DbError } from "@/lib/db/result";
 import { rutaSegura } from "@/lib/api/responder";
 import { NextResponse } from "next/server";
 import { createAdminClient, adminEnvReady } from "@/lib/supabase/admin";
@@ -16,6 +16,20 @@ export const dynamic = "force-dynamic";
 
 const MAX_AVISOS = 3;
 
+/** Postgres: "esa columna no existe aquí" (y su equivalente en PostgREST). */
+const COL_FALTANTE = new Set(["42703", "PGRST204"]);
+
+interface FilaDunning {
+  id: string;
+  user_id: string;
+  avisos_dunning: number;
+  ultimo_aviso_dunning?: string | null;
+}
+
+// Una función serverless vive segundos; esto sólo evita repetir el mismo aviso
+// dentro de una invocación.
+let yaAvisadoSinColumna = false;
+
 export async function GET(req: Request) {
   return rutaSegura("cron.dunning", async () => {
   const secreto = process.env.CRON_SECRET ?? "";
@@ -27,20 +41,60 @@ export async function GET(req: Request) {
   }
 
   const admin = createAdminClient();
-  // Lanza si falla: una lista vacía por error es indistinguible de "nadie debe",
-  // y este cron es el único aviso que recibe un hotelero antes de perder acceso.
-  const vencidas = await leer<Array<{ id: string; user_id: string; avisos_dunning: number }>>(
-    "cron.dunning.vencidas",
+  const consulta = (cols: string) =>
     admin
       .from("suscripciones")
-      .select("id, user_id, avisos_dunning")
+      .select(cols)
       .eq("estado", "pago_vencido")
-      .lt("avisos_dunning", MAX_AVISOS),
-  );
+      .lt("avisos_dunning", MAX_AVISOS);
+
+  // LA GUARDA DE "YA LE ESCRIBÍ HOY" (K-193). Sin ella, el cron sube
+  // `avisos_dunning` en CADA pasada: dos invocaciones el mismo día —un `curl`
+  // suelto, un redespliegue— le vaciaban los 3 avisos de golpe al cliente y le
+  // llegaba la secuencia entera en unas horas. En Vercel Hobby el cron corre una
+  // vez al día, así que la guarda es justo contra lo que no es el cron.
+  //
+  // Si la columna todavía no existe (falta correr sql/kora-plan-unico.sql), se
+  // sigue trabajando SIN guarda y se dice en voz alta. Lanza si falla por
+  // cualquier otro motivo: una lista vacía por error es indistinguible de "nadie
+  // debe", y este es el único aviso que recibe un hotelero antes de perder acceso.
+  let conGuarda = true;
+  let vencidas: FilaDunning[] = [];
+  const conColumna = await consulta("id, user_id, avisos_dunning, ultimo_aviso_dunning");
+  if (conColumna.error && COL_FALTANTE.has(conColumna.error.code ?? "")) {
+    conGuarda = false;
+    if (!yaAvisadoSinColumna) {
+      yaAvisadoSinColumna = true;
+      console.warn(
+        "[dunning] falta la columna `ultimo_aviso_dunning`: sin ella, dos pasadas " +
+          "el mismo día mandan dos avisos al mismo cliente. Corre sql/kora-plan-unico.sql.",
+      );
+    }
+    const sinColumna = await consulta("id, user_id, avisos_dunning");
+    if (sinColumna.error) {
+      throw new DbError("cron.dunning.vencidas", sinColumna.error.message, sinColumna.error.code);
+    }
+    vencidas = (sinColumna.data ?? []) as unknown as FilaDunning[];
+  } else if (conColumna.error) {
+    throw new DbError("cron.dunning.vencidas", conColumna.error.message, conColumna.error.code);
+  } else {
+    vencidas = (conColumna.data ?? []) as unknown as FilaDunning[];
+  }
+
+  // "Hoy" en la zona del negocio, nunca en UTC: entre las 18:00 y la medianoche
+  // el servidor ya cree que es mañana y la guarda no guardaría nada.
+  const hoy = new Date().toLocaleDateString("en-CA", { timeZone: "America/Mexico_City" });
 
   let enviados = 0;
+  let yaPagaron = 0;
+  let repetidos = 0;
   const sinCorreo: string[] = [];
-  for (const s of vencidas ?? []) {
+  for (const s of vencidas) {
+    if (conGuarda && (s.ultimo_aviso_dunning ?? "").slice(0, 10) === hoy) {
+      repetidos++;
+      continue;
+    }
+
     // El correo del dueño vive en auth.users. Un fallo aquí NO puede pasar por
     // "este usuario no tiene correo": es el único aviso que recibe alguien antes
     // de perder el acceso por falta de pago.
@@ -55,12 +109,31 @@ export async function GET(req: Request) {
       continue;
     }
 
-    const intento = s.avisos_dunning + 1;
+    // RELEER JUSTO ANTES DE MANDAR (K-194). La lista se leyó al empezar y los
+    // correos salen en serie; si el pago entra a mitad del bucle —Stripe reintenta
+    // por su lado y `invoice.paid` pone la fila en `activa`—, al cliente le llegaba
+    // "no pudimos cobrarte" DESPUÉS de haber pagado. Es el peor correo posible.
+    const actual = await leer<{ estado: string; avisos_dunning: number }>(
+      "cron.dunning.releer",
+      admin.from("suscripciones").select("estado, avisos_dunning").eq("id", s.id).maybeSingle(),
+    );
+    if (!actual || actual.estado !== "pago_vencido" || actual.avisos_dunning >= MAX_AVISOS) {
+      yaPagaron++;
+      continue;
+    }
+
+    const intento = actual.avisos_dunning + 1;
     const envio = await enviarEmail({ to: email, ...emailPagoVencido({ intento }) });
     if (envio.ok) {
       await escribir(
         "suscripciones.avisosDunning",
-        admin.from("suscripciones").update({ avisos_dunning: intento }).eq("id", s.id),
+        admin
+          .from("suscripciones")
+          .update({
+            avisos_dunning: intento,
+            ...(conGuarda ? { ultimo_aviso_dunning: hoy } : {}),
+          })
+          .eq("id", s.id),
       );
       enviados++;
     }
@@ -75,8 +148,14 @@ export async function GET(req: Request) {
 
   return NextResponse.json({
     ok: true,
-    pendientes: vencidas?.length ?? 0,
+    pendientes: vencidas.length,
     enviados,
+    // `repetidos` = ya se les escribió hoy; `yaPagaron` = pagaron entre que se
+    // leyó la lista y les tocaba el correo. Los dos deben poder verse desde
+    // fuera: son la prueba de que las guardas están funcionando.
+    repetidos,
+    yaPagaron,
+    sinGuardaDeDia: !conGuarda,
     sinCorreo: sinCorreo.length,
   });
   });

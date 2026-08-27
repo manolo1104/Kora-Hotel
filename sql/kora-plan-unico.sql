@@ -1,5 +1,5 @@
 -- ============================================================================
---  Kora · Etapa 2, paso 2.3 — el CHECK del plan dice lo que el código escribe
+--  Kora · Etapa 2 — la tabla `suscripciones` se pone al día (pasos 2.3 y 2.14)
 --
 --  Se aplica A MANO en el editor SQL de Supabase. Idempotente: se puede correr
 --  las veces que haga falta.
@@ -41,7 +41,35 @@ select pg_get_constraintdef(oid) as check_del_plan
    and conname  = 'suscripciones_plan_check';
 
 
+-- ─── PASO 2.14 · la guarda de "ya le escribí hoy" (K-193) ───────────────────
+--
+-- El cron de dunning subía `avisos_dunning` en CADA pasada. Dos invocaciones el
+-- mismo día —un `curl` suelto, un redespliegue— le vaciaban los 3 avisos de
+-- golpe al cliente, y le llegaba entera en unas horas la secuencia de "no
+-- pudimos cobrarte", que es el correo más delicado que manda Kora.
+--
+-- El código YA está desplegado y NO depende de esta columna: si no existe,
+-- trabaja sin guarda y lo dice en el log (y en la respuesta del cron, como
+-- `sinGuardaDeDia: true`). Correr esto es lo que cierra el hueco.
+alter table public.suscripciones
+  add column if not exists ultimo_aviso_dunning date;
+
+comment on column public.suscripciones.ultimo_aviso_dunning is
+  'Último día en que se le mandó un aviso de pago vencido. Impide que dos pasadas '
+  'del cron el mismo día manden dos correos al mismo cliente.';
+
+
+-- ─── COMPROBACIÓN DEL 2.14 ──────────────────────────────────────────────────
+select 'columna ultimo_aviso_dunning' as bloque,
+       case when exists (
+         select 1 from information_schema.columns
+          where table_schema = 'public' and table_name = 'suscripciones'
+            and column_name = 'ultimo_aviso_dunning'
+       ) then 'creada ✅' else 'FALTA ❌' end as valor;
+
+
 -- ─── CÓMO SE DESHACE ────────────────────────────────────────────────────────
 --   alter table public.suscripciones drop constraint suscripciones_plan_check;
 --   alter table public.suscripciones add constraint suscripciones_plan_check
 --     check (plan is null or plan in ('kora','boutique','hotel','grande'));
+--   alter table public.suscripciones drop column ultimo_aviso_dunning;
