@@ -12,7 +12,7 @@
 
 import { reservaCuenta, type EstadoReserva } from "@/lib/booking/estado-reserva";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { leer, escribir, escribirMejorEsfuerzo } from "@/lib/db/result";
+import { leer, escribir, escribirMejorEsfuerzo, DbError} from "@/lib/db/result";
 import { generarConfirmacion } from "@/lib/db/bookings";
 import { blockDates, unblock } from "@/lib/db/availability";
 
@@ -423,7 +423,7 @@ export async function updateBooking(
     estado: string;
     anticipo: number;
   }>,
-): Promise<void> {
+): Promise<ResultadoEdicion> {
   const supabase = createAdminClient();
   // LISTA BLANCA, no `Object.entries(changes)`.
   //
@@ -438,7 +438,29 @@ export async function updateBooking(
     if (value === undefined) continue;
     patch[campo] = value as string | number;
   }
-  if (Object.keys(patch).length === 0) return;
+  if (Object.keys(patch).length === 0) return { ok: true };
+
+  // Los valores ANTERIORES de justo los campos que se van a tocar. Hacen falta
+  // porque la fila se escribe ANTES de re-sincronizar la ocupación (el RPC lee
+  // la reserva ya editada para saber qué revalidar). Si esa revalidación dice
+  // que el cuarto nuevo está ocupado, hay que devolver la fila a como estaba: si
+  // no, la reserva se quedaría con las fechas nuevas y los bloqueos con las
+  // viejas, que es la incoherencia que este paso viene a eliminar.
+  const tocaOcupacion =
+    patch.checkin !== undefined || patch.checkout !== undefined || patch.habitaciones !== undefined;
+  let previo: Record<string, unknown> | null = null;
+  if (tocaOcupacion) {
+    const fila = await leer<Record<string, unknown>>(
+      "bookings.antesDeEditar",
+      supabase
+        .from("bookings")
+        .select(Object.keys(patch).join(", "))
+        .eq("hotel_id", hotelId)
+        .eq("id", id)
+        .maybeSingle(),
+    );
+    if (fila) previo = fila;
+  }
 
   // Antes: `if (error) { console.error(...); return; }` — la ruta respondía
   // {ok:true} igual y el hotelero veía su cambio "guardado" hasta que recargaba.
@@ -450,14 +472,77 @@ export async function updateBooking(
 
   // Si cambiaron fechas o cuartos, re-sincronizar los bloqueos RESERVADO (ligados
   // por booking_id) para que la disponibilidad refleje los nuevos datos. Sin esto,
-  // las fechas viejas quedan ocupadas y las nuevas libres (riesgo de overbooking).
-  //
-  // Son un DELETE y un INSERT sin transacción, y ninguno de los dos se miraba: si
-  // el borrado pasaba y el alta no, quedaban noches VENDIDAS marcadas como libres
-  // y nadie se enteraba. Ahora los dos lanzan, así que ese hueco se ve como un
-  // error en pantalla en vez de como una sobreventa dentro de tres semanas.
-  // (Hacerlo de verdad atómico es trabajo de la etapa de concurrencia.)
-  if (patch.checkin !== undefined || patch.checkout !== undefined || patch.habitaciones !== undefined) {
+  // las fechas viejas quedan ocupadas y las nuevas libres (riesgo de sobreventa).
+  // Ahora es ATÓMICO: ver `resyncBlocksDeReserva` justo debajo.
+  if (tocaOcupacion) {
+    const resync = await resyncBlocksDeReserva(supabase, hotelId, id);
+    if (!resync.ok && previo) {
+      // Deshacer la edición. Lanza si falla: dejar la reserva con las fechas
+      // nuevas y los bloqueos con las viejas es peor que un error en pantalla.
+      await escribir("bookings.deshacerEdicion", supabase
+        .from("bookings")
+        .update(previo)
+        .eq("hotel_id", hotelId)
+        .eq("id", id));
+    }
+    return resync;
+  }
+  return { ok: true };
+}
+
+/** Resultado de editar una reserva: `unavailable` = el cuarto nuevo está ocupado. */
+export interface ResultadoEdicion {
+  ok: boolean;
+  unavailable?: boolean;
+  error?: string;
+}
+
+/** Códigos de "esa función no existe en esta base" (Postgres y PostgREST). */
+const RPC_AUSENTE = new Set(["42883", "PGRST202"]);
+let yaAvisadoSinResync = false;
+
+/**
+ * Repone los `blocks RESERVADO` de una reserva tras editarla.
+ *
+ * Lo hace el RPC `resync_blocks_reserva`: borra y repone en la MISMA
+ * transacción y bajo el mismo candado que `crear_reserva_atomica`. Si el cuarto
+ * nuevo ya está ocupado, lanza y el rollback deja los bloqueos VIEJOS intactos.
+ *
+ * El camino de abajo —DELETE y luego INSERT, sueltos— es el que había, y es el
+ * defecto (K-45, K-46): borra primero y decide después con qué reconstruir. Si
+ * la lectura intermedia falla, queda una reserva CONFIRMADA viva con su cuarto
+ * LIBRE en el calendario, para siempre, hasta que dos huéspedes llegan a la
+ * misma cabaña. Se conserva SÓLO como respaldo mientras la función no exista en
+ * la base, y avisando: sin él, editar fechas dejaría de funcionar entero.
+ */
+async function resyncBlocksDeReserva(
+  supabase: ReturnType<typeof createAdminClient>,
+  hotelId: string,
+  id: string,
+): Promise<ResultadoEdicion> {
+  const { error } = await supabase.rpc("resync_blocks_reserva", {
+    p_hotel_id: hotelId,
+    p_booking_id: id,
+  });
+  if (!error) return { ok: true };
+
+  if (/CUARTO_NO_DISPONIBLE/.test(error.message)) {
+    // La ocupación vieja sigue en pie: el rollback la conservó.
+    return { ok: false, unavailable: true, error: error.message };
+  }
+  if (!RPC_AUSENTE.has(error.code ?? "")) {
+    throw new DbError("blocks.resync", error.message, error.code);
+  }
+
+  if (!yaAvisadoSinResync) {
+    yaAvisadoSinResync = true;
+    console.warn(
+      "[blocks] falta la funcion `resync_blocks_reserva`: al editar una reserva se " +
+        "borra su ocupacion ANTES de saber si se puede reponer. Corre " +
+        "sql/kora-inventario-fase4.sql.",
+    );
+  }
+
     const row = await leer<{
       checkin: string | null;
       checkout: string | null;
@@ -495,7 +580,7 @@ export async function updateBooking(
         ));
       }
     }
-  }
+  return { ok: true };
 }
 
 /**

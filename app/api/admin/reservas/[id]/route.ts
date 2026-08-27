@@ -107,7 +107,22 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   // updateBooking re-sincroniza los bloqueos RESERVADO (por booking_id) cuando
   // cambian fechas/cuartos; por eso NO usamos block/unblockRooms aquí (evita
   // mezclar estados RESERVADO/BLOQUEADO y dejar fechas viejas ocupadas).
-  await updateBooking(ctx.hotelId, booking.id, raw);
+  // El resultado SE MIRA. `updateBooking` re-sincroniza los bloqueos con el RPC
+  // atómico; si el cuarto nuevo ya está ocupado, la ocupación vieja sigue en pie
+  // (el rollback la conservó) y hay que decirlo aquí. Antes esto respondía
+  // ok:true y le escribía al huésped aunque la ocupación se hubiera evaporado.
+  const edicion = await updateBooking(ctx.hotelId, booking.id, raw);
+  if (!edicion.ok) {
+    return NextResponse.json(
+      {
+        error: edicion.unavailable
+          ? "Ese cuarto ya está ocupado en esas fechas. La reserva se quedó como estaba."
+          : "No pudimos aplicar el cambio. Inténtalo de nuevo.",
+        unavailable: edicion.unavailable === true,
+      },
+      { status: edicion.unavailable ? 409 : 500 },
+    );
+  }
   // Cancelada desde el panel → sus lugares de experiencias quedan libres.
   const cancelaAhora = raw.estado === 'CANCELADA' && booking.estado !== 'CANCELADA';
   if (cancelaAhora) {
