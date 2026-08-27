@@ -160,6 +160,64 @@ export interface CartItem {
   quantity?: number; // unidades del tipo (default 1); permite "2 Deluxe"
 }
 
+/** Resultado de comprobar si un carrito alcanza para la gente que llega. */
+export interface CapacidadCarrito {
+  ok: boolean;
+  motivo?: "capacidad-insuficiente" | "ocupacion-declarada-insuficiente";
+  /** Cuánta gente CABE en lo elegido: maxGuests × unidades. */
+  capacidadFisica: number;
+  /** Por cuánta gente se está PAGANDO: guestCount × unidades. */
+  ocupacionPagada: number;
+}
+
+/**
+ * ¿Alcanza el carrito para la gente que llega? Son DOS preguntas distintas y
+ * antes sólo se hacía una (K-16):
+ *
+ *  1. ¿CABEN? — `maxGuests × unidades` contra adultos + menores. Los menores
+ *     ocupan cama aunque no paguen tarifa (K-99), y esto no se miraba.
+ *  2. ¿ESTÁN PAGANDO POR TODOS? — `guestCount × unidades` contra los adultos.
+ *     Ésta faltaba entera. El precio sale de `getRoomBasePrice(room, guestCount)`
+ *     y `guestCount` LO MANDA EL NAVEGADOR; como la única validación usaba
+ *     `maxGuests`, que siempre es mayor o igual, pasaba siempre. Bastaba con
+ *     pedir un cuarto de 4 con `guestCount: 1` y `adults: 4` para pagar la
+ *     tarifa de una persona y llegar cuatro.
+ *
+ * Los menores NO suben la ocupación que se cobra, a propósito: hacerlo subiría
+ * el precio de toda reserva con niños, que es otra cosa distinta de lo que este
+ * arreglo persigue.
+ *
+ * Función pura: la usan igual el motor web, el checkout público y Camila, que
+ * es lo que evita que los tres canales cobren distinto por la misma estancia.
+ */
+export function validarCapacidadCarrito(
+  rooms: BookingRoom[],
+  cart: CartItem[],
+  adults: number,
+  children = 0,
+): CapacidadCarrito {
+  let capacidadFisica = 0;
+  let ocupacionPagada = 0;
+  for (const item of cart) {
+    const room = rooms.find((r) => String(r.id) === String(item.roomId));
+    if (!room) continue; // un id inventado no aporta capacidad
+    const qty = Math.max(1, Math.floor(item.quantity ?? 1));
+    // Nadie paga por más gente de la que cabe en la unidad: si no, declarar
+    // `guestCount: 99` sería una forma de pasar la comprobación sin pagarla.
+    const porUnidad = Math.max(1, Math.min(Math.floor(item.guestCount) || 1, room.maxGuests));
+    capacidadFisica += room.maxGuests * qty;
+    ocupacionPagada += porUnidad * qty;
+  }
+  const personas = Math.max(0, adults) + Math.max(0, children);
+  if (capacidadFisica < personas) {
+    return { ok: false, motivo: "capacidad-insuficiente", capacidadFisica, ocupacionPagada };
+  }
+  if (ocupacionPagada < adults) {
+    return { ok: false, motivo: "ocupacion-declarada-insuficiente", capacidadFisica, ocupacionPagada };
+  }
+  return { ok: true, capacidadFisica, ocupacionPagada };
+}
+
 export function calcCartSubtotal(
   rooms: BookingRoom[],
   cart: CartItem[],

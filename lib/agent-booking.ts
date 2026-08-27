@@ -26,6 +26,7 @@ import {
   calcNights,
   calcDepositAmount,
   type CartItem,
+  validarCapacidadCarrito,
 } from "@/lib/booking";
 import { freeUnitsByType, createTemporaryHold, releaseHold } from "@/lib/db/availability";
 import { getConnectState } from "@/lib/stripe/connect";
@@ -157,7 +158,18 @@ export async function crearLinkReservaAgente(
   const adults = Math.max(1, Math.floor(Number(input.huespedes) || 1));
   const children = Math.max(0, Math.floor(Number(input.ninos) || 0));
   const quantity = Math.max(1, Math.min(Math.floor(Number(input.unidades) || 1), MAX_UNIDADES));
-  if (room.maxGuests * quantity < adults) {
+  // La MISMA función que la caja del motor web: si no, los dos canales aceptan
+  // reservas distintas por la misma estancia. El reparto de adultos entre
+  // unidades lo hace este archivo más abajo, así que la ocupación pagada ya
+  // cubre a los adultos; lo que esto añade es que los MENORES cuenten para la
+  // capacidad física, que antes se ignoraban por completo (K-99).
+  const capacidad = validarCapacidadCarrito(
+    rooms,
+    [{ roomId: room.id, guestCount: room.maxGuests, quantity }],
+    adults,
+    children,
+  );
+  if (!capacidad.ok) {
     return { ok: false, error: "capacidad-insuficiente", maxHuespedes: room.maxGuests };
   }
 

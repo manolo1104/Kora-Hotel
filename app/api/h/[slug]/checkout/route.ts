@@ -21,6 +21,7 @@ import {
   type AddonRule,
   type ExperienciaRule,
   type ExperienciaSelection,
+  validarCapacidadCarrito,
 } from "@/lib/booking";
 import { freeUnitsByType, createTemporaryHold, releaseHold } from "@/lib/db/availability";
 import { ventasPorExperiencia } from "@/lib/db/experiencias";
@@ -150,14 +151,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   if (cleanCart.length === 0) {
     return NextResponse.json({ error: "Carrito inválido" }, { status: 400 });
   }
-  // Capacidad: los cuartos elegidos deben alcanzar para los adultos declarados
-  // (la UI ya lo exige; aquí se repite porque el endpoint es público).
-  const capacidadTotal = cleanCart.reduce((s, c) => {
-    const room = rooms.find((r) => r.id === c.roomId);
-    return s + (room?.maxGuests ?? 0) * (c.quantity ?? 1);
-  }, 0);
-  if (capacidadTotal < adults) {
-    return NextResponse.json({ error: "capacidad-insuficiente" }, { status: 400 });
+  // Capacidad: son DOS preguntas, no una. La vieja sólo hacía la primera, y la
+  // hacía con `maxGuests` —que siempre alcanza—, así que pasaba siempre. El
+  // precio sale de `guestCount`, y `guestCount` LO MANDA EL NAVEGADOR: un cuarto
+  // de 4 pedido con `guestCount: 1` y `adults: 4` pagaba la tarifa de UNA
+  // persona (K-16). Los menores, además, no contaban para nada (K-99).
+  const capacidad = validarCapacidadCarrito(rooms, cleanCart, adults, children);
+  if (!capacidad.ok) {
+    return NextResponse.json({ error: capacidad.motivo }, { status: 400 });
   }
   const nights = calcNights(checkin, checkout);
   if (nights <= 0) return NextResponse.json({ error: "Fechas inválidas" }, { status: 400 });

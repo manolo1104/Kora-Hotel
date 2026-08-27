@@ -38,6 +38,7 @@ import {
   formatMXN,
   type Temporada,
   type RecargoFinDeSemana,
+  validarCapacidadCarrito,
 } from "@/lib/booking";
 import { t, localeOf, normalizeLang, LANG_KEY, type Lang } from "@/lib/booking/i18n";
 import { HotelImage } from "@/components/HotelImage";
@@ -683,7 +684,12 @@ export default function ReservarClient({
     0,
   );
   const groupSize = adults + children;
-  const capacityOk = cart.length === 0 || cartCapacity >= groupSize;
+  // La MISMA función que usa la caja del servidor. Antes la interfaz miraba
+  // `maxGuests` y el servidor cobraba por `guestCount`: se podía bajar el
+  // contador de personas de una habitación, seguir adelante sin ningún aviso, y
+  // pagar la tarifa de menos. Ahora la pantalla dice que no en el momento.
+  const capacityOk =
+    cart.length === 0 || validarCapacidadCarrito(rooms, cart, adults, children).ok;
   const canContinue =
     cart.length > 0 && checkin && checkout && nights > 0 && !cartHasUnavailable && capacityOk;
 
