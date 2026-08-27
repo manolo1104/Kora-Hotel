@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { articles, extractHeadings } from "@/lib/articles";
 import { getArticleBySlug, getAllArticles } from "@/lib/blog-db";
+import { SuscripcionInline } from "@/components/shared/SuscripcionInline";
 import { FUNDADOR } from "@/lib/fundador";
 import { ShareButtons } from "@/components/blog/ShareButtons";
 import { CoverImage } from "@/components/blog/CoverImage";
@@ -47,12 +48,34 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
+/**
+ * Parte el HTML del artículo en dos para poder meter la captura de correo a
+ * media lectura, que es donde más convierte: quien lleva medio artículo ya
+ * demostró interés en el tema exacto de la guía.
+ *
+ * El corte va en el SEGUNDO <h2> — nunca en el primero (quedaría casi pegado al
+ * título) ni en medio de un párrafo. Si el artículo tiene menos de tres <h2>, no
+ * se parte: un artículo corto con un bloque a la mitad se siente publicitario.
+ */
+function partirEnDos(html: string): [string, string] {
+  const marcas: number[] = [];
+  let i = html.indexOf("<h2");
+  while (i !== -1 && marcas.length < 3) {
+    marcas.push(i);
+    i = html.indexOf("<h2", i + 3);
+  }
+  if (marcas.length < 3) return [html, ""];
+  const corte = marcas[1];
+  return [html.slice(0, corte), html.slice(corte)];
+}
+
 export default async function BlogArticlePage({ params }: Props) {
   const { slug } = await params;
   const article = await getArticleBySlug(slug);
   if (!article) notFound();
 
   const headings = extractHeadings(article.content);
+  const [cuerpoA, cuerpoB] = partirEnDos(article.content);
   const todos = await getAllArticles();
   const related = todos.filter((a) => a.slug !== slug).slice(0, 2);
 
@@ -221,8 +244,29 @@ export default async function BlogArticlePage({ params }: Props) {
                   prose-a:text-kora-primary prose-a:font-medium prose-a:no-underline hover:prose-a:underline
                   [&_h2]:scroll-mt-24 [&_h3]:scroll-mt-24
                 "
-                dangerouslySetInnerHTML={{ __html: article.content }}
+                dangerouslySetInnerHTML={{ __html: cuerpoA }}
               />
+
+              {/* Captura a media lectura */}
+              <SuscripcionInline origen={`blog:${article.slug}`} />
+
+              {cuerpoB && (
+                <div
+                  className="
+                    prose prose-lg max-w-none
+                    prose-headings:font-bold prose-headings:tracking-tight prose-headings:text-kora-text
+                    prose-h2:text-2xl prose-h2:mt-12 prose-h2:mb-4
+                    prose-h3:text-xl prose-h3:mt-8 prose-h3:mb-3
+                    prose-p:text-[#1A1A1A] prose-p:leading-[1.8] prose-p:mb-5
+                    prose-ul:my-4 prose-ul:space-y-2 prose-li:text-[#1A1A1A] prose-li:leading-relaxed
+                    prose-ol:my-4 prose-ol:space-y-2
+                    prose-strong:text-kora-text prose-strong:font-semibold
+                    prose-a:text-kora-primary prose-a:font-medium prose-a:no-underline hover:prose-a:underline
+                    [&_h2]:scroll-mt-24 [&_h3]:scroll-mt-24
+                  "
+                  dangerouslySetInnerHTML={{ __html: cuerpoB }}
+                />
+              )}
 
               {/* Author card */}
               <div className="mt-14 pt-10 border-t border-gray-100 flex items-start gap-4">
@@ -282,6 +326,9 @@ export default async function BlogArticlePage({ params }: Props) {
             {/* ── Sticky sidebar ───────────────────────────────────── */}
             <aside className="hidden lg:block w-64 xl:w-72 flex-shrink-0">
               <div className="sticky top-24 flex flex-col gap-5">
+                {/* Captura de correo: acompaña toda la lectura sin cortarla */}
+                <SuscripcionInline origen={`blog-lateral:${article.slug}`} variante="tarjeta" />
+
                 {/* Table of Contents */}
                 {headings.length > 0 && (
                   <div className="bg-kora-bg border border-gray-200 rounded-2xl p-5">

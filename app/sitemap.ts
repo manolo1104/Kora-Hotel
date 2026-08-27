@@ -224,6 +224,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.7,
     },
     {
+      // La guía es el imán de toda la captación por correo y compite por la
+      // búsqueda más valiosa del sitio: se indexa completa, sin candado.
+      url: `${BASE_URL}/guia`,
+      lastModified: SITE_UPDATED,
+      changeFrequency: "monthly",
+      priority: 0.9,
+    },
+    {
       url: `${BASE_URL}/herramientas/mini-pagina`,
       lastModified: SITE_UPDATED,
       changeFrequency: "monthly",

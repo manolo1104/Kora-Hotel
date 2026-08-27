@@ -30,14 +30,14 @@ export const articles: Article[] = [
     category: "Distribución hotelera",
     tags: ["reservas directas", "OTAs", "Booking", "channel management"],
     image: "/blog/portadas/como-aumentar-reservas-directas.jpg",
-    imageAlt: "Recepción de hotel con ventanales al jardín, sobre el dato de cómo bajó del 75% al 53% la dependencia de OTAs",
+    imageAlt: "Recepción de hotel con ventanales al jardín, sobre el dato de cómo bajó del 40% al 25% la dependencia de OTAs",
     content: `
 <div class="callout-summary">
   <p class="callout-summary-title">Lo más importante</p>
   <ul>
     <li>Un hotel boutique de 12 habitaciones puede estar pagando más de $35,000 MXN al mes solo en comisiones a las OTAs.</li>
     <li>Las 5 estrategias de este artículo no requieren inversión publicitaria: solo sistemas y procesos correctos.</li>
-    <li>Hotel Paraíso Encantado pasó del 75% al 53% de dependencia en OTAs en 3 meses.</li>
+    <li>Hotel Paraíso Encantado pasó del 40% al 25% de dependencia en OTAs en 3 meses.</li>
   </ul>
 </div>
 
@@ -120,13 +120,13 @@ export const articles: Article[] = [
 
 <h2 id="resultados-reales">Resultados en un caso real</h2>
 
-<p>Hotel Paraíso Encantado en Xilitla, San Luis Potosí, es el hotel piloto de <a href="/">Kora</a>. Antes de implementar el sistema, el 75% de sus reservas llegaban por OTAs. A los tres meses:</p>
+<p>Hotel Paraíso Encantado en Xilitla, San Luis Potosí, es el hotel piloto de <a href="/">Kora</a>. Antes de implementar el sistema, el 40% de sus reservas llegaban por OTAs. A los tres meses:</p>
 
 <div class="callout-compare">
   <div class="callout-compare-before">
     <p class="callout-compare-label" style="color: #dc2626;">Antes de Kora</p>
     <ul>
-      <li style="color: #7f1d1d;">75% reservas por OTAs</li>
+      <li style="color: #7f1d1d;">40% reservas por OTAs</li>
       <li style="color: #7f1d1d;">Respuesta WA: 4+ horas</li>
       <li style="color: #7f1d1d;">Sin dashboard de métricas</li>
     </ul>
@@ -134,9 +134,9 @@ export const articles: Article[] = [
   <div class="callout-compare-after">
     <p class="callout-compare-label" style="color: #1B4332;">Con Kora (mes 3)</p>
     <ul>
-      <li style="color: #1B4332;">53% reservas por OTAs</li>
+      <li style="color: #1B4332;">25% reservas por OTAs</li>
       <li style="color: #1B4332;">Respuesta WA: &lt; 30 segundos</li>
-      <li style="color: #1B4332;">$8,400 MXN/mes ahorrados</li>
+      <li style="color: #1B4332;">15 puntos menos de comisión</li>
     </ul>
   </div>
 </div>

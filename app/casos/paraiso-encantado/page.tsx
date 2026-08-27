@@ -51,8 +51,8 @@ export default function CasoParaisoEncantadoPage() {
               Xilitla, San Luis Potosí · Hotel boutique de naturaleza
             </p>
             <p className="mt-6 text-white/80 text-base leading-relaxed max-w-2xl">
-              El primer hotel en adoptar Kora. Cómo pasamos del 75% de dependencia
-              en OTAs a generar el 47% de reservas directas en tres meses.
+              El primer hotel en adoptar Kora. Cómo pasamos del 40% de dependencia
+              en OTAs a generar el 75% de reservas directas en tres meses.
             </p>
           </Reveal>
 

@@ -35,10 +35,21 @@ export interface EmailArgs {
   html: string;
   /** Remitente. Por defecto Kora; pásalo para enviar con la marca del hotel. */
   from?: string;
+  /**
+   * Cabeceras extra. Se usa para `List-Unsubscribe` en los correos de la lista
+   * de marketing (lib/suscriptores.ts): sin ellas Gmail no pinta su botón de
+   * "cancelar suscripción" y la gente marca spam en su lugar — y el castigo cae
+   * sobre el dominio entero, del que también salen las confirmaciones de
+   * reserva de los hoteles clientes.
+   *
+   * NO las pongas en correos transaccionales (confirmación de reserva, pago
+   * vencido): ahí "darse de baja" no aplica y confunde.
+   */
+  headers?: Record<string, string>;
 }
 
 /** Envía y NUNCA lanza. Devuelve el motivo cuando falla. */
-export async function enviarEmail({ to, subject, html, from }: EmailArgs): Promise<ResultadoEmail> {
+export async function enviarEmail({ to, subject, html, from, headers }: EmailArgs): Promise<ResultadoEmail> {
   if (!API_KEY) {
     console.log(`[email omitido] ${subject} → ${to || "(sin destinatario)"}`);
     return { ok: false, error: "RESEND_API_KEY no configurada" };
@@ -46,7 +57,13 @@ export async function enviarEmail({ to, subject, html, from }: EmailArgs): Promi
   if (!to) return { ok: false, error: "sin destinatario" };
   try {
     const resend = new Resend(API_KEY);
-    const { data, error } = await resend.emails.send({ from: from || FROM, to, subject, html });
+    const { data, error } = await resend.emails.send({
+      from: from || FROM,
+      to,
+      subject,
+      html,
+      ...(headers ? { headers } : {}),
+    });
     if (error) {
       console.error("Error enviando email con Resend:", error);
       return { ok: false, error: error.message || String(error) };

@@ -57,3 +57,17 @@ export function trackBeginCheckout(plan: string, value: number) {
     items: [{ item_id: plan, item_name: `Plan ${plan}` }],
   });
 }
+
+/**
+ * Alta en la lista de correo. NO es `generate_lead`: un suscriptor dejó sólo su
+ * correo por una guía, no pidió que le hablen. Mezclarlos en GA4 inflaría las
+ * conversiones y Google Ads optimizaría hacia el evento barato, dejando de
+ * traer a los que sí dan su WhatsApp.
+ *
+ * `origen` responde la única pregunta que importa aquí: qué superficie capta
+ * (popup, footer, artículo, herramienta, la página de la guía).
+ */
+export function trackSuscripcion(origen: string) {
+  if (typeof window === "undefined" || typeof window.gtag !== "function") return;
+  window.gtag("event", "sign_up", { method: "guia", origen });
+}

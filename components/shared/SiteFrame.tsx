@@ -7,6 +7,7 @@ import { BotonWhatsApp } from "@/components/shared/BotonWhatsApp";
 import { ScrollProgressBar } from "@/components/shared/ScrollProgressBar";
 import { PageTransition } from "@/components/shared/PageTransition";
 import { ChatWidget } from "@/components/soporte/ChatWidget";
+import { PopupGuia } from "@/components/shared/PopupGuia";
 
 // Marco del sitio: aplica el chrome correcto según la sección.
 // - Páginas públicas del hotel (/h, /g): sin chrome de Kora (son del hotelero).
@@ -59,6 +60,10 @@ export function SiteFrame({ children }: { children: React.ReactNode }) {
       <BotonWhatsApp />
       {/* El chat de soporte va arriba del botón de WhatsApp */}
       <ChatWidget elevado />
+      {/* El popup de la guía sólo vive aquí: en las ramas de arriba (sitios de
+          los hoteles, CRM, panel y entrar) no debe existir. El componente pone
+          sus propias reglas de cuándo aparecer. */}
+      <PopupGuia />
     </>
   );
 }

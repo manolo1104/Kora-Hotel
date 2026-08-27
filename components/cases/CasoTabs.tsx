@@ -34,7 +34,7 @@ function TabProblema() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
           {
-            metric: "75%",
+            metric: "40%",
             label: "de reservas venían de Booking o Airbnb",
             bad: true,
           },
@@ -242,13 +242,13 @@ function TabResultados() {
               <div>
                 <div className="flex justify-between text-xs text-kora-muted mb-1">
                   <span>Booking / Airbnb</span>
-                  <span className="font-bold text-red-600">75%</span>
+                  <span className="font-bold text-red-600">40%</span>
                 </div>
                 <div className="h-2 bg-red-100 rounded-full overflow-hidden">
                   <motion.div
                     className="h-full bg-red-400 rounded-full"
                     initial={{ width: 0 }}
-                    whileInView={{ width: "75%" }}
+                    whileInView={{ width: "40%" }}
                     transition={{ duration: 0.8, ease: EASE, delay: 0.1 }}
                     viewport={{ once: true }}
                   />
@@ -257,13 +257,13 @@ function TabResultados() {
               <div>
                 <div className="flex justify-between text-xs text-kora-muted mb-1">
                   <span>Reserva directa</span>
-                  <span className="font-bold">25%</span>
+                  <span className="font-bold">60%</span>
                 </div>
                 <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                   <motion.div
                     className="h-full bg-gray-300 rounded-full"
                     initial={{ width: 0 }}
-                    whileInView={{ width: "25%" }}
+                    whileInView={{ width: "60%" }}
                     transition={{ duration: 0.7, ease: EASE, delay: 0.2 }}
                     viewport={{ once: true }}
                   />
@@ -279,13 +279,13 @@ function TabResultados() {
               <div>
                 <div className="flex justify-between text-xs text-kora-muted mb-1">
                   <span>Booking / Airbnb</span>
-                  <span className="font-bold text-kora-muted">53%</span>
+                  <span className="font-bold text-kora-muted">25%</span>
                 </div>
                 <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                   <motion.div
                     className="h-full bg-kora-muted/40 rounded-full"
                     initial={{ width: 0 }}
-                    whileInView={{ width: "53%" }}
+                    whileInView={{ width: "25%" }}
                     transition={{ duration: 0.8, ease: EASE, delay: 0.1 }}
                     viewport={{ once: true }}
                   />
@@ -294,13 +294,13 @@ function TabResultados() {
               <div>
                 <div className="flex justify-between text-xs text-kora-muted mb-1">
                   <span>Reserva directa</span>
-                  <span className="font-bold text-kora-primary">47%</span>
+                  <span className="font-bold text-kora-primary">75%</span>
                 </div>
                 <div className="h-2 bg-kora-accent/20 rounded-full overflow-hidden">
                   <motion.div
                     className="h-full bg-kora-accent rounded-full"
                     initial={{ width: 0 }}
-                    whileInView={{ width: "47%" }}
+                    whileInView={{ width: "75%" }}
                     transition={{ duration: 0.9, ease: EASE, delay: 0.2 }}
                     viewport={{ once: true }}
                   />

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Reveal } from "@/components/shared/Reveal";
+import { SuscripcionForm } from "@/components/shared/SuscripcionForm";
 
 // Actualiza estas URLs cuando crees las cuentas sociales
 const LINKEDIN_URL = ""; // e.g. "https://linkedin.com/company/kora-hotel"
@@ -15,6 +16,7 @@ const navLinks = [
   { label: "Comparativas (OTAs)", href: "/comparativas" },
   { label: "Glosario hotelero", href: "/glosario" },
   { label: "Blog", href: "/blog" },
+  { label: "Guía: plan de 90 días", href: "/guia" },
   { label: "Demo", href: "/casos/paraiso-encantado" },
 ];
 
@@ -35,6 +37,30 @@ export function Footer() {
   return (
     <footer className="bg-[#0F1F15] text-white pt-14 pb-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Suscripción: la única puerta del pie que pide algo. Va arriba de los
+            enlaces porque el pie se lee de arriba a abajo y quien llegó hasta
+            aquí ya recorrió la página entera. */}
+        <Reveal>
+          <div className="mb-12 rounded-2xl border border-white/10 bg-white/[0.04] p-6 sm:p-8">
+            <div className="grid gap-6 lg:grid-cols-2 lg:items-center lg:gap-12">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-kora-accent">
+                  Guía gratis
+                </p>
+                <p className="mt-2 text-lg font-bold leading-snug tracking-tight text-white sm:text-xl">
+                  Del 40% al 25% de dependencia de Booking en 90 días
+                </p>
+                <p className="mt-2 text-sm leading-relaxed text-white/50">
+                  El plan que seguí en mi hotel de Xilitla, semana por semana.
+                  Te lo mando por correo junto con las plantillas de WhatsApp
+                  que usé.
+                </p>
+              </div>
+              <SuscripcionForm origen="footer" piel="oscuro" />
+            </div>
+          </div>
+        </Reveal>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 pb-10 border-b border-white/10">
           {/* Brand */}
           <Reveal>
