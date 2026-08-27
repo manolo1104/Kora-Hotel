@@ -36,9 +36,12 @@ export function OnboardingClient() {
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState("");
 
-  const cuartosValidos = cuartos.filter(
-    (c) => c.nombre.trim() && Number(c.precio.replace(/[^0-9]/g, "")) > 0
-  );
+  // Mismo criterio que `toNum` del servidor (app/api/panel/crear-hotel/route.ts):
+  // conservar el punto decimal. Con /[^0-9]/ "1,500.50" se convertía en 150050,
+  // así que el hotelero publicaba su cabaña a $150,050 la noche sin enterarse.
+  const aNumero = (v: string) => parseFloat(v.replace(/[^0-9.]/g, "")) || 0;
+
+  const cuartosValidos = cuartos.filter((c) => c.nombre.trim() && aNumero(c.precio) > 0);
   const puedePaso1 = nombre.trim().length > 1;
   const puedePaso2 = cuartosValidos.length > 0;
 
@@ -75,7 +78,7 @@ export function OnboardingClient() {
           descripcion: descripcion.trim(),
           habitaciones: cuartosValidos.map((c) => ({
             nombre: c.nombre.trim(),
-            precio: Number(c.precio.replace(/[^0-9]/g, "")),
+            precio: aNumero(c.precio),
             maxGuests: Number(c.maxGuests.replace(/[^0-9]/g, "")) || 2,
           })),
         }),

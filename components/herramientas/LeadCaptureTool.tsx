@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Check, Loader2, ArrowRight } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import { trackLead } from "@/lib/analytics";
 
 const WA_FALLBACK_URL = `https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "524891251458"}?text=Hola%2C%20us%C3%A9%20una%20calculadora%20de%20Kora%20y%20quiero%20mi%20reporte`;
 
@@ -59,6 +60,11 @@ export function LeadCaptureTool({
         body: JSON.stringify(Object.fromEntries(data.entries())),
       });
       if (res.ok) {
+        // Sin esto, los leads de las 18 herramientas gratis salían con CERO
+        // conversiones en GA4 y en Google Ads, y las campañas se optimizaban
+        // como si esas palabras clave no convirtieran. El formulario hermano de
+        // la landing sí lo hacía (components/landing/ContactForm.tsx).
+        trackLead("herramienta");
         setSent(true);
       } else {
         setError(true);

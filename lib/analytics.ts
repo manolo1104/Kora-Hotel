@@ -12,7 +12,13 @@ declare global {
 }
 
 // Marca un lead. method = cómo se generó (formulario o WhatsApp).
-export function trackLead(method: "form" | "whatsapp") {
+/**
+ * `method` viaja a GA4 y sirve para saber QUÉ canal convierte. "herramienta" se
+ * añadió al cablear las 18 herramientas gratis, que hasta ahora no reportaban
+ * ninguna conversión (K-40): mezclarlas con "form" habría escondido justo el
+ * dato por el que se cablearon.
+ */
+export function trackLead(method: "form" | "whatsapp" | "herramienta") {
   if (typeof window === "undefined" || typeof window.gtag !== "function") return;
 
   // Evento estándar de GA4. En Google Ads se importa "generate_lead" como conversión.
