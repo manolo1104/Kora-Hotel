@@ -1,3 +1,4 @@
+import { reservaCuenta } from "@/lib/booking/estado-reserva";
 import type { AdminBooking } from './sheets-admin';
 
 const TOTAL_SUITES = 13;
@@ -25,7 +26,8 @@ function countUnits(habitaciones: string): number {
 }
 
 function isActive(b: AdminBooking): boolean {
-  return b.estado !== 'CANCELADA';
+  // `reservaCuenta` incluye REEMBOLSADA: un cuarto devuelto no está ocupado.
+  return reservaCuenta(b.estado);
 }
 
 function bookingCoversDate(b: AdminBooking, date: Date): boolean {

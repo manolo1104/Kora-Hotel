@@ -187,15 +187,23 @@ export interface AvisoReservaHotelArgs {
   huespedes: number;
   total: number;
   anticipo: number;
-  pagoEnHotel?: boolean; // true = tarjeta en garantía, cobra en recepción
+  /** true = hay TARJETA EN GARANTÍA de verdad (SetupIntent de Stripe).
+   *  NO usar para "reserva sin anticipo": eso se deduce de `anticipo <= 0`. */
+  pagoEnHotel?: boolean;
   ratePlan?: string | null;
   experiencias?: string[]; // tours/traslados/cena contratados (para preparar)
 }
 
 export function buildAvisoReservaHotelHtml(a: AvisoReservaHotelArgs): string {
+  // Tres casos, no dos (K-253). El del medio faltaba: una reserva METIDA A MANO
+  // desde el panel no pasa por Stripe, así que NO hay ninguna tarjeta en
+  // garantía — y el aviso le decía al hotelero que sí, que es justo el dato con
+  // el que decide si le guarda el cuarto a alguien que no ha pagado nada.
   const pago = a.pagoEnHotel
     ? `<strong style="color:${TOK.tinta};">Paga al llegar</strong> — tarjeta en garantía, cobras en recepción.`
-    : `Anticipo pagado: <strong style="color:${TOK.exito};">${money(a.anticipo)}</strong> · Saldo al llegar: <strong style="color:${TOK.tinta};">${money(Math.max(0, a.total - a.anticipo))}</strong>`;
+    : a.anticipo <= 0
+      ? `<strong style="color:${TOK.tinta};">Sin anticipo</strong> — cobras ${money(a.total)} en recepción. Ojo: <strong>no hay tarjeta en garantía</strong>.`
+      : `Anticipo pagado: <strong style="color:${TOK.exito};">${money(a.anticipo)}</strong> · Saldo al llegar: <strong style="color:${TOK.tinta};">${money(Math.max(0, a.total - a.anticipo))}</strong>`;
 
   const filas = [
     { k: "Huésped", v: `${esc(a.cliente || "Sin nombre")}${a.huespedes ? ` · ${a.huespedes} persona(s)` : ""}` },
@@ -250,23 +258,38 @@ export interface AvisoCancelacionHotelArgs {
   checkin: string;
   checkout: string;
   anticipo: number;
+  /**
+   * Quién la canceló. "panel" = la canceló el PROPIO hotel desde su panel; ahí
+   * este correo no es un aviso sino una constancia, y sobre todo el recordatorio
+   * del reembolso — al huésped ya se le dijo que el hotel se lo devuelve.
+   */
+  origen?: "portal" | "panel";
 }
 
 export function buildAvisoCancelacionHotelHtml(a: AvisoCancelacionHotelArgs): string {
+  const porElHotel = a.origen === "panel";
   const filas = [
     { k: "Huésped", v: esc(a.cliente || a.email || "—") },
     { k: "Habitación(es)", v: esc(a.habitaciones) || "—" },
     { k: "Fechas", v: `${esc(a.checkin)} → ${esc(a.checkout)}` },
+    // Kora NO emite reembolsos de cancelación (decisión del 26 ago 2026): los
+    // coordina el hotel desde su propia cuenta de Stripe. Al huésped su correo
+    // ya le dice exactamente eso, así que aquí no puede quedar ambiguo.
     ...(a.anticipo > 0
-      ? [{ k: "Anticipo", v: `${money(a.anticipo)} — coordina el reembolso desde tu Stripe` }]
+      ? [{
+          k: "Anticipo",
+          v: `${money(a.anticipo)} — al huésped se le dijo que TÚ se lo devuelves. Emítelo desde tu Stripe: Kora no lo hace por ti.`,
+        }]
       : []),
   ];
 
   const inner =
     cabecera({ nombre: "Kora", eyebrow: "Reserva cancelada" }) +
-    titulo("Se canceló una reserva", `Folio <strong style="color:${TOK.cuerpo};letter-spacing:1px;">${esc(a.confirmacion)}</strong>`) +
+    titulo(porElHotel ? "Cancelaste una reserva" : "Se canceló una reserva", `Folio <strong style="color:${TOK.cuerpo};letter-spacing:1px;">${esc(a.confirmacion)}</strong>`) +
     parrafo(
-      `El huésped canceló su reserva en <strong style="color:${TOK.tinta};">${esc(a.hotelNombre)}</strong> desde el portal, dentro del plazo de cancelación gratis.`,
+      porElHotel
+        ? `Cancelaste esta reserva de <strong style="color:${TOK.tinta};">${esc(a.hotelNombre)}</strong> desde tu panel. Guarda este correo como constancia.`
+        : `El huésped canceló su reserva en <strong style="color:${TOK.tinta};">${esc(a.hotelNombre)}</strong> desde el portal, dentro del plazo de cancelación gratis.`,
     ) +
     tablaDatos(filas) +
     caja("Las fechas ya quedaron liberadas en tu calendario: el cuarto vuelve a estar a la venta.", "exito") +

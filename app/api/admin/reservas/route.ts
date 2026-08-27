@@ -134,7 +134,10 @@ async function notifyBookingEmails(
       huespedes,
       total,
       anticipo,
-      pagoEnHotel: anticipo <= 0,
+      // Una reserva metida a mano NO pasa por Stripe: no hay tarjeta en
+      // garantía que valga. Antes se mandaba `pagoEnHotel: anticipo <= 0` y el
+      // aviso al hotel afirmaba una garantía inexistente (K-253).
+      pagoEnHotel: false,
     }).catch((e) => console.error("[admin/reservas] ignorado:", e));
   }
 

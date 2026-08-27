@@ -1,3 +1,4 @@
+import { reservaCuenta } from "@/lib/booking/estado-reserva";
 import { negar } from "@/lib/panel/permisos";
 import { z } from "zod";
 import { rutaSegura } from "@/lib/api/responder";
@@ -59,7 +60,7 @@ export async function GET() {
   // MANTENIMIENTO/LIMPIEZA, que tienen prioridad operativa).
   const occupiedMap = new Map<string, { cliente: string; checkout: string; huespedes: number }>();
   for (const b of bookings) {
-    if (b.estado === "CANCELADA" || !b.checkin || !b.checkout) continue;
+    if (!reservaCuenta(b.estado) || !b.checkin || !b.checkout) continue;
     if (b.checkin <= todayStr && b.checkout > todayStr) {
       // habitaciones puede traer varias separadas por coma.
       for (const raw of String(b.habitaciones).split(",")) {

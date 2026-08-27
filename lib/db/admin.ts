@@ -10,6 +10,7 @@
 //
 // SOLO servidor.
 
+import { reservaCuenta, type EstadoReserva } from "@/lib/booking/estado-reserva";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { leer, escribir, escribirMejorEsfuerzo } from "@/lib/db/result";
 import { generarConfirmacion } from "@/lib/db/bookings";
@@ -54,7 +55,7 @@ export interface AdminBooking {
   habitaciones: string;
   notas: string;
   paymentId: string;
-  estado: "CONFIRMADA" | "CANCELADA" | "MANUAL";
+  estado: EstadoReserva;
   comoNosConocio: string;
   anticipo: number;
   origen: string; // "web" | "bot" | "manual" | "web-pago-hotel" | ...
@@ -184,8 +185,17 @@ interface OTAChannelRow {
 // ── MAPEADORES fila → DTO ────────────────────────────────────────────────────
 
 function mapBooking(r: BookingRow): AdminBooking {
+  // REEMBOLSADA se colapsaba aquí en "CONFIRMADA" (K-42): el estado existe en la
+  // base y el webhook lo escribe, pero el panel entero lo veía como una reserva
+  // viva — dinero cobrado, cuarto ocupado y correos de "te esperamos".
   const estado: AdminBooking["estado"] =
-    r.estado === "CANCELADA" ? "CANCELADA" : r.estado === "MANUAL" ? "MANUAL" : "CONFIRMADA";
+    r.estado === "CANCELADA"
+      ? "CANCELADA"
+      : r.estado === "REEMBOLSADA"
+        ? "REEMBOLSADA"
+        : r.estado === "MANUAL"
+          ? "MANUAL"
+          : "CONFIRMADA";
   return {
     id: r.id,
     fecha: r.created_at ?? "",
@@ -466,7 +476,8 @@ export async function updateBooking(
       "blocks.resyncBorrar",
       supabase.from("blocks").delete().eq("hotel_id", hotelId).eq("booking_id", id),
     );
-    if (row && row.estado !== "CANCELADA" && row.checkin && row.checkout) {
+    // Una reserva reembolsada tampoco debe volver a bloquear su cuarto.
+    if (row && reservaCuenta(row.estado) && row.checkin && row.checkout) {
       const rooms = String(row.habitaciones || "")
         .split(",")
         .map((r) => r.replace(/\s*\([^)]*\)/g, "").trim())
@@ -791,7 +802,12 @@ export async function buildCRM(hotelId: string): Promise<GuestProfile[]> {
     if (b.habitaciones && !g.suitesFavoritas.includes(b.habitaciones)) {
       g.suitesFavoritas.push(b.habitaciones);
     }
-    if (b.estado !== "CANCELADA") {
+    // OJO: `totalGastado` y `totalReservas` de arriba SÍ siguen sumando las
+    // canceladas y las reembolsadas. Es un defecto aparte —viene de antes y no
+    // es el K-42— y tocarlo cambia el significado de una cifra que el hotelero
+    // ya lee así. Aquí sólo se arregla el historial, que es lo que este paso
+    // sí cubre.
+    if (reservaCuenta(b.estado)) {
       g.historial.push({
         confirmacion: b.confirmacion,
         checkin: b.checkin,

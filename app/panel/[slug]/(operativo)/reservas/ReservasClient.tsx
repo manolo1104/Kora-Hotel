@@ -1,5 +1,6 @@
 'use client';
 
+import { reservaCuenta } from "@/lib/booking/estado-reserva";
 import { useState, useMemo } from 'react';
 import { Plus, Search, RefreshCw, Send, Download, Loader2, ChevronDown, ChevronUp, Sun } from 'lucide-react';
 import type { AdminBooking } from '@/lib/admin/sheets-admin';
@@ -9,10 +10,13 @@ import styles from './reservas.module.css';
 
 // ── Operational state ────────────────────────────────────────────────────────
 
-type OpsState = 'CHECK_IN_HOY' | 'CHECK_OUT_HOY' | 'EN_CASA' | 'PROXIMA' | 'COMPLETADA' | 'CANCELADA' | 'NO_SHOW';
+type OpsState = 'CHECK_IN_HOY' | 'CHECK_OUT_HOY' | 'EN_CASA' | 'PROXIMA' | 'COMPLETADA' | 'CANCELADA' | 'REEMBOLSADA' | 'NO_SHOW';
 
 function getOpsState(b: AdminBooking, today: string): OpsState {
   if (b.estado === 'CANCELADA') return 'CANCELADA';
+  // Una reembolsada NO es una reserva viva: se colapsaba en "CONFIRMADA" y salía
+  // como "Próxima" o "En Casa", con su dinero sumado (K-42).
+  if (b.estado === 'REEMBOLSADA') return 'REEMBOLSADA';
   const ci = b.checkin;
   const co = b.checkout;
   if (!ci) return 'PROXIMA';
@@ -30,6 +34,7 @@ const OPS_LABEL: Record<OpsState, string> = {
   PROXIMA:       'Próxima',
   COMPLETADA:    'Completada',
   CANCELADA:     'Cancelada',
+  REEMBOLSADA:   'Reembolsada',
   NO_SHOW:       'No Show',
 };
 
@@ -40,6 +45,7 @@ const OPS_COLOR: Record<OpsState, { bg: string; color: string }> = {
   PROXIMA:       { bg: '#f9fafb', color: '#6b7280' },
   COMPLETADA:    { bg: '#f0f0f0', color: '#888' },
   CANCELADA:     { bg: '#fde8e8', color: '#8a1a1a' },
+  REEMBOLSADA:   { bg: '#f3e8fd', color: '#5b2a86' },
   NO_SHOW:       { bg: '#f8e0e8', color: '#7a0030' },
 };
 
@@ -123,9 +129,9 @@ export default function ReservasClient({ initialBookings, rooms, slug }: Props) 
 
   // Counters for "today" badge
   const todayCounts = useMemo(() => ({
-    checkIn:  bookings.filter(b => b.estado !== 'CANCELADA' && b.checkin === today).length,
-    checkOut: bookings.filter(b => b.estado !== 'CANCELADA' && b.checkout === today).length,
-    enCasa:   bookings.filter(b => b.estado !== 'CANCELADA' && b.checkin < today && b.checkout > today).length,
+    checkIn:  bookings.filter(b => reservaCuenta(b.estado) && b.checkin === today).length,
+    checkOut: bookings.filter(b => reservaCuenta(b.estado) && b.checkout === today).length,
+    enCasa:   bookings.filter(b => reservaCuenta(b.estado) && b.checkin < today && b.checkout > today).length,
   }), [bookings, today]);
 
   const hasActiveFilters = suiteFilter || estadoFilter || fechaDesde || fechaHasta;
@@ -152,10 +158,8 @@ export default function ReservasClient({ initialBookings, rooms, slug }: Props) 
     } finally { setSendingId(null); }
   }
 
-  const totalIngresos = filtered.reduce((s, b) => {
-    const ops = getOpsState(b, today);
-    return ops === 'CANCELADA' ? s : s + b.total;
-  }, 0);
+  // El dinero de una reembolsada ya se devolvió: no puede seguir sumando.
+  const totalIngresos = filtered.reduce((s, b) => (reservaCuenta(b.estado) ? s + b.total : s), 0);
 
   return (
     <div>
@@ -257,6 +261,7 @@ export default function ReservasClient({ initialBookings, rooms, slug }: Props) 
                 <option value="PROXIMA">Próxima</option>
                 <option value="COMPLETADA">Completada</option>
                 <option value="CANCELADA">Cancelada</option>
+                <option value="REEMBOLSADA">Reembolsada</option>
               </select>
             </label>
             <label className={styles.filterField}>

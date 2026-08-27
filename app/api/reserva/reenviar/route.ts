@@ -1,3 +1,4 @@
+import { reservaCuenta } from "@/lib/booking/estado-reserva";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { findGuestBooking } from "@/lib/db/portal";
@@ -18,7 +19,10 @@ export async function POST(req: NextRequest) {
 
   const booking = await findGuestBooking(parsed.data.folio, parsed.data.email);
   if (!booking) return NextResponse.json({ error: "no-encontrada" }, { status: 404 });
-  if (booking.row.estado === "CANCELADA") {
+  // También las REEMBOLSADAS: reenviarle su confirmación a alguien al que ya se
+  // le devolvió el dinero es decirle que su reserva sigue en pie. Se conserva el
+  // código de error "cancelada" para no cambiarle el mensaje al portal.
+  if (!reservaCuenta(booking.row.estado)) {
     return NextResponse.json({ error: "cancelada" }, { status: 409 });
   }
 

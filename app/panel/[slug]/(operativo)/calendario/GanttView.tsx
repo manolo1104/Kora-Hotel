@@ -1,5 +1,6 @@
 'use client';
 
+import { reservaCuenta } from "@/lib/booking/estado-reserva";
 import { useMemo, useState, useRef, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { AdminBooking } from '@/lib/admin/sheets-admin';
@@ -71,7 +72,7 @@ export default function GanttView({ slug, bookings, rooms, bookingRooms, onRefre
   const rangeEndStr = rangeEndDate.toISOString().split('T')[0];
 
   const activeBookings = useMemo(() =>
-    bookings.filter(b => b.estado !== 'CANCELADA' && b.checkin < rangeEndStr && b.checkout > rangeStartStr),
+    bookings.filter(b => reservaCuenta(b.estado) && b.checkin < rangeEndStr && b.checkout > rangeStartStr),
   [bookings, rangeStartStr, rangeEndStr]);
 
   function dayOffset(dateStr: string) {

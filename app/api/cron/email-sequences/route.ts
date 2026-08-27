@@ -1,3 +1,4 @@
+import { reservaCuenta } from "@/lib/booking/estado-reserva";
 import { NextResponse } from "next/server";
 import { createAdminClient, adminEnvReady } from "@/lib/supabase/admin";
 import { enviarEmail } from "@/lib/email/resend";
@@ -170,7 +171,7 @@ export async function GET(req: Request) {
     // Solo reservas con datos suficientes y recientes (espejo del origen).
     const eligible = bookings.filter(
       (b) =>
-        b.estado !== "CANCELADA" &&
+        reservaCuenta(b.estado) &&
         b.email &&
         b.email !== "N/A" &&
         b.checkin &&

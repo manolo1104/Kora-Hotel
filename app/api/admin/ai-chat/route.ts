@@ -1,3 +1,4 @@
+import { reservaCuenta } from "@/lib/booking/estado-reserva";
 import { negar } from "@/lib/panel/permisos";
 import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
@@ -165,7 +166,7 @@ export async function POST(req: Request) {
     (q) => q.estado === "ENVIADA" || q.estado === "BORRADOR",
   ).length;
   const reservasActivas = bookings.filter(
-    (b) => b.estado !== "CANCELADA",
+    (b) => reservaCuenta(b.estado),
   ).length;
 
   const systemPrompt = `Eres el asistente de inteligencia de ${hotelNombre}.

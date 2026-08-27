@@ -1,5 +1,6 @@
 'use client';
 
+import { reservaCuenta } from "@/lib/booking/estado-reserva";
 import { useState, useEffect, useCallback } from 'react';
 import { ChevronLeft, ChevronRight, Lock, Unlock, RefreshCw, Loader2, X, CalendarCheck, Plus } from 'lucide-react';
 import type { AdminBooking } from '@/lib/admin/sheets-admin';
@@ -74,7 +75,7 @@ export default function AvailabilityCalendar({ slug, bookings, rooms, roomPrices
   // Compute day state for a specific room+date
   function getDayState(room: string, ds: string): DayState {
     const booking = bookings.find(b =>
-      b.estado !== 'CANCELADA' &&
+      reservaCuenta(b.estado) &&
       b.habitaciones.split(', ').some(h => h.replace(/\s*\([^)]*\)/g,'').trim() === room) &&
       ds >= b.checkin && ds < b.checkout
     );

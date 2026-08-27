@@ -1,3 +1,4 @@
+import { reservaCuenta } from "@/lib/booking/estado-reserva";
 import { resolveHotel } from "@/lib/tenant";
 import { getBooking } from "@/lib/db/bookings";
 import { COLOR_DEFAULT, inkFor, fontStack, type MiniExtras } from "@/lib/mini";
@@ -77,7 +78,7 @@ export default async function ResenaPage({
         : "No encontramos tu reserva. Usa el enlace que te llegó por correo.",
     );
   }
-  if (booking.estado === "CANCELADA" || booking.estado === "REEMBOLSADA") {
+  if (!reservaCuenta(booking.estado)) {
     return noElegible(
       lang === "en"
         ? "This reservation isn't eligible for a review."

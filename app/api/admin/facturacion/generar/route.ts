@@ -1,3 +1,4 @@
+import { reservaCuenta } from "@/lib/booking/estado-reserva";
 import { negar } from "@/lib/panel/permisos";
 import { NextRequest, NextResponse } from 'next/server';
 import { getActiveHotel } from '@/lib/panel/active-hotel';
@@ -43,7 +44,7 @@ export async function POST(req: NextRequest) {
     if (!booking) {
       return NextResponse.json({ error: 'No se encontró la reserva a facturar en este hotel.' }, { status: 404 });
     }
-    if (booking.estado === 'CANCELADA' || booking.total <= 0) {
+    if (!reservaCuenta(booking.estado) || booking.total <= 0) {
       return NextResponse.json({ error: 'Esa reserva no es facturable (cancelada o sin monto).' }, { status: 400 });
     }
     // El total a timbrar es el de la reserva en la base, no el del cliente.

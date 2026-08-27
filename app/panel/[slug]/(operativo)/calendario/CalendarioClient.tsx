@@ -1,5 +1,6 @@
 'use client';
 
+import { reservaCuenta } from "@/lib/booking/estado-reserva";
 import { useState } from 'react';
 import { Plus, CalendarDays, GanttChartSquare } from 'lucide-react';
 import type { AdminBooking } from '@/lib/admin/sheets-admin';
@@ -34,7 +35,7 @@ export default function CalendarioClient({ slug, initialBookings, rooms, roomPri
         <div>
           <h1 className={styles.title}>Calendario</h1>
           <p className={styles.sub}>
-            {bookings.filter(b => b.estado !== 'CANCELADA').length} reservas activas
+            {bookings.filter(b => reservaCuenta(b.estado)).length} reservas activas
           </p>
         </div>
         <button className={styles.primaryBtn} onClick={() => setModal({})}>

@@ -1,3 +1,4 @@
+import { reservaCuenta } from "@/lib/booking/estado-reserva";
 import { NextRequest, NextResponse } from "next/server";
 import { resolveHotel } from "@/lib/tenant";
 import { getBooking } from "@/lib/db/bookings";
@@ -36,7 +37,7 @@ export async function POST(
     | { id: string; confirmacion: string | null; cliente: string | null; estado: string | null }
     | null;
   if (!booking) return NextResponse.json({ ok: false, error: "reserva-no-encontrada" }, { status: 404 });
-  if (booking.estado === "CANCELADA" || booking.estado === "REEMBOLSADA") {
+  if (!reservaCuenta(booking.estado)) {
     return NextResponse.json({ ok: false, error: "reserva-no-elegible" }, { status: 400 });
   }
 

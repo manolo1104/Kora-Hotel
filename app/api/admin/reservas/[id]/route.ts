@@ -6,7 +6,7 @@ import { getActiveHotel } from '@/lib/panel/active-hotel';
 import { getAllBookings, updateBooking, cancelBooking, splitRooms } from '@/lib/db/admin';
 import { getOccupiedRoomNames } from '@/lib/db/availability';
 import { liberarExperienciaVentas } from '@/lib/db/experiencias';
-import { sendCancelacionHuesped, sendModificacionHuesped } from '@/lib/email/reserva';
+import { resolveHotelAvisoEmail, sendAvisoCancelacionHotel, sendCancelacionHuesped, sendModificacionHuesped } from '@/lib/email/reserva';
 import { bookingBrandFromHotel, bookingFromHotel } from '@/lib/email/booking-branded';
 
 export const dynamic = 'force-dynamic';
@@ -114,6 +114,39 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     await liberarExperienciaVentas(ctx.hotelId, booking.confirmacion);
   }
 
+  // RECORDATORIO DEL REEMBOLSO AL HOTELERO. Kora no emite reembolsos de
+  // cancelación (decisión del 26 ago 2026): los coordina el hotel desde su
+  // propia cuenta de Stripe. Pero al huésped su correo SÍ le dice "el hotel te
+  // lo devuelve", así que si nadie se lo recuerda al hotelero, la promesa la
+  // hace Kora y la incumple el hotel — y a los doce días el huésped abre una
+  // disputa que se cobra en la cuenta Connect DEL HOTEL, con penalización.
+  // Sólo cuando hubo anticipo: sin dinero de por medio no hay nada que devolver.
+  if (cancelaAhora && booking.anticipo > 0) {
+    try {
+      const avisoTo = await resolveHotelAvisoEmail({
+        id: ctx.hotelId,
+        extras: ctx.hotel.extras,
+        config: ctx.hotel.config,
+      });
+      if (avisoTo) {
+        await sendAvisoCancelacionHotel(avisoTo, {
+          hotelNombre: ctx.hotel.nombre,
+          panelUrl: `${new URL(req.url).origin}/panel/${ctx.hotel.slug}/reservas`,
+          confirmacion: booking.confirmacion,
+          cliente: booking.cliente,
+          email: booking.email,
+          habitaciones: String(raw.habitaciones ?? booking.habitaciones ?? ''),
+          checkin: newCheckin,
+          checkout: newCheckout,
+          anticipo: booking.anticipo,
+          origen: "panel",
+        });
+      }
+    } catch (e) {
+      console.error("recordatorio de reembolso al hotel falló:", e);
+    }
+  }
+
   // AVISO AL HUÉSPED. Antes el hotel le movía fechas o cuarto (o le cancelaba)
   // y el huésped no se enteraba por ningún lado. Best-effort: el cambio en la
   // BD ya está aplicado y no se revierte si el correo falla.
@@ -177,7 +210,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   });
 }
 
-export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   return rutaSegura("admin.reservas.id.delete", async () => {
   const ctx = await getActiveHotel();
   if (!ctx) return NextResponse.json({ error: 'no-auth' }, { status: 401 });
@@ -193,6 +226,39 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   // cancelBooking marca CANCELADA y borra los blocks ligados (libera disponibilidad).
   await cancelBooking(ctx.hotelId, booking.id);
   await liberarExperienciaVentas(ctx.hotelId, booking.confirmacion);
+
+  // RECORDATORIO DEL REEMBOLSO AL HOTELERO. Kora no emite reembolsos de
+  // cancelación (decisión del 26 ago 2026): los coordina el hotel desde su
+  // propia cuenta de Stripe. Pero al huésped su correo SÍ le dice "el hotel te
+  // lo devuelve", así que si nadie se lo recuerda al hotelero, la promesa la
+  // hace Kora y la incumple el hotel — y a los doce días el huésped abre una
+  // disputa que se cobra en la cuenta Connect DEL HOTEL, con penalización.
+  // Sólo cuando hubo anticipo: sin dinero de por medio no hay nada que devolver.
+  if (booking.anticipo > 0) {
+    try {
+      const avisoTo = await resolveHotelAvisoEmail({
+        id: ctx.hotelId,
+        extras: ctx.hotel.extras,
+        config: ctx.hotel.config,
+      });
+      if (avisoTo) {
+        await sendAvisoCancelacionHotel(avisoTo, {
+          hotelNombre: ctx.hotel.nombre,
+          panelUrl: `${new URL(req.url).origin}/panel/${ctx.hotel.slug}/reservas`,
+          confirmacion: booking.confirmacion,
+          cliente: booking.cliente,
+          email: booking.email,
+          habitaciones: booking.habitaciones,
+          checkin: booking.checkin,
+          checkout: booking.checkout,
+          anticipo: booking.anticipo,
+          origen: "panel",
+        });
+      }
+    } catch (e) {
+      console.error("recordatorio de reembolso al hotel falló:", e);
+    }
+  }
 
   // Comprobante de cancelación al huésped (best-effort).
   if (correoValido(booking.email)) {

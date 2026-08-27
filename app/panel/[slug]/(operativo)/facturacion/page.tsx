@@ -1,3 +1,4 @@
+import { reservaCuenta } from "@/lib/booking/estado-reserva";
 import { getAllBookings } from "@/lib/db/admin";
 import { facturamaConfigured, facturamaIsSandbox } from "@/lib/admin/facturama";
 import { requireHotelMember } from "@/lib/tenant";
@@ -16,7 +17,7 @@ export default async function FacturacionPage({
   const bookings = await getAllBookings(ctx.hotelId);
   // Solo reservas facturables: confirmadas/manuales con monto.
   const facturables = bookings
-    .filter((b) => b.estado !== "CANCELADA" && b.total > 0)
+    .filter((b) => reservaCuenta(b.estado) && b.total > 0)
     .slice(0, 100);
 
   return (

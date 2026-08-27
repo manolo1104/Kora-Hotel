@@ -1,3 +1,4 @@
+import { reservaCuenta } from "@/lib/booking/estado-reserva";
 import type { AdminBooking } from './sheets-admin';
 
 const TOTAL_SUITES = 13;
@@ -20,7 +21,7 @@ function daysInMonth(year: number, month: number) {
 function bookingInRange(b: AdminBooking, from: Date, to: Date): boolean {
   if (!b.checkin) return false;
   const ci = new Date(b.checkin + 'T00:00:00');
-  return ci >= from && ci < to && b.estado !== 'CANCELADA';
+  return ci >= from && ci < to && reservaCuenta(b.estado);
 }
 
 function calcNightsForBooking(b: AdminBooking): number {
