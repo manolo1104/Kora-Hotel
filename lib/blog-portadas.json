@@ -1,0 +1,275 @@
+{
+ "_generado": "scripts/portadas-blog/render.py — NO editar a mano",
+ "porSlug": {
+  "como-aumentar-reservas-directas": {
+   "image": "/blog/portadas/como-aumentar-reservas-directas.jpg",
+   "imageAlt": "Recepción de hotel con ventanales al jardín, sobre el dato de cómo bajó del 75% al 53% la dependencia de OTAs"
+  },
+  "revenue-management-hoteles-boutique-mexico": {
+   "image": "/blog/portadas/revenue-management-hoteles-boutique-mexico.jpg",
+   "imageAlt": "Tableta con gráficas de ocupación y tarifas, junto a la fórmula del RevPAR"
+  },
+  "agente-whatsapp-ia-hotel-2026": {
+   "image": "/blog/portadas/agente-whatsapp-ia-hotel-2026.jpg",
+   "imageAlt": "Mano sosteniendo un celular sobre una mesa, con el dato de cuánto pierde un hotel por no contestar WhatsApp"
+  },
+  "cuanto-le-pagas-a-booking-al-ano": {
+   "image": "/blog/portadas/cuanto-le-pagas-a-booking-al-ano.jpg",
+   "imageAlt": "Calculadora, lentes y libreta sobre un escritorio, con la cuenta anual de comisiones a Booking"
+  },
+  "llenar-hotel-temporada-baja": {
+   "image": "/blog/portadas/llenar-hotel-temporada-baja.jpg",
+   "imageAlt": "Mesas y sillas vacías de un restaurante, ilustrando la temporada baja de un hotel"
+  },
+  "motor-de-reservas-para-hotel-que-es-y-como-elegir-el-mejor-en-mexico": {
+   "image": "/blog/portadas/motor-de-reservas-para-hotel-que-es-y-como-elegir-el-mejor-en-mexico.jpg",
+   "imageAlt": "Laptop abierta en un sitio de reservas de viaje, con el dato del mercado hotelero que capturan las OTAs"
+  },
+  "comision-de-expedia-hoteles-comisiones-de-expedia-cuanto-cobra-en-2026": {
+   "image": "/blog/portadas/comision-de-expedia-hoteles-comisiones-de-expedia-cuanto-cobra-en-2026.jpg",
+   "imageAlt": "Fachada de un hotel clásico, con el dato de la comisión que cobra Expedia en 2026"
+  },
+  "reducir-dependencia-de-booking-como-reducir-la-dependencia-de-booking": {
+   "image": "/blog/portadas/reducir-dependencia-de-booking-como-reducir-la-dependencia-de-booking.jpg",
+   "imageAlt": "Laptop, celular y notas sobre un escritorio, con lo que recupera un hotel al depender menos de Booking"
+  },
+  "paridad-de-tarifas-hotel-paridad-de-tarifas-que-exige-booking-y-como-u": {
+   "image": "/blog/portadas/paridad-de-tarifas-hotel-paridad-de-tarifas-que-exige-booking-y-como-u.jpg",
+   "imageAlt": "Mesa de restaurante servida, con el dato de cuánto se lleva Booking por cada reserva"
+  },
+  "como-evitar-overbooking-hotel-overbooking-en-hoteles-como-evitar-la-so": {
+   "image": "/blog/portadas/como-evitar-overbooking-hotel-overbooking-en-hoteles-como-evitar-la-so.jpg",
+   "imageAlt": "Pasillo de habitaciones de hotel, con el retraso de los calendarios iCal que provoca la sobreventa"
+  },
+  "convertir-huespedes-de-ota-en-directos-como-convertir-huespedes-de-ota": {
+   "image": "/blog/portadas/convertir-huespedes-de-ota-en-directos-como-convertir-huespedes-de-ota.jpg",
+   "imageAlt": "Huéspedes sentados en un café, con lo que valen los clientes de OTA que regresan por canal directo"
+  },
+  "competir-con-airbnb-hotel-airbnb-vs-hotel-boutique-como-competir-y-rec": {
+   "image": "/blog/portadas/competir-con-airbnb-hotel-airbnb-vs-hotel-boutique-como-competir-y-rec.jpg",
+   "imageAlt": "Fachadas de edificios de departamentos, con la comisión que Airbnb cobrará a los hoteles desde 2026"
+  },
+  "google-hotels-para-hoteles-google-hotels-para-hoteleros-como-vender-ha": {
+   "image": "/blog/portadas/google-hotels-para-hoteles-google-hotels-para-hoteleros-como-vender-ha.jpg",
+   "imageAlt": "Laptop abierta junto a una taza de café, con lo que se recupera usando los enlaces gratuitos de Google"
+  },
+  "pagina-web-para-hotel-que-si-vende-los-7-elementos-indispensables": {
+   "image": "/blog/portadas/pagina-web-para-hotel-que-si-vende-los-7-elementos-indispensables.jpg",
+   "imageAlt": "Laptop sobre una mesa de madera, con el porcentaje de reservas de hoteles independientes que capturan las OTAs"
+  },
+  "chatbot-para-hotel-que-puede-hacer-y-que-no-por-tus-reservas": {
+   "image": "/blog/portadas/chatbot-para-hotel-que-puede-hacer-y-que-no-por-tus-reservas.jpg",
+   "imageAlt": "Manos usando un celular, con el costo anual de un chatbot con API de WhatsApp Business"
+  },
+  "responder-whatsapp-hotel-como-responder-el-whatsapp-de-tu-hotel-247-si": {
+   "image": "/blog/portadas/responder-whatsapp-hotel-como-responder-el-whatsapp-de-tu-hotel-247-si.jpg",
+   "imageAlt": "Persona revisando su celular en un escritorio, con el dato de SECTUR sobre los hospedajes que viven del WhatsApp"
+  },
+  "channel-manager-que-es-cuando-lo-necesitas-y-cuanto-cuesta": {
+   "image": "/blog/portadas/channel-manager-que-es-cuando-lo-necesitas-y-cuanto-cuesta.jpg",
+   "imageAlt": "Dos laptops abiertas sobre una mesa, con lo que cuesta un channel manager al mes"
+  }
+ },
+ "porTema": {
+  "13": {
+   "image": "/blog/portadas/reducir-no-shows-hotel.jpg",
+   "imageAlt": "Cama de hotel tendida en una habitación vacía, ilustrando el costo de un no-show"
+  },
+  "14": {
+   "image": "/blog/portadas/inteligencia-artificial-hoteles.jpg",
+   "imageAlt": "Manos escribiendo en una laptop, sobre los usos reales de la IA en un hotel pequeño"
+  },
+  "15": {
+   "image": "/blog/portadas/cobrar-reservas-por-whatsapp.jpg",
+   "imageAlt": "Mano entregando una tarjeta bancaria, sobre cómo cobrar reservas por WhatsApp sin perder la venta"
+  },
+  "16": {
+   "image": "/blog/portadas/check-in-digital-hotel.jpg",
+   "imageAlt": "Timbre de recepción y llaves de hotel, sobre el check-in digital"
+  },
+  "17": {
+   "image": "/blog/portadas/automatizacion-hotelera.jpg",
+   "imageAlt": "Escritorio con laptop visto desde arriba, sobre qué automatizar primero en un hotel"
+  },
+  "18": {
+   "image": "/blog/portadas/upselling-en-hoteles.jpg",
+   "imageAlt": "Charola de desayuno servida en una habitación de hotel, sobre el upselling de desayunos y late check-out"
+  },
+  "19": {
+   "image": "/blog/portadas/plantillas-de-mensajes-para-huespedes.jpg",
+   "imageAlt": "Celular y libreta con pluma, sobre qué mensajes escribirle al huésped en cada etapa"
+  },
+  "20": {
+   "image": "/blog/portadas/crm-para-hoteles.jpg",
+   "imageAlt": "Tableta con gráficas y documentos sobre un escritorio, sobre el CRM para hoteles"
+  },
+  "21": {
+   "image": "/blog/portadas/como-poner-precio-a-una-habitacion-de-hotel.jpg",
+   "imageAlt": "Habitación de hotel con cama tendida, sobre cómo ponerle precio a una habitación"
+  },
+  "22": {
+   "image": "/blog/portadas/tarifas-por-temporada-hotel.jpg",
+   "imageAlt": "Libreta de planeación junto a una laptop, sobre el calendario de tarifas por temporada"
+  },
+  "23": {
+   "image": "/blog/portadas/revpar-que-es.jpg",
+   "imageAlt": "Laptop con gráficas de barras y pastel, sobre las métricas ADR, RevPAR y ocupación"
+  },
+  "24": {
+   "image": "/blog/portadas/precios-dinamicos-hoteles.jpg",
+   "imageAlt": "Laptop mostrando una gráfica de precios en movimiento, sobre precios dinámicos en hoteles pequeños"
+  },
+  "25": {
+   "image": "/blog/portadas/promociones-para-hoteles.jpg",
+   "imageAlt": "Calculadora, pluma y notas adhesivas, sobre promociones que no destruyen la tarifa"
+  },
+  "26": {
+   "image": "/blog/portadas/como-subir-tarifas-hotel.jpg",
+   "imageAlt": "Habitación de hotel con cama tendida y luz cálida, sobre cómo subir tarifas sin perder huéspedes"
+  },
+  "27": {
+   "image": "/blog/portadas/punto-de-equilibrio-hotel.jpg",
+   "imageAlt": "Calculadora sobre una hoja de números, sobre el punto de equilibrio de un hotel"
+  },
+  "28": {
+   "image": "/blog/portadas/tipos-de-tarifas-hoteleras.jpg",
+   "imageAlt": "Libreta y calculadora sobre un escritorio, sobre los tipos de tarifa hotelera"
+  },
+  "29": {
+   "image": "/blog/portadas/estancia-minima-hotel.jpg",
+   "imageAlt": "Habitación de hotel con dos camas individuales, sobre la estancia mínima en puentes"
+  },
+  "30": {
+   "image": "/blog/portadas/forecast-hotelero.jpg",
+   "imageAlt": "Tableta y laptop con gráficas, sobre cómo pronosticar la ocupación de un hotel"
+  },
+  "31": {
+   "image": "/blog/portadas/seo-para-hoteles.jpg",
+   "imageAlt": "Persona trabajando frente a una laptop, sobre el SEO para hoteles"
+  },
+  "32": {
+   "image": "/blog/portadas/google-my-business-para-hoteles.jpg",
+   "imageAlt": "Laptop encendida en un escritorio a oscuras, sobre el perfil de Google para hoteles"
+  },
+  "33": {
+   "image": "/blog/portadas/resenas-de-hotel.jpg",
+   "imageAlt": "Manos sosteniendo un celular, sobre cómo conseguir más reseñas y responder las malas"
+  },
+  "34": {
+   "image": "/blog/portadas/instagram-para-hoteles.jpg",
+   "imageAlt": "Persona usando su celular, sobre qué publicar en Instagram para generar reservas"
+  },
+  "35": {
+   "image": "/blog/portadas/email-marketing-para-hoteles.jpg",
+   "imageAlt": "Escritorio con laptop y café visto desde arriba, sobre email marketing para hoteles"
+  },
+  "36": {
+   "image": "/blog/portadas/fotografia-para-hoteles.jpg",
+   "imageAlt": "Cámara fotográfica montada en un tripié, sobre cómo lograr fotos de hotel que venden"
+  },
+  "37": {
+   "image": "/blog/portadas/publicidad-para-hoteles.jpg",
+   "imageAlt": "Laptop encendida en un escritorio, sobre cuándo conviene pagar Google Ads"
+  },
+  "38": {
+   "image": "/blog/portadas/como-atraer-turistas-a-un-hotel.jpg",
+   "imageAlt": "Ciudad iluminada de noche, sobre cómo atraer turistas de último minuto"
+  },
+  "39": {
+   "image": "/blog/portadas/alianzas-estrategicas-hoteles.jpg",
+   "imageAlt": "Dos personas dándose la mano sobre una mesa de trabajo, sobre las alianzas locales que llenan habitaciones"
+  },
+  "40": {
+   "image": "/blog/portadas/marketing-hotel-boutique.jpg",
+   "imageAlt": "Sala de un hotel boutique con sillones de colores, sobre cómo competir con las cadenas"
+  },
+  "41": {
+   "image": "/blog/portadas/pms-para-hotel-pequeno.jpg",
+   "imageAlt": "Computadora de escritorio con un tablero de datos, sobre qué debe tener un PMS de hotel pequeño"
+  },
+  "42": {
+   "image": "/blog/portadas/facturacion-hotel-mexico.jpg",
+   "imageAlt": "Calculadora sobre reportes impresos, sobre la facturación CFDI para hoteles en México"
+  },
+  "43": {
+   "image": "/blog/portadas/politicas-de-cancelacion-hotel.jpg",
+   "imageAlt": "Cama de hotel tendida, sobre políticas de cancelación y anticipos"
+  },
+  "44": {
+   "image": "/blog/portadas/como-administrar-un-hotel-pequeno.jpg",
+   "imageAlt": "Persona trabajando en un escritorio con una tableta, sobre cómo administrar un hotel sin apagar fuegos"
+  },
+  "45": {
+   "image": "/blog/portadas/housekeeping-hotel.jpg",
+   "imageAlt": "Habitación de hotel recién arreglada, sobre los tiempos y checklists de housekeeping"
+  },
+  "46": {
+   "image": "/blog/portadas/costos-de-un-hotel.jpg",
+   "imageAlt": "Monedas apiladas junto a plumas, sobre los costos ocultos de un hotel"
+  },
+  "47": {
+   "image": "/blog/portadas/personal-de-un-hotel.jpg",
+   "imageAlt": "Dos personas trabajando con laptops, vistas desde arriba, sobre cuánto personal necesita un hotel"
+  },
+  "48": {
+   "image": "/blog/portadas/experiencias-en-hoteles.jpg",
+   "imageAlt": "Maletas de viaje antiguas apiladas, sobre cómo vender tours y experiencias desde la recepción"
+  },
+  "49": {
+   "image": "/blog/portadas/metodos-de-pago-hotel.jpg",
+   "imageAlt": "Pago con tarjeta en una terminal, sobre los métodos de pago para hoteles en México"
+  },
+  "50": {
+   "image": "/blog/portadas/kpis-hoteleros.jpg",
+   "imageAlt": "Laptop mostrando un tablero de indicadores, sobre los reportes semanales del dueño de hotel"
+  },
+  "1": {
+   "image": "/blog/portadas/motor-de-reservas-para-hotel-que-es-y-como-elegir-el-mejor-en-mexico.jpg",
+   "imageAlt": "Laptop abierta en un sitio de reservas de viaje, con el dato del mercado hotelero que capturan las OTAs"
+  },
+  "8": {
+   "image": "/blog/portadas/comision-de-expedia-hoteles-comisiones-de-expedia-cuanto-cobra-en-2026.jpg",
+   "imageAlt": "Fachada de un hotel clásico, con el dato de la comisión que cobra Expedia en 2026"
+  },
+  "2": {
+   "image": "/blog/portadas/reducir-dependencia-de-booking-como-reducir-la-dependencia-de-booking.jpg",
+   "imageAlt": "Laptop, celular y notas sobre un escritorio, con lo que recupera un hotel al depender menos de Booking"
+  },
+  "3": {
+   "image": "/blog/portadas/paridad-de-tarifas-hotel-paridad-de-tarifas-que-exige-booking-y-como-u.jpg",
+   "imageAlt": "Mesa de restaurante servida, con el dato de cuánto se lleva Booking por cada reserva"
+  },
+  "9": {
+   "image": "/blog/portadas/como-evitar-overbooking-hotel-overbooking-en-hoteles-como-evitar-la-so.jpg",
+   "imageAlt": "Pasillo de habitaciones de hotel, con el retraso de los calendarios iCal que provoca la sobreventa"
+  },
+  "10": {
+   "image": "/blog/portadas/convertir-huespedes-de-ota-en-directos-como-convertir-huespedes-de-ota.jpg",
+   "imageAlt": "Huéspedes sentados en un café, con lo que valen los clientes de OTA que regresan por canal directo"
+  },
+  "7": {
+   "image": "/blog/portadas/competir-con-airbnb-hotel-airbnb-vs-hotel-boutique-como-competir-y-rec.jpg",
+   "imageAlt": "Fachadas de edificios de departamentos, con la comisión que Airbnb cobrará a los hoteles desde 2026"
+  },
+  "5": {
+   "image": "/blog/portadas/google-hotels-para-hoteles-google-hotels-para-hoteleros-como-vender-ha.jpg",
+   "imageAlt": "Laptop abierta junto a una taza de café, con lo que se recupera usando los enlaces gratuitos de Google"
+  },
+  "6": {
+   "image": "/blog/portadas/pagina-web-para-hotel-que-si-vende-los-7-elementos-indispensables.jpg",
+   "imageAlt": "Laptop sobre una mesa de madera, con el porcentaje de reservas de hoteles independientes que capturan las OTAs"
+  },
+  "11": {
+   "image": "/blog/portadas/chatbot-para-hotel-que-puede-hacer-y-que-no-por-tus-reservas.jpg",
+   "imageAlt": "Manos usando un celular, con el costo anual de un chatbot con API de WhatsApp Business"
+  },
+  "12": {
+   "image": "/blog/portadas/responder-whatsapp-hotel-como-responder-el-whatsapp-de-tu-hotel-247-si.jpg",
+   "imageAlt": "Persona revisando su celular en un escritorio, con el dato de SECTUR sobre los hospedajes que viven del WhatsApp"
+  },
+  "4": {
+   "image": "/blog/portadas/channel-manager-que-es-cuando-lo-necesitas-y-cuanto-cuesta.jpg",
+   "imageAlt": "Dos laptops abiertas sobre una mesa, con lo que cuesta un channel manager al mes"
+  }
+ }
+}

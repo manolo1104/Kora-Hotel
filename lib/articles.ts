@@ -29,8 +29,8 @@ export const articles: Article[] = [
     readTime: "6 min",
     category: "Distribución hotelera",
     tags: ["reservas directas", "OTAs", "Booking", "channel management"],
-    image: "/blog/reservas-directas.jpg",
-    imageAlt: "Recepción de hotel boutique con huéspedes",
+    image: "/blog/portadas/como-aumentar-reservas-directas.jpg",
+    imageAlt: "Recepción de hotel con ventanales al jardín, sobre el dato de cómo bajó del 75% al 53% la dependencia de OTAs",
     content: `
 <div class="callout-summary">
   <p class="callout-summary-title">Lo más importante</p>
@@ -174,8 +174,8 @@ export const articles: Article[] = [
     readTime: "8 min",
     category: "Revenue management",
     tags: ["revenue management", "RevPAR", "pricing dinámico", "tarifas hoteleras"],
-    image: "/blog/revenue-management.jpg",
-    imageAlt: "Hotel boutique con alberca al atardecer",
+    image: "/blog/portadas/revenue-management-hoteles-boutique-mexico.jpg",
+    imageAlt: "Tableta con gráficas de ocupación y tarifas, junto a la fórmula del RevPAR",
     content: `
 <div class="callout-summary">
   <p class="callout-summary-title">Lo más importante</p>
@@ -328,8 +328,8 @@ export const articles: Article[] = [
     readTime: "6 min",
     category: "Tecnología hotelera",
     tags: ["WhatsApp Business", "inteligencia artificial", "reservas", "automatización"],
-    image: "/blog/agente-whatsapp.jpg",
-    imageAlt: "Habitación de hotel boutique con vista a la naturaleza",
+    image: "/blog/portadas/agente-whatsapp-ia-hotel-2026.jpg",
+    imageAlt: "Mano sosteniendo un celular sobre una mesa, con el dato de cuánto pierde un hotel por no contestar WhatsApp",
     content: `
 <div class="callout-summary">
   <p class="callout-summary-title">Lo más importante</p>
@@ -457,8 +457,8 @@ export const articles: Article[] = [
     readTime: "5 min",
     category: "Distribución hotelera",
     tags: ["comisiones", "OTAs", "Booking", "reservas directas"],
-    image: "/blog/revenue-management.jpg",
-    imageAlt: "Dueño de hotel revisando sus números en una laptop",
+    image: "/blog/portadas/cuanto-le-pagas-a-booking-al-ano.jpg",
+    imageAlt: "Calculadora, lentes y libreta sobre un escritorio, con la cuenta anual de comisiones a Booking",
     content: `
 <div class="callout-summary">
   <p class="callout-summary-title">Lo más importante</p>
@@ -521,8 +521,8 @@ export const articles: Article[] = [
     readTime: "6 min",
     category: "Distribución hotelera",
     tags: ["temporada baja", "ocupación", "reservas directas", "revenue"],
-    image: "/blog/reservas-directas.jpg",
-    imageAlt: "Recepción de hotel boutique tranquila en temporada baja",
+    image: "/blog/portadas/llenar-hotel-temporada-baja.jpg",
+    imageAlt: "Mesas y sillas vacías de un restaurante, ilustrando la temporada baja de un hotel",
     content: `
 <div class="callout-summary">
   <p class="callout-summary-title">Lo más importante</p>

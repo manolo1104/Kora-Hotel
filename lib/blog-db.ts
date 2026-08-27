@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { articles as staticArticles, type Article } from "@/lib/articles";
 import { SUPABASE_URL, SUPABASE_ANON_KEY, supabaseEnvReady } from "@/lib/supabase/env";
+import portadas from "@/lib/blog-portadas.json";
 
 // ── Fuente unificada del blog ────────────────────────────────────────────────
 // Los 5 artículos originales viven en lib/articles.ts (estáticos); los que
@@ -34,8 +35,17 @@ function fechaLarga(iso: string): string {
   return `${d.getUTCDate()} de ${MESES[d.getUTCMonth()]}, ${d.getUTCFullYear()}`;
 }
 
+// La portada manda desde el repo, no desde la BD. Los 12 artículos que el
+// agente publicó antes de que existieran las portadas propias siguen teniendo
+// en `blog_articles.image` una de las 3 fotos genéricas viejas; este mapa las
+// corrige sin tocar la base. Lo genera scripts/portadas-blog/render.py, así que
+// la imagen y su ruta no se pueden desincronizar. Si un slug no está en el
+// mapa (artículo nuevo del agente), se usa lo que guardó la BD.
+const PORTADAS: Record<string, { image: string; imageAlt: string }> = portadas.porSlug;
+
 function rowToArticle(row: BlogRow): Article {
   const publishedIso = row.published_at.slice(0, 10);
+  const portada = PORTADAS[row.slug];
   return {
     slug: row.slug,
     title: row.title,
@@ -46,8 +56,8 @@ function rowToArticle(row: BlogRow): Article {
     readTime: row.read_time,
     category: row.category,
     tags: row.tags ?? [],
-    image: row.image,
-    imageAlt: row.image_alt,
+    image: portada?.image ?? row.image,
+    imageAlt: portada?.imageAlt ?? row.image_alt,
     content: row.content,
   };
 }

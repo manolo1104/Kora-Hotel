@@ -50,3 +50,6 @@ blog-agent/node_modules/
 # producto y este repositorio es PÚBLICO. Vive en ~/Desktop/KORA-AUDITORIA/.
 AUDIT_KORA.md
 PLAN_ARREGLO_KORA.md
+
+# Intermedios del generador de portadas del blog (HTML + PNG antes del JPG final)
+scripts/portadas-blog/.build/

@@ -40,6 +40,15 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+    // La portada es obligatoria: cada artículo tiene la suya en
+    // /blog/portadas/ (ver scripts/portadas-blog/). Antes había un default a
+    // una foto genérica y por eso 13 de 17 artículos acabaron con la misma.
+    if (!image) {
+      return NextResponse.json(
+        { error: "image es requerido: el artículo necesita su portada propia." },
+        { status: 400 }
+      );
+    }
     // Los artículos estáticos de lib/articles.ts tienen prioridad: no permitir
     // que el agente los pise desde la BD.
     if (staticArticles.some((a) => a.slug === slug)) {
@@ -59,7 +68,7 @@ export async function POST(req: NextRequest) {
           excerpt,
           category,
           tags,
-          image: image || "/blog/reservas-directas.jpg",
+          image,
           image_alt: imageAlt,
           content,
           meta_title: metaTitle ?? null,
