@@ -22,6 +22,7 @@ import {
   type ExperienciaRule,
   type ExperienciaSelection,
   validarCapacidadCarrito,
+  asignarUnidades,
 } from "@/lib/booking";
 import { freeUnitsByType, createTemporaryHold, releaseHold } from "@/lib/db/availability";
 import { ventasPorExperiencia } from "@/lib/db/experiencias";
@@ -186,21 +187,19 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   // garantiza que no haya sobreventa. Esto también HACE de chequeo de disponibilidad:
   // si un tipo no tiene suficientes unidades libres para la cantidad pedida → 409.
   const typesAvail = await freeUnitsByType(hotel.id, hotel, checkin, checkout);
-  const availByType = new Map(typesAvail.map((t) => [String(t.id), t]));
-  const allocated: { name: string; guestCount: number }[] = [];
-  for (const c of cleanCart) {
-    const ta = availByType.get(String(c.roomId));
-    const qty = c.quantity ?? 1;
-    if (!ta || ta.freeCount < qty) {
-      return NextResponse.json(
-        { error: "no-disponible", unavailableRooms: ta ? [ta.name] : [] },
-        { status: 409 },
-      );
-    }
-    for (const unitName of ta.freeUnitNames.slice(0, qty)) {
-      allocated.push({ name: unitName, guestCount: c.guestCount });
-    }
+  // `asignarUnidades` lleva un cursor por tipo y comprueba el total PEDIDO de
+  // cada uno. El bucle que había aquí hacía `freeUnitNames.slice(0, qty)` en
+  // cada línea por separado: dos líneas del mismo tipo cogían los MISMOS
+  // nombres, y como `calcCartSubtotal` cobra por línea, al huésped se le cobraban
+  // 6 cabañas y se le apartaban 3 (K-17).
+  const asignacion = asignarUnidades(cleanCart, typesAvail);
+  if (!asignacion.ok) {
+    return NextResponse.json(
+      { error: "no-disponible", unavailableRooms: asignacion.tipoAgotado ? [asignacion.tipoAgotado] : [] },
+      { status: 409 },
+    );
   }
+  const allocated = asignacion.unidades;
   const roomNames = allocated.map((a) => a.name);
 
   const opts = rules.nightOpts;

@@ -218,6 +218,80 @@ export function validarCapacidadCarrito(
   return { ok: true, capacidadFisica, ocupacionPagada };
 }
 
+/** Lo que el motor sabe de un TIPO al asignar: cuántas unidades libres y cuáles. */
+export interface DisponibilidadTipo {
+  id: number | string;
+  name: string;
+  freeCount: number;
+  freeUnitNames: string[];
+}
+
+/** Una unidad física asignada, con la ocupación de SU línea del carrito. */
+export interface UnidadAsignada {
+  name: string;
+  guestCount: number;
+}
+
+export type AsignacionUnidades =
+  | { ok: true; unidades: UnidadAsignada[] }
+  | { ok: false; tipoAgotado: string | null };
+
+/**
+ * Reparte unidades físicas concretas entre las líneas del carrito.
+ *
+ * El defecto que arregla (K-17): el checkout recorría el carrito línea por línea
+ * y en cada una hacía `freeUnitNames.slice(0, qty)`. Dos líneas del MISMO tipo
+ * cogían por tanto los MISMOS nombres. Con un carrito de `[{quantity:3},
+ * {quantity:3}]` sobre un tipo de 3 unidades, las dos líneas pasaban la
+ * comprobación (`freeCount >= qty` se miraba por línea, no en total), se
+ * apartaban 3 unidades con los nombres repetidos… y `calcCartSubtotal`, que
+ * cobra POR LÍNEA, le cobraba al huésped 6 cabañas.
+ *
+ * Dos líneas del mismo tipo son legítimas —"2 Deluxe para 2 personas y 1 Deluxe
+ * para 4"— y por eso no se fusionan: cada una conserva SU `guestCount`, que es
+ * de donde sale su precio. Lo que cambia es que la asignación lleva un cursor
+ * por tipo, y que el total pedido de cada tipo se comprueba SUMADO.
+ *
+ * Función pura, sin base de datos: se puede probar de verdad.
+ */
+export function asignarUnidades(
+  cart: CartItem[],
+  tipos: DisponibilidadTipo[],
+): AsignacionUnidades {
+  const porId = new Map(tipos.map((t) => [String(t.id), t]));
+
+  // 1) ¿Alcanza el inventario para el TOTAL de cada tipo? Antes se miraba línea
+  //    por línea, y por eso 3 + 3 sobre 3 unidades pasaba.
+  const pedido = new Map<string, number>();
+  for (const c of cart) {
+    const k = String(c.roomId);
+    pedido.set(k, (pedido.get(k) ?? 0) + Math.max(1, Math.floor(c.quantity ?? 1)));
+  }
+  for (const [k, qty] of pedido) {
+    const t = porId.get(k);
+    // Manda `freeUnitNames`: es lo que de verdad se puede apartar. Si `freeCount`
+    // dijera más de los nombres que trae, se estaría vendiendo aire.
+    if (!t || Math.min(t.freeCount, t.freeUnitNames.length) < qty) {
+      return { ok: false, tipoAgotado: t?.name ?? null };
+    }
+  }
+
+  // 2) Repartir, sin repetir ninguna unidad.
+  const cursor = new Map<string, number>();
+  const unidades: UnidadAsignada[] = [];
+  for (const c of cart) {
+    const k = String(c.roomId);
+    const t = porId.get(k)!;
+    const desde = cursor.get(k) ?? 0;
+    const qty = Math.max(1, Math.floor(c.quantity ?? 1));
+    for (const name of t.freeUnitNames.slice(desde, desde + qty)) {
+      unidades.push({ name, guestCount: c.guestCount });
+    }
+    cursor.set(k, desde + qty);
+  }
+  return { ok: true, unidades };
+}
+
 export function calcCartSubtotal(
   rooms: BookingRoom[],
   cart: CartItem[],

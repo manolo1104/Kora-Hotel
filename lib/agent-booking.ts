@@ -27,6 +27,7 @@ import {
   calcDepositAmount,
   type CartItem,
   validarCapacidadCarrito,
+  asignarUnidades,
 } from "@/lib/booking";
 import { freeUnitsByType, createTemporaryHold, releaseHold } from "@/lib/db/availability";
 import { getConnectState } from "@/lib/stripe/connect";
@@ -182,10 +183,6 @@ export async function crearLinkReservaAgente(
   // motor web: reservar nombres de unidad concretos hace que el candado atómico
   // impida sobreventa). Fail-closed dentro de freeUnitsByType.
   const typesAvail = await freeUnitsByType(hotel.id, hotel, input.checkin, input.checkout);
-  const ta = typesAvail.find((t) => String(t.id) === String(room.id));
-  if (!ta || ta.freeCount < quantity) return { ok: false, error: "no-disponible" };
-  const unidades = ta.freeUnitNames.slice(0, quantity);
-
   // Precio SIEMPRE server-side. Los adultos se REPARTEN entre las unidades: la
   // base a cada una y una persona más a las primeras `resto`.
   //
@@ -200,6 +197,15 @@ export async function crearLinkReservaAgente(
     Math.max(1, Math.min(room.maxGuests, base + (i < resto ? 1 : 0))),
   );
   const cart: CartItem[] = repartos.map((g) => ({ roomId: room.id, guestCount: g, quantity: 1 }));
+
+  // La MISMA función que asigna en el motor web, para que no haya dos reglas.
+  // Aquí no había duplicación —Camila reserva un solo tipo— pero sí el mismo
+  // hueco latente: se miraba `freeCount` sin comprobar que `freeUnitNames`
+  // trajera de verdad esos nombres, y apartar menos nombres de los cobrados es
+  // vender aire.
+  const asignacion = asignarUnidades(cart, typesAvail);
+  if (!asignacion.ok) return { ok: false, error: "no-disponible" };
+  const unidades = asignacion.unidades.map((u) => u.name);
   const stayTotal = calcCartSubtotal(rooms, cart, input.checkin, input.checkout, rules.nightOpts);
   const deposit = calcDepositAmount(stayTotal, nights, {
     pct: rules.anticipoPct,
