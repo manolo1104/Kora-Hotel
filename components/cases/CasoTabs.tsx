@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
+import { PRECIO_DESDE } from "@/lib/oferta";
 
 const EASE = [0.23, 1, 0.32, 1] as const;
 
@@ -314,11 +315,29 @@ function TabResultados() {
       <div className="bg-kora-bg rounded-2xl p-6 border border-gray-100">
         <h4 className="font-bold text-kora-text mb-4">Impacto financiero anual</h4>
         <div className="space-y-3 text-sm">
+          {/*
+            El costo de Kora y el ahorro neto se CALCULAN desde lib/oferta.ts, la
+            fuente única del precio. Estaban escritos a mano y decían $35,880 al
+            año — 5.4 veces el precio real ($550 × 12 = $6,600) — así que el caso
+            de estudio publicaba un ahorro neto casi $30,000 menor del que la
+            propia página de precios sostiene (K-38). Un caso de éxito que se
+            equivoca EN CONTRA es igual de malo que uno que exagera: quien haga
+            la cuenta deja de creer el resto.
+          */}
           {[
             { label: "Ahorro en comisiones OTA (mensual)", value: "$8,400 MXN", positive: true },
             { label: "Ahorro en comisiones OTA (anual)", value: "$100,800 MXN", positive: true },
-            { label: "Costo de Kora (anual)", value: "$35,880 MXN", positive: false },
-            { label: "Ahorro neto anual", value: "$64,920 MXN", positive: true, bold: true },
+            {
+              label: "Costo de Kora (anual)",
+              value: `$${(PRECIO_DESDE * 12).toLocaleString("es-MX")} MXN`,
+              positive: false,
+            },
+            {
+              label: "Ahorro neto anual",
+              value: `$${(100_800 - PRECIO_DESDE * 12).toLocaleString("es-MX")} MXN`,
+              positive: true,
+              bold: true,
+            },
           ].map((row) => (
             <div
               key={row.label}
@@ -387,15 +406,32 @@ export function CasoTabs() {
       </div>
 
       {/* Tab panels — crossfade on switch */}
-      <AnimatePresence mode="wait">
+      {/*
+        🔴 LAS PESTAÑAS ESTABAN MUERTAS EN LA PÁGINA PÚBLICA. Con `mode="wait"`,
+        AnimatePresence espera a que el panel que sale termine su `exit` antes de
+        montar el que entra — y ese `exit` no terminaba nunca. Efecto para el
+        visitante: pulsa "Los resultados", el botón se marca como activo
+        (`aria-selected` pasa a true) y el contenido se queda en "El problema"
+        para siempre. Las dos terceras partes del caso de estudio eran
+        inalcanzables, incluido el bloque de impacto financiero de aquí abajo.
+
+        Medido en localhost el 26 ago 2026 sobre la versión desplegada: tras
+        pulsar, el panel seguía siendo `panel-problema`. Comprobado que NO lo
+        causaba ningún cambio de esta sesión (se revirtió el archivo y el defecto
+        seguía). Probado también que la causa no era el `transform` en cadena:
+        cambiarlo por `y` no arregló nada; lo que lo arregla es no usar
+        `mode="wait"`. `popLayout` saca de flujo al que sale, así que no hay
+        salto de maquetación mientras se cruzan.
+      */}
+      <AnimatePresence initial={false} mode="popLayout">
         <motion.div
           key={active}
           role="tabpanel"
           id={`panel-${active}`}
           aria-labelledby={`tab-${active}`}
-          initial={{ opacity: 0, transform: "translateY(10px)" }}
-          animate={{ opacity: 1, transform: "translateY(0px)" }}
-          exit={{ opacity: 0, transform: "translateY(-4px)" }}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -4 }}
           transition={{ duration: 0.2, ease: EASE }}
         >
           {active === "problema" && <TabProblema />}

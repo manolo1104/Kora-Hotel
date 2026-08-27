@@ -6,6 +6,7 @@ import { ArrowRight } from "lucide-react";
 import { Reveal } from "@/components/shared/Reveal";
 import { AhorroStickyPill } from "@/components/landing/AhorroStickyPill";
 import { trackCta } from "@/lib/analytics";
+import { PRECIO_DESDE } from "@/lib/oferta";
 
 const WA_CALC_URL = `https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "524891251458"}?text=Hola%2C%20us%C3%A9%20la%20calculadora%20de%20Kora%20y%20quiero%20saber%20m%C3%A1s`;
 
@@ -33,7 +34,10 @@ function calcular(
   const ingresosOTA = ingresosTotales * (porcentajeOTA / 100);
   const comisionMensual = ingresosOTA * (comisionOTA / 100);
   const comisionAnual = comisionMensual * 12;
-  const koraAnual = 550 * 12; // plan Kora: $6,600 MXN al año
+  // El precio sale de lib/oferta.ts, la fuente única. Estaba escrito a mano, así
+  // que al cambiar el plan la calculadora publicaba un ROI falso sin que nadie
+  // lo notara (K-297).
+  const koraAnual = PRECIO_DESDE * 12;
   const reservasRecuperadas = ingresosOTA * 0.4;
   const comisionEvitada = reservasRecuperadas * (comisionOTA / 100);
   const ahorroNetoAnual = comisionEvitada * 12 - koraAnual;

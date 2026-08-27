@@ -66,7 +66,7 @@ export default function TerminosPage() {
               </h2>
               <p>
                 El servicio se cobra mensualmente. Hay un solo plan de $550
-                MXN/mes (más IVA), con habitaciones ilimitadas y todo incluido:
+                MXN/mes (IVA incluido), con habitaciones ilimitadas y todo incluido:
                 motor de reservas, PMS, Camila (WhatsApp con IA), dashboard y
                 CRM. El precio se mantiene vigente mientras la
                 suscripción esté activa. El plan incluye 30 días de prueba
