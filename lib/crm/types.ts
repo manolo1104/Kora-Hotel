@@ -1,5 +1,14 @@
 // Tipos y metadatos del CRM (compartidos cliente/servidor).
 
+/**
+ * Ventana "reciente" del panel de operaciones, en días.
+ *
+ * Vive aquí y no en lib/crm/operaciones.ts porque el panel es un componente
+ * de cliente: importar un VALOR desde ese archivo arrastraría al bundle del
+ * navegador el cliente de Supabase con service-role.
+ */
+export const VENTANA_DIAS = 30;
+
 export type Etapa =
   | "nuevo"
   | "contactado"

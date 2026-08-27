@@ -64,7 +64,7 @@ export function LeadDetail({ initialLead, initialActs }: { initialLead: Lead; in
     if (!confirm(`¿Eliminar el lead "${lead.hotel_nombre}"? Esto borra también su historial.`)) return;
     try {
       await api(`/api/crm/leads/${lead.id}`, { method: "DELETE" });
-      router.push("/crm");
+      router.push("/crm/leads");
     } catch {
       alert("No se pudo eliminar.");
     }
@@ -101,7 +101,7 @@ export function LeadDetail({ initialLead, initialActs }: { initialLead: Lead; in
 
   return (
     <main className="max-w-3xl mx-auto px-4 sm:px-6 py-6">
-      <Link href="/crm" className="inline-flex items-center gap-1.5 text-sm text-kora-muted hover:text-kora-text mb-4">
+      <Link href="/crm/leads" className="inline-flex items-center gap-1.5 text-sm text-kora-muted hover:text-kora-text mb-4">
         <ArrowLeft className="h-4 w-4" /> Volver
       </Link>
 
