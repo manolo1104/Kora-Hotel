@@ -23,11 +23,25 @@ export interface CrearReservaInput {
   comoNosConocio?: string | null;
   notas?: string | null;
   ratePlan?: "flex" | "nrf" | null;
+  /**
+   * Sesión del apartado temporal de ESTE huésped. Va al RPC para que sus
+   * propios `blocks` HOLD no se cuenten como cuarto vendido: sin esto, el
+   * webhook tenía que borrar el hold ANTES de crear la reserva, y si ese
+   * borrado fallaba el motor reembolsaba un pago bueno (K-03/K-47).
+   */
+  holdSession?: string | null;
 }
 
 export interface CrearReservaResult {
   ok: boolean;
   bookingId?: string;
+  /**
+   * El folio que tiene la reserva EN LA BASE, que no siempre es el que se pidió:
+   * cuando la idempotencia devuelve una reserva preexistente (reintento de
+   * Stripe), el folio bueno es el de la primera. Usar el local mandaba al
+   * huésped un folio que no existe (K-105/K-106).
+   */
+  confirmacion?: string;
   error?: string;
   /** true cuando el RPC rechazó por cuarto ya ocupado (overbooking evitado). */
   unavailable?: boolean;
@@ -65,11 +79,19 @@ export async function createBookingAtomic(
   let { data, error } = await supabase.rpc("crear_reserva_atomica", {
     ...base,
     p_rate_plan: input.ratePlan ?? null,
+    p_hold_session: input.holdSession ?? null,
   });
 
-  // Compatibilidad: si la BD aún no tiene el RPC con p_rate_plan (SQL de la
-  // fase 2 sin aplicar), se reintenta con la firma anterior. Crear la reserva
-  // (el pago ya ocurrió) importa más que registrar el rate plan.
+  // Compatibilidad hacia atrás, en dos escalones: si la BD todavía tiene la
+  // firma sin `p_hold_session` (fase 3) o sin `p_rate_plan` (fase 2), se
+  // reintenta con la anterior. Crear la reserva —el pago ya ocurrió— importa
+  // más que registrar el apartado o el rate plan.
+  if (error && /p_hold_session|PGRST202|schema cache/i.test(error.message)) {
+    ({ data, error } = await supabase.rpc("crear_reserva_atomica", {
+      ...base,
+      p_rate_plan: input.ratePlan ?? null,
+    }));
+  }
   if (error && /p_rate_plan|PGRST202|schema cache/i.test(error.message)) {
     ({ data, error } = await supabase.rpc("crear_reserva_atomica", base));
   }
@@ -79,7 +101,26 @@ export async function createBookingAtomic(
     if (!unavailable) console.error("createBookingAtomic error:", error);
     return { ok: false, error: error.message, unavailable };
   }
-  return { ok: true, bookingId: data as string };
+
+  const bookingId = data as string;
+  // El RPC devuelve el id, no el folio. Cuando la idempotencia devolvió una
+  // reserva preexistente, `input.confirmacion` es un folio que NO existe en la
+  // base: hay que leer el de verdad antes de enseñárselo a nadie. Es una lectura
+  // por clave primaria; si falla, se sigue con el pedido (la reserva ya existe y
+  // perderla por un folio sería peor) pero queda dicho en el log.
+  let confirmacion = input.confirmacion;
+  const { data: fila, error: errFolio } = await supabase
+    .from("bookings")
+    .select("confirmacion")
+    .eq("id", bookingId)
+    .maybeSingle();
+  if (errFolio) {
+    console.error("createBookingAtomic: no pude releer el folio real:", errFolio);
+  } else if (fila?.confirmacion) {
+    confirmacion = fila.confirmacion as string;
+  }
+
+  return { ok: true, bookingId, confirmacion };
 }
 
 /** Idempotencia del webhook: ¿ya hay reserva para este payment_intent? */

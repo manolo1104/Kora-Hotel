@@ -9,7 +9,7 @@ import {
   setBookingLang,
   type CrearReservaResult,
 } from "@/lib/db/bookings";
-import { releaseHold, extendHold, createTemporaryHold } from "@/lib/db/availability";
+import { releaseHold, extendHold } from "@/lib/db/availability";
 import { registrarExperienciaVentas, liberarExperienciaVentas } from "@/lib/db/experiencias";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { alertar } from "@/lib/alertas";
@@ -201,25 +201,15 @@ async function confirmarReserva(
     const anticipo = esPagoHotel ? 0 : Number(md.depositPaid) || 0;
     const total = Number(md.stayTotal) || 0;
 
-    // CLAVE anti-overbooking: liberar el HOLD de ESTA sesión ANTES de crear la
-    // reserva, para que el RPC no lo cuente como solape contra sí mismo.
-    //
-    // Si el DELETE falla no se puede continuar: el RPC vería el hold propio como
-    // solape, devolvería CUARTO_NO_DISPONIBLE, y más abajo eso se interpreta como
-    // falta real de cuarto → reembolso automático y correo de disculpa por una
-    // reserva pagada cuyo cuarto estaba libre. Un timeout de Supabase bastaba.
-    // Se responde 500 para que Stripe reintente, que es la salida segura.
-    if (md.holdSession) {
-      const holdLiberado = await releaseHold(hotelId, md.holdSession);
-      if (!holdLiberado) {
-        await alertar(
-          "no se pudo liberar el hold de una reserva pagada",
-          `Hotel ${hotelId}, sesión ${md.holdSession}. Se responde 500 para que Stripe reintente. ` +
-            `Si se repite, la reserva pagada corre riesgo de acabar reembolsada.`,
-        );
-        return NextResponse.json({ error: "hold-no-liberado" }, { status: 500 });
-      }
-    }
+    // El HOLD de esta sesión YA NO se borra antes de crear la reserva: ahora se le
+    // pasa al RPC en `holdSession` y es él quien lo ignora al buscar solapes
+    // (sql/kora-motor-fase4.sql). Borrarlo antes era el diseño frágil que costaba
+    // reservas: si el DELETE fallaba —un timeout de Supabase bastaba— el RPC veía
+    // el apartado del propio huésped como cuarto vendido y esto de abajo lo leía
+    // como falta real de cuarto → reembolso de un pago bueno (K-03/K-47). Y si en
+    // vez de eso se respondía 500, el cuarto quedaba libre durante toda la ventana
+    // de reintentos de Stripe. Con el hold vivo hasta DESPUÉS de crear la reserva,
+    // ninguno de los dos caminos existe.
 
     // El folio corto puede chocar con el índice único (hotel_id, confirmacion):
     // se reintenta con folio nuevo (el pago ya ocurrió; perderlo no es opción).
@@ -244,6 +234,7 @@ async function confirmarReserva(
         origen: esPagoHotel ? "web-pago-hotel" : md.origen === "bot" ? "bot" : "web",
         ratePlan: md.ratePlan === "nrf" ? "nrf" : "flex",
         notas: notasReserva,
+        holdSession: md.holdSession || null,
       });
       if (result.ok || !/duplicate key|confirmacion/i.test(result.error ?? "")) break;
     }
@@ -261,24 +252,42 @@ async function confirmarReserva(
       // El RPC es idempotente por payment_intent, así que reintentar es seguro
       // — jamás perder en silencio una reserva ya pagada.
       //
-      // Pero antes hay que DEVOLVER el hold que se liberó arriba. Sin esto el
-      // cuarto quedaba libre durante toda la ventana de reintentos de Stripe (el
-      // primero tarda del orden de una hora): otro huésped lo compraba y, al
-      // reintentar, ya no había cuarto → se le reembolsaba al que pagó primero.
-      // Así, un tropiezo pasajero de la base —que el diseño quería reintentable y
-      // sin daño— se convertía en la pérdida real de una reserva pagada.
-      // 240 min cubren varios reintentos sin dejar el cuarto apartado para
-      // siempre si el pago acabara sin resolverse. La siguiente pasada del
-      // webhook vuelve a liberarlo por `hold_session`, así que no se acumulan.
+      // El hold sigue vivo: ya no hay que devolverlo, porque no se borró. Sólo se
+      // le estira la caducidad para que cubra los reintentos de Stripe (el primero
+      // tarda del orden de una hora). Si esto falla, el hold caduca solo y como
+      // mucho se pierde el apartado; antes, en cambio, el cuarto quedaba libre
+      // desde el primer instante y otro huésped se lo llevaba.
       if (md.holdSession) {
-        await createTemporaryHold(hotelId, habitaciones, md.checkin, md.checkout, md.holdSession, 240);
+        await extendHold(hotelId, md.holdSession, 4).catch((e) =>
+          console.error("[h/webhooks/stripe] no pude estirar el hold:", e),
+        );
       }
       await alertar(
         "no se pudo crear una reserva ya pagada",
-        `Hotel ${hotelId}. Error: ${result.error}. Se devolvió el hold y se responde 500 ` +
+        `Hotel ${hotelId}. Error: ${result.error}. El apartado sigue en pie y se responde 500 ` +
           `para que Stripe reintente. Si los reintentos se agotan, hay un huésped que pagó sin reserva.`,
       );
       return NextResponse.json({ error: result.error }, { status: 500 });
+    }
+
+    // A partir de aquí manda el folio que dice LA BASE, no el que se generó arriba.
+    // Cuando la idempotencia devolvió una reserva preexistente (reintento de
+    // Stripe), el local es un folio que no existe: con él, el correo al huésped,
+    // el aviso al hotel y el cupo de experiencias apuntaban a la nada (K-105/K-106).
+    confirmacion = result.confirmacion ?? confirmacion;
+
+    // Ahora sí: soltar el apartado temporal. La reserva ya existe y su block
+    // 'RESERVADO' es la fuente de verdad de la ocupación, así que el HOLD sólo
+    // estorba. Best-effort a propósito: si el borrado falla, el hold caduca solo
+    // y mientras tanto ese cuarto se ve ocupado — molesto, pero nunca sobreventa,
+    // y desde luego mejor que perder una reserva pagada por un DELETE fallido.
+    if (md.holdSession) {
+      const soltado = await releaseHold(hotelId, md.holdSession);
+      if (!soltado) {
+        console.error(
+          `[h/webhooks/stripe] no pude soltar el hold ${md.holdSession} del hotel ${hotelId}; caducará solo`,
+        );
+      }
     }
 
     // Idioma con el que reservó: lo necesitan las secuencias pre/post estancia
