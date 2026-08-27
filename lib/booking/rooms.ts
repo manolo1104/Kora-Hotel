@@ -287,6 +287,24 @@ function clampNum(v: unknown, def: number, min: number, max: number): number {
  * extras.reglas (editables por el hotelero); el descuento entre semana sigue en
  * config (vía nightOpts). Valores por defecto = comportamiento previo (50% / 2 noches).
  */
+/**
+ * ¿Kora ofrece hoy "pagar al llegar al hotel" (tarjeta en garantía)?
+ *
+ * RETIRADO el 26 ago 2026, y es una decisión de negocio, no un bug. La opción
+ * guardaba la tarjeta del huésped con un `mode:"setup"` en la cuenta del hotel,
+ * pero NO se persistía ninguna referencia utilizable: el rastro moría en un
+ * `seti_…` dentro de `bookings.payment_intent_id`. Resultado: ante un no-show el
+ * hotelero abre su panel y no hay ningún botón para cobrar, abre su Stripe y
+ * encuentra clientes sueltos sin folio ni fechas (K-101). Prometer una garantía
+ * que no se puede ejecutar es peor que no ofrecerla.
+ *
+ * Se vuelve a poner en `true` cuando el panel sepa cobrar esa garantía. Cambiar
+ * ESTA constante lo reactiva en los cuatro sitios a la vez —motor, caja, cerebro
+ * de Camila y onboarding—, y el valor que cada hotel tenía guardado en
+ * `extras.reglas.pagoEnHotel` NO se toca: vuelve tal cual estaba.
+ */
+export const PAGO_EN_HOTEL_DISPONIBLE = false;
+
 export function bookingRules(hotel: HotelLike): BookingRules {
   const extras = (hotel.extras ?? {}) as Record<string, unknown>;
   const reglas = (extras.reglas ?? {}) as Record<string, unknown>;
@@ -298,7 +316,7 @@ export function bookingRules(hotel: HotelLike): BookingRules {
     nrfActiva: reglas.nrfActiva === true,
     nrfPct: clampNum(reglas.nrfPct, 10, 5, 50),
     cancelacionDias: clampNum(reglas.cancelacionDias, 2, 0, 30),
-    pagoEnHotel: reglas.pagoEnHotel === true,
+    pagoEnHotel: PAGO_EN_HOTEL_DISPONIBLE && reglas.pagoEnHotel === true,
     // ISH admite decimales (hay estados con 2.5%): no usar toNum (solo enteros).
     ishPct: Math.max(0, Math.min(10, Number(impuestos.ishPct) || 0)),
     nightOpts: nightOpts(hotel),

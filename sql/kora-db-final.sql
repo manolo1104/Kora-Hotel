@@ -38,7 +38,10 @@ create table if not exists public.suscripciones (
   -- 'kora' es el ÚNICO plan vivo (lib/oferta.ts). Los tres viejos se conservan
   -- para no invalidar filas históricas. Sin 'kora' aquí, la base rechaza toda
   -- alta de suscripción: el hotelero paga y no recibe nada.
-  plan                   text check (plan is null or plan in ('kora','boutique','hotel','grande')),
+  -- 'kora' es el ÚNICO plan que existe (lib/oferta.ts). Los tres viejos
+  -- (boutique/hotel/grande) se retiraron: ninguna parte del producto sabe
+  -- interpretarlos y rompen el MRR del digest. Ver sql/kora-plan-unico.sql.
+  plan                   text check (plan is null or plan = 'kora'),
   estado                 text not null default 'incompleta'
                            check (estado in ('activa','pago_vencido','cancelada','incompleta','cortesia')),
   periodo_fin            timestamptz,

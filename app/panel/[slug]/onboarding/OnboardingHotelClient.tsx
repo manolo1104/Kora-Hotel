@@ -6,6 +6,7 @@
 // /api/panel/connect, que lee la cookie kora_active_slug (ya fijada al navegar
 // aquí) y valida membresía en el servidor.
 
+import { PAGO_EN_HOTEL_DISPONIBLE } from "@/lib/booking";
 import { useRef, useState } from "react";
 import {
   ArrowLeft,
@@ -611,21 +612,27 @@ export function OnboardingHotelClient(props: Props) {
                 </div>
               </div>
 
-              <div>
-                <label className="flex items-center gap-2.5 text-sm font-semibold text-kora-text">
-                  <input
-                    type="checkbox"
-                    checked={pagoEnHotel}
-                    onChange={(e) => setPagoEnHotel(e.target.checked)}
-                    className="h-4 w-4 accent-kora-primary"
-                  />
-                  Permitir &quot;pagar al llegar al hotel&quot;
-                </label>
-                <p className="mt-1.5 text-xs text-kora-muted">
-                  El huésped deja su tarjeta como garantía y paga en recepción. Requiere
-                  cobros conectados (paso anterior).
-                </p>
-              </div>
+              {/* Retirado hasta que el panel sepa COBRAR la garantía: ver
+                  PAGO_EN_HOTEL_DISPONIBLE en lib/booking/rooms.ts. Se sigue
+                  guardando el valor que el hotelero tuviera puesto, así que
+                  cuando vuelva no hay que reconfigurar nada. */}
+              {PAGO_EN_HOTEL_DISPONIBLE && (
+                <div>
+                  <label className="flex items-center gap-2.5 text-sm font-semibold text-kora-text">
+                    <input
+                      type="checkbox"
+                      checked={pagoEnHotel}
+                      onChange={(e) => setPagoEnHotel(e.target.checked)}
+                      className="h-4 w-4 accent-kora-primary"
+                    />
+                    Permitir &quot;pagar al llegar al hotel&quot;
+                  </label>
+                  <p className="mt-1.5 text-xs text-kora-muted">
+                    El huésped deja su tarjeta como garantía y paga en recepción. Requiere
+                    cobros conectados (paso anterior).
+                  </p>
+                </div>
+              )}
 
               <p className="text-xs text-kora-muted">
                 Tarifa no reembolsable, extras vendibles y más opciones viven en{" "}

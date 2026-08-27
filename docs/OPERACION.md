@@ -29,7 +29,7 @@ en Supabase → SQL Editor:
 ```sql
 -- el uuid sale de Authentication → Users
 insert into public.suscripciones (user_id, plan, estado)
-values ('<uuid-del-usuario>', 'hotel', 'cortesia')
+values ('<uuid-del-usuario>', 'kora', 'cortesia')
 on conflict (user_id) do update set plan = excluded.plan, estado = 'cortesia';
 ```
 
