@@ -8,7 +8,7 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { logAgentActivity, setBotStatus, logCamilaConversacion } from "@/lib/db/admin";
 import type { TurnoConversacion } from "@/lib/db/admin";
-import { accesoDelHotel, bloqueoDelHotel } from "@/lib/suscripcion";
+import { accesoDelHotel } from "@/lib/suscripcion";
 import { hotelIdPorBotToken } from "@/lib/db/bot-token";
 import { leer } from "@/lib/db/result";
 import { crearLinkReservaAgente } from "@/lib/agent-booking";
@@ -103,16 +103,37 @@ export async function POST(req: Request) {
 
   const cfg = (hotel.config ?? {}) as Record<string, unknown>;
 
-  // CUENTA BLOQUEADA POR KORA → Camila se apaga entera, antes de cualquier
-  // acción. Se contesta aquí y no más abajo porque `status` es lo que el runtime
-  // consulta en vivo cada ~45 s: en cuanto ve enabled:false deja de responder,
-  // aunque el bot siga conectado a WhatsApp. El fleet además lo saca de la lista
-  // en su siguiente pasada, así que el apagón es doble.
-  if (bloqueoDelHotel(hotel.extras as Record<string, unknown> | null)) {
+  // UNA SOLA PUERTA PARA TODAS LAS ACCIONES: cuenta bloqueada por Kora o prueba
+  // vencida sin plan apagan a Camila entera, antes de nada. (El hotel
+  // despublicado NO entra todavía: `accesoDelHotel` aún no mira `publicado`, y
+  // eso es el paso 2.12.)
+  //
+  // Antes esta comprobación sólo la hacía la acción `reservar` (y el bloqueo
+  // manual, aquí). O sea: a un hotel con la prueba vencida se le cerraba la caja
+  // pero se le seguía dando el producto — Camila contestaba, cotizaba y gastaba
+  // cuota de Anthropic. `/api/bots/fleet` ya saca a esos hoteles de la lista, así
+  // que el runtime deja de arrancarlos; lo que quedaba abierto era la puerta de
+  // atrás: `/api/agent` es pública y cualquiera con el token del hotel —el propio
+  // hotelero, o quien se lo encuentre— podía seguir consultando indefinidamente.
+  //
+  // `status` es la excepción a propósito, y no es un hueco: es lo que el runtime
+  // consulta en vivo cada ~45 s, y contestarle `enabled:false` lo calla de verdad
+  // (`index.js` deja de responder aunque siga conectado a WhatsApp). Un 403 sería
+  // PEOR: `kora.status()` es fail-open ante error y asumiría "encendido".
+  //
+  // `accesoDelHotel` falla ABIERTO si no puede leer la suscripción, y avisa por
+  // correo: un hipo de Supabase no puede callar a la Camila de quien sí paga.
+  const acceso = await accesoDelHotel(hotel);
+  if (!acceso.activo) {
     if (body.action === "status") {
       return NextResponse.json({ ok: true, enabled: false, adminPhone: null });
     }
-    return NextResponse.json({ ok: false, error: "cuenta-bloqueada" }, { status: 403 });
+    const motivo = acceso.bloqueado ? "cuenta bloqueada por Kora" : "sin plan y prueba vencida";
+    console.error(`[agent] ${body.action ?? "knowledge"} rechazado en ${hotel.slug}: ${motivo}`);
+    return NextResponse.json(
+      { ok: false, error: acceso.bloqueado ? "cuenta-bloqueada" : "motor-pausado" },
+      { status: 403 },
+    );
   }
 
   // Estado del bot (on/off) para el chequeo EN VIVO del runtime. El runtime lo
@@ -177,14 +198,11 @@ export async function POST(req: Request) {
   // maquinaria pesada (precio, disponibilidad, hold, reserva) se reusa entera; el
   // riesgo de sobreventa es el mismo del motor web (candado atómico).
   if (body.action === "reservar") {
-    // Cerradas las puertas que el motor web ya cierra: hotel demo y motor pausado
-    // (prueba vencida sin plan) no deben poder cobrar por API.
+    // El motor pausado ya lo filtró la puerta de arriba (una sola comprobación
+    // para todas las acciones). Aquí queda sólo lo que es propio de reservar: el
+    // hotel de demostración nunca cobra, aunque su acceso sea eterno.
     if ((hotel.extras as { demo?: boolean } | null)?.demo === true) {
       return NextResponse.json({ ok: false, error: "hotel-demo" }, { status: 403 });
-    }
-    const acceso = await accesoDelHotel(hotel);
-    if (!acceso.activo) {
-      return NextResponse.json({ ok: false, error: "motor-pausado" }, { status: 403 });
     }
 
     const origin = new URL(req.url).origin;
