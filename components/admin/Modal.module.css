@@ -228,6 +228,26 @@
 .availOk       { background: #f0f7f0; color: #2d7a34; }
 .availNo       { background: #fdf0f0; color: #c9484a; }
 
+/* Salida de emergencia: meter la reserva encima de otra a sabiendas. Va en el
+   mismo tono de aviso que el badge de "no disponible" —no en verde ni neutro—
+   para que se lea como lo que es: una excepción, no una opción más. */
+.forzar {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 10px 12px;
+  border: 1px solid #f0d4d4;
+  border-radius: 10px;
+  background: #fffaf9;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #7a3b3c;
+  cursor: pointer;
+}
+.forzar input { margin-top: 2px; flex-shrink: 0; accent-color: #c9484a; }
+.forzar strong { color: #c9484a; }
+
 /* Multi-habitación */
 .roomsSection { display: flex; flex-direction: column; gap: 8px; border: 1px solid #e4ddd3; border-radius: 6px; padding: 12px 14px; }
 .roomsSectionHeader { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px; }

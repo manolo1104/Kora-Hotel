@@ -1,5 +1,6 @@
 import { negar } from "@/lib/panel/permisos";
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { getActiveHotel } from '@/lib/panel/active-hotel';
 import { getAllBookings, createManualBooking } from '@/lib/db/admin';
 import { checkAvailability } from '@/lib/db/availability';
@@ -12,6 +13,32 @@ import {
 import { bookingBrandFromHotel } from '@/lib/email/booking-branded';
 
 export const dynamic = 'force-dynamic';
+
+const FECHA = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Las fechas deben ser AAAA-MM-DD.");
+
+/** Lo que el panel puede mandar al meter una reserva a mano. */
+const ManualBookingBody = z
+  .object({
+    cliente: z.string().max(160).optional(),
+    telefono: z.string().max(40).optional(),
+    email: z.string().max(160).optional(),
+    // Los tres que definen la OCUPACIÓN son obligatorios: sin ellos no se puede
+    // saber si el cuarto está libre, y antes se creaba la reserva igual.
+    habitacion: z.string().min(1, "Elige al menos una habitación."),
+    checkin: FECHA,
+    checkout: FECHA,
+    noches: z.coerce.number().int().min(0).max(365).optional(),
+    huespedes: z.coerce.number().int().min(1).max(60).optional(),
+    total: z.coerce.number().min(0).max(10_000_000).optional(),
+    anticipo: z.coerce.number().min(0).max(10_000_000).optional(),
+    notas: z.string().max(20_000).optional(),
+    /** Meter la reserva ENCIMA de otra, a sabiendas. Deja rastro en las notas. */
+    forzar: z.boolean().optional(),
+  })
+  .refine((d) => d.checkout > d.checkin, {
+    message: "La salida tiene que ser posterior a la llegada.",
+    path: ["checkout"],
+  });
 
 export async function GET(req: NextRequest) {
   const ctx = await getActiveHotel();
@@ -42,37 +69,75 @@ export async function POST(req: NextRequest) {
   if (no) return no;
 
   try {
-    const data = await req.json();
+    // VALIDACIÓN DE VERDAD. Antes la comprobación de disponibilidad estaba dentro
+    // de un `if (data.checkin && data.checkout && data.habitacion)`: bastaba con
+    // que faltara CUALQUIERA de los tres para que se saltara entera y la reserva
+    // se creara a ciegas (K-183). Ahora los campos que definen la ocupación son
+    // obligatorios y el formato se valida antes de tocar la base.
+    const parsed = ManualBookingBody.safeParse(await req.json().catch(() => null));
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.issues[0]?.message ?? "Datos de la reserva inválidos." },
+        { status: 400 },
+      );
+    }
+    const data = parsed.data;
+    const forzar = data.forzar === true;
 
-    // Verificar disponibilidad en Supabase antes de crear
-    if (data.checkin && data.checkout && data.habitacion) {
-      // El CSV de habitaciones puede traer varias suites separadas por coma.
-      const rooms = String(data.habitacion)
-        .split(',')
-        .map((r: string) => r.replace(/\s*\([^)]*\)/g, '').trim())
-        .filter(Boolean);
+    // El CSV de habitaciones puede traer varias suites separadas por coma.
+    const rooms = String(data.habitacion)
+      .split(',')
+      .map((r: string) => r.replace(/\s*\([^)]*\)/g, '').trim())
+      .filter(Boolean);
+    if (rooms.length === 0) {
+      return NextResponse.json({ error: "Elige al menos una habitación." }, { status: 400 });
+    }
+
+    // Aviso rápido para la interfaz. La barrera de verdad es el candado atómico
+    // de `createManualBooking`; esto sólo da un mensaje más claro y más pronto.
+    if (!forzar) {
       const avail = await checkAvailability(ctx.hotelId, data.checkin, data.checkout, rooms);
       if (avail.unavailableRooms.length > 0) {
         return NextResponse.json(
-          { error: `${avail.unavailableRooms.join(', ')} no está disponible del ${data.checkin} al ${data.checkout}. Verifica el calendario.` },
+          {
+            error: `${avail.unavailableRooms.join(', ')} no está disponible del ${data.checkin} al ${data.checkout}. Verifica el calendario.`,
+            unavailable: true,
+          },
           { status: 409 }
         );
       }
     }
 
-    const confirmacion = await createManualBooking(ctx.hotelId, {
-      cliente: data.cliente,
-      telefono: data.telefono,
-      email: data.email,
+    const creada = await createManualBooking(ctx.hotelId, {
+      cliente: data.cliente ?? '',
+      telefono: data.telefono ?? '',
+      email: data.email ?? '',
       habitacion: data.habitacion,
       checkin: data.checkin,
       checkout: data.checkout,
-      noches: data.noches,
-      huespedes: data.huespedes,
-      total: data.total,
-      notas: data.notas,
+      noches: data.noches ?? 0,
+      huespedes: data.huespedes ?? 1,
+      total: data.total ?? 0,
+      notas: data.notas ?? '',
       anticipo: data.anticipo,
-    }, ctx.hotel.prefijo_confirmacion);
+    }, ctx.hotel.prefijo_confirmacion, { forzar, forzadoPor: ctx.userId });
+
+    if (!creada.ok || !creada.confirmacion) {
+      // El candado ganó: alguien se le adelantó entre el aviso de arriba y el
+      // alta. Es exactamente la sobreventa que este paso viene a impedir.
+      if (creada.unavailable) {
+        return NextResponse.json(
+          {
+            error: "Ese cuarto acaba de ocuparse en esas fechas. Recarga el calendario y vuelve a intentarlo.",
+            unavailable: true,
+          },
+          { status: 409 },
+        );
+      }
+      console.error("[admin.reservas.crear]", creada.error);
+      return NextResponse.json({ error: "No se pudo guardar. Intenta de nuevo." }, { status: 500 });
+    }
+    const confirmacion = creada.confirmacion;
 
     // TODO loyalty: en Paraíso se llamaba checkAndEnrollLoyalty aquí. Kora aún no
     // tiene módulo de lealtad → se omite.

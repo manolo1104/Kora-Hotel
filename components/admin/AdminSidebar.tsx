@@ -5,6 +5,7 @@ import { Calendar, BookOpen, FileText, TrendingUp, Users, LogOut, Menu, X, Layou
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import styles from './AdminSidebar.module.css';
+import { CANALES_OTA_DISPONIBLES } from '@/lib/panel/canales-ota';
 
 const NAV = [
   { seg: 'insights',     label: 'Inicio',         icon: LayoutDashboard },
@@ -16,7 +17,10 @@ const NAV = [
   { seg: 'pagos',        label: 'Pagos',          icon: CreditCard },
   { seg: 'clientes',     label: 'Clientes',       icon: Users },
   { seg: 'operaciones',  label: 'Operaciones',    icon: ClipboardCheck },
-  { seg: 'canales',      label: 'Canales OTA',    icon: Globe2 },
+  // Canales OTA retirado del panel: ver CANALES_OTA_DISPONIBLES en
+  // lib/panel/canales-ota.ts. Los feeds ya pegados en una extranet siguen vivos
+  // a propósito — cortarlos provoca sobreventa.
+  ...(CANALES_OTA_DISPONIBLES ? [{ seg: 'canales', label: 'Canales OTA', icon: Globe2 }] : []),
 ];
 
 export default function AdminSidebar({ slug, hotelName }: { slug: string; hotelName: string }) {

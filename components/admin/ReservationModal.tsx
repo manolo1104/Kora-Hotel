@@ -240,6 +240,12 @@ export default function ReservationModal({ booking, rooms, slug, defaultCheckin,
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [availStatus, setAvailStatus] = useState<'idle' | 'checking' | 'available' | 'unavailable' | 'error'>('idle');
+  // "Meter la reserva encima de otra, a sabiendas." Existe porque a veces el
+  // hotel SÍ quiere hacerlo (un huésped que comparte cuarto, un cambio de última
+  // hora), pero antes se podía hacer sin querer y sin dejar rastro: la reserva a
+  // mano no pasaba por el candado. Ahora hay que pedirlo, y queda escrito en las
+  // notas de la reserva quién y cuándo.
+  const [forzar, setForzar] = useState(false);
   // Bug fix: start with totalOverride=true when editing to preserve stored total
   const [totalOverride, setTotalOverride] = useState(isEdit);
   const [successData, setSuccessData] = useState<SuccessData | null>(null);
@@ -379,7 +385,7 @@ export default function ReservationModal({ booking, rooms, slug, defaultCheckin,
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!isEdit && availStatus === 'unavailable') {
+    if (!isEdit && availStatus === 'unavailable' && !forzar) {
       setError('Una o más habitaciones no están disponibles en esas fechas.');
       return;
     }
@@ -395,7 +401,10 @@ export default function ReservationModal({ booking, rooms, slug, defaultCheckin,
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, habitacion, huespedes: totalHuespedes, anticipo, notas }),
+        body: JSON.stringify({
+          ...form, habitacion, huespedes: totalHuespedes, anticipo, notas,
+          ...(!isEdit && forzar ? { forzar: true } : {}),
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error al guardar');
@@ -727,6 +736,18 @@ export default function ReservationModal({ booking, rooms, slug, defaultCheckin,
               {availStatus === 'unavailable' && <><AlertTriangle size={13} /> No disponible en esas fechas</>}
               {availStatus === 'error' && <><AlertTriangle size={13} /> No se pudo verificar la disponibilidad</>}
             </div>
+          )}
+
+          {/* La salida de emergencia. Sólo aparece cuando de verdad hay choque:
+              ofrecerla siempre invita a usarla por costumbre. */}
+          {!isEdit && availStatus === 'unavailable' && (
+            <label className={styles.forzar}>
+              <input type="checkbox" checked={forzar} onChange={e => setForzar(e.target.checked)} />
+              <span>
+                <strong>Guardar de todos modos</strong>, encima de la reserva que ya existe.
+                Quedará anotado en la reserva que se forzó, con la fecha y quién lo hizo.
+              </span>
+            </label>
           )}
 
           {/* Notas */}

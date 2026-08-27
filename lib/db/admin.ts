@@ -10,6 +10,7 @@
 //
 // SOLO servidor.
 
+import { createBookingAtomic } from "@/lib/db/bookings";
 import { reservaCuenta, type EstadoReserva } from "@/lib/booking/estado-reserva";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { leer, escribir, escribirMejorEsfuerzo, DbError} from "@/lib/db/result";
@@ -343,7 +344,8 @@ export async function createManualBooking(
     anticipo?: number;
   },
   prefijo?: string | null,
-): Promise<string> {
+  opts?: { forzar?: boolean; forzadoPor?: string | null },
+): Promise<ResultadoReservaManual> {
   const supabase = createAdminClient();
   // Prefijo de confirmación por hotel (hotel.prefijo_confirmacion). Si es NULL
   // (p. ej. Paraíso) generarConfirmacion cae a "KO". Antes estaba fijo en "PE-M"
@@ -353,37 +355,97 @@ export async function createManualBooking(
   // ese choque salía como el texto crudo de Postgres en la pantalla del
   // hotelero. Se reintenta con folio nuevo, igual que ya hace el webhook del
   // motor (app/api/h/webhooks/stripe/route.ts).
-  let confirmacion = "";
-  let inserted: unknown = null;
-  let error: { message: string } | null = null;
-  for (let intento = 0; intento < 3; intento++) {
-    confirmacion = generarConfirmacion(prefijo);
-    ({ data: inserted, error } = await insertarReservaManual(supabase, hotelId, confirmacion, data));
-    if (!error || !/duplicate key|confirmacion/i.test(error.message)) break;
-  }
-
-  if (error || !inserted) {
-    throw new Error(`createManualBooking error: ${error?.message ?? "sin id"}`);
-  }
-  const bookingId = (inserted as { id: string }).id;
-
-  // Reflejar ocupación: un block 'RESERVADO' por cuarto, ligado a la reserva.
+  const forzar = opts?.forzar === true;
   const rooms = splitRooms(data.habitacion);
-  if (rooms.length > 0) {
-    const rows = rooms.map((habitacion) => ({
-      hotel_id: hotelId,
-      habitacion,
-      checkin: data.checkin,
-      checkout: data.checkout,
-      status: "RESERVADO",
-      booking_id: bookingId,
-    }));
-    // La reserva ya existe; si su bloqueo no queda, el cuarto sigue en venta y
-    // se vuelve a vender. Lanza y la ruta responde 500.
-    await escribir("blocks.reservaManual", supabase.from("blocks").insert(rows));
+  const notas = forzar ? notaDeReservaForzada(data.notas, opts?.forzadoPor) : data.notas;
+
+  for (let intento = 0; intento < 3; intento++) {
+    const confirmacion = generarConfirmacion(prefijo);
+
+    // CAMINO NORMAL: el MISMO candado atómico que usa el motor web. Antes esto
+    // era un `insert` suelto en `bookings` y otro en `blocks`: dos hoteleros
+    // metiendo reservas a la vez —o uno a mano mientras entra una del motor—
+    // podían vender el mismo cuarto dos veces sin que nada lo impidiera (K-12,
+    // K-43). El RPC revalida el solape bajo el candado y crea reserva y
+    // bloqueos en la misma transacción.
+    if (!forzar) {
+      const r = await createBookingAtomic(hotelId, {
+        habitaciones: rooms,
+        checkin: data.checkin,
+        checkout: data.checkout,
+        confirmacion,
+        cliente: data.cliente,
+        telefono: data.telefono,
+        email: data.email,
+        total: data.total,
+        anticipo: data.anticipo ?? 0,
+        huespedes: data.huespedes,
+        notas,
+        estado: "MANUAL",
+        origen: "manual",
+        paymentIntentId: null,
+      });
+      if (r.ok) return { ok: true, confirmacion: r.confirmacion ?? confirmacion };
+      if (r.unavailable) return { ok: false, unavailable: true, error: r.error };
+      // Folio repetido: se reintenta con otro. Cualquier otro error se devuelve.
+      if (!/duplicate key|confirmacion/i.test(r.error ?? "")) {
+        return { ok: false, error: r.error };
+      }
+      continue;
+    }
+
+    // CAMINO FORZADO: el hotelero pidió explícitamente meter la reserva encima
+    // de otra (huésped que comparte cuarto, cambio de última hora). Se salta el
+    // candado a propósito, pero NUNCA en silencio: queda escrito en las notas de
+    // la reserva quién lo hizo y cuándo, que es lo que permite reconstruir
+    // después por qué había dos personas en la misma cabaña.
+    const { data: inserted, error } = await insertarReservaManual(
+      supabase, hotelId, confirmacion, { ...data, notas },
+    );
+    if (error) {
+      if (/duplicate key|confirmacion/i.test(error.message)) continue;
+      return { ok: false, error: error.message };
+    }
+    const bookingId = (inserted as { id: string } | null)?.id;
+    if (!bookingId) return { ok: false, error: "no se pudo crear la reserva" };
+
+    if (rooms.length > 0) {
+      // La reserva ya existe; si su bloqueo no queda, el cuarto sigue en venta y
+      // se vuelve a vender. Lanza y la ruta responde 500.
+      await escribir("blocks.reservaManual", supabase.from("blocks").insert(
+        rooms.map((habitacion) => ({
+          hotel_id: hotelId,
+          habitacion,
+          checkin: data.checkin,
+          checkout: data.checkout,
+          status: "RESERVADO",
+          booking_id: bookingId,
+        })),
+      ));
+    }
+    return { ok: true, confirmacion };
   }
 
-  return confirmacion;
+  return { ok: false, error: "no se pudo generar un folio libre" };
+}
+
+/** Resultado de meter una reserva a mano desde el panel. */
+export interface ResultadoReservaManual {
+  ok: boolean;
+  confirmacion?: string;
+  /** El cuarto ya estaba ocupado en esas fechas (y no se pidió forzar). */
+  unavailable?: boolean;
+  error?: string;
+}
+
+/** Marca en las notas que esta reserva se metió encima de otra a propósito. */
+function notaDeReservaForzada(notas: string | undefined, quien?: string | null): string {
+  const sello =
+    `⚠️ Reserva FORZADA sobre un cuarto ya ocupado el ` +
+    `${new Date().toISOString().slice(0, 16).replace("T", " ")} UTC` +
+    `${quien ? ` por ${quien}` : ""}.`;
+  const previo = (notas ?? "").trim();
+  return previo ? `${previo}\n${sello}` : sello;
 }
 
 /**

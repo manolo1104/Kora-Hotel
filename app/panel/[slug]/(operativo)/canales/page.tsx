@@ -7,6 +7,8 @@ import { getAllOTACalendars } from "@/lib/db/admin";
 import { requireHotelMember } from "@/lib/tenant";
 import { tipoNamesOf } from "@/lib/booking";
 import CanalesClient from "./CanalesClient";
+import { redirect } from "next/navigation";
+import { CANALES_OTA_DISPONIBLES } from "@/lib/panel/canales-ota";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Canales OTA · Panel" };
@@ -18,6 +20,9 @@ export default async function CanalesPage({
 }) {
   const { slug } = await params;
   const ctx = await requireHotelMember(slug);
+  // Retirada del panel. Se redirige en vez de borrar la pantalla: el día que
+  // vuelva (o llegue el channel manager) es una constante, no un rescate de git.
+  if (!CANALES_OTA_DISPONIBLES) redirect(`/panel/${slug}/calendario`);
 
   const initial = await getAllOTACalendars(ctx.hotelId);
   const rooms = tipoNamesOf(ctx.hotel);
