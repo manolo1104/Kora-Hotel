@@ -32,6 +32,16 @@ create table if not exists public.pruebas (
 -- aquí, y si pudiera leerla sabría cuándo se le acaba la prueba a cualquiera.
 alter table public.pruebas enable row level security;
 
+-- Y ADEMÁS se le quitan los permisos al rol del navegador. RLS sin políticas ya
+-- bloquea, pero los privilegios de Postgres son ADITIVOS y esto es una capa que
+-- no depende de que nadie añada una política por error: si mañana alguien crea
+-- una policy "para depurar", sin este revoke la tabla se abre entera.
+--
+-- Es exactamente el blindaje que ya tiene `hotel_bot_tokens`, y se nota desde
+-- fuera: con la llave anónima, una tabla sólo-RLS contesta `[]` (y así confirma
+-- que existe) mientras que una con el revoke contesta 42501 permission denied.
+revoke all on public.pruebas from anon, authenticated;
+
 comment on table public.pruebas is
   'Ancla de la prueba de 30 días, por dueño. Se escribe una vez y NUNCA se borra: '
   'si viviera en hoteles.created_at, borrar y recrear el hotel regalaría otros 30 días.';
@@ -95,6 +105,11 @@ end $$;
 select 'A · dueños anclados' as bloque,
        (select count(*)::text from public.pruebas) || ' de ' ||
        (select count(distinct owner_id)::text from public.hoteles where owner_id is not null) as valor
+union all
+select 'A2 · pruebas fuera del alcance del navegador',
+       case when has_table_privilege('anon', 'public.pruebas', 'SELECT')
+             or has_table_privilege('anon', 'public.pruebas', 'DELETE')
+            then 'anon TODAVÍA tiene permisos ❌' else 'permisos revocados ✅' end
 union all
 select 'B · índice un-plan-por-hotel',
        case when to_regclass('public.suscripciones_hotel_uidx') is null
