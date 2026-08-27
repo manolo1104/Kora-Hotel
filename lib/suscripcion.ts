@@ -1,6 +1,7 @@
 import { createAdminClient, adminEnvReady } from "@/lib/supabase/admin";
 import type { PlanClave } from "@/lib/oferta";
 import { alertar } from "@/lib/alertas";
+import { inicioPruebaDelDueno } from "@/lib/db/prueba-dueno";
 
 // Estado de suscripción de un usuario. SOLO servidor (usa la service-role key).
 
@@ -103,14 +104,30 @@ export interface PruebaHotel {
   vencida: boolean;
 }
 
-export function pruebaDelHotel(hotel: {
-  created_at?: string | null;
-  extras?: Record<string, unknown> | null;
-}): PruebaHotel | null {
+export function pruebaDelHotel(
+  hotel: {
+    created_at?: string | null;
+    extras?: Record<string, unknown> | null;
+  },
+  /**
+   * Cuándo empezó la prueba de ESTE DUEÑO (ISO), de la tabla `pruebas`. Es
+   * opcional para no cambiarle las reglas a nadie retroactivamente: sin ese dato
+   * todo se comporta como siempre.
+   */
+  inicioDelDueno?: string | null,
+): PruebaHotel | null {
   // El hotel de demostración nunca caduca.
   if ((hotel.extras as { demo?: boolean } | null)?.demo === true) return null;
   const creado = hotel.created_at ? Date.parse(hotel.created_at) : NaN;
-  const inicio = Number.isNaN(creado) ? LANZAMIENTO_PRUEBA : Math.max(creado, LANZAMIENTO_PRUEBA);
+  const delDueno = inicioDelDueno ? Date.parse(inicioDelDueno) : NaN;
+  // El ancla es la primera vez que este DUEÑO dio de alta un hotel, no la de
+  // ESTE hotel. Anclarla al hotel hacía la prueba infinita: el panel deja
+  // borrarlo y volver a crearlo, y con eso arrancaban otros 30 días gratis, una
+  // y otra vez. Se toma la MÁS ANTIGUA de las dos fechas, para que sembrar el
+  // ancla tarde nunca le quite días a nadie.
+  const fechas = [creado, delDueno].filter((n) => !Number.isNaN(n));
+  const base = fechas.length ? Math.min(...fechas) : NaN;
+  const inicio = Number.isNaN(base) ? LANZAMIENTO_PRUEBA : Math.max(base, LANZAMIENTO_PRUEBA);
   const fin = new Date(inicio + PRUEBA_DIAS * 86_400_000);
   const msRestantes = fin.getTime() - Date.now();
   return {
@@ -227,7 +244,10 @@ export async function accesoDelHotel(hotel: {
     return { activo: true, planActivo: false, prueba: null, bloqueado: false, mensajeBloqueo: null };
   }
 
-  const prueba = pruebaDelHotel(hotel);
+  // El ancla de la prueba sólo se consulta AQUÍ, después de descartar que tenga
+  // plan: a un cliente de pago esta lectura no le cuesta nada. Nunca lanza — si
+  // no se puede leer, se cae al `created_at` de siempre.
+  const prueba = pruebaDelHotel(hotel, await inicioPruebaDelDueno(hotel.owner_id));
   return {
     activo: !prueba || !prueba.vencida,
     planActivo: false,

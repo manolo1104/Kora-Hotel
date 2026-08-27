@@ -3,6 +3,7 @@ import { rutaSegura } from "@/lib/api/responder";
 import { NextResponse } from "next/server";
 import { createAdminClient, adminEnvReady } from "@/lib/supabase/admin";
 import { pruebaDelHotel, tienePlanActivo, type Suscripcion } from "@/lib/suscripcion";
+import { iniciosPruebaDeDuenos } from "@/lib/db/prueba-dueno";
 import { resolveHotelAvisoEmail } from "@/lib/email/reserva";
 import { sendRecordatorioPrueba, sendPruebaPausada } from "@/lib/email/prueba";
 
@@ -51,6 +52,13 @@ export async function GET(req: Request) {
     admin.from("hoteles").select("id, owner_id, nombre, extras, config, created_at, publicado"),
   );
 
+  // Los anclajes de la prueba, de una sola consulta para todos los dueños: sin
+  // ellos este cron le mandaría "te quedan 10 días" a quien borró y recreó su
+  // hotel, contradiciendo lo que el panel y el motor ya le dicen.
+  const inicios = await iniciosPruebaDeDuenos(
+    ((hoteles ?? []) as Array<{ owner_id?: string }>).map((h) => h.owner_id ?? ""),
+  );
+
   let recordatorios = 0;
   let pausados = 0;
   for (const hotel of (hoteles ?? []) as Array<{
@@ -63,7 +71,7 @@ export async function GET(req: Request) {
     publicado: boolean;
   }>) {
     if (conPlan.has(hotel.owner_id)) continue;
-    const prueba = pruebaDelHotel(hotel);
+    const prueba = pruebaDelHotel(hotel, inicios.get(hotel.owner_id) ?? null);
     if (!prueba) continue; // demo
 
     const esRecordatorio = !prueba.vencida && DIAS_RECORDATORIO.has(prueba.diasRestantes);

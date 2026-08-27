@@ -5,6 +5,7 @@ import { createAdminClient, adminEnvReady } from "@/lib/supabase/admin";
 import { getStripe, stripeEnvReady } from "@/lib/stripe/server";
 import { planPorClave } from "@/lib/oferta";
 import { pruebaDelHotel, trialEndParaStripe } from "@/lib/suscripcion";
+import { inicioPruebaDelDueno } from "@/lib/db/prueba-dueno";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -116,8 +117,13 @@ export async function POST(req: Request) {
         .limit(1)
         .maybeSingle(),
     );
+    // El ancla del DUEÑO manda sobre el created_at del hotel: si no, quien borró
+    // y recreó su hotel llegaba aquí con 30 días nuevos y se le respetaban.
     const prueba = primerHotel
-      ? pruebaDelHotel(primerHotel as { created_at: string | null; extras: Record<string, unknown> | null })
+      ? pruebaDelHotel(
+          primerHotel as { created_at: string | null; extras: Record<string, unknown> | null },
+          await inicioPruebaDelDueno(user.id),
+        )
       : null;
     const subMeta = { user_id: user.id, plan: plan.clave };
     // `trialEndParaStripe` es quien conoce el mínimo de 48 h de Stripe. Antes la

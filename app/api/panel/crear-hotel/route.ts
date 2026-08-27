@@ -5,7 +5,8 @@ import { supabaseEnvReady } from "@/lib/supabase/env";
 import { enviarEmail, NOTIFY_EMAIL } from "@/lib/email/resend";
 import { sendBienvenidaHotel } from "@/lib/email/prueba";
 import { emailHotelNuevo } from "@/lib/email/templates";
-import { contarHotelesPropios, MAX_HOTELES_POR_CUENTA, getHotelesDelUsuario } from "@/lib/tenant";
+import { alcanzoTopeDeHoteles, MAX_HOTELES_POR_CUENTA, getHotelesDelUsuario } from "@/lib/tenant";
+import { sembrarInicioPrueba } from "@/lib/db/prueba-dueno";
 import { bloqueoDelHotel } from "@/lib/suscripcion";
 
 export const dynamic = "force-dynamic";
@@ -67,9 +68,9 @@ export async function POST(req: Request) {
   // `contarHotelesPropios` LANZA si la consulta falla (antes devolvía 0 y el
   // tope se desactivaba en silencio). Aquí se traduce a un 503 con mensaje
   // humano: mejor no crear el hotel que crearlo sin límite.
-  let propios: number;
+  let tope: { alcanzado: boolean; propios: number };
   try {
-    propios = await contarHotelesPropios(user.id);
+    tope = await alcanzoTopeDeHoteles(user.id);
   } catch (e) {
     console.error("[crear-hotel] no se pudo contar los hoteles del dueño:", e);
     return NextResponse.json(
@@ -77,11 +78,14 @@ export async function POST(req: Request) {
       { status: 503 },
     );
   }
-  if (propios >= MAX_HOTELES_POR_CUENTA) {
+  if (tope.alcanzado) {
     return NextResponse.json(
       {
         ok: false,
-        error: `Máximo ${MAX_HOTELES_POR_CUENTA} hoteles por cuenta. ¿Necesitas más? Escríbenos.`,
+        error:
+          MAX_HOTELES_POR_CUENTA === 1
+            ? "Tu plan cubre un hotel. ¿Tienes otra propiedad? Escríbenos y lo acomodamos."
+            : `Máximo ${MAX_HOTELES_POR_CUENTA} hoteles por cuenta. ¿Necesitas más? Escríbenos.`,
       },
       { status: 403 },
     );
@@ -210,6 +214,15 @@ export async function POST(req: Request) {
       : "No se pudo generar una dirección para tu hotel. Prueba con otro nombre.";
     return NextResponse.json({ ok: false, error: msg }, { status: 400 });
   }
+
+  // ANCLAR LA PRUEBA AL DUEÑO, la primera vez y sólo la primera.
+  //
+  // Mientras la prueba salía del `created_at` del hotel, era infinita: el panel
+  // deja borrar el hotel y volver a crearlo, y con eso arrancaban otros 30 días
+  // gratis, una y otra vez. Con el ancla en el dueño, recrear el hotel ya no
+  // reinicia nada. Nunca lanza: si esto falla, el hotel ya está creado y lo peor
+  // que pasa es que ese dueño conserve el comportamiento viejo.
+  await sembrarInicioPrueba(user.id, new Date().toISOString());
 
   // Aviso instantáneo a Kora cada vez que se registra un hotel nuevo.
   // Best-effort: el hotel ya quedó guardado, el correo nunca tumba el alta.

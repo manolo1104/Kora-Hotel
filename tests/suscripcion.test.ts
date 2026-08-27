@@ -97,6 +97,40 @@ function pruebaEn(horas: number): PruebaHotel {
   };
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// LA PRUEBA INFINITA (K-108, K-258, K-315). La prueba salía del `created_at` del
+// hotel, y el panel deja borrar el hotel y volver a crearlo: otros 30 días
+// gratis, indefinidamente. El ancla vive ahora en el DUEÑO (tabla `pruebas`).
+// ─────────────────────────────────────────────────────────────────────────────
+describe("pruebaDelHotel con el ancla del dueño", () => {
+  const hace = (d: number) => new Date(HOY.getTime() - d * 86_400_000).toISOString();
+
+  it("sin ancla se comporta como siempre (el created_at del hotel)", () =>
+    expect(pruebaDelHotel({ created_at: hace(10), extras: null })?.diasRestantes).toBe(20));
+
+  // EL CASO QUE CERRAMOS: borró su hotel y lo recreó hoy. El hotel tiene 0 días,
+  // pero su prueba empezó hace 40: está vencida y no arranca de nuevo.
+  it("hotel recreado HOY con el ancla de hace 40 días → vencida", () => {
+    const p = pruebaDelHotel({ created_at: HOY.toISOString(), extras: null }, hace(40));
+    expect(p?.vencida).toBe(true);
+    expect(p?.diasRestantes).toBe(0);
+  });
+
+  it("hotel recreado hoy con el ancla de hace 10 días → le quedan 20, no 30", () =>
+    expect(pruebaDelHotel({ created_at: HOY.toISOString(), extras: null }, hace(10))?.diasRestantes).toBe(20));
+
+  // Sembrar el ancla tarde no puede quitarle días a nadie: manda la MÁS ANTIGUA.
+  it("un ancla más nueva que el hotel no le recorta la prueba", () =>
+    expect(pruebaDelHotel({ created_at: hace(10), extras: null }, hace(2))?.diasRestantes).toBe(20));
+
+  it("el hotel demo sigue sin caducar aunque tenga ancla", () =>
+    expect(pruebaDelHotel({ created_at: hace(400), extras: { demo: true } }, hace(400))).toBeNull());
+
+  // Un ancla ilegible no puede tumbar el cálculo: se cae al created_at.
+  it("un ancla ilegible se ignora en vez de romper", () =>
+    expect(pruebaDelHotel({ created_at: hace(10), extras: null }, "basura")?.diasRestantes).toBe(20));
+});
+
 describe("trialEndParaStripe (el mínimo de 48 h de Stripe)", () => {
   it("sin prueba → el cobro corre desde hoy", () =>
     expect(trialEndParaStripe(null)).toBeNull());

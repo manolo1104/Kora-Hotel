@@ -11,6 +11,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient, adminEnvReady } from "@/lib/supabase/admin";
 import { supabaseEnvReady } from "@/lib/supabase/env";
 import { leer, DbError } from "@/lib/db/result";
+import { leerSuscripcion } from "@/lib/suscripcion";
 
 export type RolHotel = "dueno" | "encargada" | "recepcion" | "limpieza" | "cocina";
 
@@ -89,8 +90,14 @@ export async function getHotelesDelUsuario(): Promise<{ hotel: HotelRow; rol: Ro
     .filter((x): x is { hotel: HotelRow; rol: RolHotel } => x !== null);
 }
 
-/** Tope de hoteles que una misma cuenta puede dar de alta (como dueño). */
-export const MAX_HOTELES_POR_CUENTA = 2;
+/**
+ * Tope de hoteles que una misma cuenta puede dar de alta (como dueño).
+ *
+ * UNA CUENTA = UN HOTEL. Es una decisión de negocio, no técnica: el plan cuesta
+ * $550 al mes y `accesoDelHotel` concede el acceso por `owner_id`, así que con
+ * el tope en 2 un solo dueño pagaba una vez y operaba dos hoteles.
+ */
+export const MAX_HOTELES_POR_CUENTA = 1;
 
 /**
  * Cuántos hoteles es DUEÑO (owner_id) el usuario. Es la base para aplicar el
@@ -107,6 +114,28 @@ export async function contarHotelesPropios(userId: string): Promise<number> {
     .eq("owner_id", userId);
   if (error) throw new DbError("hoteles.contarPropios", error.message, error.code);
   return count ?? 0;
+}
+
+/**
+ * ¿Esta cuenta ya llegó a su tope de hoteles? Un solo sitio decide, para que el
+ * panel, el onboarding y la API no puedan contestar cosas distintas.
+ *
+ * Las cuentas de CORTESÍA quedan exentas a propósito: son las que Kora da de
+ * alta a mano, y son justo las que ya tenían dos hoteles cuando se tomó la
+ * decisión. La regla nueva aplica a altas nuevas, no le apaga un hotel a nadie.
+ *
+ * LANZA si no se pudieron contar los hoteles (`contarHotelesPropios`). Ante un
+ * error de lectura de la SUSCRIPCIÓN se falla CERRADO —se aplica el tope—:
+ * regalar hoteles por un hipo de la base es exactamente lo que este tope existe
+ * para impedir.
+ */
+export async function alcanzoTopeDeHoteles(
+  userId: string,
+): Promise<{ alcanzado: boolean; propios: number }> {
+  const propios = await contarHotelesPropios(userId);
+  if (propios < MAX_HOTELES_POR_CUENTA) return { alcanzado: false, propios };
+  const { sub } = await leerSuscripcion(userId);
+  return { alcanzado: sub?.estado !== "cortesia", propios };
 }
 
 /**

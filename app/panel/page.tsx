@@ -83,7 +83,12 @@ export default async function PanelPage() {
 
   // Tope de hoteles por cuenta: solo cuentan los que el usuario es dueño.
   const hotelesPropios = hoteles.filter(({ rol }) => rol === "dueno").length;
-  const alcanzoTope = hotelesPropios >= MAX_HOTELES_POR_CUENTA;
+  // Misma regla que `alcanzoTopeDeHoteles` (lib/tenant): una cuenta = un hotel,
+  // salvo las de cortesía. Aquí se calcula a mano porque la suscripción y los
+  // hoteles ya están leídos arriba y repetir las consultas sería gratis para
+  // nadie. La barrera de verdad está en la API; esto sólo decide qué se dibuja.
+  const alcanzoTope =
+    hotelesPropios >= MAX_HOTELES_POR_CUENTA && suscripcion?.estado !== "cortesia";
 
   const card = "bg-white rounded-2xl p-6 sm:p-7 border border-gray-100 shadow-sm";
 
@@ -212,10 +217,12 @@ export default async function PanelPage() {
                 {alcanzoTope ? (
                   <div className="flex flex-col items-center gap-1 w-full px-5 py-4 rounded-2xl border border-gray-100 bg-white text-center">
                     <p className="text-sm font-semibold text-kora-text">
-                      Llegaste al máximo de {MAX_HOTELES_POR_CUENTA} hoteles por cuenta.
+                      {MAX_HOTELES_POR_CUENTA === 1
+                        ? "Tu plan cubre un hotel."
+                        : `Llegaste al máximo de ${MAX_HOTELES_POR_CUENTA} hoteles por cuenta.`}
                     </p>
                     <p className="text-xs text-kora-muted">
-                      ¿Necesitas más? Escríbenos y lo habilitamos.
+                      ¿Tienes otra propiedad? Escríbenos y lo acomodamos.
                     </p>
                   </div>
                 ) : (
