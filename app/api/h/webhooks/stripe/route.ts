@@ -162,6 +162,13 @@ async function confirmarReserva(
     if (addonsList.length) notasPartes.push(`Extras: ${addonsList.join(", ")}`);
     const bundleDiscount = Number(md.bundleDiscount) || 0;
     if (bundleDiscount > 0) notasPartes.push(`Descuento paquete: -$${bundleDiscount}`);
+    // Que quede EN LA RESERVA, no sólo en un correo que se pierde: el hotelero
+    // abre su panel, ve esta reserva y no encuentra el dinero en su Stripe
+    // porque entró en el de Kora. Escrito aquí, la nota lo explica sola y sirve
+    // para reconciliar después (K-21).
+    if (md.cobroEn === "plataforma") {
+      notasPartes.push("⚠️ Cobrado en la cuenta de Kora (el hotel no tenía Stripe listo)");
+    }
     const notasReserva = notasPartes.join(" · ") || null;
 
     const hotel = md.slug ? await resolveHotel(md.slug) : null;

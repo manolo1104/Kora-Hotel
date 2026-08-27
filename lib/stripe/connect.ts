@@ -77,6 +77,26 @@ export async function upsertConnectState(hotelId: string, state: ConnectState): 
   }
 }
 
+/** Cuánto vale el cache antes de volver a preguntarle a Stripe. */
+export const CACHE_MAX_HORAS = 24;
+
+/**
+ * ¿Sirve todavía la fila del cache, o hay que preguntarle a Stripe en vivo?
+ *
+ * Va aparte y exportada para poder probarla sin Supabase ni Stripe: es la regla
+ * que decide EN QUÉ CUENTA entra el dinero de un huésped, y la llave de Stripe
+ * de esta máquina es `sk_live`, así que ejercitar el checkout entero en local
+ * crearía sesiones de verdad. Sin fecha legible devuelve `false`: preguntar de
+ * más cuesta una llamada; dar por bueno un estado que no se sabe de cuándo es
+ * cuesta el cobro.
+ */
+export function cacheVigente(updatedAt: string | null | undefined, ahora = Date.now()): boolean {
+  if (!updatedAt) return false;
+  const t = new Date(updatedAt).getTime();
+  if (!Number.isFinite(t)) return false;
+  return ahora - t < CACHE_MAX_HORAS * 3_600_000;
+}
+
 interface ConnectRow {
   stripe_account_id: string;
   onboarding_status: OnboardingStatus;
@@ -85,6 +105,7 @@ interface ConnectRow {
   oxxo_enabled: boolean;
   details_submitted: boolean;
   requirements_due: number;
+  updated_at: string;
 }
 
 /**
@@ -111,13 +132,18 @@ export async function getConnectState(
     }
   }
 
+  // Si el cache está viejo se consulta a Stripe en vivo, pero se guarda por si
+  // esa consulta falla: devolver CONNECT_NONE ahí significaría cobrar en la
+  // cuenta de Kora a un hotel que sí tiene la suya lista (K-332).
+  let cacheViejo: ConnectState | null = null;
+
   try {
     const data = await leer<ConnectRow>(
       "connect.cache",
       createAdminClient()
         .from("hotel_stripe_accounts")
         .select(
-          "stripe_account_id, onboarding_status, charges_enabled, payouts_enabled, oxxo_enabled, details_submitted, requirements_due",
+          "stripe_account_id, onboarding_status, charges_enabled, payouts_enabled, oxxo_enabled, details_submitted, requirements_due, updated_at",
         )
         .eq("hotel_id", hotelId)
         .maybeSingle(),
@@ -126,7 +152,7 @@ export async function getConnectState(
       const row = data as ConnectRow;
       // Si la cuenta cambió (reconexión), se ignora el cache viejo.
       if (row.stripe_account_id === stripeAccountId) {
-        return {
+        const estado: ConnectState = {
           accountId: row.stripe_account_id,
           onboardingStatus: row.onboarding_status,
           chargesEnabled: row.charges_enabled,
@@ -135,6 +161,13 @@ export async function getConnectState(
           detailsSubmitted: row.details_submitted,
           requirementsDue: row.requirements_due,
         };
+        // El cache lo mantiene fresco el webhook `account.updated`, pero ese
+        // webhook se puede perder o llegar mal: sin caducidad, una fila que dice
+        // `charges_enabled: false` de hace meses manda el cobro a la cuenta de
+        // Kora aunque el hotelero ya haya terminado su alta — y al revés, un
+        // `true` viejo manda el cobro a una cuenta que Stripe ya suspendió.
+        if (cacheVigente(row.updated_at)) return estado;
+        cacheViejo = estado;
       }
     }
   } catch (e) {
@@ -156,6 +189,17 @@ export async function getConnectState(
     return state;
   } catch (e) {
     console.error("getConnectState retrieve error:", e);
+    // Stripe no contestó. Si había cache —aunque esté viejo— vale mil veces más
+    // que CONNECT_NONE: lo segundo desvía el cobro a la cuenta de Kora, y eso el
+    // hotelero no lo ve en su panel ni en su Stripe.
+    if (cacheViejo) {
+      await alertar(
+        "Stripe no contestó y se usó el cache viejo de Connect",
+        `Hotel ${hotelId}, cuenta ${stripeAccountId}. ${e instanceof Error ? e.message : String(e)}. ` +
+          `Se sigue cobrando en la cuenta del hotel con el último estado conocido.`,
+      );
+      return cacheViejo;
+    }
     return CONNECT_NONE;
   }
 }

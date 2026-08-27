@@ -27,6 +27,16 @@ import { ventasPorExperiencia } from "@/lib/db/experiencias";
 import { accesoDelHotel } from "@/lib/suscripcion";
 import { getStripe, stripeEnvReady } from "@/lib/stripe/server";
 import { getConnectState } from "@/lib/stripe/connect";
+import { alertar } from "@/lib/alertas";
+
+/**
+ * Hoteles por los que YA se avisó en esta instancia de la función. Una función
+ * serverless vive minutos u horas, así que esto colapsa una ráfaga en unos pocos
+ * correos sin perder el aviso. No se guarda en la base a propósito: los hoteles
+ * sin Connect no tienen fila en `hotel_stripe_accounts` donde marcarlo, y meter
+ * una columna nueva en `hoteles` para un aviso sería peor que el problema.
+ */
+const hotelesYaAvisados = new Set<string>();
 
 export const dynamic = "force-dynamic";
 
@@ -379,7 +389,27 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     experiencias_data: experienciasData,
     bundleDiscount: String(bundleDiscount),
     nrfDiscount: String(nrfDiscount),
+    // Deja escrito EN LA SESIÓN de Stripe en qué cuenta entró el dinero. Sin
+    // esto, un cobro caído en la cuenta de Kora es indistinguible de uno normal:
+    // la reserva se crea igual, el panel de Pagos del hotelero sólo consulta su
+    // cuenta conectada, y ese dinero es invisible para él (K-21).
+    cobroEn: direct ? "hotel" : "plataforma",
   };
+
+  // Y que alguien se entere el mismo día. Cuatro de los seis hoteles publicados
+  // estaban en este estado el 26 ago 2026 (dos con la cuenta a medias y dos sin
+  // cuenta), así que NO se cierra la puerta devolviendo `{whatsapp:true}`: eso
+  // les apagaría el motor a los cuatro. Primero se ve, luego se cierra.
+  if (!direct && !hotelesYaAvisados.has(hotel.id)) {
+    hotelesYaAvisados.add(hotel.id);
+    await alertar(
+      `cobro a la cuenta de Kora, no a la del hotel (${slug})`,
+      `El hotel ${slug} (${hotel.id}) está publicado y vendiendo, pero su cuenta de Stripe ` +
+        `no puede cobrar: ${connect.accountId ? `cuenta ${connect.accountId}, alta ${connect.onboardingStatus}` : "no tiene cuenta"}. ` +
+        `El dinero de esta reserva entra a la cuenta de Kora y el hotelero no lo verá en su panel. ` +
+        `Hay que reconciliarlo a mano y pedirle que termine su alta en Stripe.`,
+    );
+  }
 
   // DIRECT CHARGES: la sesión se crea EN la cuenta Stripe del hotel — el dinero
   // le entra directo y él absorbe la comisión de procesamiento (que es de

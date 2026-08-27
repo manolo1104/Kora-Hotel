@@ -43,6 +43,10 @@ export const CLAVES_QUE_LEE_EL_WEBHOOK = [
  *  - `addons`, `experiencias`, `experiencias_data`, `bundleDiscount`: sólo el
  *    motor web los vende; Camila todavía no.
  *  - `origen`: sólo lo pone Camila (`"bot"`); el motor web lo deja implícito.
+ *  - `cobroEn`: sólo lo manda el motor web, porque sólo él puede acabar cobrando
+ *    en la cuenta plataforma. Camila NO cae en ese caso: ante un hotel sin
+ *    Connect se niega a vender (`sin-pago`, lib/agent-booking.ts). Su ausencia
+ *    significa "cobro en la cuenta del hotel".
  */
 export const CLAVES_OPCIONALES = [
   "addons",
@@ -50,6 +54,7 @@ export const CLAVES_OPCIONALES = [
   "experiencias_data",
   "bundleDiscount",
   "origen",
+  "cobroEn",
 ] as const;
 
 export interface MetadataBase {
