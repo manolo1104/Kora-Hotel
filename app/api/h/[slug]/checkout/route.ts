@@ -108,10 +108,24 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     return NextResponse.json({ error: "hotel-demo" }, { status: 403 });
   }
 
-  // Prueba de 30 días vencida y sin plan → el motor no cobra (la página del
-  // motor ya se muestra pausada; esto cierra la puerta también por API).
+  // Prueba vencida sin plan, cuenta bloqueada, o hotel DESPUBLICADO → no se
+  // cobra. La página del motor ya se muestra pausada; esto cierra la puerta
+  // también por API. `puedeCobrar` = activo Y publicado: despublicar es la forma
+  // que tiene un hotelero de decir "esto no está al público", y hasta hoy le
+  // seguían entrando cobros con tarjeta por ahí (K-124, K-158).
   const acceso = await accesoDelHotel(hotel);
-  if (!acceso.activo) {
+  if (!acceso.puedeCobrar) {
+    // Que el motivo sea "está despublicado" merece aviso: es el único caso en
+    // que el hotelero cree tener su sitio apagado y aun así alguien llegó hasta
+    // la caja. Si le pasa a un hotel real, se sabe el mismo día.
+    if (acceso.activo && !acceso.publicado) {
+      await alertar(
+        "un cobro se detuvo por hotel despublicado",
+        `El hotel ${hotel.slug} tiene publicado=false y alguien llegó hasta el ` +
+          `pago. Antes ese cobro SÍ se procesaba. Si el hotelero espera vender, ` +
+          `tiene que publicar su sitio desde el panel.`,
+      );
+    }
     return NextResponse.json({ error: "motor-pausado" }, { status: 403 });
   }
 

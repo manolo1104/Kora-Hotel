@@ -98,6 +98,8 @@ export default async function PaginaPropia({
     owner_id: hotel.owner_id,
     created_at: hotel.created_at,
     extras: hotel.extras as Record<string, unknown> | null,
+    // `publicado` no hace falta aquí: la consulta de esta página ya filtra
+    // `.eq("publicado", true)` salvo en modo vista previa del dueño.
   });
 
   const datos: MiniDatos = {
@@ -112,7 +114,7 @@ export default async function PaginaPropia({
     resenas: [],
     rating: null,
     totalResenas: 0,
-    motorActivo: acceso.activo,
+    motorActivo: acceso.puedeCobrar,
     marcaOculta,
     hoy: hoyMx(),
     pro: acceso.activo,

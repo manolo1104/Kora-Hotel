@@ -131,6 +131,8 @@ export default async function Page({
     owner_id: hotel.owner_id,
     created_at: hotel.created_at,
     extras: hotel.extras as Record<string, unknown> | null,
+    // `publicado` no hace falta aquí: la consulta de esta página ya filtra
+    // `.eq("publicado", true)` salvo en modo vista previa del dueño.
   });
   const nombre = h.nombre || "";
   const reservarHref = `/h/${slug}/reservar${nombre ? `?habitacion=${encodeURIComponent(nombre)}` : ""}`;
@@ -226,7 +228,7 @@ export default async function Page({
         precioDesde: precio.desde,
       }}
       amenidades={amenidades}
-      motorActivo={acceso.activo}
+      motorActivo={acceso.puedeCobrar}
       reservarHref={reservarHref}
       waHref={waHref}
       />

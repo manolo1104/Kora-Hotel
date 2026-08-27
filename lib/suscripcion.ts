@@ -174,6 +174,22 @@ export interface AccesoHotel {
   bloqueado: boolean;
   /** Mensaje que ve el hotelero al entrar. Solo cuando `bloqueado`. */
   mensajeBloqueo: string | null;
+  /**
+   * El hotel está publicado. NO entra dentro de `activo` a propósito: un hotel
+   * recién creado está SIN publicar mientras lo montan, y su dueño tiene que
+   * poder usar el panel entero mientras tanto. Lo que un hotel sin publicar no
+   * puede hacer es COBRAR.
+   */
+  publicado: boolean;
+  /**
+   * `activo && publicado`. Es la ÚNICA que debe mirar quien vaya a mover dinero.
+   *
+   * `publicado` se respetaba en 5 superficies y se ignoraba en 7: el motor de un
+   * hotel DESPUBLICADO seguía cobrando con tarjeta (K-124, K-158). Despublicar
+   * es la forma que tiene un hotelero de decir "esto no está al público"; que le
+   * siguieran entrando reservas por ahí es lo contrario de lo que pidió.
+   */
+  puedeCobrar: boolean;
 }
 
 /** Bloqueo manual guardado en `hoteles.extras.bloqueo`. */
@@ -206,7 +222,10 @@ export async function accesoDelHotel(hotel: {
   owner_id: string;
   created_at?: string | null;
   extras?: Record<string, unknown> | null;
+  /** Ausente = se asume publicado, para no cambiarle nada a quien no lo pasa. */
+  publicado?: boolean | null;
 }): Promise<AccesoHotel> {
+  const publicado = hotel.publicado !== false;
   // El bloqueo manual gana sobre TODO lo demás: aunque el dueño tenga el plan
   // pagado al corriente, la cuenta no opera. Como este es el punto único por el
   // que pasan panel, motor, checkout, bot y agente, con esto se apaga entera.
@@ -218,12 +237,22 @@ export async function accesoDelHotel(hotel: {
       prueba: null,
       bloqueado: true,
       mensajeBloqueo: bloqueo.mensaje || MENSAJE_BLOQUEO_DEFAULT,
+      publicado,
+      puedeCobrar: false,
     };
   }
 
   const lectura = await leerSuscripcion(hotel.owner_id);
   if (tienePlanActivo(lectura.sub)) {
-    return { activo: true, planActivo: true, prueba: null, bloqueado: false, mensajeBloqueo: null };
+    return {
+      activo: true,
+      planActivo: true,
+      prueba: null,
+      bloqueado: false,
+      mensajeBloqueo: null,
+      publicado,
+      puedeCobrar: publicado,
+    };
   }
 
   // No se pudo LEER la suscripción. Eso NO es "no tiene plan": antes las dos
@@ -241,18 +270,29 @@ export async function accesoDelHotel(hotel: {
         `incidente (fallar cerrado le apagaría el motor a un cliente que paga). ` +
         `Si esto se repite, la plataforma está operando sin saber quién tiene plan.`,
     );
-    return { activo: true, planActivo: false, prueba: null, bloqueado: false, mensajeBloqueo: null };
+    return {
+      activo: true,
+      planActivo: false,
+      prueba: null,
+      bloqueado: false,
+      mensajeBloqueo: null,
+      publicado,
+      puedeCobrar: publicado,
+    };
   }
 
   // El ancla de la prueba sólo se consulta AQUÍ, después de descartar que tenga
   // plan: a un cliente de pago esta lectura no le cuesta nada. Nunca lanza — si
   // no se puede leer, se cae al `created_at` de siempre.
   const prueba = pruebaDelHotel(hotel, await inicioPruebaDelDueno(hotel.owner_id));
+  const activo = !prueba || !prueba.vencida;
   return {
-    activo: !prueba || !prueba.vencida,
+    activo,
     planActivo: false,
     prueba,
     bloqueado: false,
     mensajeBloqueo: null,
+    publicado,
+    puedeCobrar: activo && publicado,
   };
 }

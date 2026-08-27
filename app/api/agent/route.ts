@@ -204,6 +204,12 @@ export async function POST(req: Request) {
     if ((hotel.extras as { demo?: boolean } | null)?.demo === true) {
       return NextResponse.json({ ok: false, error: "hotel-demo" }, { status: 403 });
     }
+    // Un hotel DESPUBLICADO puede seguir contestando por WhatsApp (su cerebro es
+    // suyo), pero no puede cobrar: es lo mismo que ya hace el motor web.
+    if (!acceso.puedeCobrar) {
+      console.error(`[agent] reservar rechazado en ${hotel.slug}: hotel despublicado`);
+      return NextResponse.json({ ok: false, error: "motor-pausado" }, { status: 403 });
+    }
 
     const origin = new URL(req.url).origin;
     const resultado = await crearLinkReservaAgente(

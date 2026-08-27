@@ -75,6 +75,10 @@ export default async function EditorVisualPage({
 
   const marcaOculta =
     extras.premium?.marcaOculta === true && (await ownerTienePlanActivo(hotel.owner_id));
+  // A PROPÓSITO sin `publicado` y con `activo` (no `puedeCobrar`): esto es la
+  // vista previa que el DUEÑO usa para montar su sitio, y un hotel se monta
+  // justamente antes de publicarlo. Enseñarle aquí el motor "pausado" mientras
+  // lo arma sería mentirle sobre cómo va a quedar.
   const acceso = await accesoDelHotel({
     owner_id: hotel.owner_id,
     created_at: hotel.created_at,

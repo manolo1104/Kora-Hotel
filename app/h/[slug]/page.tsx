@@ -152,8 +152,12 @@ export default async function MiniPagina({
     owner_id: hotel.owner_id,
     created_at: hotel.created_at,
     extras: hotel.extras as Record<string, unknown> | null,
+    // `publicado` no hace falta aquí: la consulta de esta página ya filtra
+    // `.eq("publicado", true)` salvo en modo vista previa del dueño.
   });
-  const motorActivo = acceso.activo;
+  // `puedeCobrar`, no `activo`: es la MISMA condición que gatea /reservar, así
+  // que nunca enlazamos a un motor que va a decir que está pausado.
+  const motorActivo = acceso.puedeCobrar;
 
   const datos: MiniDatos = {
     slug: hotel.slug,

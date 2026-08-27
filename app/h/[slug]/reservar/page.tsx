@@ -72,7 +72,7 @@ export default async function ReservarPage({
   // Prueba de 30 días vencida y sin plan → el motor se pausa. El huésped nunca
   // choca contra una pared: se le deja el contacto directo del hotel.
   const acceso = await accesoDelHotel(hotel);
-  if (!acceso.activo) {
+  if (!acceso.puedeCobrar) {
     const whatsappNum = (hotel.whatsapp ?? "").replace(/\D/g, "");
     return (
       <div className="min-h-screen w-full bg-kora-bg flex items-center justify-center px-4">
