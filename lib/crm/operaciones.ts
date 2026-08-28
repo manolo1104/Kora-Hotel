@@ -21,6 +21,7 @@ import { bloqueoDelHotel, pruebaDelHotel, type EstadoSuscripcion } from "@/lib/s
 import { iniciosPruebaDeDuenos } from "@/lib/db/prueba-dueno";
 import { PRECIO_DESDE } from "@/lib/oferta";
 import { VENTANA_DIAS } from "@/lib/crm/types";
+import { reservaCuenta } from "@/lib/booking/estado-reserva";
 
 /** Códigos de PostgREST/Postgres para "esa tabla o columna no existe aquí". */
 const NO_EXISTE = new Set(["42P01", "42703", "PGRST205", "PGRST204"]);
@@ -268,7 +269,7 @@ export async function cargarOperaciones(): Promise<Operaciones> {
     const acc = porHotel.get(b.hotel_id) ?? {
       total: 0, recientes: 0, gmvTotal: 0, gmvReciente: 0, ultima: null,
     };
-    const vale = b.estado !== "CANCELADA" && b.estado !== "REEMBOLSADA";
+    const vale = reservaCuenta(b.estado);
     const monto = vale ? Number(b.total ?? 0) : 0;
     const reciente = Boolean(b.created_at && b.created_at >= desdeVentana);
 

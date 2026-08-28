@@ -163,6 +163,15 @@ cero "A19.4 ningún PNG del portfolio >120 KB"      bash -c 'find public -name "
 cero "A19.5 maxDuration <= 60 (Vercel Hobby)"      bash -c 'grep -rnI --exclude=verificar-arreglos.sh "maxDuration = " app | awk -F"= " "{if (\$2+0 > 60) print}"'
 exacto "A19.6 siguen siendo 7 crons"             7 bash -c 'grep -o "\"path\": \"/api/cron/" vercel.json'
 
+sec "A20 · Apartado atómico e inventario (etapa 3: pasos 3.10, 3.12, 3.14, 3.15)"
+cero "A20.1 existe el SQL del apartado atómico"    bash -c '[ -f sql/kora-e3-apartado-atomico.sql ] || echo "falta sql/kora-e3-apartado-atomico.sql"'
+cero "A20.2 nadie aparta cuartos fuera del candado" bash -c 'grep -rnI --exclude=verificar-arreglos.sh --include="*.ts" "createTemporaryHold(" app lib | grep -v "^lib/db/availability.ts:"'
+cero "A20.3 extendHold no resucita apartados muertos" bash -c 'grep -A 22 "export async function extendHold" lib/db/availability.ts | grep -q "gt(\"expires_at\"" || echo "extendHold revive holds vencidos (K-236)"'
+cero "A20.4 alguien llama a limpiar_holds_vencidos" bash -c 'grep -rqI "limpiarHoldsVencidos()" app || echo "los apartados vencidos no los borra nadie (K-265)"'
+cero "A20.5 desbloquear una noche es transaccional" bash -c 'grep -qI "recortarBloqueo(" app/api/admin/disponibilidad/route.ts || echo "el DELETE sigue borrando y reinsertando suelto (K-80)"'
+cero "A20.6 getOccupiedRoomNames con tope explícito" bash -c 'grep -A 32 "export async function getOccupiedRoomNames" lib/db/availability.ts | grep -qE "query[.]limit[(]TOPE[)]" || echo "sin tope: un truncamiento de PostgREST sería sobreventa silenciosa"'
+cero "A20.7 el cupo de experiencias acumula lo propio" bash -c 'grep -qI "validarCupoExperiencias(" "app/api/h/[slug]/checkout/route.ts" || echo "el cupo se compara línea por línea (K-100)"'
+
 printf '\n\033[1m═══ RESULTADO ═══\033[0m\n'
 printf '  verdes: %s   rojos: %s\n' "$VERDES" "$FALLOS"
 [ "$FALLOS" -eq 0 ] || exit 1
