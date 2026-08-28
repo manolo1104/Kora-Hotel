@@ -23,7 +23,7 @@ const PATCH_SCHEMA = z.object({
 });
 
 // Forma de respuesta consumida por RoomMap:
-//   { suite, estado, notas, actualizacion, ocupadaPor: {cliente,checkout,huespedes}|null }
+//   { suite, estado, notas, actualizacion, ocupadaPor: {cliente,checkout,huespedes,confirmacion}|null }
 //
 // A diferencia de Paraíso (lista fija de suites en Sheets), aquí los cuartos del
 // hotel salen de tipoNamesOf(ctx.hotel). Sembramos en memoria un estado
@@ -58,9 +58,13 @@ export async function GET() {
 
   // Ocupación derivada de reservas activas (sobrescribe el estado guardado salvo
   // MANTENIMIENTO/LIMPIEZA, que tienen prioridad operativa).
-  const occupiedMap = new Map<string, { cliente: string; checkout: string; huespedes: number }>();
+  const occupiedMap = new Map<string, { cliente: string; checkout: string; huespedes: number; confirmacion: string }>();
   for (const b of bookings) {
     if (!reservaCuenta(b.estado) || !b.checkin || !b.checkout) continue;
+    // Si ya se le hizo check-out, el huésped se fue: el cuarto queda libre sin
+    // esperar a la fecha de salida. Sin esto, marcar el cuarto a mano no servía
+    // de nada — esta ocupación derivada lo volvía a pisar en cada carga.
+    if (b.checkoutReal) continue;
     if (b.checkin <= todayStr && b.checkout > todayStr) {
       // habitaciones puede traer varias separadas por coma.
       for (const raw of String(b.habitaciones).split(",")) {
@@ -70,6 +74,9 @@ export async function GET() {
           cliente: b.cliente,
           checkout: b.checkout,
           huespedes: b.huespedes,
+          // El folio viaja para que el mapa pueda ofrecer el check-out del
+          // huésped que está mostrando, sin tener que ir a buscarlo a la lista.
+          confirmacion: b.confirmacion,
         });
       }
     }

@@ -63,6 +63,14 @@ export interface AdminBooking {
   doc: Record<string, unknown>; // overrides del documento branded (editor "modificar antes de descargar")
   /** Idioma con el que reservó el huésped. Sin columna `lang` en la BD → "es". */
   lang: "es" | "en";
+  /**
+   * Cuándo salió de verdad el huésped ("" si sigue en casa).
+   *
+   * No se deduce de las fechas: un huésped puede irse antes de su fecha de
+   * salida, y hasta que alguien lo registre el cuarto sigue apareciendo
+   * ocupado y no se puede volver a vender. Ver sql/kora-checkout-real.sql.
+   */
+  checkoutReal: string;
 }
 
 export interface AdminQuote {
@@ -147,6 +155,8 @@ interface BookingRow {
   created_at: string | null;
   doc?: Record<string, unknown> | null; // opcional: puede no existir la columna aún
   lang?: string | null; // idioma con el que reservó (opcional: columna nueva)
+  /** Cuándo salió de verdad el huésped. Opcional: columna nueva (kora-checkout-real.sql). */
+  checkout_real?: string | null;
 }
 
 interface QuoteRow {
@@ -218,7 +228,76 @@ function mapBooking(r: BookingRow): AdminBooking {
     origen: r.origen ?? "",
     doc: (r.doc ?? {}) as Record<string, unknown>,
     lang: r.lang === "en" ? "en" : "es",
+    checkoutReal: r.checkout_real ?? "",
   };
+}
+
+/**
+ * Marca que el huésped ya salió y libera su cuarto en el acto.
+ *
+ * Deliberadamente NO toca `estado`: la reserva sigue siendo válida (se cobró, se
+ * cumplió) y su CHECK sólo admite CONFIRMADA/CANCELADA/MANUAL/REEMBOLSADA.
+ * Lo único que cambia es que deja de ocupar el cuarto.
+ *
+ * Idempotente: si ya tenía check-out, devuelve la hora que ya tenía en vez de
+ * pisarla — dos clics seguidos no reescriben la salida.
+ */
+export async function checkoutBooking(
+  hotelId: string,
+  confirmacion: string,
+): Promise<{ ok: true; cuando: string; habitaciones: string[] } | { ok: false; error: string }> {
+  const supabase = createAdminClient();
+  const { data: fila, error: errLeer } = await supabase
+    .from("bookings")
+    .select("id, estado, habitaciones, checkout_real")
+    .eq("hotel_id", hotelId)
+    .eq("confirmacion", confirmacion)
+    .maybeSingle();
+
+  if (errLeer) {
+    console.error("checkoutBooking leer:", errLeer.message);
+    return { ok: false, error: "no-se-pudo-leer" };
+  }
+  if (!fila) return { ok: false, error: "no-encontrada" };
+
+  const habitaciones = splitRooms(String(fila.habitaciones ?? ""));
+
+  // Una cancelada o reembolsada ya no ocupa cuarto: no hay de dónde salir.
+  if (!reservaCuenta(fila.estado)) return { ok: false, error: "reserva-sin-valor" };
+  if (fila.checkout_real) {
+    return { ok: true, cuando: String(fila.checkout_real), habitaciones };
+  }
+
+  const cuando = new Date().toISOString();
+  const { error } = await supabase
+    .from("bookings")
+    .update({ checkout_real: cuando })
+    .eq("id", fila.id)
+    .eq("hotel_id", hotelId); // cinturón: nunca tocar la fila de otro hotel
+
+  if (error) {
+    console.error("checkoutBooking escribir:", error.message);
+    return { ok: false, error: "no-se-pudo-guardar" };
+  }
+  return { ok: true, cuando, habitaciones };
+}
+
+/** Deshace un check-out hecho por error (el huésped no se había ido). */
+export async function deshacerCheckout(
+  hotelId: string,
+  confirmacion: string,
+): Promise<boolean> {
+  const supabase = createAdminClient();
+  const { error } = await supabase
+    .from("bookings")
+    .update({ checkout_real: null })
+    .eq("hotel_id", hotelId)
+    .eq("confirmacion", confirmacion);
+  if (error) {
+    console.error("deshacerCheckout:", error.message);
+    return false;
+  }
+  return true;
 }
 
 function mapQuote(r: QuoteRow): AdminQuote {

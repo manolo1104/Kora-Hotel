@@ -2,7 +2,7 @@
 
 import { reservaCuenta } from "@/lib/booking/estado-reserva";
 import { useState, useMemo } from 'react';
-import { Plus, Search, RefreshCw, Send, Download, Loader2, ChevronDown, ChevronUp, Sun } from 'lucide-react';
+import { Plus, Search, RefreshCw, Send, Download, Loader2, ChevronDown, ChevronUp, Sun, LogOut, Undo2 } from 'lucide-react';
 import type { AdminBooking } from '@/lib/admin/sheets-admin';
 import type { BookingRoom } from '@/lib/booking';
 import ReservationModal from '@/components/admin/ReservationModal';
@@ -10,13 +10,17 @@ import styles from './reservas.module.css';
 
 // ── Operational state ────────────────────────────────────────────────────────
 
-type OpsState = 'CHECK_IN_HOY' | 'CHECK_OUT_HOY' | 'EN_CASA' | 'PROXIMA' | 'COMPLETADA' | 'CANCELADA' | 'REEMBOLSADA' | 'NO_SHOW';
+type OpsState = 'CHECK_IN_HOY' | 'CHECK_OUT_HOY' | 'EN_CASA' | 'PROXIMA' | 'COMPLETADA' | 'CANCELADA' | 'REEMBOLSADA' | 'NO_SHOW' | 'SALIO';
 
 function getOpsState(b: AdminBooking, today: string): OpsState {
   if (b.estado === 'CANCELADA') return 'CANCELADA';
   // Una reembolsada NO es una reserva viva: se colapsaba en "CONFIRMADA" y salía
   // como "Próxima" o "En Casa", con su dinero sumado (K-42).
   if (b.estado === 'REEMBOLSADA') return 'REEMBOLSADA';
+  // El check-out registrado manda sobre las fechas: un huésped puede irse antes
+  // de su fecha de salida y hasta que alguien lo registre el cuarto sigue
+  // apareciendo ocupado.
+  if (b.checkoutReal) return 'SALIO';
   const ci = b.checkin;
   const co = b.checkout;
   if (!ci) return 'PROXIMA';
@@ -36,6 +40,7 @@ const OPS_LABEL: Record<OpsState, string> = {
   CANCELADA:     'Cancelada',
   REEMBOLSADA:   'Reembolsada',
   NO_SHOW:       'No Show',
+  SALIO:         'Salió',
 };
 
 const OPS_COLOR: Record<OpsState, { bg: string; color: string }> = {
@@ -47,6 +52,7 @@ const OPS_COLOR: Record<OpsState, { bg: string; color: string }> = {
   CANCELADA:     { bg: '#fde8e8', color: '#8a1a1a' },
   REEMBOLSADA:   { bg: '#f3e8fd', color: '#5b2a86' },
   NO_SHOW:       { bg: '#f8e0e8', color: '#7a0030' },
+  SALIO:         { bg: '#e8eceb', color: '#3d4a45' },
 };
 
 // ── Days to arrival ──────────────────────────────────────────────────────────
@@ -91,6 +97,7 @@ export default function ReservasClient({ initialBookings, rooms, slug }: Props) 
   const [modal, setModal] = useState<{ mode: 'new' | 'edit'; booking?: AdminBooking } | null>(null);
   const [loading, setLoading] = useState(false);
   const [sendingId, setSendingId] = useState<string | null>(null);
+  const [checkoutId, setCheckoutId] = useState<string | null>(null);
 
   // Fecha de HOY en la zona horaria del hotel (no UTC). 'en-CA' da formato YYYY-MM-DD.
   const today = useMemo(() => new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' }), []);
@@ -100,7 +107,7 @@ export default function ReservasClient({ initialBookings, rooms, slug }: Props) 
     return bookings.filter(b => {
       if (vistaHoy) {
         const ops = getOpsState(b, today);
-        if (!['CHECK_IN_HOY','CHECK_OUT_HOY','EN_CASA'].includes(ops)) return false;
+        if (!['CHECK_IN_HOY','CHECK_OUT_HOY','EN_CASA','SALIO'].includes(ops)) return false;
       }
       if (q && !b.cliente.toLowerCase().includes(q) &&
           !b.email.toLowerCase().includes(q) &&
@@ -131,7 +138,7 @@ export default function ReservasClient({ initialBookings, rooms, slug }: Props) 
   const todayCounts = useMemo(() => ({
     checkIn:  bookings.filter(b => reservaCuenta(b.estado) && b.checkin === today).length,
     checkOut: bookings.filter(b => reservaCuenta(b.estado) && b.checkout === today).length,
-    enCasa:   bookings.filter(b => reservaCuenta(b.estado) && b.checkin < today && b.checkout > today).length,
+    enCasa:   bookings.filter(b => reservaCuenta(b.estado) && !b.checkoutReal && b.checkin < today && b.checkout > today).length,
   }), [bookings, today]);
 
   const hasActiveFilters = suiteFilter || estadoFilter || fechaDesde || fechaHasta;
@@ -145,6 +152,36 @@ export default function ReservasClient({ initialBookings, rooms, slug }: Props) 
     const res = await fetch('/api/admin/reservas');
     if (res.ok) setBookings(await res.json());
     setLoading(false);
+  }
+
+  /**
+   * Registrar la salida del huésped. Libera el cuarto en el acto (sin esperar a
+   * la fecha de salida) y lo manda a limpieza.
+   *
+   * Antes esto no existía: la ocupación se sacaba sólo de las fechas, así que un
+   * hotelero que probaba Kora se quedaba con el cuarto en "Ocupada" y sin forma
+   * de liberarlo.
+   */
+  async function hacerCheckout(e: React.MouseEvent, b: AdminBooking) {
+    e.stopPropagation();
+    if (!b.confirmacion || checkoutId) return;
+    const yaSalio = Boolean(b.checkoutReal);
+    setCheckoutId(b.confirmacion);
+    try {
+      const res = await fetch(`/api/admin/reservas/${encodeURIComponent(b.confirmacion)}/checkout`, {
+        method: yaSalio ? 'DELETE' : 'POST',
+      });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        alert(d.error || 'No se pudo registrar el check-out.');
+        return;
+      }
+      await refresh();
+    } catch {
+      alert('No se pudo conectar. Revisa tu internet e inténtalo de nuevo.');
+    } finally {
+      setCheckoutId(null);
+    }
   }
 
   async function sendEmail(e: React.MouseEvent, b: AdminBooking) {
@@ -257,6 +294,7 @@ export default function ReservasClient({ initialBookings, rooms, slug }: Props) 
                 <option value="">Todos</option>
                 <option value="CHECK_IN_HOY">Check-in Hoy</option>
                 <option value="CHECK_OUT_HOY">Check-out Hoy</option>
+                <option value="SALIO">Salió (check-out hecho)</option>
                 <option value="EN_CASA">En Casa</option>
                 <option value="PROXIMA">Próxima</option>
                 <option value="COMPLETADA">Completada</option>
@@ -381,6 +419,20 @@ export default function ReservasClient({ initialBookings, rooms, slug }: Props) 
                   </td>
                   <td onClick={e => e.stopPropagation()}>
                     <div className={styles.rowActions}>
+                      {/* Sólo donde tiene sentido: alguien que está (o estuvo)
+                          en casa. En una reserva próxima o cancelada estorba. */}
+                      {['EN_CASA', 'CHECK_OUT_HOY', 'CHECK_IN_HOY', 'SALIO'].includes(ops) && (
+                        <button
+                          className={ops === 'SALIO' ? styles.actionBtn : styles.actionBtnCheckout}
+                          onClick={e => hacerCheckout(e, b)}
+                          disabled={checkoutId === b.confirmacion}
+                          title={ops === 'SALIO' ? 'Deshacer check-out' : 'Hacer check-out y mandar el cuarto a limpieza'}
+                        >
+                          {checkoutId === b.confirmacion
+                            ? <Loader2 size={13} className={styles.spin} />
+                            : ops === 'SALIO' ? <Undo2 size={13} /> : <LogOut size={13} />}
+                        </button>
+                      )}
                       <button className={styles.actionBtn} onClick={e => sendEmail(e, b)}
                         disabled={sendingId === b.confirmacion} title="Enviar confirmación">
                         {sendingId === b.confirmacion ? <Loader2 size={13} className={styles.spin} /> : <Send size={13} />}

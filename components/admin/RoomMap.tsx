@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { X, AlertTriangle, Sparkles, BedDouble, CheckCircle } from 'lucide-react';
+import { X, AlertTriangle, Sparkles, BedDouble, CheckCircle, LogOut, Loader2 } from 'lucide-react';
 import { postJson, mensajeDeError } from '@/lib/ui/api';
 import styles from './RoomMap.module.css';
 
@@ -12,7 +12,7 @@ interface RoomData {
   estado: RoomStatusType;
   notas: string;
   actualizacion: string;
-  ocupadaPor: { cliente: string; checkout: string; huespedes: number } | null;
+  ocupadaPor: { cliente: string; checkout: string; huespedes: number; confirmacion: string } | null;
 }
 
 const STATUS_CONFIG: Record<RoomStatusType, { label: string; color: string; bg: string; icon: React.ReactNode }> = {
@@ -34,6 +34,7 @@ export default function RoomMap() {
   const [editModal, setEditModal] = useState<EditModal | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [saliendo, setSaliendo] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -50,6 +51,28 @@ export default function RoomMap() {
     const id = setInterval(load, 30000);
     return () => clearInterval(id);
   }, [load]);
+
+  /**
+   * Check-out desde el mapa: es donde el hotelero VE el cuarto ocupado, así que
+   * es donde lo busca. Antes no había ninguno — y cambiar el estado a mano no
+   * servía porque la ocupación derivada de las fechas lo volvía a pisar en la
+   * siguiente carga (el mapa se recarga solo cada 30 s).
+   */
+  async function checkout(folio: string) {
+    if (!folio || saliendo) return;
+    setSaliendo(folio);
+    setError('');
+    try {
+      const res = await fetch(`/api/admin/reservas/${encodeURIComponent(folio)}/checkout`, { method: 'POST' });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) { setError(d.error || 'No se pudo registrar el check-out.'); return; }
+      await load();
+    } catch {
+      setError('No se pudo conectar. Revisa tu internet e inténtalo de nuevo.');
+    } finally {
+      setSaliendo(null);
+    }
+  }
 
   async function saveStatus() {
     if (!editModal || saving) return;
@@ -122,6 +145,21 @@ export default function RoomMap() {
                   <span className={styles.guestName}>{room.ocupadaPor.cliente.split(' ')[0]} {room.ocupadaPor.cliente.split(' ')[1] || ''}</span>
                   <span className={styles.checkoutDate}>Sale: {room.ocupadaPor.checkout}</span>
                   <span className={styles.guestCount}>{room.ocupadaPor.huespedes} huéspedes</span>
+                  {room.ocupadaPor.confirmacion && (
+                    <button
+                      type="button"
+                      className={styles.checkoutBtn}
+                      // La tarjeta entera abre el modal de estado: sin esto, el
+                      // clic del check-out lo abriría también.
+                      onClick={e => { e.stopPropagation(); checkout(room.ocupadaPor!.confirmacion); }}
+                      disabled={saliendo === room.ocupadaPor.confirmacion}
+                      title="Registrar la salida del huésped y mandar el cuarto a limpieza"
+                    >
+                      {saliendo === room.ocupadaPor.confirmacion
+                        ? <><Loader2 size={12} className={styles.spin} /> Registrando…</>
+                        : <><LogOut size={12} /> Hacer check-out</>}
+                    </button>
+                  )}
                 </div>
               )}
               {room.notas && room.estado !== 'OCUPADA' && (
