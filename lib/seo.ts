@@ -6,10 +6,12 @@
 export const TENANTS_PRUEBA = new Set([
   "hotel-1",
   "hotel-grande",
-  "hotel-magico",
   "hotel-corazon-lleno",
   "hotel-5-encantos",
   "hotel-demo-huasteca",
+  // `hotel-magico` SALIÓ de esta lista: es el Hotel Paraíso Encantado real y
+  // publicado (el del caso de estudio), no una semilla. El slug feo lo hacía
+  // parecer prueba y lo tenía fuera del sitemap y del llms.txt.
   "manolo",
   "paraiso-encantadfi",
 ]);

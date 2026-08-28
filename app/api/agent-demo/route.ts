@@ -16,7 +16,11 @@ const MODEL = "claude-haiku-4-5";
 const MAX_TOKENS = 500;
 const MAX_INPUT_CHARS = 1000;
 const MAX_TURNOS = 12;
-const DEMO_SLUG = "paraiso-encantado";
+// OJO con este slug: el Hotel Paraíso Encantado está guardado como
+// `hotel-magico`, no como `paraiso-encantado`. Con el slug equivocado
+// resolveHotel devuelve null y la demo contesta "no está disponible" a
+// todos, en silencio: no rompe el build ni deja error visible.
+const DEMO_SLUG = "hotel-magico";
 
 const VENTANA_MS = 60_000;
 const MAX_POR_VENTANA = 10;

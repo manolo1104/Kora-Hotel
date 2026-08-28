@@ -3,11 +3,17 @@ import { Reveal } from "@/components/shared/Reveal";
 import { CtaLink } from "@/components/shared/CtaLink";
 
 // Demo INTERACTIVO del motor: no es un mockup ni un video — es el motor real
-// apuntando al hotel de demostración (extras.demo=true en la BD). El visitante
-// busca fechas, arma su reserva y llega hasta el "pago", que se simula con un
-// CTA de cierre. El iframe carga lazy (la sección vive bajo el fold).
+// corriendo en un hotel REAL, el Hotel Paraíso Encantado (guardado con el slug
+// `hotel-magico`). Antes apuntaba a `hotel-demo-huasteca`, un hotel inventado
+// que además estaba SIN PUBLICAR: un hotel de verdad con fotos, cuartos y
+// tarifas reales convence mucho más que uno ficticio.
+//
+// OJO: al ser un hotel real, terminar una reserva aquí SÍ genera una reserva y
+// SÍ cobra. Por eso el texto de abajo ya no dice "nada se cobra" ni "hotel
+// ficticio": decirlo sería mentira y alguien acabaría pagando por jugar.
+// El iframe carga lazy (la sección vive bajo el fold).
 
-const DEMO_URL = "/h/hotel-demo-huasteca/reservar";
+const DEMO_URL = "/h/hotel-magico/reservar";
 
 export function DemoMotorSection() {
   return (
@@ -22,10 +28,12 @@ export function DemoMotorSection() {
               No te lo contamos: pruébalo tú mismo
             </h2>
             <p className="mt-3 text-kora-muted text-base max-w-2xl mx-auto leading-relaxed">
-              Este es el motor real de Kora con un hotel de demostración. Busca
-              fechas, elige un cuarto y llega hasta el pago —{" "}
-              <span className="font-semibold text-kora-text">nada se cobra</span>.
-              Así de fácil reservarían tus huéspedes.
+              Este es el motor real de Kora corriendo en un hotel real: el{" "}
+              <span className="font-semibold text-kora-text">
+                Hotel Paraíso Encantado
+              </span>{" "}
+              en Xilitla. Busca fechas y elige un cuarto con sus tarifas de
+              verdad. Así de fácil reservarían tus huéspedes.
             </p>
           </div>
         </Reveal>
@@ -39,7 +47,7 @@ export function DemoMotorSection() {
                 <span className="w-2.5 h-2.5 rounded-full bg-amber-400/70" />
                 <span className="w-2.5 h-2.5 rounded-full bg-green-400/70" />
                 <div className="ml-2 flex-1 text-center text-[10px] text-kora-muted bg-white rounded-full py-1 border border-gray-100">
-                  hotel-demo-huasteca.com/reservar
+                  paraisoencantado.com/reservar
                 </div>
                 <a
                   href={DEMO_URL}
@@ -60,8 +68,9 @@ export function DemoMotorSection() {
             </div>
 
             <p className="mt-4 text-center text-xs text-kora-muted">
-              Hotel ficticio, motor real: el mismo que se incrusta en tu web con
-              una línea, con tus colores y tus tarifas.
+              Hotel real, motor real: el mismo que se incrusta en tu web con una
+              línea, con tus colores y tus tarifas. No completes el pago si sólo
+              estás explorando — la reserva sería de verdad.
             </p>
 
             <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
