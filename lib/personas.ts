@@ -227,6 +227,179 @@ export const personas: Persona[] = [
       },
     ],
   },
+  {
+    slug: "hostales",
+    titulo: "Sistema de reservas para hostales",
+    pregunta: "¿Cuál es el mejor sistema para un hostal?",
+    resumen:
+      "Reservas directas sin comisión y WhatsApp con IA para hostales con mucha rotación y huésped internacional.",
+    intro:
+      "Un hostal vive de alta rotación, estancias cortas y consultas de último minuto, casi siempre por WhatsApp y muchas veces en inglés. Kora te da un motor de reservas directas sin comisión, un agente de WhatsApp con IA que responde 24/7 en el idioma del huésped, y todo el inventario en una sola pantalla.",
+    dolor: [
+      "El volumen de consultas es altísimo y la mayoría llega fuera de horario o en otro idioma.",
+      "Casi todo el inventario se vende por plataformas, y la comisión pesa muchísimo sobre un ticket bajo.",
+      "Con tanta rotación, llevar el control a mano termina en camas vendidas dos veces.",
+    ],
+    solucion: [
+      {
+        titulo: "Un agente que contesta en el idioma del huésped",
+        texto:
+          "Camila responde al instante en español o inglés con tu disponibilidad real, a cualquier hora del día.",
+      },
+      {
+        titulo: "Reservas directas sin comisión",
+        texto:
+          "Tu propia página de reservas con cobro de anticipo con tarjeta, para que el ticket bajo no se coma la comisión.",
+      },
+      {
+        titulo: "Un solo inventario",
+        texto:
+          "Lo que se vende por WhatsApp, por tu página o por una OTA bloquea la misma unidad. Sin doble venta.",
+      },
+    ],
+    faqs: [
+      {
+        q: "¿Sirve para camas en dormitorio compartido?",
+        a: "Cargamos tus unidades como las manejes, con su capacidad y tarifa. Lo revisamos contigo en el arranque para que quede como lo vendes.",
+      },
+      {
+        q: "¿Cuánto cuesta?",
+        a: "Plan único de $550 MXN al mes con habitaciones ilimitadas, sin permanencia y con 30 días gratis.",
+      },
+    ],
+  },
+  {
+    slug: "glamping-y-domos",
+    titulo: "Sistema de reservas para glamping y domos",
+    pregunta: "¿Cuál es el mejor sistema de reservas para un glamping?",
+    resumen:
+      "Motor de reservas directas y WhatsApp con IA para glampings, domos y cabañas de naturaleza.",
+    intro:
+      "Un glamping vende experiencia y se descubre por Instagram, pero la reserva casi siempre se cierra por WhatsApp. Kora te da un motor de reservas directas sin comisión, un agente de IA que cotiza con disponibilidad real las 24 horas, y el cobro del anticipo dentro de la misma conversación.",
+    dolor: [
+      "El descubrimiento pasa en Instagram y la conversación en WhatsApp, pero la reserva se captura a mano y se pierde.",
+      "Las unidades son pocas y cada fin de semana perdido pesa muchísimo en el mes.",
+      "El huésped pregunta mucho antes de reservar —qué incluye, cómo llegar, si hay señal— y todo eso lo contesta el dueño.",
+    ],
+    solucion: [
+      {
+        titulo: "Cierra la reserva dentro del chat",
+        texto:
+          "Camila cotiza con tu disponibilidad real, aparta la unidad y manda el link de pago sin que tú captures nada.",
+      },
+      {
+        titulo: "Contesta las preguntas de siempre",
+        texto:
+          "Qué incluye, cómo llegar, si aceptan mascotas, si hay señal: responde con la información que cargaste de tu proyecto.",
+      },
+      {
+        titulo: "Mínimo de noches en fechas fuertes",
+        texto:
+          "Puedes exigir dos noches en fines de semana y puentes, y el agente lo respeta al cotizar.",
+      },
+    ],
+    faqs: [
+      {
+        q: "¿Sirve si mis unidades no son habitaciones normales?",
+        a: "Sí. Domos, tiendas, cabañas o casas: se cargan como unidades con su capacidad y tarifa.",
+      },
+      {
+        q: "¿Puedo cobrar sólo un anticipo?",
+        a: "Sí. El link de pago respeta tu política y el resto se liquida a la llegada.",
+      },
+    ],
+  },
+  {
+    slug: "hoteles-de-ciudad",
+    titulo: "Sistema de reservas para hoteles de ciudad",
+    pregunta: "¿Cuál es el mejor sistema para un hotel urbano independiente?",
+    resumen:
+      "Reservas directas sin comisión, WhatsApp con IA y operación completa para hoteles independientes de ciudad.",
+    intro:
+      "Un hotel urbano independiente compite contra cadenas con presupuesto de marketing y depende de las OTAs para que lo encuentren. Kora te da un canal directo propio —motor de reservas sin comisión y agente de WhatsApp con IA 24/7— más el PMS, el dashboard y el CRM en una sola pantalla.",
+    dolor: [
+      "Compites con cadenas que invierten en publicidad y aparecen primero en todos lados.",
+      "La demanda es mixta: turista de fin de semana y viajero de negocios entre semana, con preguntas muy distintas.",
+      "Cada reserva por OTA se lleva comisión, incluso las de huéspedes que ya se habían hospedado contigo.",
+    ],
+    solucion: [
+      {
+        titulo: "Un canal directo que sí cierra",
+        texto:
+          "Motor de reservas en tu página y un agente que cotiza y cobra por WhatsApp, sin comisión por reserva.",
+      },
+      {
+        titulo: "El huésped que vuelve, vuelve directo",
+        texto:
+          "El CRM guarda a cada huésped y los correos automáticos lo traen de regreso sin pagar comisión otra vez.",
+      },
+      {
+        titulo: "La operación completa en una pantalla",
+        texto:
+          "Mapa de habitaciones, check-in y check-out, housekeeping, ocupación, ADR, RevPAR y forecast de 30 días.",
+      },
+    ],
+    faqs: [
+      {
+        q: "¿Puedo tener tarifas distintas entre semana y fin de semana?",
+        a: "Sí, con tarifas por temporada y por día. El agente cotiza siempre con la vigente.",
+      },
+      {
+        q: "¿Se sincroniza con las OTAs?",
+        a: "Sí. Kora sincroniza el calendario para que una reserva directa cierre esa fecha en todos los canales.",
+      },
+    ],
+  },
+  {
+    slug: "hoteles-que-dependen-de-booking",
+    titulo: "Para hoteles que dependen demasiado de Booking",
+    pregunta: "¿Cómo bajo la dependencia de Booking en mi hotel?",
+    resumen:
+      "El plan para mover volumen de las OTAs a tu canal directo, sin perder visibilidad.",
+    intro:
+      "Si la mayoría de tus reservas entra por Booking, tu ocupación se ve bien y tu margen no. Bajar esa dependencia no significa salirte: significa tener un canal directo lo bastante bueno para que quien ya te encontró cierre contigo. Eso es exactamente lo que monta Kora.",
+    dolor: [
+      "El 15%–20% de comisión se lleva la utilidad justo de las reservas que ya eran tuyas.",
+      "Los datos del huésped los tiene la plataforma, así que no puedes traerlo de vuelta sin pagar de nuevo.",
+      "Cuando el huésped te busca directo por WhatsApp y no contestas a tiempo, vuelve a la OTA y cierra ahí.",
+    ],
+    solucion: [
+      {
+        titulo: "Intercepta al huésped que ya te encontró",
+        texto:
+          "Muchos viajeros te descubren en la OTA y te buscan directo antes de pagar. Con respuesta en segundos y un total concreto, esa reserva entra sin comisión.",
+      },
+      {
+        titulo: "Un canal directo que cierra solo",
+        texto:
+          "Motor de reservas en tu página con cobro de anticipo, y un agente de WhatsApp que cotiza y aparta las 24 horas.",
+      },
+      {
+        titulo: "Los datos del huésped se quedan contigo",
+        texto:
+          "Cada reserva directa alimenta tu CRM, y los correos automáticos lo traen de vuelta sin comisión.",
+      },
+      {
+        titulo: "Sin overbooking",
+        texto:
+          "El calendario sigue sincronizado con las OTAs: una reserva directa cierra esa fecha también allá.",
+      },
+    ],
+    faqs: [
+      {
+        q: "¿Tengo que salirme de Booking?",
+        a: "No. Las OTAs siguen sirviendo para que te descubran. La meta es que las reservas que ya eran tuyas dejen de pagar comisión.",
+      },
+      {
+        q: "¿Puedo ofrecer mejor precio en directo?",
+        a: "Muchas OTAs tienen cláusulas de paridad tarifaria, así que conviene revisarlas. Lo que casi siempre sí puedes hacer es dar valor extra: late check-out, un detalle de bienvenida o una cortesía.",
+      },
+      {
+        q: "¿Cuánto puedo ahorrar?",
+        a: "Depende de cuánto volumen muevas a directo. Puedes estimarlo con la calculadora de comisiones gratuita de Kora.",
+      },
+    ],
+  },
 ];
 
 export function getPersona(slug: string): Persona | undefined {

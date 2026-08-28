@@ -21,11 +21,11 @@ import { ContactForm } from "@/components/landing/ContactForm";
 export const metadata: Metadata = {
   title: "Kora — Sistema hotelero con IA para hoteles en México",
   description:
-    "Reservas directas 0% comisión, WhatsApp con IA 24/7 y todo tu hotel en una pantalla, en español. Plan de $550 MXN/mes, habitaciones ilimitadas, sin permanencia.",
+    "WhatsApp contestado 24/7 con IA que cotiza con disponibilidad real y cobra, más reservas directas 0% comisión y todo tu hotel en una pantalla. $550 MXN/mes, habitaciones ilimitadas, sin permanencia.",
   openGraph: {
     title: "Kora — Sistema hotelero con IA para hoteles en México",
     description:
-      "Reservas directas 0% comisión, WhatsApp con IA 24/7 y todo tu hotel en una pantalla, en español. Plan de $550 MXN/mes, habitaciones ilimitadas, sin permanencia.",
+      "WhatsApp contestado 24/7 con IA que cotiza con disponibilidad real y cobra, más reservas directas 0% comisión y todo tu hotel en una pantalla. $550 MXN/mes, habitaciones ilimitadas, sin permanencia.",
     type: "website",
     locale: "es_MX",
     siteName: "Kora",
@@ -34,7 +34,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Kora — Sistema hotelero con IA para hoteles en México",
     description:
-      "Reservas directas 0% comisión, WhatsApp con IA 24/7 y todo tu hotel en una pantalla, en español. Plan de $550 MXN/mes, habitaciones ilimitadas, sin permanencia.",
+      "WhatsApp contestado 24/7 con IA que cotiza con disponibilidad real y cobra, más reservas directas 0% comisión y todo tu hotel en una pantalla. $550 MXN/mes, habitaciones ilimitadas, sin permanencia.",
   },
   alternates: {
     canonical: "/",
@@ -58,7 +58,7 @@ const jsonLd = {
       inLanguage: "es-MX",
       url: SITE_URL,
       description:
-        "Sistema hotelero todo-en-uno con IA: motor de reservas directas sin comisiones, agente de WhatsApp 24/7, PMS y dashboard con CRM. Para hoteles boutique en México.",
+        "Agente de WhatsApp con IA que contesta 24/7, cotiza con disponibilidad real y cierra la reserva con link de pago, dentro de un sistema hotelero completo: motor de reservas sin comisión, PMS, dashboard y CRM. Para hoteles boutique en México.",
       publisher: { "@id": `${SITE_URL}/#organization` },
       featureList: [
         "Motor de reservas directas sin comisiones",
@@ -113,11 +113,14 @@ export default function HomePage() {
           Paraíso y los negocios en línea mientras hay máxima atención. */}
       <SocialProofSection />
       <ProblemSection />
-      {/* Producto ancla en profundidad: el motor de reservas directas,
-          seguido del demo INTERACTIVO (el motor real, hotel de demostración). */}
+      {/* El agente de WhatsApp va PRIMERO entre los productos: es la razón por
+          la que llegan los prospectos (dos de las últimas reuniones entraron
+          por ahí). Antes vivía cuatro bloques más abajo. */}
+      <AgenteSection />
+      {/* Después el motor de reservas directas y su demo INTERACTIVO (el motor
+          real, hotel de demostración): es lo que sostiene el precio. */}
       <MotorReservasSection />
       <DemoMotorSection />
-      <AgenteSection />
       <SolutionSection />
       <DiferenciadoresSection />
       <FundadorSection />

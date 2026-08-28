@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Clock, MessageSquare, Languages, ArrowRight } from "lucide-react";
 import { Reveal } from "@/components/shared/Reveal";
 import { CtaLink } from "@/components/shared/CtaLink";
@@ -67,6 +68,14 @@ export function AgenteSection() {
                   Probar Kora gratis — sin tarjeta
                   <ArrowRight size={16} />
                 </CtaLink>
+                <Link
+                  href="/whatsapp"
+                  className="text-sm font-semibold text-white/85 underline underline-offset-4 hover:text-white transition-colors"
+                >
+                  Ver todo sobre Camila
+                </Link>
+              </div>
+              <div className="mt-4">
                 <span className="text-xs text-white/50">Camila (WhatsApp con IA, 24/7) viene incluida en el plan Kora ($550/mes)</span>
               </div>
             </div>

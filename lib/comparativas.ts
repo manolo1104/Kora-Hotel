@@ -12,6 +12,14 @@ export interface FilaComparativa {
 export interface Comparativa {
   slug: string;
   competidor: string;
+  /**
+   * Contra qué se compara, para el titular de la tarjeta del índice.
+   * Por defecto "reservas directas": es lo correcto para las OTAs, que fueron
+   * las primeras 4 comparativas. Las de categoría (un chatbot de guion, la app
+   * de WhatsApp Business, la hoja de cálculo) no compiten contra el canal
+   * directo sino contra Kora, y con esto el titular deja de mentir.
+   */
+  contra?: string;
   titulo: string;
   pregunta: string;
   resumen: string;
@@ -190,6 +198,144 @@ export const comparativas: Comparativa[] = [
       {
         q: "¿Puedo evitar el overbooking entre Vrbo y mis reservas directas?",
         a: "Sí. Kora sincroniza tu disponibilidad para que no vendas dos veces la misma unidad.",
+      },
+    ],
+  },
+  // ─── Comparativas de categoría (no OTAs) ───────────────────────────────────
+  // Regla de honestidad: se comparan CATEGORÍAS de solución, sin nombrar
+  // proveedores concretos ni atribuirles defectos que no podemos comprobar.
+  {
+    slug: "chatbot-generico",
+    competidor: "Un chatbot genérico",
+    contra: "un agente conectado",
+    titulo: "Chatbot genérico vs. agente conectado a tu inventario",
+    pregunta: "¿Me sirve un chatbot genérico para mi hotel?",
+    resumen:
+      "Los dos contestan rápido. Sólo uno sabe si tienes cuartos libres esas fechas.",
+    intro:
+      "Un chatbot genérico responde con textos escritos de antemano y no tiene acceso al inventario del hotel. Un agente conectado consulta la disponibilidad y el precio reales antes de contestar, y puede apartar el cuarto y generar el cobro. La diferencia se nota en la primera pregunta concreta.",
+    cuerpo: [
+      "Las plataformas de chatbot resuelven bien un problema general: automatizar respuestas repetitivas en cualquier negocio. El costo de esa generalidad es que no saben nada del negocio en particular, y en un hotel lo que el huésped pregunta casi siempre es específico: si hay lugar, cuánto cuesta, para cuántas personas.",
+      "Para que un chatbot genérico responda eso, alguien tiene que construir la integración con el sistema del hotel. Eso convierte una compra de software en un proyecto: hay que escribir los flujos, conectarlos y mantenerlos cuando cambien las tarifas.",
+      "Un agente que ya vive dentro del sistema hotelero se salta ese paso. Sabe de tu hotel porque consulta el mismo inventario que opera tus reservas, y no hay integración que pagar ni flujos que mantener.",
+      "Vale decir lo obvio: si tu necesidad es sólo contestar horarios y ubicación, un chatbot genérico basta. La diferencia importa cuando quieres que la conversación termine en una reserva.",
+    ],
+    tabla: [
+      { aspecto: "Tiempo de respuesta", ota: "Inmediato", kora: "Inmediato" },
+      { aspecto: "Sabe tu disponibilidad", ota: "Sólo si alguien construye la integración", kora: "Sí, consulta tu inventario real" },
+      { aspecto: "Da el total de una estancia", ota: "Un precio genérico o un rango", kora: "El total real por esas fechas y personas" },
+      { aspecto: "Cierra la reserva", ota: "Deja el mensaje para que lo atiendas", kora: "Aparta el cuarto y manda el link de pago" },
+      { aspecto: "Implementación", ota: "Proyecto aparte: escribir y conectar flujos", kora: "Incluida en el arranque llave en mano" },
+      { aspecto: "Modelo de cobro", ota: "Suele cobrarse por conversación o por agente", kora: "Incluido en el plan de $550 MXN/mes" },
+    ],
+    cuandoOta: [
+      "Sólo necesitas contestar preguntas fijas: horarios, ubicación, si aceptan mascotas.",
+      "Tienes quien construya y mantenga la integración con tu sistema.",
+      "Quieres automatizar varios negocios distintos con la misma herramienta.",
+    ],
+    cuandoKora: [
+      "Quieres que la conversación termine en una reserva, no en un pendiente.",
+      "No tienes equipo técnico para construir y mantener integraciones.",
+      "Necesitas que el precio que promete el bot sea el mismo que cobra el sistema.",
+    ],
+    faqs: [
+      {
+        q: "Ya probé un chatbot y no funcionó, ¿por qué esto sería distinto?",
+        a: "La prueba rápida para distinguirlos: pregúntale por unas fechas concretas con un número raro de personas. Un chatbot de guion da un precio genérico; un agente conectado da el total real de esa estancia y puede cerrarla.",
+      },
+      {
+        q: "¿Puedo tener los dos?",
+        a: "Podrías, pero rara vez tiene sentido: un mismo número de WhatsApp lo atiende un solo sistema, y el agente conectado cubre también las preguntas fijas.",
+      },
+    ],
+  },
+  {
+    slug: "whatsapp-business",
+    competidor: "WhatsApp Business",
+    contra: "un agente con IA",
+    titulo: "WhatsApp Business vs. un agente con IA para tu hotel",
+    pregunta: "¿Me basta con WhatsApp Business para atender a mis huéspedes?",
+    resumen:
+      "La app gratuita es un buen primer paso. Sus automatizaciones avisan, no contestan.",
+    intro:
+      "WhatsApp Business es la app gratuita de Meta con perfil de negocio, catálogo, etiquetas y respuestas rápidas. Sus automatizaciones son textos fijos: el mensaje de ausencia avisa que no estás, pero no consulta disponibilidad ni cierra reservas. Un agente con IA sí hace ambas cosas.",
+    cuerpo: [
+      "Todo hotel debería tener WhatsApp Business: es gratis, da perfil de negocio, catálogo y etiquetas para ordenar conversaciones. No hay razón para no usarlo.",
+      "El límite aparece en el turno de noche. El mensaje de ausencia —\"gracias por escribir, te contestamos de 9 a 6\"— es honesto, pero le confirma al viajero que ahí no le van a resolver hoy. Y el viajero está comparando en ese momento, no mañana.",
+      "Las respuestas rápidas ayudan a escribir más rápido, pero siguen exigiendo que alguien esté ahí para elegirlas. No responden solas ni saben si el cuarto está libre.",
+      "Un agente con IA conectado al inventario cubre justo eso: responde a cualquier hora, con los datos reales del hotel, y cierra la reserva con su link de pago. No sustituye a WhatsApp Business: opera sobre el mismo número.",
+    ],
+    tabla: [
+      { aspecto: "Costo", ota: "Gratis", kora: "Incluido en el plan de $550 MXN/mes" },
+      { aspecto: "Perfil de negocio y catálogo", ota: "Sí", kora: "Sí (usa el mismo número)" },
+      { aspecto: "Contestar fuera de horario", ota: "Un aviso automático", kora: "Responde de verdad, con datos reales" },
+      { aspecto: "Consultar disponibilidad", ota: "No", kora: "Sí" },
+      { aspecto: "Cotizar una estancia", ota: "A mano, cuando alguien esté", kora: "Automático, con el total real" },
+      { aspecto: "Cobrar el anticipo", ota: "Transferencia y comprobante", kora: "Link de pago en el chat" },
+    ],
+    cuandoOta: [
+      "Estás empezando y quieres perfil de negocio sin costo.",
+      "Contestas tú y te alcanza el tiempo para responder rápido.",
+      "Tu volumen de mensajes todavía es bajo.",
+    ],
+    cuandoKora: [
+      "Se te acumulan mensajes de noche y en fin de semana.",
+      "Cotizas de memoria y a veces el precio no cuadra con lo que cobras.",
+      "Quieres cobrar el anticipo sin perseguir comprobantes.",
+    ],
+    faqs: [
+      {
+        q: "¿Tengo que dejar de usar WhatsApp Business?",
+        a: "No. El agente opera sobre tu número de siempre; tu perfil, catálogo y etiquetas siguen igual. Lo que cambia es quién contesta cuando tú no puedes.",
+      },
+      {
+        q: "¿Puedo seguir escribiendo yo desde mi celular?",
+        a: "Sí, en cualquier momento. Muchos hoteles usan el agente sólo de noche y fines de semana.",
+      },
+    ],
+  },
+  {
+    slug: "excel-y-cuaderno",
+    competidor: "Excel y el cuaderno",
+    contra: "un sistema hotelero",
+    titulo: "Excel o cuaderno vs. un sistema hotelero: cuándo dejar de improvisar",
+    pregunta: "¿Cuándo deja de alcanzar el Excel para llevar mi hotel?",
+    resumen:
+      "El método que funciona hasta que llegan dos canales de venta al mismo tiempo.",
+    intro:
+      "Llevar las reservas en Excel o en cuaderno funciona con pocos cuartos y un solo canal de venta. Deja de funcionar cuando entran reservas por WhatsApp, por tu página y por las OTAs a la vez: nadie puede mantener tres listas sincronizadas a mano, y ahí empieza el overbooking.",
+    cuerpo: [
+      "Conviene reconocerle a la hoja de cálculo lo que sí hace: es gratis, la entiende cualquiera y no obliga a aprender nada. Muchos hoteles pequeños operan años así sin problema.",
+      "El punto de quiebre no es el número de cuartos, es el número de canales. Con un solo canal, una lista basta. Con tres, alguien tiene que copiar cada reserva a las otras dos, y ese alguien un día está manejando o durmiendo.",
+      "El costo de ese hueco no se ve en el Excel, se ve en el mostrador: un huésped con reserva y sin cuarto. Un overbooking cuesta la reserva, la reseña y la relación con la OTA.",
+      "El segundo costo es más silencioso: sin sistema no hay datos. No sabes tu ocupación real por mes, tu tarifa promedio ni qué canal te trae los huéspedes que sí vuelven.",
+    ],
+    tabla: [
+      { aspecto: "Costo", ota: "Gratis", kora: "$550 MXN/mes, todo incluido" },
+      { aspecto: "Varios canales a la vez", ota: "Copiar a mano en cada lista", kora: "Un solo inventario para todos" },
+      { aspecto: "Riesgo de overbooking", ota: "Alto en cuanto hay dos canales", kora: "El cuarto se bloquea en todos lados" },
+      { aspecto: "Reservas mientras duermes", ota: "No", kora: "Motor de reservas y agente de WhatsApp 24/7" },
+      { aspecto: "Métricas del hotel", ota: "Las que armes tú", kora: "Ocupación, ADR, RevPAR y forecast" },
+      { aspecto: "Datos del huésped", ota: "Sueltos en la hoja", kora: "CRM que se llena solo" },
+    ],
+    cuandoOta: [
+      "Tienes muy pocos cuartos y vendes por un solo canal.",
+      "Tu ocupación es baja y estable, sin temporadas fuertes.",
+      "Prefieres no cambiar nada mientras el método no falle.",
+    ],
+    cuandoKora: [
+      "Ya te pasó un overbooking o estuviste cerca.",
+      "Vendes por WhatsApp, por tu página y por OTAs a la vez.",
+      "Quieres saber tu ocupación y tu tarifa promedio sin armarlas a mano.",
+    ],
+    faqs: [
+      {
+        q: "¿Puedo migrar mis reservas actuales?",
+        a: "Sí. La migración de tus reservas vigentes es parte del arranque llave en mano; no tienes que capturarlas tú.",
+      },
+      {
+        q: "¿Y si no soy bueno con la tecnología?",
+        a: "Kora está hecho para dueños de hotel sin equipo técnico, en español y operable desde el celular. Además el hotel te lo dejamos cargado nosotros.",
       },
     ],
   },

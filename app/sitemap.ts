@@ -5,6 +5,7 @@ import { getAllArticles } from "@/lib/blog-db";
 import { herramientasDisponibles } from "@/lib/herramientas";
 import { glosario } from "@/lib/glosario";
 import { comparativas } from "@/lib/comparativas";
+import { paginasWhatsApp } from "@/lib/whatsapp";
 import { personas } from "@/lib/personas";
 import { ciudades } from "@/lib/ciudades";
 import { AYUDA } from "@/lib/ayuda";
@@ -173,6 +174,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.5,
   }));
 
+  // El cluster del agente de WhatsApp: la cuña comercial del sitio. Prioridad
+  // alta en la pilar porque es la razón por la que llegan los prospectos.
+  const whatsappEntries: MetadataRoute.Sitemap = paginasWhatsApp.map((w) => ({
+    url: `${BASE_URL}/whatsapp/${w.slug}`,
+    lastModified: SITE_UPDATED,
+    changeFrequency: "monthly",
+    priority: 0.8,
+  }));
+
   const ciudadEntries: MetadataRoute.Sitemap = ciudades.map((c) => ({
     url: `${BASE_URL}/hoteles-en/${c.slug}`,
     lastModified: SITE_UPDATED,
@@ -192,6 +202,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: SITE_UPDATED,
       changeFrequency: "monthly",
       priority: 0.8,
+    },
+    {
+      // Página pilar del agente de WhatsApp: el motivo por el que entran los
+      // prospectos, así que compite en prioridad con /precios.
+      url: `${BASE_URL}/whatsapp`,
+      lastModified: SITE_UPDATED,
+      changeFrequency: "weekly",
+      priority: 0.9,
     },
     {
       url: `${BASE_URL}/precios`,
@@ -261,6 +279,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly",
       priority: 0.8,
     },
+    ...whatsappEntries,
     ...herramientaEntries,
     ...glosarioEntries,
     ...comparativaEntries,

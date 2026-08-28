@@ -10,6 +10,8 @@ import { trackCta } from "@/lib/analytics";
 const EASE = [0.23, 1, 0.32, 1] as const;
 
 const navLinks = [
+  // WhatsApp primero: es la razón por la que entran los prospectos.
+  { label: "WhatsApp con IA", href: "/whatsapp" },
   { label: "Características", href: "/caracteristicas" },
   { label: "Cómo funciona", href: "/como-funciona" },
   { label: "Precios", href: "/precios" },

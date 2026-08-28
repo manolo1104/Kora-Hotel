@@ -318,6 +318,368 @@ export const glosario: TerminoGlosario[] = [
       href: "/caracteristicas",
     },
   },
+  // ─── Bloque IA / WhatsApp (la cuña comercial) ──────────────────────────────
+  {
+    slug: "agente-ia-hotelero",
+    termino: "Agente de IA hotelero",
+    pregunta: "¿Qué es un agente de IA para hoteles?",
+    resumen: "Una IA que además de conversar puede consultar tu sistema y crear reservas.",
+    definicion:
+      "Un agente de IA hotelero es un programa que conversa con los huéspedes en lenguaje natural y, a diferencia de un chatbot, puede ejecutar acciones sobre el sistema del hotel: consultar disponibilidad y precios reales, apartar una habitación y generar el cobro. Es la diferencia entre informar y cerrar la reserva.",
+    cuerpo: [
+      "La palabra clave que separa a un agente de un chatbot es \"herramienta\". Un chatbot devuelve texto escrito de antemano; un agente tiene funciones que puede ejecutar contra un sistema real y decide cuándo usarlas según lo que le pregunten.",
+      "En un hotel eso se traduce en dos acciones que valen dinero: consultar la disponibilidad y el total exactos de unas fechas, y crear la reserva con su link de pago. Sin esas dos, el bot sólo produce trabajo pendiente para la recepción.",
+      "Camila, el agente de WhatsApp de Kora, funciona así. Tiene prohibido dar un precio o confirmar lugar sin consultar antes el inventario real, y cuando el caso se sale de lo que puede resolver ofrece pasar la conversación con una persona del hotel.",
+    ],
+    faqs: [
+      {
+        q: "¿Un agente de IA puede equivocarse en un precio?",
+        a: "Si está bien construido, no inventa: el precio sale de la consulta al sistema, no de su memoria. El riesgo real es distinto: si una tarifa está mal cargada en el sistema, el agente la repetirá tal cual.",
+      },
+      {
+        q: "¿Reemplaza a la recepción?",
+        a: "No. Cubre lo repetitivo —disponibilidad, precios, políticas, cobro del anticipo— y libera a la persona para lo que sí necesita criterio: quejas, grupos y la atención dentro del hotel.",
+      },
+    ],
+    relacionado: { texto: "Conoce a Camila, el agente de WhatsApp de Kora", href: "/whatsapp" },
+  },
+  {
+    slug: "whatsapp-business-api",
+    termino: "API de WhatsApp Business",
+    pregunta: "¿Qué es la API de WhatsApp Business?",
+    resumen: "La vía técnica que permite que un software conteste tu WhatsApp.",
+    definicion:
+      "La API de WhatsApp Business es la interfaz que permite que un software envíe y reciba mensajes en un número de WhatsApp de empresa. No es una aplicación que se descargue: es la conexión que hace posible que un sistema —por ejemplo un agente de IA— opere el WhatsApp del negocio.",
+    cuerpo: [
+      "Conviene separar tres cosas que suelen mezclarse. WhatsApp normal es la app de siempre. WhatsApp Business es una app gratuita con perfil de negocio, catálogo, etiquetas y respuestas rápidas. La API es otra categoría: no se usa, se conecta.",
+      "Para un hotel pequeño, contratar y configurar la API por cuenta propia es un proyecto técnico que no aporta valor por sí mismo. Lo que resuelve el problema no es la API, sino el sistema que se conecta a través de ella.",
+      "Por eso en Kora la conexión del número forma parte del arranque llave en mano: la montamos nosotros y el hotelero sólo ve las conversaciones en su panel.",
+    ],
+    faqs: [
+      {
+        q: "¿La API de WhatsApp Business es gratis?",
+        a: "La app WhatsApp Business sí es gratuita. La API se cobra según el volumen de conversaciones, y ese costo lo suele absorber el proveedor del software que la usa.",
+      },
+      {
+        q: "¿Necesito la API para tener un bot?",
+        a: "Para que un software conteste tu número de forma estable, sí hace falta una conexión de este tipo. Lo que no hace falta es que la contrates y configures tú.",
+      },
+    ],
+    relacionado: { texto: "Los tres niveles de WhatsApp para hotel", href: "/whatsapp/whatsapp-business-api-hotel" },
+  },
+  {
+    slug: "chatbot-hotelero",
+    termino: "Chatbot hotelero",
+    pregunta: "¿Qué es un chatbot hotelero?",
+    resumen: "El bot de respuestas fijas: contesta rápido, pero no sabe si tienes cuartos.",
+    definicion:
+      "Un chatbot hotelero es un programa que responde mensajes de huéspedes siguiendo un guion escrito de antemano, normalmente por menús o palabras clave. Contesta al instante, pero no consulta el inventario del hotel: no sabe si hay disponibilidad ni cuánto cuesta realmente una estancia concreta.",
+    cuerpo: [
+      "Los chatbots resolvieron un problema real: dejar de tener al huésped esperando. El límite aparece en cuanto la pregunta se vuelve concreta, que es justo cuando la conversación vale dinero.",
+      "La prueba rápida para saber ante cuál estás: pregúntale por unas fechas específicas con un número raro de personas. Un chatbot de guion devolverá un precio genérico o un rango; un agente conectado devolverá el total real de esa estancia.",
+      "Esa distinción importa porque explica por qué muchos hoteleros que ya probaron un bot llegan escépticos: probaron la categoría que informa, no la que cierra.",
+    ],
+    faqs: [
+      {
+        q: "¿Sirve de algo un chatbot de guion?",
+        a: "Para preguntas fijas —horarios, ubicación, si aceptan mascotas— sí. Deja de servir en cuanto el huésped pregunta por disponibilidad o precio de unas fechas.",
+      },
+      {
+        q: "¿Cuál es la alternativa?",
+        a: "Un agente de IA conectado al inventario del hotel, que consulta antes de responder y puede crear la reserva.",
+      },
+    ],
+    relacionado: { texto: "Chatbot vs. agente de IA", href: "/whatsapp/chatbot-vs-agente-ia" },
+  },
+  {
+    slug: "tiempo-de-respuesta",
+    termino: "Tiempo de respuesta",
+    pregunta: "¿Por qué importa el tiempo de respuesta en un hotel?",
+    resumen: "La variable que más decide quién se queda con la reserva.",
+    definicion:
+      "El tiempo de respuesta es cuánto tarda un hotel en contestar el mensaje de un posible huésped. Importa porque el viajero suele estar preguntando en varios hoteles a la vez: el primero que responde con disponibilidad y un precio concreto entra a la conversación con enorme ventaja.",
+    cuerpo: [
+      "En un hotel independiente, el tiempo de respuesta no es un indicador de servicio: es un indicador de ventas. El mensaje llega mientras el dueño atiende un check-in, maneja o duerme, y la respuesta se va a las horas.",
+      "El problema se concentra en las horas en que nadie contesta: noche, madrugada y fin de semana. Son justo las horas en que la gente planea viajes.",
+      "Bajar el tiempo de respuesta a segundos no exige contratar guardias. Un agente de IA cubre esas horas contestando con la información real del hotel y cerrando la reserva si el huésped se decide.",
+    ],
+    faqs: [
+      {
+        q: "¿Cuánto es un buen tiempo de respuesta?",
+        a: "Cuanto menos, mejor: el viajero que está comparando decide en minutos. Lo que sí es seguro es que responder al día siguiente casi siempre llega tarde.",
+      },
+      {
+        q: "¿Cómo mido el mío?",
+        a: "Revisa tus últimas veinte conversaciones de WhatsApp y anota cuánto pasó entre el mensaje del huésped y tu respuesta. Suele ser una sorpresa incómoda.",
+      },
+    ],
+    relacionado: { texto: "Cómo cubrir el turno de noche", href: "/whatsapp/responder-whatsapp-fuera-de-horario" },
+  },
+  // ─── Bloque operación y métricas ────────────────────────────────────────────
+  {
+    slug: "adr",
+    termino: "ADR (tarifa diaria promedio)",
+    pregunta: "¿Qué es el ADR en un hotel?",
+    resumen: "Cuánto cobras en promedio por habitación vendida.",
+    definicion:
+      "El ADR (Average Daily Rate) es la tarifa promedio que cobra un hotel por cada habitación efectivamente vendida en un periodo. Se calcula dividiendo los ingresos por habitación entre el número de habitaciones vendidas. Mide el precio, no el llenado: por eso se lee junto con la ocupación.",
+    cuerpo: [
+      "El ADR responde a una sola pregunta: ¿a qué precio estoy vendiendo? Si subes tarifas y el ADR no sube, algo se está yendo en descuentos, promociones o tarifas de OTA.",
+      "Por sí solo engaña. Un hotel puede tener un ADR altísimo y estar medio vacío. Por eso se combina con la ocupación en un tercer indicador, el RevPAR, que es el que de verdad refleja el desempeño.",
+      "Para un hotel boutique, el ADR es la métrica que más conviene defender: bajar precio para llenar suele salir más caro que sostener la tarifa y trabajar la demanda directa.",
+    ],
+    faqs: [
+      {
+        q: "¿El ADR incluye impuestos?",
+        a: "Normalmente se calcula sobre la tarifa de hospedaje sin impuestos, para que sea comparable entre periodos y entre hoteles.",
+      },
+      {
+        q: "¿Cómo subo mi ADR sin perder ocupación?",
+        a: "Trabajando la demanda directa y el valor percibido —fotos, descripción, respuesta rápida— en lugar de competir por precio en las OTAs.",
+      },
+    ],
+    relacionado: { texto: "Calculadora de tarifa por habitación", href: "/herramientas/calculadora-tarifa" },
+  },
+  {
+    slug: "ocupacion",
+    termino: "Ocupación hotelera",
+    pregunta: "¿Cómo se calcula la ocupación de un hotel?",
+    resumen: "El porcentaje de tus habitaciones que se vendieron.",
+    definicion:
+      "La ocupación es el porcentaje de habitaciones vendidas respecto de las disponibles en un periodo. Se calcula dividiendo habitaciones vendidas entre habitaciones disponibles y multiplicando por cien. Mide el llenado, no la rentabilidad: se puede tener 100% de ocupación regalando la tarifa.",
+    cuerpo: [
+      "Es la métrica que todo hotelero conoce de memoria y también la que más se malinterpreta. Una ocupación alta sostenida con descuentos agresivos puede dejar menos utilidad que una ocupación media con tarifa firme.",
+      "El otro error es medirla sólo en el mes fuerte. La foto útil es la del año completo, porque ahí aparecen los meses en los que hay que trabajar la demanda.",
+      "En el panel de Kora la ocupación se ve junto al ADR y al RevPAR, y con un forecast de 30 días para actuar antes de que la fecha llegue vacía.",
+    ],
+    faqs: [
+      {
+        q: "¿Qué ocupación es buena para un hotel boutique?",
+        a: "Depende del destino y la temporada. Más útil que compararte con un número general es comparar tu mismo mes contra el año anterior.",
+      },
+      {
+        q: "¿Cuento las habitaciones fuera de servicio?",
+        a: "Lo habitual es descontarlas de las disponibles, porque no se podían vender. Lo importante es usar siempre el mismo criterio.",
+      },
+    ],
+    relacionado: { texto: "Qué es el RevPAR", href: "/glosario/revpar" },
+  },
+  {
+    slug: "housekeeping",
+    termino: "Housekeeping",
+    pregunta: "¿Qué es el housekeeping en un hotel?",
+    resumen: "La operación de limpieza y el estado real de cada habitación.",
+    definicion:
+      "Housekeeping es el área encargada de la limpieza y preparación de las habitaciones. En términos de sistema, es el registro del estado de cada cuarto —sucio, limpio, en proceso, listo para vender—, y es lo que evita entregar una habitación que todavía no estaba preparada.",
+    cuerpo: [
+      "En hoteles pequeños el housekeeping suele coordinarse por WhatsApp o de viva voz, y funciona hasta el día en que hay varias salidas y llegadas a la misma hora. Ahí es cuando se entrega un cuarto sin preparar.",
+      "Tener el estado de cada habitación en el sistema resuelve dos cosas: recepción sabe qué puede entregar sin preguntar, y quien limpia sabe qué sigue sin que nadie se lo dicte.",
+      "En Kora el estado de limpieza vive en el mismo mapa de habitaciones donde están las reservas, así que la información no está en dos lugares distintos.",
+    ],
+    faqs: [
+      {
+        q: "¿Sirve para un hotel de pocas habitaciones?",
+        a: "Sirve sobre todo en días de alta rotación. Con ocho cuartos y seis salidas el mismo día, el orden deja de ser memorizable.",
+      },
+      {
+        q: "¿Quien limpia necesita entrar al sistema?",
+        a: "Puede hacerlo desde el celular. Si prefieres, recepción actualiza los estados y el equipo sigue trabajando como siempre.",
+      },
+    ],
+    relacionado: { texto: "Conoce el PMS de Kora", href: "/caracteristicas" },
+  },
+  {
+    slug: "impuesto-al-hospedaje",
+    termino: "Impuesto al Hospedaje (ISH)",
+    pregunta: "¿Qué es el Impuesto al Hospedaje?",
+    resumen: "El impuesto estatal que cobras al huésped y enteras a tu estado.",
+    definicion:
+      "El Impuesto al Hospedaje (ISH) es un impuesto estatal que grava el servicio de alojamiento en México. Lo paga el huésped, pero el hotel es responsable de cobrarlo, desglosarlo y enterarlo a la tesorería de su estado. La tasa varía por entidad, normalmente entre 2% y 5%.",
+    cuerpo: [
+      "El ISH se calcula sobre la tarifa de hospedaje, es decir sobre la base antes de impuestos, igual que el IVA. Al cotizar conviene mostrarlo desglosado para que el huésped entienda qué está pagando.",
+      "El error caro de los hoteles pequeños es cotizar \"precios cerrados\" sin separar impuestos: al final los absorben de su propia utilidad. El error contrario, cobrarlos de más, genera fricción con el huésped.",
+      "Como las tasas se actualizan y cambian por estado, conviene confirmar la vigente con tu contador o con la tesorería estatal antes de fijar tus precios de lista.",
+    ],
+    faqs: [
+      {
+        q: "¿El ISH es lo mismo que el IVA?",
+        a: "No. El IVA es federal (16%, u 8% en la franja fronteriza) y el ISH es estatal, con tasa distinta según la entidad. Ambos se calculan sobre la tarifa de hospedaje.",
+      },
+      {
+        q: "¿Cómo desgloso los dos sin equivocarme?",
+        a: "Puedes usar la calculadora gratuita de IVA e Impuesto al Hospedaje de Kora, que separa base, IVA, ISH y total en segundos.",
+      },
+    ],
+    relacionado: { texto: "Calculadora de IVA e Impuesto al Hospedaje", href: "/herramientas/calculadora-impuestos" },
+  },
+  {
+    slug: "anticipo-hotelero",
+    termino: "Anticipo o depósito de reserva",
+    pregunta: "¿Qué es el anticipo de una reserva de hotel?",
+    resumen: "El pago parcial que confirma la reserva y te protege del no-show.",
+    definicion:
+      "El anticipo es el pago parcial que el huésped hace al reservar para confirmar su estancia; el resto se liquida a la llegada. Su función real no es de flujo de efectivo sino de compromiso: una reserva con anticipo pagado es mucho menos probable que se convierta en un no-show.",
+    cuerpo: [
+      "Los hoteles pequeños suelen dudar en pedir anticipo por miedo a espantar al huésped. En la práctica pasa lo contrario: pedirlo proyecta profesionalismo y filtra a quien nunca iba a llegar.",
+      "El monto correcto depende de tu temporada y tu política de cancelación. Un porcentaje muy bajo no compromete a nadie; uno muy alto frena reservas de última hora.",
+      "Lo que sí conviene siempre es que el cobro sea fácil. Pedir transferencia y comprobante mete horas de fricción; un link de pago con tarjeta cierra en el mismo chat.",
+    ],
+    faqs: [
+      {
+        q: "¿Cuánto anticipo conviene pedir?",
+        a: "Depende de tu temporada, tu política y tu tipo de huésped. Puedes estimarlo con la calculadora de anticipo de Kora.",
+      },
+      {
+        q: "¿El anticipo es reembolsable?",
+        a: "Lo define tu política de cancelación, y conviene que esté escrita y visible antes de que el huésped pague.",
+      },
+    ],
+    relacionado: { texto: "Calculadora de anticipo", href: "/herramientas/anticipo" },
+  },
+  {
+    slug: "politica-de-cancelacion",
+    termino: "Política de cancelación",
+    pregunta: "¿Cómo debe ser la política de cancelación de un hotel?",
+    resumen: "Las reglas escritas que evitan discusiones y protegen tus fechas.",
+    definicion:
+      "La política de cancelación son las reglas que definen hasta cuándo un huésped puede cancelar y qué pasa con su anticipo. Su valor está en estar escrita y visible antes de pagar: es lo que evita discusiones, reembolsos improvisados y reseñas negativas por un malentendido.",
+    cuerpo: [
+      "En hoteles pequeños la política suele existir sólo en la cabeza del dueño, y se aplica distinto según el día y el huésped. Eso funciona hasta la primera cancelación conflictiva.",
+      "Una política clara tiene tres piezas: hasta cuándo se puede cancelar sin costo, qué pasa con el anticipo si se cancela después, y qué se hace en caso de no-show.",
+      "Conviene que aparezca en el motor de reservas, en la confirmación por correo y en lo que responde tu agente de WhatsApp, para que sea la misma en los tres lados.",
+    ],
+    faqs: [
+      {
+        q: "¿Conviene ser flexible o estricto?",
+        a: "Depende de tu temporada. En fechas de alta demanda, una política estricta protege inventario que sí se puede revender; en temporada baja, la flexibilidad ayuda a cerrar.",
+      },
+      {
+        q: "¿Puedo tener políticas distintas por temporada?",
+        a: "Sí, y es lo habitual. Lo importante es que la que aplica esté visible antes de que el huésped pague.",
+      },
+    ],
+    relacionado: { texto: "Qué es un no-show", href: "/glosario/no-show" },
+  },
+  {
+    slug: "crm-hotelero",
+    termino: "CRM hotelero",
+    pregunta: "¿Qué es un CRM para hoteles?",
+    resumen: "La base de datos de tus huéspedes, que es lo que las OTAs no te dan.",
+    definicion:
+      "Un CRM hotelero es el sistema donde el hotel guarda los datos y el historial de sus huéspedes: quién se hospedó, cuándo, cuánto gastó y cómo contactarlo. Es el activo que las OTAs no entregan, y es lo que permite que un huésped vuelva sin pagar comisión otra vez.",
+    cuerpo: [
+      "Cuando una reserva entra por una OTA, el huésped queda registrado como cliente de la plataforma. Si vuelve, lo hace por el mismo canal y pagas comisión de nuevo por alguien que ya era tuyo.",
+      "El CRM invierte eso. Con el correo y el teléfono del huésped puedes escribirle antes de la temporada, ofrecerle una fecha o simplemente agradecerle la visita. Cada regreso directo es una comisión que no pagas.",
+      "En Kora el CRM se llena solo con cada reserva directa y alimenta los correos automáticos previos y posteriores a la estancia.",
+    ],
+    faqs: [
+      {
+        q: "¿Necesito un CRM si tengo pocos cuartos?",
+        a: "Con pocos cuartos importa más, porque cada huésped que vuelve pesa un porcentaje mayor de tu ocupación.",
+      },
+      {
+        q: "¿Puedo tener los datos de huéspedes que llegaron por OTA?",
+        a: "Los que la plataforma comparte, sí. Es una de las razones para mover parte del volumen a directo: ahí los datos son tuyos.",
+      },
+    ],
+    relacionado: { texto: "Qué son las reservas directas", href: "/glosario/reservas-directas" },
+  },
+  {
+    slug: "forecast-hotelero",
+    termino: "Forecast hotelero",
+    pregunta: "¿Qué es un forecast de ocupación?",
+    resumen: "La foto de cómo viene tu mes, para actuar antes de que sea tarde.",
+    definicion:
+      "El forecast hotelero es la proyección de ocupación e ingresos de los próximos días o semanas, con base en las reservas que ya tienes. Su utilidad no es adivinar: es ver con anticipación qué fechas vienen flojas, cuando todavía hay tiempo de hacer algo al respecto.",
+    cuerpo: [
+      "Sin forecast, el hotelero se entera de que el fin de semana viene vacío el mismo viernes. En ese momento la única palanca que queda es bajar el precio.",
+      "Con dos o tres semanas de anticipación las opciones son otras: activar una promoción a tu lista de huéspedes, mover presupuesto de publicidad, empujar en redes o abrir disponibilidad en un canal.",
+      "En el panel de Kora el forecast de 30 días vive junto a la ocupación, el ADR y el RevPAR, para que la decisión se tome viendo las cuatro cosas.",
+    ],
+    faqs: [
+      {
+        q: "¿Un hotel pequeño necesita forecast?",
+        a: "Es donde más rinde: con pocos cuartos, llenar dos noches flojas cambia el mes.",
+      },
+      {
+        q: "¿Qué tan confiable es?",
+        a: "Refleja lo que ya está reservado más el ritmo con que suele entrar el resto. No es una predicción exacta, es una alerta temprana.",
+      },
+    ],
+    relacionado: { texto: "Qué es el RevPAR", href: "/glosario/revpar" },
+  },
+  {
+    slug: "walk-in",
+    termino: "Walk-in",
+    pregunta: "¿Qué es un walk-in en un hotel?",
+    resumen: "El huésped que llega sin reserva y decide en la puerta.",
+    definicion:
+      "Un walk-in es el huésped que llega al hotel sin reserva previa y pide habitación en el momento. Es venta directa sin comisión y sin costo de adquisición, pero exige saber al instante qué hay libre y a qué precio conviene venderlo esa noche.",
+    cuerpo: [
+      "El walk-in es la reserva más rentable que existe: no pagó comisión, no vino de publicidad y decide en tu recepción. El riesgo es venderlo mal por no tener la información a la mano.",
+      "Dos errores típicos: dar una tarifa baja de reflejo cuando el hotel está casi lleno, o rechazar a alguien porque no se sabía que un cuarto se había liberado.",
+      "Tener el mapa de habitaciones actualizado en el celular resuelve las dos cosas: se ve qué hay libre esa noche y se cobra en el momento.",
+    ],
+    faqs: [
+      {
+        q: "¿Qué tarifa le doy a un walk-in?",
+        a: "Depende de tu ocupación de esa noche. Con el hotel casi lleno, no hay razón para descontar; con cuartos libres que ya no se van a vender, cualquier ingreso supera al cuarto vacío.",
+      },
+      {
+        q: "¿Le puedo cobrar con tarjeta?",
+        a: "Sí. Con Kora registras la reserva y cobras en el momento desde el panel.",
+      },
+    ],
+    relacionado: { texto: "Descuento máximo que puedes dar", href: "/herramientas/descuento-maximo" },
+  },
+  {
+    slug: "upselling-hotelero",
+    termino: "Upselling hotelero",
+    pregunta: "¿Qué es el upselling en un hotel?",
+    resumen: "Subir el ticket de una reserva que ya tenías.",
+    definicion:
+      "El upselling hotelero es ofrecer al huésped que ya reservó una mejora de pago: subir de categoría de habitación, agregar noches, un late check-out o una experiencia. Aumenta el ingreso por reserva sin costo de adquisición, porque el huésped ya está decidido.",
+    cuerpo: [
+      "Es la palanca más barata que tiene un hotel pequeño. No requiere más tráfico, más publicidad ni más reservas: sólo aprovechar la conversación que ya está ocurriendo.",
+      "Los momentos que mejor funcionan son dos: justo al cerrar la reserva, cuando el huésped ya aceptó gastar, y unos días antes de la llegada, cuando ya está ilusionado con el viaje.",
+      "Lo que lo arruina es ofrecerlo como venta agresiva. Funciona mejor planteado como una opción concreta: la suite está libre esas noches y cuesta X más.",
+    ],
+    faqs: [
+      {
+        q: "¿Qué se puede ofrecer en un hotel boutique?",
+        a: "Categoría superior, noche extra, late check-out, desayuno, un detalle de bienvenida o una experiencia local. Lo que ya tienes y no te cuesta operar.",
+      },
+      {
+        q: "¿Cuándo lo ofrezco?",
+        a: "Al confirmar la reserva y en el correo previo a la llegada. Ambos momentos tienen al huésped con la decisión fresca.",
+      },
+    ],
+    relacionado: { texto: "Correos automáticos previos a la estancia", href: "/caracteristicas" },
+  },
+  {
+    slug: "temporada-alta-y-baja",
+    termino: "Temporada alta y temporada baja",
+    pregunta: "¿Cómo manejo la temporada baja en mi hotel?",
+    resumen: "El calendario que define tus tarifas y dónde está tu verdadero problema.",
+    definicion:
+      "La temporada alta son los periodos de mayor demanda de un destino —vacaciones, puentes, festividades— y la baja los de menor. Definirlas bien es la base del pricing: permite sostener tarifa cuando hay demanda y trabajar la ocupación cuando no la hay, en lugar de aplicar el mismo precio todo el año.",
+    cuerpo: [
+      "El error más común es tratar el año como si fuera parejo. Un hotel con una sola tarifa deja dinero en la mesa en temporada alta y se queda vacío en la baja.",
+      "El segundo error es reaccionar a la temporada baja sólo con descuentos. Bajar precio atrae a un huésped que no vuelve y castiga tu tarifa promedio del año.",
+      "La alternativa es trabajar la demanda: escribirle a tus huéspedes anteriores, armar paquetes con experiencias locales y empujar el canal directo, donde no pagas comisión y el margen aguanta más.",
+    ],
+    faqs: [
+      {
+        q: "¿Cómo defino mis temporadas?",
+        a: "Mirando tu ocupación real del año anterior mes por mes, más el calendario de puentes y festividades de tu destino.",
+      },
+      {
+        q: "¿Conviene cerrar en temporada baja?",
+        a: "Casi nunca. Los costos fijos siguen corriendo y el destino te olvida. Suele rendir más trabajar demanda con margen que cerrar.",
+      },
+    ],
+    relacionado: { texto: "Calendario de puentes y fechas fuertes", href: "/herramientas/calendario-puentes" },
+  },
 ];
 
 export function getTermino(slug: string): TerminoGlosario | undefined {

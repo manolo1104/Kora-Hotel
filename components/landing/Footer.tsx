@@ -8,12 +8,13 @@ const INSTAGRAM_URL = ""; // e.g. "https://instagram.com/korahotel"
 
 const navLinks = [
   { label: "Inicio", href: "/" },
+  { label: "Agente de WhatsApp con IA", href: "/whatsapp" },
   { label: "Características", href: "/caracteristicas" },
   { label: "Precios", href: "/precios" },
   { label: "Para hoteles boutique", href: "/para/hoteles-boutique" },
   { label: "Para hoteles pequeños", href: "/para/hoteles-pequenos" },
-  { label: "Hoteles en la Huasteca", href: "/hoteles-en" },
-  { label: "Comparativas (OTAs)", href: "/comparativas" },
+  { label: "Reservas directas por ciudad", href: "/hoteles-en" },
+  { label: "Comparativas", href: "/comparativas" },
   { label: "Glosario hotelero", href: "/glosario" },
   { label: "Blog", href: "/blog" },
   { label: "Guía: plan de 90 días", href: "/guia" },

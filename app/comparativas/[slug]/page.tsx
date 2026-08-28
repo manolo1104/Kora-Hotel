@@ -149,7 +149,7 @@ export default async function ComparativaPage({ params }: Props) {
             </Reveal>
             <Reveal delay={0.15}>
               <div className="bg-kora-primary rounded-2xl p-6 h-full">
-                <h2 className="font-bold text-white mb-3">Cuándo te conviene el directo (Kora)</h2>
+                <h2 className="font-bold text-white mb-3">Cuándo te conviene Kora</h2>
                 <ul className="space-y-2">
                   {c.cuandoKora.map((it) => (
                     <li key={it} className="flex items-start gap-2 text-sm text-white/90">

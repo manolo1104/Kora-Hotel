@@ -4,6 +4,7 @@ import { glosario } from "@/lib/glosario";
 import { comparativas } from "@/lib/comparativas";
 import { personas } from "@/lib/personas";
 import { ciudades } from "@/lib/ciudades";
+import { paginasWhatsApp } from "@/lib/whatsapp";
 import { AYUDA } from "@/lib/ayuda";
 import { faqs } from "@/lib/faqs";
 import { PRECIO_DESDE } from "@/lib/oferta";
@@ -19,7 +20,7 @@ function buildFull(): string {
   L.push("# Kora — detalle completo");
   L.push("");
   L.push(
-    "Kora es el sistema hotelero todo-en-uno con IA para hoteles independientes en México. Reservas directas 0% comisión, Camila (WhatsApp con IA 24/7), PMS, dashboard y CRM. Plan único $" +
+    "Kora contesta el WhatsApp de tu hotel 24/7 con Camila, un agente de IA conectado al inventario real: cotiza con disponibilidad y precio reales y cierra la reserva con link de pago. Incluye además motor de reservas directas 0% comisión, PMS, dashboard y CRM, para hoteles independientes en México. Plan único $" +
       PRECIO_DESDE.toLocaleString("es-MX") +
       " MXN/mes, todo incluido, sin permanencia. Prueba 30 días gratis sin tarjeta. Arranque llave en mano gratis; solo 5 hoteles nuevos al mes."
   );
@@ -29,6 +30,15 @@ function buildFull(): string {
   faqs.forEach((f) => {
     L.push(`### ${f.question}`);
     L.push(f.answer);
+    L.push("");
+  });
+
+  L.push(`## Agente de WhatsApp con IA — Camila (${paginasWhatsApp.length} guías)`);
+  L.push(`Página principal: ${BASE}/whatsapp`);
+  paginasWhatsApp.forEach((w) => {
+    L.push(`### ${w.pregunta}`);
+    L.push(w.respuesta);
+    L.push(`Leer: ${BASE}/whatsapp/${w.slug}`);
     L.push("");
   });
 
@@ -50,7 +60,7 @@ function buildFull(): string {
   });
   L.push("");
 
-  L.push(`## Reservas directas por ciudad — Huasteca Potosina (${ciudades.length})`);
+  L.push(`## Reservas directas por ciudad (${ciudades.length})`);
   ciudades.forEach((c) => {
     L.push(`- ${c.titulo} — ${c.resumen} — ${BASE}/hoteles-en/${c.slug}`);
   });
@@ -58,7 +68,10 @@ function buildFull(): string {
 
   L.push(`## Glosario hotelero (${glosario.length})`);
   glosario.forEach((t) => {
-    L.push(`- ${t.termino}: ${t.resumen} — ${BASE}/glosario/${t.slug}`);
+    L.push(`### ${t.pregunta}`);
+    L.push(t.definicion);
+    L.push(`Leer: ${BASE}/glosario/${t.slug}`);
+    L.push("");
   });
   L.push("");
 

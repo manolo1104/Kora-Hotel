@@ -252,6 +252,278 @@ export const ciudades: Ciudad[] = [
       },
     ],
   },
+  // ─── Expansión fuera de la Huasteca ────────────────────────────────────────
+  // Criterio: sólo destinos con hotelería boutique independiente real y un
+  // ángulo local propio. Nada de plantillas por ciudad donde no hay a quién
+  // venderle: eso son doorway pages y Google las castiga desde 2024.
+  {
+    slug: "san-miguel-de-allende",
+    ciudad: "San Miguel de Allende",
+    estado: "Guanajuato",
+    titulo: "Sistema de reservas directas para hoteles boutique en San Miguel de Allende",
+    pregunta: "¿Cuál es el mejor sistema de reservas para un hotel boutique en San Miguel de Allende?",
+    resumen:
+      "Motor de reservas sin comisión y WhatsApp con IA para hoteles boutique y casas de huéspedes en San Miguel.",
+    intro:
+      "San Miguel de Allende concentra una de las mayores densidades de hotelería boutique independiente de México, con mucho huésped extranjero que reserva por OTA. Kora te da un motor de reservas directas sin comisión y un agente de WhatsApp con IA que responde en el idioma del huésped, para quedarte con el 100% de cada reserva.",
+    cuerpo: [
+      "San Miguel vive de un huésped que planea con anticipación, compara mucho y llega con expectativas altas de servicio. Ese perfil es exactamente el que reserva por OTA: descubre el hotel en la plataforma, ve reseñas, y cierra ahí. Cada una de esas noches deja entre 15% y 20% en comisión.",
+      "El otro rasgo del destino es el peso del visitante extranjero, sobre todo estadounidense y canadiense. Muchos mensajes llegan en inglés y a horarios que no coinciden con la recepción, y responder tarde o con un traductor rígido cuesta reservas de ticket alto.",
+      "Con Kora tu hotel toma reservas directas desde su propia página con cobro de anticipo con tarjeta —incluidas tarjetas internacionales— y Camila contesta el WhatsApp las 24 horas en el idioma en que le escriban, con tu disponibilidad y tus precios reales. Nosotros lo montamos llave en mano.",
+    ],
+    faqs: [
+      {
+        q: "¿Sirve para una casa de huéspedes de pocas habitaciones?",
+        a: "Sí. El plan es único e incluye habitaciones ilimitadas, así que un hospedaje de 5 cuartos paga lo mismo que uno de 30: $550 MXN al mes.",
+      },
+      {
+        q: "¿Puede atender a mis huéspedes en inglés?",
+        a: "Sí. Camila responde en el idioma en que le escriba el huésped, con la misma disponibilidad y los mismos precios reales de tu hotel.",
+      },
+      {
+        q: "¿Tengo que salirme de Booking o Airbnb?",
+        a: "No. Kora convive con las OTAs y sincroniza el calendario para evitar overbooking. La idea es bajar tu dependencia, no cortarla de golpe.",
+      },
+    ],
+  },
+  {
+    slug: "bacalar",
+    ciudad: "Bacalar",
+    estado: "Quintana Roo",
+    titulo: "Sistema de reservas directas para hoteles y cabañas en Bacalar",
+    pregunta: "¿Cuál es el mejor sistema de reservas para un hotel en Bacalar?",
+    resumen:
+      "Reservas directas sin comisión y WhatsApp con IA para hospedajes frente a la Laguna de los Siete Colores.",
+    intro:
+      "Bacalar creció como destino de hospedaje pequeño e independiente —cabañas, hoteles boutique y proyectos ecológicos frente a la laguna— con altísima dependencia de OTAs. Kora te da motor de reservas directas sin comisión, agente de WhatsApp con IA 24/7 y sincronización con Booking y Airbnb para evitar overbooking.",
+    cuerpo: [
+      "La hotelería de Bacalar es mayoritariamente pequeña y de dueño, y creció rápido apoyada en las plataformas. Eso dejó a muchos hospedajes con casi todo su volumen entrando por OTA: buena ocupación, margen delgado y ninguna relación propia con el huésped que ya vino.",
+      "Al ser un destino de estancias cortas y alta rotación entre semana, el WhatsApp se vuelve el canal donde se decide todo: disponibilidad de esta noche, si queda cabaña para dos, si aceptan mascotas. Cuando el mensaje llega a las once de la noche y nadie contesta, el viajero reserva en la app.",
+      "Con Kora ese mensaje sí recibe respuesta: Camila consulta tu disponibilidad real, da el total de la estancia y manda el link de pago. Y como el inventario es uno solo, la reserva que entra por WhatsApp cierra esa fecha también en las OTAs.",
+    ],
+    faqs: [
+      {
+        q: "¿Funciona para cabañas y hospedajes ecológicos?",
+        a: "Sí. El sistema no asume un tipo de propiedad: cargamos tus unidades como las tengas —cabañas, domos, habitaciones— con su capacidad y tarifa.",
+      },
+      {
+        q: "¿Cómo evito el overbooking con Booking y Airbnb?",
+        a: "Kora sincroniza el calendario con las OTAs, así una reserva directa bloquea esa fecha en todos los canales.",
+      },
+      {
+        q: "¿Cuánto tarda el arranque?",
+        a: "Montamos tu hotel completo —unidades, fotos, tarifas, motor y WhatsApp— en 48 horas, sin costo de instalación.",
+      },
+    ],
+  },
+  {
+    slug: "valle-de-bravo",
+    ciudad: "Valle de Bravo",
+    estado: "Estado de México",
+    titulo: "Sistema de reservas directas para hoteles en Valle de Bravo",
+    pregunta: "¿Cuál es el mejor sistema de reservas para un hotel en Valle de Bravo?",
+    resumen:
+      "Motor de reservas sin comisión y WhatsApp con IA para hoteles boutique y cabañas de Valle.",
+    intro:
+      "Valle de Bravo concentra su demanda en fines de semana y puentes desde la Ciudad de México, con reservas que se deciden por WhatsApp a última hora. Kora te da motor de reservas directas sin comisión y un agente con IA que contesta al instante, cotiza con disponibilidad real y cobra el anticipo.",
+    cuerpo: [
+      "Valle es un destino de escapada corta: el huésped decide el jueves para el viernes, pregunta por WhatsApp y quiere respuesta ya. Quien contesta primero con un precio concreto se lleva la reserva; quien contesta el sábado ya perdió.",
+      "Esa concentración en fines de semana y puentes hace que cada fecha fuerte pese muchísimo en el mes. Una noche mal vendida —o una reserva que se cayó por no contestar— no se recupera entre semana.",
+      "Kora ataca justo ese momento: Camila responde en segundos a cualquier hora, consulta qué queda libre ese fin de semana, da el total real y manda el link de pago para apartar. Y el calendario de puentes del panel te deja ver con anticipación qué fechas vienen flojas.",
+    ],
+    faqs: [
+      {
+        q: "¿Sirve para cabañas y casas completas?",
+        a: "Sí. Cargamos cada unidad con su capacidad, tarifa y mínimo de noches, que en Valle suele aplicar en fines de semana y puentes.",
+      },
+      {
+        q: "¿Puedo poner mínimo de noches en fechas fuertes?",
+        a: "Sí, y el agente lo respeta: si el huésped pide una sola noche en una fecha con mínimo, se lo dice en vez de aceptar algo que el sistema va a rechazar.",
+      },
+    ],
+  },
+  {
+    slug: "oaxaca",
+    ciudad: "Oaxaca de Juárez",
+    estado: "Oaxaca",
+    titulo: "Sistema de reservas directas para hoteles boutique en Oaxaca",
+    pregunta: "¿Cuál es el mejor sistema de reservas para un hotel en Oaxaca?",
+    resumen:
+      "Reservas directas sin comisión y WhatsApp con IA para hoteles boutique del centro histórico de Oaxaca.",
+    intro:
+      "Oaxaca combina turismo internacional durante todo el año con picos muy fuertes en Guelaguetza y Día de Muertos. Kora le da a tu hotel boutique un motor de reservas directas sin comisión, tarifas por temporada y un agente de WhatsApp con IA que responde en el idioma del huésped.",
+    cuerpo: [
+      "La hotelería del centro histórico de Oaxaca es sobre todo boutique e independiente, con casonas convertidas en hoteles de pocas habitaciones. Es exactamente el perfil donde la comisión de OTA duele más: pocas llaves, margen que sostiene la experiencia, y cada reserva pesa.",
+      "El calendario del destino es muy marcado. Guelaguetza en julio y Día de Muertos a fines de octubre disparan la demanda y permiten sostener tarifa; el resto del año exige trabajar la demanda directa. Cobrar lo mismo todo el año deja dinero en la mesa en las fechas fuertes.",
+      "Con Kora manejas tarifas por temporada, tomas reservas directas desde tu propia página con anticipo con tarjeta, y Camila contesta el WhatsApp en español o inglés a cualquier hora con tu disponibilidad real. El CRM guarda a cada huésped para que vuelva sin pagar comisión otra vez.",
+    ],
+    faqs: [
+      {
+        q: "¿Puedo tener tarifas distintas para Día de Muertos?",
+        a: "Sí. Las tarifas por temporada son parte del plan, y el agente cotiza con la tarifa vigente de esas fechas.",
+      },
+      {
+        q: "¿Atiende a huéspedes extranjeros?",
+        a: "Sí, responde en el idioma en que le escriban y el link de pago acepta tarjetas internacionales.",
+      },
+    ],
+  },
+  {
+    slug: "san-cristobal-de-las-casas",
+    ciudad: "San Cristóbal de las Casas",
+    estado: "Chiapas",
+    titulo: "Sistema de reservas directas para hoteles en San Cristóbal de las Casas",
+    pregunta: "¿Cuál es el mejor sistema de reservas para un hotel en San Cristóbal?",
+    resumen:
+      "Motor de reservas sin comisión y WhatsApp con IA para hoteles y posadas del centro de San Cristóbal.",
+    intro:
+      "San Cristóbal de las Casas recibe viajeros nacionales e internacionales que se hospedan en posadas y hoteles boutique independientes, casi todos con fuerte dependencia de OTAs. Kora te da reservas directas sin comisión, WhatsApp con IA 24/7 y toda la operación del hotel en una sola pantalla.",
+    cuerpo: [
+      "El hospedaje de San Cristóbal es predominantemente pequeño y de dueño: posadas, hostales boutique y hoteles de pocas habitaciones en el centro y sus alrededores. La visibilidad la dan las plataformas, y con ella llega la comisión.",
+      "Buena parte del viajero llega mochileando o en ruta hacia Palenque y la selva, lo que produce muchas consultas de último minuto y estancias cortas. Ese tráfico se decide en WhatsApp y en horarios impredecibles.",
+      "Kora te deja capturar directo ese flujo: página propia con motor de reservas, agente de WhatsApp que cotiza con disponibilidad real las 24 horas y cobro de anticipo con tarjeta, sin comisión por reserva.",
+    ],
+    faqs: [
+      {
+        q: "¿Sirve para una posada de pocas habitaciones?",
+        a: "Sí. Un solo plan de $550 MXN al mes con habitaciones ilimitadas, sin permanencia.",
+      },
+      {
+        q: "¿Necesito saber de tecnología?",
+        a: "No. Kora está en español, se opera desde el celular y el arranque lo hacemos nosotros: cargamos tu hotel, tus fotos y tus tarifas.",
+      },
+    ],
+  },
+  {
+    slug: "sayulita",
+    ciudad: "Sayulita",
+    estado: "Nayarit",
+    titulo: "Sistema de reservas directas para hoteles en Sayulita",
+    pregunta: "¿Cuál es el mejor sistema de reservas para un hotel en Sayulita?",
+    resumen:
+      "Reservas directas sin comisión y WhatsApp con IA para hoteles boutique y hospedajes de surf en Sayulita.",
+    intro:
+      "Sayulita concentra hospedaje pequeño e independiente con mucho huésped extranjero y alta dependencia de plataformas. Kora te da un motor de reservas directas sin comisión, cobro con tarjetas internacionales y un agente de WhatsApp con IA que contesta en inglés o español las 24 horas.",
+    cuerpo: [
+      "El perfil de Sayulita es de hospedaje boutique pequeño con temporada marcada por el invierno norteamericano y por los meses de surf. Una parte grande de la demanda es extranjera y llega por plataformas internacionales.",
+      "Eso deja dos costos: la comisión de cada noche y la barrera del idioma cuando el huésped escribe directo. Contestar en inglés a deshoras, con precios correctos, no es algo que un hospedaje de dueño pueda sostener a mano.",
+      "Con Kora la conversación se atiende sola: Camila responde en el idioma del huésped, consulta la disponibilidad real y manda un link de pago que acepta tarjetas internacionales. El calendario sigue sincronizado con las OTAs para no sobrevender.",
+    ],
+    faqs: [
+      {
+        q: "¿Acepta tarjetas de huéspedes extranjeros?",
+        a: "Sí. El cobro va por Stripe, que acepta tarjetas internacionales, y el dinero llega a tu propia cuenta.",
+      },
+      {
+        q: "¿Puedo manejar temporada alta y baja?",
+        a: "Sí, con tarifas por temporada. El agente cotiza siempre con la tarifa vigente de esas fechas.",
+      },
+    ],
+  },
+  {
+    slug: "tequisquiapan",
+    ciudad: "Tequisquiapan",
+    estado: "Querétaro",
+    titulo: "Sistema de reservas directas para hoteles en Tequisquiapan",
+    pregunta: "¿Cuál es el mejor sistema de reservas para un hotel en Tequisquiapan?",
+    resumen:
+      "Motor de reservas sin comisión y WhatsApp con IA para hoteles boutique de la ruta del vino y el queso.",
+    intro:
+      "Tequisquiapan vive de escapadas de fin de semana desde el Bajío y la Ciudad de México, con demanda concentrada en la ruta del vino y el queso. Kora te da reservas directas sin comisión, tarifas por temporada y un agente de WhatsApp con IA que cotiza y cierra a cualquier hora.",
+    cuerpo: [
+      "La demanda de Tequisquiapan se concentra en fines de semana, puentes y la temporada de vendimia. Entre semana el hotel respira; los viernes y sábados es donde se hace el mes.",
+      "Ese patrón vuelve críticas dos cosas: sostener la tarifa en las fechas fuertes y no perder ninguna consulta. Un mensaje de jueves por la noche que se contesta el sábado es una reserva regalada al hotel de al lado.",
+      "Con Kora tomas reservas directas desde tu propia página, manejas tarifas distintas por temporada y Camila contesta al instante con tu disponibilidad real, cerrando con link de pago para apartar el cuarto.",
+    ],
+    faqs: [
+      {
+        q: "¿Puedo cobrar distinto en fin de semana?",
+        a: "Sí. Las tarifas por temporada y por día son parte del plan, y el agente cotiza con la vigente.",
+      },
+      {
+        q: "¿Sirve si vendo paquetes con experiencias?",
+        a: "Puedes cargar tus unidades y tarifas; para paquetes con experiencias lo vemos contigo en el arranque.",
+      },
+    ],
+  },
+  {
+    slug: "real-de-catorce",
+    ciudad: "Real de Catorce",
+    estado: "San Luis Potosí",
+    titulo: "Sistema de reservas directas para hoteles en Real de Catorce",
+    pregunta: "¿Cuál es el mejor sistema de reservas para un hotel en Real de Catorce?",
+    resumen:
+      "Reservas directas sin comisión y WhatsApp con IA para hoteles y posadas del Pueblo Mágico potosino.",
+    intro:
+      "Real de Catorce es un Pueblo Mágico de hospedaje pequeño, con demanda muy concentrada en fines de semana, puentes y la peregrinación de octubre. Kora te da motor de reservas directas sin comisión y un agente de WhatsApp con IA que contesta, cotiza y aparta a cualquier hora.",
+    cuerpo: [
+      "El hospedaje de Real de Catorce es de pocas habitaciones y operado por su dueño, con una demanda que se dispara en fechas concretas y baja fuerte el resto del tiempo. Cada fecha fuerte pesa desproporcionadamente en el año.",
+      "Con ese patrón, perder una consulta duele el doble: no hay entre semana que compense. Y como el pueblo tiene cobertura irregular, el hotelero muchas veces contesta con horas de retraso sin querer.",
+      "Kora cubre ese hueco desde el servidor, no desde tu celular: el motor de reservas de tu página y Camila en WhatsApp siguen operando aunque tú estés sin señal, con tu disponibilidad y tus tarifas reales.",
+    ],
+    faqs: [
+      {
+        q: "¿Funciona si tengo mala señal en el pueblo?",
+        a: "El motor de reservas y el agente viven en internet, no en tu teléfono: siguen tomando reservas aunque tú no tengas señal en ese momento.",
+      },
+      {
+        q: "¿Puedo subir tarifas en fechas de alta demanda?",
+        a: "Sí, con tarifas por temporada, y el agente cotiza con la que esté vigente.",
+      },
+    ],
+  },
+  {
+    slug: "puebla",
+    ciudad: "Puebla",
+    estado: "Puebla",
+    titulo: "Sistema de reservas directas para hoteles boutique en Puebla",
+    pregunta: "¿Cuál es el mejor sistema de reservas para un hotel en Puebla?",
+    resumen:
+      "Motor de reservas sin comisión y WhatsApp con IA para hoteles boutique del centro histórico de Puebla.",
+    intro:
+      "Puebla mezcla turismo de fin de semana desde la Ciudad de México con viajero de negocios entre semana, en un centro histórico lleno de hoteles boutique independientes. Kora te da reservas directas sin comisión, WhatsApp con IA 24/7 y toda la operación en una sola pantalla.",
+    cuerpo: [
+      "El centro histórico de Puebla concentra casonas convertidas en hoteles boutique de pocas llaves. Compiten contra cadenas con presupuesto de marketing, y su ventaja es la experiencia y el trato directo —justo lo que una OTA no transmite.",
+      "La demanda tiene dos caras: fin de semana turístico desde la capital y entre semana corporativo. Eso significa que el hotel recibe consultas todo el tiempo y de perfiles muy distintos, con preguntas muy concretas sobre disponibilidad y factura.",
+      "Con Kora capturas ese flujo directo: motor de reservas en tu página, agente de WhatsApp que cotiza con disponibilidad real las 24 horas, cobro de anticipo con tarjeta y un CRM que guarda a cada huésped para que vuelva sin comisión.",
+    ],
+    faqs: [
+      {
+        q: "¿Sirve para huésped de negocios que pide factura?",
+        a: "El sistema guarda los datos de cada reserva y su cobro. La emisión de CFDI se revisa contigo según cómo factures hoy.",
+      },
+      {
+        q: "¿Puedo tener tarifas distintas entre semana y fin de semana?",
+        a: "Sí, con tarifas por temporada y por día.",
+      },
+    ],
+  },
+  {
+    slug: "todos-santos",
+    ciudad: "Todos Santos",
+    estado: "Baja California Sur",
+    titulo: "Sistema de reservas directas para hoteles en Todos Santos",
+    pregunta: "¿Cuál es el mejor sistema de reservas para un hotel en Todos Santos?",
+    resumen:
+      "Reservas directas sin comisión y WhatsApp con IA para hoteles boutique del Pueblo Mágico de BCS.",
+    intro:
+      "Todos Santos tiene hotelería boutique pequeña, mucho huésped extranjero y una temporada marcada por el invierno norteamericano. Kora te da motor de reservas directas sin comisión, cobro con tarjetas internacionales y un agente de WhatsApp con IA que responde en inglés o español.",
+    cuerpo: [
+      "El perfil del destino es de hospedaje boutique de pocas llaves con ticket alto y huésped mayoritariamente extranjero. Ese ticket hace que cada punto de comisión de OTA represente una cantidad importante por noche.",
+      "La temporada está marcada por el invierno del norte, con meses fuertes y meses de mucha calma. Sostener tarifa en los fuertes y trabajar demanda propia en los flojos es la diferencia entre un buen año y uno apretado.",
+      "Kora te deja capturar directo: página con motor de reservas, cobro con tarjetas internacionales a tu propia cuenta, tarifas por temporada, y Camila contestando el WhatsApp en el idioma del huésped a cualquier hora con tu disponibilidad real.",
+    ],
+    faqs: [
+      {
+        q: "¿El huésped extranjero puede pagar con su tarjeta?",
+        a: "Sí. El cobro va por Stripe y acepta tarjetas internacionales; el dinero llega a tu propia cuenta.",
+      },
+      {
+        q: "¿Puedo bajar tarifas sólo en temporada baja?",
+        a: "Sí, con tarifas por temporada. Y el panel te muestra el forecast de 30 días para decidir con anticipación.",
+      },
+    ],
+  },
 ];
 
 export function getCiudad(slug: string): Ciudad | undefined {

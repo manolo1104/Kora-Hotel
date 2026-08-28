@@ -21,7 +21,7 @@ const itemListJsonLd = {
   itemListElement: comparativas.map((c, i) => ({
     "@type": "ListItem",
     position: i + 1,
-    name: `${c.competidor} vs reservas directas`,
+    name: `${c.competidor} vs ${c.contra ?? "reservas directas"}`,
     url: `${SITE_URL}/comparativas/${c.slug}`,
   })),
 };
@@ -72,7 +72,7 @@ export default function ComparativasPage() {
                   className="group block h-full bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:border-kora-primary/20 transition-colors"
                 >
                   <h2 className="font-bold text-kora-text text-lg group-hover:text-kora-primary transition-colors">
-                    {c.competidor} vs reservas directas
+                    {c.competidor} vs {c.contra ?? "reservas directas"}
                   </h2>
                   <p className="mt-2 text-sm text-kora-muted leading-relaxed">{c.resumen}</p>
                   <span className="mt-3 inline-block text-sm font-semibold text-kora-primary">

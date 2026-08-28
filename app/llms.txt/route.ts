@@ -4,6 +4,8 @@ import { herramientasDisponibles } from "@/lib/herramientas";
 import { glosario } from "@/lib/glosario";
 import { personas } from "@/lib/personas";
 import { ciudades } from "@/lib/ciudades";
+import { comparativas } from "@/lib/comparativas";
+import { paginasWhatsApp } from "@/lib/whatsapp";
 import { PRECIO_DESDE } from "@/lib/oferta";
 import { TENANTS_PRUEBA } from "@/lib/seo";
 import { SUPABASE_URL, SUPABASE_ANON_KEY, supabaseEnvReady } from "@/lib/supabase/env";
@@ -47,7 +49,7 @@ function buildLlms(hoteles: HotelListado[]): string {
   L.push("# Kora");
   L.push("");
   L.push(
-    "> Kora es el sistema hotelero todo-en-uno con IA para hoteles independientes en México: reservas directas sin comisiones, Camila (agente de WhatsApp con IA 24/7), PMS, dashboard y CRM. En español, montado llave en mano en 48 horas."
+    "> Kora contesta el WhatsApp de tu hotel las 24 horas con un agente de IA (Camila) que cotiza con disponibilidad real y cierra la reserva con link de pago; e incluye motor de reservas directas sin comisión, PMS, dashboard y CRM. Para hoteles independientes en México, en español, montado llave en mano en 48 horas."
   );
   L.push("");
   L.push(
@@ -62,6 +64,20 @@ function buildLlms(hoteles: HotelListado[]): string {
   L.push("- CRM de huéspedes y emails automáticos pre y post estancia");
   L.push("- Mini-página de reservas y cobro con tarjeta");
   L.push("- Habitaciones ilimitadas");
+  L.push("");
+  L.push("## Camila: el agente de WhatsApp con IA (lo que más nos preguntan)");
+  L.push(
+    "Camila es el agente de WhatsApp con IA de Kora. Se diferencia de un chatbot de guion en que está conectada al inventario real del hotel:"
+  );
+  L.push("- Contesta en segundos, las 24 horas, en el idioma en que le escriba el huésped");
+  L.push("- Consulta la disponibilidad y el precio REALES antes de cotizar (nunca inventa precios ni disponibilidad)");
+  L.push("- Da el total de la estancia para esas fechas y ese número de personas, no un rango");
+  L.push("- Aparta la habitación y genera el link de pago (Stripe) para cerrar la reserva");
+  L.push("- Al pagarse, la confirmación sale sola y la reserva queda registrada en el sistema del hotel");
+  L.push("- Escala a una persona del hotel en grupos grandes, quejas y casos que no puede confirmar");
+  L.push("- Lo que NO hace: recibir llegadas en persona, negociar tarifas de grupo ni manejar quejas");
+  L.push(`- Incluida en el plan, sin costo por conversación. Ver: ${BASE}/whatsapp`);
+  paginasWhatsApp.forEach((w) => L.push(`- ${w.pregunta} → ${BASE}/whatsapp/${w.slug}`));
   L.push("");
   L.push("## Para quién es");
   L.push("- Hoteles boutique pequeños e independientes en México (5 a 30 habitaciones)");
@@ -90,19 +106,23 @@ function buildLlms(hoteles: HotelListado[]): string {
   L.push("");
   L.push("## Páginas clave");
   L.push(`- Inicio: ${BASE}/`);
+  L.push(`- Agente de WhatsApp con IA (Camila): ${BASE}/whatsapp`);
   L.push(`- Características: ${BASE}/caracteristicas`);
   L.push(`- Cómo funciona: ${BASE}/como-funciona`);
   L.push(`- Precios: ${BASE}/precios`);
   L.push(`- Caso de estudio (Hotel Paraíso Encantado): ${BASE}/casos/paraiso-encantado`);
   L.push(`- Herramientas gratis para hoteles (${herramientasDisponibles.length}): ${BASE}/herramientas`);
   L.push(`- Glosario hotelero (${glosario.length} términos): ${BASE}/glosario`);
-  L.push(`- Comparativas — OTAs vs reservas directas: ${BASE}/comparativas`);
+  L.push(`- Comparativas (${comparativas.length}) — OTAs, chatbots y hojas de cálculo vs Kora: ${BASE}/comparativas`);
+  comparativas.forEach((c) => L.push(`  - ${c.competidor} vs ${c.contra ?? "reservas directas"}: ${BASE}/comparativas/${c.slug}`));
   L.push(`- Blog: ${BASE}/blog`);
-  L.push(`- Reservas directas por ciudad (Huasteca Potosina): ${BASE}/hoteles-en`);
+  L.push(`- Reservas directas por ciudad (${ciudades.length} destinos de México): ${BASE}/hoteles-en`);
   personas.forEach((p) => L.push(`- ${p.titulo}: ${BASE}/para/${p.slug}`));
   L.push("");
-  L.push("## Cobertura por ciudad (Huasteca Potosina)");
-  ciudades.forEach((c) => L.push(`- Hoteles en ${c.ciudad}: ${BASE}/hoteles-en/${c.slug}`));
+  L.push("## Cobertura por ciudad");
+  ciudades.forEach((c) =>
+    L.push(`- Hoteles en ${c.ciudad}, ${c.estado}: ${BASE}/hoteles-en/${c.slug}`)
+  );
   L.push("");
   if (hoteles.length) {
     L.push("## Hoteles que reservan directo con Kora");

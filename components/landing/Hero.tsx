@@ -9,7 +9,7 @@ import {
   useReducedMotion,
 } from "motion/react";
 import { ArrowRight, Gift } from "lucide-react";
-import { BookingEngineMockup } from "@/components/landing/ProductMockups";
+import { WhatsAppMockup } from "@/components/landing/ProductMockups";
 import { trackCta } from "@/lib/analytics";
 
 const EASE = [0.23, 1, 0.32, 1] as const;
@@ -77,13 +77,13 @@ export function Hero() {
                 {...item(0)}
                 className="text-xs sm:text-sm font-bold uppercase tracking-widest text-kora-primary/70"
               >
-                El sistema todo-en-uno para tu hotel independiente
+                Recepción de IA en WhatsApp + sistema hotelero completo
               </motion.p>
 
               {/* Headline palabra por palabra con blur que se enfoca (Linear/Apple).
                   La frase shimmer entra como una sola unidad para no romper su gradiente. */}
               <h1 className="text-4xl sm:text-5xl xl:text-[3.5rem] font-bold tracking-tight text-kora-text leading-tight">
-                {["Deja", "de", "trabajar", "para", "Booking."].map((palabra, i) => (
+                {["Contesta", "cada", "WhatsApp,", "cotiza", "y", "cobra."].map((palabra, i) => (
                   <motion.span
                     key={palabra}
                     className="inline-block whitespace-pre"
@@ -107,15 +107,16 @@ export function Hero() {
                   transition={{ duration: 0.65, delay: 0.4, ease: EASE }}
                 >
                   <span className="text-shimmer text-kora-primary">
-                    Llena tu hotel de reservas directas.
+                    Mientras tú duermes.
                   </span>
                 </motion.span>
               </h1>
 
               <motion.p {...item(0.12)} className="text-base sm:text-lg text-kora-muted leading-relaxed max-w-[52ch]">
-                Motor de reservas con 0% de comisión y Camila, tu recepcionista
-                de IA en WhatsApp 24/7. En español y montado en 48 horas:
-                nosotros cargamos tu hotel, tú recibes las reservas.
+                Camila contesta en segundos a cualquier hora: consulta tu
+                disponibilidad real, da el precio exacto y manda el link de pago.
+                Con motor de reservas 0% comisión, PMS y CRM incluidos, montado
+                en 48 horas.
               </motion.p>
 
               <motion.div {...item(0.2)} className="flex flex-col sm:flex-row gap-3">
@@ -191,7 +192,7 @@ export function Hero() {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.8, delay: 0.1, ease: "easeOut" }}
             >
-              <BookingEngineMockup />
+              <WhatsAppMockup />
             </motion.div>
           </div>
         </div>
