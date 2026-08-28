@@ -43,16 +43,19 @@ const OPS_LABEL: Record<OpsState, string> = {
   SALIO:         'Salió',
 };
 
+// Cada estado apunta a un PAR de variables, no a dos hex sueltos: así el tema
+// oscuro los voltea a fondo teñido oscuro + texto claro (ver admin.module.css)
+// en vez de dejarlos como parches brillantes sobre el panel.
 const OPS_COLOR: Record<OpsState, { bg: string; color: string }> = {
-  CHECK_IN_HOY:  { bg: '#e6f4e8', color: '#1a6b22' },
-  CHECK_OUT_HOY: { bg: '#fff3d4', color: '#7a5a00' },
-  EN_CASA:       { bg: '#e0f0f8', color: '#0d5070' },
-  PROXIMA:       { bg: '#f9fafb', color: '#6b7280' },
-  COMPLETADA:    { bg: '#f0f0f0', color: '#888' },
-  CANCELADA:     { bg: '#fde8e8', color: '#8a1a1a' },
-  REEMBOLSADA:   { bg: '#f3e8fd', color: '#5b2a86' },
-  NO_SHOW:       { bg: '#f8e0e8', color: '#7a0030' },
-  SALIO:         { bg: '#e8eceb', color: '#3d4a45' },
+  CHECK_IN_HOY:  { bg: 'var(--chip-ok-bg)',     color: 'var(--chip-ok-text)' },
+  CHECK_OUT_HOY: { bg: 'var(--chip-aviso-bg)',  color: 'var(--chip-aviso-text)' },
+  EN_CASA:       { bg: 'var(--chip-info-bg)',   color: 'var(--chip-info-text)' },
+  PROXIMA:       { bg: 'var(--chip-neutro-bg)', color: 'var(--chip-neutro-text)' },
+  COMPLETADA:    { bg: 'var(--chip-neutro-bg)', color: 'var(--chip-neutro-text)' },
+  CANCELADA:     { bg: 'var(--chip-mal-bg)',    color: 'var(--chip-mal-text)' },
+  REEMBOLSADA:   { bg: 'var(--chip-morado-bg)', color: 'var(--chip-morado-text)' },
+  NO_SHOW:       { bg: 'var(--chip-rosa-bg)',   color: 'var(--chip-rosa-text)' },
+  SALIO:         { bg: 'var(--chip-neutro-bg)', color: 'var(--chip-neutro-text)' },
 };
 
 // ── Days to arrival ──────────────────────────────────────────────────────────
@@ -64,13 +67,13 @@ function daysToArrival(checkin: string, today: string): number {
 }
 
 function DaysChip({ days }: { days: number }) {
-  if (days < 0)  return <span className={styles.daysChip} style={{ background: '#f0f0f0', color: '#aaa' }}>Pasada</span>;
-  if (days === 0) return <span className={styles.daysChip} style={{ background: '#e6f4e8', color: '#1a6b22', fontWeight: 700 }}>Hoy</span>;
-  if (days === 1) return <span className={styles.daysChip} style={{ background: '#fff3d4', color: '#7a5a00', fontWeight: 700 }}>Mañana</span>;
-  if (days <= 3)  return <span className={styles.daysChip} style={{ background: '#fff3d4', color: '#7a5a00' }}>{days}d</span>;
-  if (days <= 7)  return <span className={styles.daysChip} style={{ background: '#fdf6e8', color: '#8a6830' }}>{days}d</span>;
-  if (days <= 14) return <span className={styles.daysChip} style={{ background: '#f0f7f0', color: '#3d6e40' }}>{days}d</span>;
-  return <span className={styles.daysChip} style={{ background: '#f9fafb', color: '#888' }}>{days}d</span>;
+  if (days < 0)  return <span className={styles.daysChip} style={{ background: 'var(--chip-neutro-bg)', color: 'var(--chip-neutro-text)' }}>Pasada</span>;
+  if (days === 0) return <span className={styles.daysChip} style={{ background: 'var(--chip-ok-bg)', color: 'var(--chip-ok-text)', fontWeight: 700 }}>Hoy</span>;
+  if (days === 1) return <span className={styles.daysChip} style={{ background: 'var(--chip-aviso-bg)', color: 'var(--chip-aviso-text)', fontWeight: 700 }}>Mañana</span>;
+  if (days <= 3)  return <span className={styles.daysChip} style={{ background: 'var(--chip-aviso-bg)', color: 'var(--chip-aviso-text)' }}>{days}d</span>;
+  if (days <= 7)  return <span className={styles.daysChip} style={{ background: 'var(--chip-aviso-bg)', color: 'var(--chip-aviso-text)' }}>{days}d</span>;
+  if (days <= 14) return <span className={styles.daysChip} style={{ background: 'var(--chip-ok-bg)', color: '#3d6e40' }}>{days}d</span>;
+  return <span className={styles.daysChip} style={{ background: 'var(--chip-neutro-bg)', color: 'var(--chip-neutro-text)' }}>{days}d</span>;
 }
 
 // ── Component ────────────────────────────────────────────────────────────────
@@ -259,8 +262,8 @@ export default function ReservasClient({ initialBookings, rooms, slug }: Props) 
             <span className={styles.todayCardNum} style={{ color: '#0d5070' }}>{todayCounts.enCasa}</span>
             <span className={styles.todayCardLabel}>En casa</span>
           </div>
-          <div className={styles.todayCard} style={{ borderColor: '#7a5a00' }}>
-            <span className={styles.todayCardNum} style={{ color: '#7a5a00' }}>{todayCounts.checkOut}</span>
+          <div className={styles.todayCard} style={{ borderColor: 'var(--chip-aviso-text)' }}>
+            <span className={styles.todayCardNum} style={{ color: 'var(--chip-aviso-text)' }}>{todayCounts.checkOut}</span>
             <span className={styles.todayCardLabel}>Check-out hoy</span>
           </div>
         </div>

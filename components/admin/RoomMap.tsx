@@ -211,7 +211,7 @@ export default function RoomMap() {
             </div>
 
             {error && (
-              <p role="alert" style={{ color: '#b42318', fontSize: 13, margin: '0 0 8px' }}>{error}</p>
+              <p role="alert" style={{ color: 'var(--chip-mal-text)', fontSize: 13, margin: '0 0 8px' }}>{error}</p>
             )}
             <div className={styles.modalFooter}>
               <button className={styles.cancelBtn} onClick={() => setEditModal(null)}>Cancelar</button>

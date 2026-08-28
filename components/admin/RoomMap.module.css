@@ -303,6 +303,9 @@
 .spin { animation: spin 0.8s linear infinite; }
 
 @media (max-width: 640px) {
+  /* El botón de check-out del mapa es la acción principal de la camarista
+     desde el celular: tiene que ser cómodo de tocar. */
+  .checkoutBtn { padding: 12px 10px; font-size: 0.78rem; }
   .grid { grid-template-columns: repeat(2, 1fr); }
   .summaryItem { min-width: 120px; }
 }

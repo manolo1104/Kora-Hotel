@@ -304,7 +304,7 @@ function QuoteModal({ rooms, tours, paquetes, onClose, onSaved }: { rooms: Booki
               </button>
             </div>
             {tourItems.length === 0 && (
-              <p style={{ fontSize: '0.75rem', color: '#aaa', padding: '6px 0' }}>Sin tours agregados</p>
+              <p style={{ fontSize: '0.75rem', color: 'var(--clay)', padding: '6px 0' }}>Sin tours agregados</p>
             )}
             {tourItems.map((t, i) => (
               <div key={i} className={styles.roomRow}>
@@ -361,7 +361,7 @@ function QuoteModal({ rooms, tours, paquetes, onClose, onSaved }: { rooms: Booki
                 );
               })}
             </div>
-            {paqueteItems.length === 0 && <p style={{ fontSize: '0.75rem', color: '#aaa', padding: '4px 0' }}>Sin paquetes agregados</p>}
+            {paqueteItems.length === 0 && <p style={{ fontSize: '0.75rem', color: 'var(--clay)', padding: '4px 0' }}>Sin paquetes agregados</p>}
             {paqueteItems.map((p, i) => (
               <div key={i} className={styles.roomRow} style={{ flexWrap: 'wrap', gap: 6 }}>
                 <select className={styles.roomRowSelect} style={{ flex: '2 1 140px' }} value={p.nombre}
@@ -401,13 +401,13 @@ function QuoteModal({ rooms, tours, paquetes, onClose, onSaved }: { rooms: Booki
               );
             })}
             {tourItems.map((t, i) => (
-              <div key={`t${i}`} className={styles.priceBreakdownRow} style={{ color: '#6b7280' }}>
+              <div key={`t${i}`} className={styles.priceBreakdownRow} style={{ color: 'var(--clay)' }}>
                 <span>🗺 {t.nombre.length > 30 ? t.nombre.slice(0,30)+'…' : t.nombre} ({t.personas}p)</span>
                 <span>${t.precio.toLocaleString('es-MX')}/p × {t.personas} = ${(t.precio*t.personas).toLocaleString('es-MX')}</span>
               </div>
             ))}
             {paqueteItems.map((p, i) => (
-              <div key={`pq${i}`} className={styles.priceBreakdownRow} style={{ color: '#1B4332', fontWeight: 500 }}>
+              <div key={`pq${i}`} className={styles.priceBreakdownRow} style={{ color: 'var(--forest-text)', fontWeight: 500 }}>
                 <span>🎁 {p.nombre} ({p.habitacion}, {p.personas}p, {p.noches}n)</span>
                 <span>${p.precio.toLocaleString('es-MX')} MXN</span>
               </div>
@@ -570,7 +570,7 @@ function EditQuoteModal({ quote, rooms, tours, paquetes, onClose, onSaved }: {
     <div className={styles.overlay} onClick={e => e.target === e.currentTarget && onClose()}>
       <div className={styles.modal}>
         <div className={styles.modalHeader}>
-          <h2>Editar Cotización <span style={{ fontSize: '0.75rem', color: '#888', fontFamily: 'monospace' }}>{quote.id}</span></h2>
+          <h2>Editar Cotización <span style={{ fontSize: '0.75rem', color: 'var(--clay)', fontFamily: 'monospace' }}>{quote.id}</span></h2>
           <button onClick={onClose}><X size={18} /></button>
         </div>
         <form onSubmit={handleSubmit} className={styles.modalForm}>
@@ -622,7 +622,7 @@ function EditQuoteModal({ quote, rooms, tours, paquetes, onClose, onSaved }: {
               </button>
             </div>
             {tourItems.length === 0 && (
-              <p style={{ fontSize: '0.75rem', color: '#aaa', padding: '6px 0' }}>Sin tours agregados</p>
+              <p style={{ fontSize: '0.75rem', color: 'var(--clay)', padding: '6px 0' }}>Sin tours agregados</p>
             )}
             {tourItems.map((t, i) => (
               <div key={i} className={styles.roomRow}>
@@ -679,7 +679,7 @@ function EditQuoteModal({ quote, rooms, tours, paquetes, onClose, onSaved }: {
                 );
               })}
             </div>
-            {paqueteItems.length === 0 && <p style={{ fontSize: '0.75rem', color: '#aaa', padding: '4px 0' }}>Sin paquetes agregados</p>}
+            {paqueteItems.length === 0 && <p style={{ fontSize: '0.75rem', color: 'var(--clay)', padding: '4px 0' }}>Sin paquetes agregados</p>}
             {paqueteItems.map((p, i) => (
               <div key={i} className={styles.roomRow} style={{ flexWrap: 'wrap', gap: 6 }}>
                 <select className={styles.roomRowSelect} style={{ flex: '2 1 140px' }} value={p.nombre}
@@ -719,13 +719,13 @@ function EditQuoteModal({ quote, rooms, tours, paquetes, onClose, onSaved }: {
               );
             })}
             {tourItems.map((t, i) => (
-              <div key={`t${i}`} className={styles.priceBreakdownRow} style={{ color: '#6b7280' }}>
+              <div key={`t${i}`} className={styles.priceBreakdownRow} style={{ color: 'var(--clay)' }}>
                 <span>🗺 {t.nombre.length > 30 ? t.nombre.slice(0,30)+'…' : t.nombre} ({t.personas}p)</span>
                 <span>${(t.precio*t.personas).toLocaleString('es-MX')}</span>
               </div>
             ))}
             {paqueteItems.map((p, i) => (
-              <div key={`pqe${i}`} className={styles.priceBreakdownRow} style={{ color: '#1B4332', fontWeight: 500 }}>
+              <div key={`pqe${i}`} className={styles.priceBreakdownRow} style={{ color: 'var(--forest-text)', fontWeight: 500 }}>
                 <span>🎁 {p.nombre} ({p.habitacion}, {p.personas}p, {p.noches}n)</span>
                 <span>${p.precio.toLocaleString('es-MX')} MXN</span>
               </div>
@@ -903,7 +903,7 @@ export default function CotizacionesClient({ initialQuotes, rooms, slug }: Props
               const borradorConEmail = quotes.filter(q => q.estado === 'BORRADOR' && q.email);
               const totalBorrador = borradorConEmail.reduce((s, q) => s + q.precioTotal, 0);
               return borradorConEmail.length > 0 ? (
-                <span style={{ marginLeft: 8, fontSize: '0.72rem', background: '#fde8e8', color: '#8a1a1a', padding: '2px 7px', borderRadius: 3, fontWeight: 600 }}>
+                <span style={{ marginLeft: 8, fontSize: '0.72rem', background: 'var(--chip-mal-bg)', color: 'var(--chip-mal-text)', padding: '2px 7px', borderRadius: 3, fontWeight: 600 }}>
                   ${totalBorrador.toLocaleString('es-MX')} MXN sin enviar
                 </span>
               ) : null;
@@ -985,7 +985,7 @@ export default function CotizacionesClient({ initialQuotes, rooms, slug }: Props
                 onClick={() => convertir(q)}
                 disabled={convertingId === q.id || q.estado === 'ACEPTADA'}
                 title="Convertir en reserva"
-                style={{ background: q.estado === 'ACEPTADA' ? undefined : '#1B4332', color: '#fff' }}
+                style={{ background: q.estado === 'ACEPTADA' ? undefined : '#1B4332', color: 'var(--cream)' }}
               >
                 {convertingId === q.id ? <Loader2 size={12} /> : <CalendarCheck size={12} />}
               </button>
@@ -1040,7 +1040,7 @@ export default function CotizacionesClient({ initialQuotes, rooms, slug }: Props
                 <td>
                   <span className={styles.badge} style={{ color: ESTADO_COLOR[q.estado] }}>{q.estado}</span>
                   {q.estado === 'BORRADOR' && q.email && (
-                    <span title="Sin enviar — tiene email" style={{ marginLeft: 5, fontSize: '0.65rem', background: '#fde8e8', color: '#8a1a1a', padding: '1px 5px', borderRadius: 3, fontWeight: 700 }}>Sin enviar</span>
+                    <span title="Sin enviar — tiene email" style={{ marginLeft: 5, fontSize: '0.65rem', background: 'var(--chip-mal-bg)', color: 'var(--chip-mal-text)', padding: '1px 5px', borderRadius: 3, fontWeight: 700 }}>Sin enviar</span>
                   )}
                 </td>
                 <td>
@@ -1050,7 +1050,7 @@ export default function CotizacionesClient({ initialQuotes, rooms, slug }: Props
                       onClick={() => convertir(q)}
                       disabled={convertingId === q.id || q.estado === 'ACEPTADA'}
                       title={q.estado === 'ACEPTADA' ? 'Ya convertida en reserva' : 'Convertir en reserva'}
-                      style={{ background: q.estado === 'ACEPTADA' ? undefined : '#1B4332', color: '#fff' }}
+                      style={{ background: q.estado === 'ACEPTADA' ? undefined : '#1B4332', color: 'var(--cream)' }}
                     >
                       {convertingId === q.id ? <Loader2 size={14} className={styles.spin} /> : <CalendarCheck size={14} />}
                     </button>

@@ -105,23 +105,23 @@ export default function GanttView({ slug, bookings, rooms, bookingRooms, onRefre
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
         <button
           onClick={() => setOffsetDays(d => d - 14)}
-          style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 4, padding: '6px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+          style={{ background: 'var(--cream)', border: '1px solid var(--line)', borderRadius: 4, padding: '6px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
         >
           <ChevronLeft size={16} />
         </button>
         <button
           onClick={() => setOffsetDays(-3)}
-          style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 4, padding: '6px 12px', fontSize: '0.8rem', cursor: 'pointer', fontFamily: 'var(--font-jost, sans-serif)' }}
+          style={{ background: 'var(--cream)', border: '1px solid var(--line)', borderRadius: 4, padding: '6px 12px', fontSize: '0.8rem', cursor: 'pointer', fontFamily: 'var(--font-jost, sans-serif)' }}
         >
           Hoy
         </button>
         <button
           onClick={() => setOffsetDays(d => d + 14)}
-          style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 4, padding: '6px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+          style={{ background: 'var(--cream)', border: '1px solid var(--line)', borderRadius: 4, padding: '6px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
         >
           <ChevronRight size={16} />
         </button>
-        <span style={{ fontSize: '0.78rem', color: '#888', marginLeft: 4 }}>
+        <span style={{ fontSize: '0.78rem', color: 'var(--clay)', marginLeft: 4 }}>
           {MONTHS[rangeStart.getMonth()]} {rangeStart.getFullYear()}
           {' — '}
           {MONTHS[rangeEndDate.getMonth()]} {rangeEndDate.getFullYear()}
@@ -131,7 +131,7 @@ export default function GanttView({ slug, bookings, rooms, bookingRooms, onRefre
       {/* Scrollable gantt */}
       <div
         ref={containerRef}
-        style={{ overflowX: 'auto', borderRadius: 8, border: '1px solid var(--line)', background: '#fff' }}
+        style={{ overflowX: 'auto', borderRadius: 8, border: '1px solid var(--line)', background: 'var(--cream)' }}
       >
         <div style={{ position: 'relative', width: totalW, minWidth: totalW }}>
 
@@ -142,7 +142,7 @@ export default function GanttView({ slug, bookings, rooms, bookingRooms, onRefre
               <div key={mi} style={{
                 width: span * CELL_W, flexShrink: 0,
                 fontSize: 9, letterSpacing: '2.5px', textTransform: 'uppercase',
-                color: '#52b788', padding: '0 8px', lineHeight: '24px',
+                color: 'var(--sage-text)', padding: '0 8px', lineHeight: '24px',
                 borderRight: '1px solid rgba(255,255,255,0.08)',
               }}>
                 {label}
@@ -155,7 +155,7 @@ export default function GanttView({ slug, bookings, rooms, bookingRooms, onRefre
             <div style={{
               width: LABEL_W, flexShrink: 0,
               fontSize: 9, letterSpacing: '2px', textTransform: 'uppercase',
-              color: '#9ca3af', padding: '0 14px', lineHeight: '30px',
+              color: 'var(--clay)', padding: '0 14px', lineHeight: '30px',
               borderRight: '2px solid var(--line)', background: 'var(--parch)',
             }}>
               Habitación
@@ -262,7 +262,7 @@ export default function GanttView({ slug, bookings, rooms, bookingRooms, onRefre
                         onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.filter = ''; }}
                       >
                         <span style={{
-                          fontSize: 11, color: '#fff', fontWeight: 500,
+                          fontSize: 11, color: 'var(--cream)', fontWeight: 500,
                           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                           fontFamily: 'var(--font-jost, sans-serif)',
                         }}>
@@ -296,7 +296,7 @@ export default function GanttView({ slug, bookings, rooms, bookingRooms, onRefre
       {/* Legend */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 14px', marginTop: 12 }}>
         {rooms.map((r, ri) => (
-          <span key={r} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.75rem', color: '#6b7280', fontFamily: 'var(--font-jost, sans-serif)' }}>
+          <span key={r} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.75rem', color: 'var(--clay)', fontFamily: 'var(--font-jost, sans-serif)' }}>
             <span style={{ width: 8, height: 8, borderRadius: '50%', background: colorFor(ri), display: 'inline-block' }} />
             {r}
           </span>
@@ -323,7 +323,7 @@ export default function GanttView({ slug, bookings, rooms, bookingRooms, onRefre
             }}
           >
             <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 6 }}>{tooltip.booking.cliente}</div>
-            <div style={{ color: '#52b788', marginBottom: 4 }}>{tooltip.booking.habitaciones}</div>
+            <div style={{ color: 'var(--sage-text)', marginBottom: 4 }}>{tooltip.booking.habitaciones}</div>
             <div style={{ color: 'rgba(255,255,255,0.7)', marginBottom: 2 }}>
               {tooltip.booking.checkin} → {tooltip.booking.checkout}
             </div>
@@ -332,7 +332,7 @@ export default function GanttView({ slug, bookings, rooms, bookingRooms, onRefre
             </div>
             <button
               onClick={() => { setModal({ booking: tooltip.booking }); setTooltip(null); }}
-              style={{ width: '100%', background: '#52b788', color: 'var(--ink)', border: 'none', borderRadius: 4, padding: '8px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+              style={{ width: '100%', background: 'var(--sage-text)', color: 'var(--ink)', border: 'none', borderRadius: 4, padding: '8px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
             >
               Ver / editar reserva
             </button>

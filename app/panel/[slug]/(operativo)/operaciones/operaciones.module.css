@@ -7,7 +7,7 @@
 .primaryBtn { display: flex; align-items: center; gap: 6px; background: var(--forest); color: var(--cream); border: none; border-radius: 4px; padding: 9px 16px; font-size: 0.875rem; font-family: var(--font-jost), sans-serif; font-weight: 600; cursor: pointer; }
 .primaryBtn:hover { opacity: 0.9; }
 .secondaryBtn { background: none; border: 1px solid var(--line); border-radius: 4px; padding: 9px 16px; font-size: 0.875rem; font-family: var(--font-jost), sans-serif; color: var(--clay); cursor: pointer; }
-.warnBtn { background: none; border: 1px solid #c9484a; border-radius: 4px; padding: 9px 16px; font-size: 0.875rem; font-family: var(--font-jost), sans-serif; color: #c9484a; cursor: pointer; }
+.warnBtn { background: none; border: 1px solid #c9484a; border-radius: 4px; padding: 9px 16px; font-size: 0.875rem; font-family: var(--font-jost), sans-serif; color: var(--chip-mal-text); cursor: pointer; }
 
 /* Resumen */
 .summaryBar { display: flex; gap: 12px; flex-wrap: wrap; }
@@ -26,8 +26,8 @@
 .suiteGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
 .suiteCard { border: 1px solid var(--line); border-radius: 8px; padding: 16px; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; background: var(--cream); }
 .suiteCard:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
-.suite_HECHA { background: #f0f7f0; border-color: #6bb07a; }
-.suite_PENDIENTE { background: #f9fafb; border-color: #52b788; }
+.suite_HECHA { background: var(--chip-ok-bg); border-color: var(--chip-ok-text); }
+.suite_PENDIENTE { background: var(--parch); border-color: var(--sage-text); }
 .suite_none { border-style: dashed; }
 .suiteCardTop { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
 .suiteName { font-family: var(--font-cormorant), serif; font-size: 1rem; color: var(--ink); font-weight: 500; }
@@ -37,19 +37,19 @@
 /* Mantenimiento */
 .mantHeader { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; gap: 12px; flex-wrap: wrap; }
 .taskNota { font-size: 0.72rem; color: var(--sage-text); margin-top: 2px; }
-.badgeOverdue { background: #fdf0f0; color: #c9484a; font-size: 0.7rem; font-weight: 600; padding: 3px 8px; border-radius: 4px; white-space: nowrap; }
-.badgeSoon { background: #f9fafb; color: #8a6830; font-size: 0.7rem; font-weight: 600; padding: 3px 8px; border-radius: 4px; }
-.badgeOk { background: #f0f7f0; color: #2d7a34; font-size: 0.7rem; font-weight: 600; padding: 3px 8px; border-radius: 4px; }
+.badgeOverdue { background: var(--chip-mal-bg); color: var(--chip-mal-text); font-size: 0.7rem; font-weight: 600; padding: 3px 8px; border-radius: 4px; white-space: nowrap; }
+.badgeSoon { background: var(--chip-aviso-bg); color: var(--chip-aviso-text); font-size: 0.7rem; font-weight: 600; padding: 3px 8px; border-radius: 4px; }
+.badgeOk { background: var(--chip-ok-bg); color: var(--chip-ok-text); font-size: 0.7rem; font-weight: 600; padding: 3px 8px; border-radius: 4px; }
 .doneBtn { background: none; border: 1px solid var(--line); border-radius: 4px; padding: 5px 12px; font-size: 0.78rem; cursor: pointer; color: var(--clay); white-space: nowrap; }
 .doneBtn:hover { border-color: var(--forest-text); color: var(--forest-text); }
 
 /* Pills de estado y prioridad (modelo Kora) */
-.prio_alta { background: #fdf0f0; color: #c9484a; font-size: 0.7rem; font-weight: 600; padding: 3px 8px; border-radius: 4px; }
-.prio_media { background: #fdf6ec; color: #8a6830; font-size: 0.7rem; font-weight: 600; padding: 3px 8px; border-radius: 4px; }
-.prio_baja { background: #f0f7f0; color: #2d7a34; font-size: 0.7rem; font-weight: 600; padding: 3px 8px; border-radius: 4px; }
-.estado_ABIERTA { background: #fdf0f0; color: #c9484a; font-size: 0.7rem; font-weight: 600; padding: 3px 8px; border-radius: 4px; }
-.estado_EN_PROCESO { background: #eef6f1; color: #2d7a34; font-size: 0.7rem; font-weight: 600; padding: 3px 8px; border-radius: 4px; }
-.estado_CERRADA { background: #f3f4f6; color: #6b7280; font-size: 0.7rem; font-weight: 600; padding: 3px 8px; border-radius: 4px; }
+.prio_alta { background: var(--chip-mal-bg); color: var(--chip-mal-text); font-size: 0.7rem; font-weight: 600; padding: 3px 8px; border-radius: 4px; }
+.prio_media { background: var(--chip-aviso-bg); color: var(--chip-aviso-text); font-size: 0.7rem; font-weight: 600; padding: 3px 8px; border-radius: 4px; }
+.prio_baja { background: var(--chip-ok-bg); color: var(--chip-ok-text); font-size: 0.7rem; font-weight: 600; padding: 3px 8px; border-radius: 4px; }
+.estado_ABIERTA { background: var(--chip-mal-bg); color: var(--chip-mal-text); font-size: 0.7rem; font-weight: 600; padding: 3px 8px; border-radius: 4px; }
+.estado_EN_PROCESO { background: var(--chip-ok-bg); color: var(--chip-ok-text); font-size: 0.7rem; font-weight: 600; padding: 3px 8px; border-radius: 4px; }
+.estado_CERRADA { background: var(--chip-neutro-bg); color: var(--chip-neutro-text); font-size: 0.7rem; font-weight: 600; padding: 3px 8px; border-radius: 4px; }
 
 /* ── Acordeón mantenimiento ──────────────────────────────────────────────── */
 .accordionItem { border: 1px solid var(--line); border-radius: 6px; margin-bottom: 8px; overflow: hidden; background: var(--cream); }
@@ -69,7 +69,7 @@
   padding: 10px 16px; border-bottom: 1px solid #f4f4f2;
 }
 .accordionTask:last-child { border-bottom: none; }
-.accordionTaskOverdue { background: #fdf5f5; }
+.accordionTaskOverdue { background: var(--chip-mal-bg); }
 .accordionTaskMain { flex: 1; min-width: 140px; }
 .accordionTaskName { font-size: 0.875rem; font-weight: 500; color: var(--ink); display: block; }
 .accordionTaskMeta { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; font-size: 0.72rem; color: var(--sage-text); }
@@ -94,7 +94,7 @@
 .checkAllBtn:hover { border-color: var(--forest-text); color: var(--forest-text); }
 .checklistItems { display: flex; flex-direction: column; gap: 6px; max-height: 280px; overflow-y: auto; border: 1px solid var(--line); border-radius: 4px; padding: 10px; }
 .checkItem { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 4px; cursor: pointer; font-size: 0.875rem; color: var(--ink); transition: background 0.1s; }
-.checkItem:hover { background: #f9fafb; }
+.checkItem:hover { background: var(--parch); }
 .checkItemDone { color: var(--sage-text); text-decoration: line-through; }
 .checkItem input { flex-shrink: 0; accent-color: var(--forest-text); width: 16px; height: 16px; cursor: pointer; }
 .field { display: flex; flex-direction: column; gap: 5px; font-size: 0.75rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.07em; color: var(--clay); }
@@ -104,3 +104,34 @@
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .spin { animation: spin 0.7s linear infinite; }
+
+
+/* ─── Móvil ──────────────────────────────────────────────────────────────────
+   Ésta es LA pantalla de la camarista y se usa desde el celular, así que es la
+   que más tiene que aguantar. Las rejillas ya son `auto-fill`, pero los
+   contadores, los tabs y los botones necesitan aire y tamaño táctil (44px). */
+@media (max-width: 640px) {
+  .pageHeader { flex-direction: column; align-items: stretch; gap: 10px; }
+  .headerActions { justify-content: flex-end; }
+  .iconBtn { min-width: 44px; min-height: 44px; justify-content: center; }
+  .primaryBtn { min-height: 44px; justify-content: center; }
+
+  /* Los 3 contadores de arriba, uno por renglón: apretados en 3 columnas no se
+     leen y se comen el alto de pantalla que necesita la lista de cuartos. */
+  .summaryBar { flex-direction: column; }
+  .summaryCard { width: 100%; }
+
+  /* Los tabs se desbordaban; ahora ruedan de lado sin cortar el último. */
+  .tabs { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab { flex: 0 0 auto; padding: 12px 16px; }
+
+  /* Una tarjeta de cuarto por renglón: el nombre del cuarto y su estado se leen
+     de un vistazo mientras se va limpiando. */
+  .suiteGrid { grid-template-columns: 1fr; }
+
+  .accordionTask { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .taskActions { width: 100%; justify-content: flex-start; }
+  .modal { max-width: 100%; }
+  .modalHeader, .modalBody { padding-left: 16px; padding-right: 16px; }
+}

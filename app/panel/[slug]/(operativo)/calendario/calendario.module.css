@@ -150,7 +150,7 @@
 .day:hover { background: var(--parch); }
 .day:nth-child(7n) { border-right: none; }
 
-.today { background: #f0f7f0; }
+.today { background: var(--chip-ok-bg); }
 .today .dayNum { background: var(--forest); color: #fff; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; }
 
 .dayNum {

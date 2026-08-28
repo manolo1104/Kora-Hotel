@@ -183,7 +183,7 @@ export default function InsightsClient() {
         href={`/panel/${slug}/camila`}
         style={{
           display: 'flex', alignItems: 'center', gap: 14,
-          background: FOREST, color: '#fff', borderRadius: 18,
+          background: FOREST, color: 'var(--cream)', borderRadius: 18,
           padding: '16px 20px', margin: '0 0 20px', textDecoration: 'none',
         }}
       >
@@ -273,7 +273,7 @@ export default function InsightsClient() {
           <ForecastBars data={forecast7dias} total={totalSuites} />
           <div className={styles.chartLegend}>
             <span><span className={styles.dot} style={{ background: '#2d7a34' }} /> +80%</span>
-            <span><span className={styles.dot} style={{ background: '#52b788' }} /> 50-79%</span>
+            <span><span className={styles.dot} style={{ background: 'var(--sage-text)' }} /> 50-79%</span>
             <span><span className={styles.dot} style={{ background: 'var(--line)' }} /> &lt;50%</span>
           </div>
         </section>
@@ -294,9 +294,9 @@ export default function InsightsClient() {
                     return (
                       <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <span style={{ width: 10, height: 10, borderRadius: '50%', background: o.color, flexShrink: 0 }} />
-                        <span style={{ flex: 1, fontSize: 12, color: '#6b7280', fontFamily: 'var(--font-jost)' }}>{o.label}</span>
+                        <span style={{ flex: 1, fontSize: 12, color: 'var(--clay)', fontFamily: 'var(--font-jost)' }}>{o.label}</span>
                         <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--font-jost)' }}>{p}%</span>
-                        <span style={{ fontSize: 11, color: '#9ca3af', fontFamily: 'var(--font-jost)' }}>({o.count})</span>
+                        <span style={{ fontSize: 11, color: 'var(--clay)', fontFamily: 'var(--font-jost)' }}>({o.count})</span>
                       </div>
                     );
                   });
@@ -350,7 +350,7 @@ export default function InsightsClient() {
       <section className={styles.section}>
         <div className={styles.chatHeader}>
           <h2 className={styles.sectionTitle} style={{ margin: 0 }}>
-            <Sparkles size={15} style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle', color: '#52b788' }} />
+            <Sparkles size={15} style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle', color: 'var(--sage-text)' }} />
             Asistente IA
           </h2>
           {chatMessages.length > 0 && (

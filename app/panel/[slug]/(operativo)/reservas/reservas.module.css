@@ -74,7 +74,7 @@
 .iconBtnActive {
   border-color: var(--forest-text);
   color: var(--forest-text);
-  background: #f0f7f0;
+  background: var(--chip-ok-bg);
   gap: 5px;
 }
 
@@ -289,6 +289,10 @@
 
 /* ── Mobile: filter bar en 2 filas ──────────────────────────────────────── */
 @media (max-width: 640px) {
+  /* 44px es el mínimo táctil. Los iconos de acción medían 28px: en un celular
+     se falla el toque, y el de check-out es el que más va a usar recepción. */
+  .actionBtn, .actionBtnPdf, .actionBtnCheckout { width: 44px; height: 44px; }
+  .rowActions { gap: 8px; }
   .tableWrap { display: none; }
   .tableScrollWrap::after { display: none; }
   .mobileCardList { display: flex; }
@@ -320,7 +324,7 @@
 }
 .todayBtn:hover { border-color: var(--forest-text); color: var(--forest-text); }
 .todayBtnActive {
-  background: #e6f4e8; border-color: var(--forest-text); color: var(--forest-text);
+  background: var(--chip-ok-bg); border-color: var(--forest-text); color: var(--forest-text);
   font-weight: 600;
 }
 .todayCount {
@@ -351,8 +355,8 @@
 }
 
 /* ── Row highlights ──────────────────────────────────────────────────────── */
-.rowHighlight td { background: #f0faf0 !important; }
-.rowCheckout td  { background: #fffbf0 !important; }
+.rowHighlight td { background: var(--chip-ok-bg) !important; }
+.rowCheckout td  { background: var(--chip-aviso-bg) !important; }
 
 /* El botón de check-out: la acción del día, así que se distingue del resto de
    iconos de la fila en vez de perderse entre ellos. */

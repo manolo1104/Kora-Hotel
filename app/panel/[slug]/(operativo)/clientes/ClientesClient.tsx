@@ -169,7 +169,7 @@ function ClienteDrawer({ cliente, hotelName, onClose }: { cliente: GuestProfile;
                 {saved ? '✓ Guardado' : 'Guardar notas'}
               </button>
               {error && (
-                <p role="alert" style={{ color: '#b42318', fontSize: 13, marginTop: 8 }}>{error}</p>
+                <p role="alert" style={{ color: 'var(--chip-mal-text)', fontSize: 13, marginTop: 8 }}>{error}</p>
               )}
             </div>
           )}

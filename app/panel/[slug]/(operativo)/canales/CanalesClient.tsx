@@ -174,18 +174,18 @@ export default function CanalesClient({ initial, rooms, slug }: Props) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24 }}>
         <div>
           <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>Canales OTA</h1>
-          <p style={{ margin: '4px 0 0', color: '#6b7280', fontSize: 14 }}>
+          <p style={{ margin: '4px 0 0', color: 'var(--clay)', fontSize: 14 }}>
             Sincronización iCal con Booking.com y Expedia cada 15 minutos
           </p>
         </div>
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center' }}>
-          {syncResult && <span style={{ color: '#6b7280', fontSize: 13 }}>{syncResult}</span>}
-          {error && <span role="alert" style={{ color: '#b42318', fontSize: 13 }}>{error}</span>}
+          {syncResult && <span style={{ color: 'var(--clay)', fontSize: 13 }}>{syncResult}</span>}
+          {error && <span role="alert" style={{ color: 'var(--chip-mal-text)', fontSize: 13 }}>{error}</span>}
           <button
             onClick={handleSyncNow}
             disabled={syncing}
             style={{
-              background: '#1d4ed8', color: '#fff', border: 'none',
+              background: '#1d4ed8', color: 'var(--cream)', border: 'none',
               borderRadius: 6, padding: '8px 16px', cursor: 'pointer', fontSize: 14,
               opacity: syncing ? 0.6 : 1,
             }}
@@ -196,24 +196,24 @@ export default function CanalesClient({ initial, rooms, slug }: Props) {
       </div>
 
       {ALL_ROOMS.length === 0 ? (
-        <p style={{ color: '#9ca3af' }}>
+        <p style={{ color: 'var(--clay)' }}>
           Este hotel todavía no tiene habitaciones configuradas. Agrégalas en tu sitio para poder
           conectar Booking.com y Expedia.
         </p>
       ) : loading ? (
-        <p style={{ color: '#9ca3af' }}>Cargando…</p>
+        <p style={{ color: 'var(--clay)' }}>Cargando…</p>
       ) : (
         <div className={styles.tableScroll}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
           <thead>
             <tr style={{ borderBottom: '2px solid var(--line)' }}>
-              <th style={{ textAlign: 'left', padding: '8px 12px', color: '#374151', fontWeight: 600 }}>Habitación</th>
+              <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--bark)', fontWeight: 600 }}>Habitación</th>
               {PLATFORMS.map(p => (
-                <th key={p.value} style={{ textAlign: 'left', padding: '8px 12px', color: '#374151', fontWeight: 600 }}>
+                <th key={p.value} style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--bark)', fontWeight: 600 }}>
                   {p.label}
                 </th>
               ))}
-              <th style={{ textAlign: 'left', padding: '8px 12px', color: '#374151', fontWeight: 600 }}>URL Exportación</th>
+              <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--bark)', fontWeight: 600 }}>URL Exportación</th>
             </tr>
           </thead>
           <tbody>
@@ -241,19 +241,19 @@ export default function CanalesClient({ initial, rooms, slug }: Props) {
                             </button>
                             <button
                               onClick={() => openEdit(cal)}
-                              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: '#6b7280' }}
+                              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--clay)' }}
                             >
                               Editar
                             </button>
                             <button
                               onClick={() => handleDelete(cal.id)}
-                              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: '#dc2626' }}
+                              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--chip-mal-text)' }}
                             >
                               ✕
                             </button>
                           </div>
                           {cal.lastSync && (
-                            <span style={{ fontSize: 11, color: '#9ca3af' }}>
+                            <span style={{ fontSize: 11, color: 'var(--clay)' }}>
                               Última sync: {new Date(cal.lastSync).toLocaleString('es-MX', { timeZone: 'America/Mexico_City', dateStyle: 'short', timeStyle: 'short' })}
                             </span>
                           )}
@@ -264,7 +264,7 @@ export default function CanalesClient({ initial, rooms, slug }: Props) {
                           style={{
                             background: 'none', border: '1px dashed #d1d5db',
                             borderRadius: 4, padding: '3px 10px', cursor: 'pointer',
-                            fontSize: 12, color: '#9ca3af',
+                            fontSize: 12, color: 'var(--clay)',
                           }}
                         >
                           + Agregar URL
@@ -276,7 +276,7 @@ export default function CanalesClient({ initial, rooms, slug }: Props) {
 
                 <td style={{ padding: '10px 12px' }}>
                   <span
-                    style={{ fontSize: 11, color: '#6b7280', fontFamily: 'monospace', cursor: 'pointer' }}
+                    style={{ fontSize: 11, color: 'var(--clay)', fontFamily: 'monospace', cursor: 'pointer' }}
                     onClick={() => navigator.clipboard.writeText(exportUrl(roomName))}
                     title="Clic para copiar"
                   >
@@ -297,7 +297,7 @@ export default function CanalesClient({ initial, rooms, slug }: Props) {
           display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
         }}>
           <div style={{
-            background: '#fff', borderRadius: 12, padding: 28,
+            background: 'var(--cream)', borderRadius: 12, padding: 28,
             width: '100%', maxWidth: 480, boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
           }}>
             <h2 style={{ margin: '0 0 16px', fontSize: 18 }}>
@@ -305,7 +305,7 @@ export default function CanalesClient({ initial, rooms, slug }: Props) {
             </h2>
 
             <div style={{ marginBottom: 12 }}>
-              <label style={{ fontSize: 13, color: '#374151', display: 'block', marginBottom: 4 }}>Habitación</label>
+              <label style={{ fontSize: 13, color: 'var(--bark)', display: 'block', marginBottom: 4 }}>Habitación</label>
               <select
                 value={modal.roomName}
                 onChange={e => setModal(m => m ? { ...m, roomName: e.target.value } : null)}
@@ -316,7 +316,7 @@ export default function CanalesClient({ initial, rooms, slug }: Props) {
             </div>
 
             <div style={{ marginBottom: 12 }}>
-              <label style={{ fontSize: 13, color: '#374151', display: 'block', marginBottom: 4 }}>Plataforma</label>
+              <label style={{ fontSize: 13, color: 'var(--bark)', display: 'block', marginBottom: 4 }}>Plataforma</label>
               <select
                 value={modal.platform}
                 onChange={e => setModal(m => m ? { ...m, platform: e.target.value as Platform } : null)}
@@ -327,7 +327,7 @@ export default function CanalesClient({ initial, rooms, slug }: Props) {
             </div>
 
             <div style={{ marginBottom: 20 }}>
-              <label style={{ fontSize: 13, color: '#374151', display: 'block', marginBottom: 4 }}>
+              <label style={{ fontSize: 13, color: 'var(--bark)', display: 'block', marginBottom: 4 }}>
                 URL iCal de la OTA
               </label>
               <input
@@ -340,7 +340,7 @@ export default function CanalesClient({ initial, rooms, slug }: Props) {
                   borderRadius: 6, fontSize: 13, boxSizing: 'border-box',
                 }}
               />
-              <p style={{ margin: '4px 0 0', fontSize: 11, color: '#9ca3af' }}>
+              <p style={{ margin: '4px 0 0', fontSize: 11, color: 'var(--clay)' }}>
                 Esta URL la encuentras en el Extranet/Portal de la OTA → Calendario → Exportar iCal
               </p>
             </div>
@@ -356,7 +356,7 @@ export default function CanalesClient({ initial, rooms, slug }: Props) {
                 onClick={handleSave}
                 disabled={saving || !modal.icalUrl}
                 style={{
-                  background: '#1d4ed8', color: '#fff', border: 'none',
+                  background: '#1d4ed8', color: 'var(--cream)', border: 'none',
                   borderRadius: 6, padding: '8px 20px', cursor: 'pointer',
                   opacity: saving || !modal.icalUrl ? 0.6 : 1,
                 }}

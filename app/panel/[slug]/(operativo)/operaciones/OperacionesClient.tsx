@@ -98,7 +98,7 @@ function ChecklistModal({ suite, today, onClose, onSaved }: {
           </label>
         </div>
         {error && (
-          <p role="alert" style={{ color: '#b42318', fontSize: 13, margin: '0 16px 8px' }}>{error}</p>
+          <p role="alert" style={{ color: 'var(--chip-mal-text)', fontSize: 13, margin: '0 16px 8px' }}>{error}</p>
         )}
         <div className={styles.modalFooter}>
           <button className={styles.secondaryBtn} onClick={onClose}>Cancelar</button>
@@ -164,7 +164,7 @@ function AddTaskModal({ onClose, onSaved, suites }: { onClose: () => void; onSav
             <textarea rows={2} value={form.notas} onChange={e => set('notas', e.target.value)} />
           </label>
           {error && (
-            <p role="alert" style={{ color: '#b42318', fontSize: 13, margin: '0 0 8px' }}>{error}</p>
+            <p role="alert" style={{ color: 'var(--chip-mal-text)', fontSize: 13, margin: '0 0 8px' }}>{error}</p>
           )}
           <div className={styles.modalFooter}>
             <button type="button" className={styles.secondaryBtn} onClick={onClose}>Cancelar</button>
@@ -253,7 +253,7 @@ export default function OperacionesClient({ initialCleaning, initialMaintenance,
       </div>
 
       {error && (
-        <p role="alert" style={{ color: '#b42318', fontSize: 13, margin: '0 0 12px' }}>{error}</p>
+        <p role="alert" style={{ color: 'var(--chip-mal-text)', fontSize: 13, margin: '0 0 12px' }}>{error}</p>
       )}
 
       {/* Resumen */}

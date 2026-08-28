@@ -594,7 +594,7 @@ export default function ReservationModal({ booking, rooms, slug, defaultCheckin,
               </button>
             </div>
             {tourItems.length === 0 && (
-              <p style={{ fontSize: '0.75rem', color: '#aaa', padding: '6px 0' }}>Sin tours (opcional)</p>
+              <p style={{ fontSize: '0.75rem', color: 'var(--clay)', padding: '6px 0' }}>Sin tours (opcional)</p>
             )}
             {tourItems.map((t, i) => (
               <div key={i} className={styles.roomRow}>
@@ -629,7 +629,7 @@ export default function ReservationModal({ booking, rooms, slug, defaultCheckin,
                 <Plus size={13} /> Agregar paquete
               </button>
             </div>
-            {paqueteItems.length === 0 && <p style={{ fontSize: '0.75rem', color: '#aaa', padding: '6px 0' }}>Sin paquetes (opcional)</p>}
+            {paqueteItems.length === 0 && <p style={{ fontSize: '0.75rem', color: 'var(--clay)', padding: '6px 0' }}>Sin paquetes (opcional)</p>}
             {paqueteItems.map((p, i) => (
               <div key={i} className={styles.roomRow} style={{ flexWrap: 'wrap', gap: 6 }}>
                 <select className={styles.roomRowSelect} style={{ flex: '2 1 140px' }} value={p.nombre}

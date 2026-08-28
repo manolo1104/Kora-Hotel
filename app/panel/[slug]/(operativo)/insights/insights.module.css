@@ -94,7 +94,7 @@
 
 .kpiBar {
   height: 3px;
-  background: #f4f4f2;
+  background: var(--parch);
   border-radius: 2px;
   overflow: hidden;
   margin-top: auto;

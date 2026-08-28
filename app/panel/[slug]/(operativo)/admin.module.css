@@ -17,6 +17,19 @@
      oscuro para poder usar el panel. Este es el verde de marca oscurecido a
      5.14:1, que sí se lee. Usar SIEMPRE éste para texto. */
   --sage-text: #357A5B;
+
+  /* ─── Chips de estado ─────────────────────────────────────────────────────
+     Cada estado es un PAR fondo/texto. Antes cada uno traía sus dos hex
+     sueltos en 6 pantallas, así que en tema oscuro quedaban como parches
+     brillantes sobre el panel. Aquí valen lo mismo de siempre; el bloque
+     oscuro de abajo los voltea a fondo teñido oscuro + texto claro.          */
+  --chip-ok-bg:      #e6f4e8;  --chip-ok-text:      #1a6b22;  /* verde: bien   */
+  --chip-aviso-bg:   #fff3d4;  --chip-aviso-text:   #7a5a00;  /* ámbar: ojo    */
+  --chip-mal-bg:     #fdf0f0;  --chip-mal-text:     #b83a3c;  /* rojo: mal     */
+  --chip-info-bg:    #e0f0f8;  --chip-info-text:    #0d5070;  /* azul: en casa */
+  --chip-neutro-bg:  #f3f4f6;  --chip-neutro-text:  #616a76;  /* gris: inerte  */
+  --chip-morado-bg:  #f3e8fd;  --chip-morado-text:  #5b2a86;  /* reembolsada   */
+  --chip-rosa-bg:    #f8e0e8;  --chip-rosa-text:    #7a0030;  /* no-show       */
   --accent: #52B788;
 
   /* Acentos (antes dorados) → verde */
@@ -51,8 +64,11 @@
 
 @media (max-width: 767px) {
   .shell { flex-direction: column; padding-top: 0; }
-  /* padding-top deja espacio al botón hamburguesa fijo (top:12px, height:40px) */
-  .content { padding: 64px 16px 20px; }
+  /* padding-top deja espacio al botón hamburguesa fijo (top:12px, height:40px).
+     El padding-bottom de 20px no bastaba: el chat de soporte y el botón de
+     ayuda son fijos abajo a la derecha y tapaban el último cuarto de la lista,
+     que en el celular de la camarista es justo el que necesita tocar. */
+  .content { padding: 64px 16px 104px; }
 }
 
 /* Calendario de disponibilidad: grid de mini-meses; en móvil un mes a lo
@@ -92,6 +108,16 @@
   --line:   #2F3C36;   /* líneas divisorias */
 
   --sage-text: #74D0A3;  /* el verde de texto, aclarado (8.8:1 sobre la tarjeta oscura) */
+
+  /* Chips: fondo teñido OSCURO + texto claro del mismo tono. Así el estado se
+     sigue leyendo de un vistazo sin ser una mancha blanca sobre el panel. */
+  --chip-ok-bg:      #16301F;  --chip-ok-text:      #7BD69A;
+  --chip-aviso-bg:   #33280C;  --chip-aviso-text:   #E8C46A;
+  --chip-mal-bg:     #3A1B1C;  --chip-mal-text:     #F0908F;
+  --chip-info-bg:    #122A38;  --chip-info-text:    #82C4E4;
+  --chip-neutro-bg:  #262F2B;  --chip-neutro-text:  #A3AFA9;
+  --chip-morado-bg:  #2A1E3A;  --chip-morado-text:  #C4A2E8;
+  --chip-rosa-bg:    #381A26;  --chip-rosa-text:    #EE9DB8;
 
   --ink:    #E8EDEA;   /* texto primario */
   --bark:   #C3CDC8;

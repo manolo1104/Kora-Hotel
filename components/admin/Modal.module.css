@@ -114,7 +114,7 @@
   color: #8a1a1a;
   margin: 0;
   padding: 10px 14px;
-  background: #fdf0f0;
+  background: var(--chip-mal-bg);
   border-radius: 4px;
 }
 
@@ -165,12 +165,12 @@
   padding: 10px 16px;
   font-size: 0.875rem;
   font-family: var(--font-jost), sans-serif;
-  color: #c9484a;
+  color: var(--chip-mal-text);
   cursor: pointer;
   margin-right: auto;
   transition: background 0.15s;
 }
-.dangerBtn:hover { background: #fff0f0; }
+.dangerBtn:hover { background: var(--chip-mal-bg); }
 .dangerBtn:disabled { opacity: 0.6; cursor: not-allowed; }
 
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -224,9 +224,9 @@
   font-size: 0.83rem;
   font-weight: 500;
 }
-.availChecking { background: #f5f3ef; color: var(--clay); }
-.availOk       { background: #f0f7f0; color: #2d7a34; }
-.availNo       { background: #fdf0f0; color: #c9484a; }
+.availChecking { background: var(--parch); color: var(--clay); }
+.availOk       { background: var(--chip-ok-bg); color: var(--chip-ok-text); }
+.availNo       { background: var(--chip-mal-bg); color: var(--chip-mal-text); }
 
 /* Salida de emergencia: meter la reserva encima de otra a sabiendas. Va en el
    mismo tono de aviso que el badge de "no disponible" —no en verde ni neutro—
@@ -239,14 +239,14 @@
   padding: 10px 12px;
   border: 1px solid #f0d4d4;
   border-radius: 10px;
-  background: #fffaf9;
+  background: var(--chip-mal-bg);
   font-size: 12px;
   line-height: 1.5;
   color: #7a3b3c;
   cursor: pointer;
 }
-.forzar input { margin-top: 2px; flex-shrink: 0; accent-color: #c9484a; }
-.forzar strong { color: #c9484a; }
+.forzar input { margin-top: 2px; flex-shrink: 0; accent-color: var(--chip-mal-text); }
+.forzar strong { color: var(--chip-mal-text); }
 
 /* Multi-habitación */
 .roomsSection { display: flex; flex-direction: column; gap: 8px; border: 1px solid #e4ddd3; border-radius: 6px; padding: 12px 14px; }
@@ -262,8 +262,8 @@
   .roomRow { grid-template-columns: 1fr auto; row-gap: 6px; }
   .roomRow > select:first-child { grid-column: 1 / -1; }
 }
-.removeRoomBtn { background: none; border: 1px solid #e4ddd3; border-radius: 4px; padding: 7px; cursor: pointer; color: #c9484a; display: flex; align-items: center; }
-.removeRoomBtn:hover { background: #fdf0f0; border-color: #c9484a; }
+.removeRoomBtn { background: none; border: 1px solid #e4ddd3; border-radius: 4px; padding: 7px; cursor: pointer; color: var(--chip-mal-text); display: flex; align-items: center; }
+.removeRoomBtn:hover { background: var(--chip-mal-bg); border-color: var(--chip-mal-text); }
 .roomsTotal { font-size: 0.75rem; color: var(--sage-text); margin: 0; text-align: right; }
 
 .roomPriceInput {
@@ -282,7 +282,7 @@
 
 /* Anticipo / Restante */
 .anticipoSection {
-  background: #f4f0e8;
+  background: var(--parch);
   border-radius: 6px;
   padding: 14px 16px;
   display: flex;

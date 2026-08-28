@@ -48,9 +48,9 @@
   margin-left: auto;
   padding: 6px 12px;
   border-radius: 20px;
-  background: rgba(250, 204, 21, 0.1);
-  border: 1px solid rgba(250, 204, 21, 0.3);
-  color: #92750a;
+  background: var(--chip-aviso-bg);
+  border: 1px solid var(--chip-aviso-text);
+  color: var(--chip-aviso-text);
   font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.04em;
@@ -60,7 +60,7 @@
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  background: #fffbe6;
+  background: var(--chip-aviso-bg);
   border: 1px solid #f5e7a0;
   border-radius: 8px;
   padding: 16px 18px;
@@ -172,7 +172,7 @@
 .faseRec {
   font-size: 0.78rem;
   color: #2d7a34;
-  background: #f0f7f0;
+  background: var(--chip-ok-bg);
   border: 1px solid #c8e2c8;
   border-radius: 4px;
   padding: 8px 10px;
@@ -239,7 +239,7 @@
   padding: 8px 12px; border-bottom: 1px solid var(--line); white-space: nowrap;
 }
 .table tbody td { padding: 11px 12px; border-bottom: 1px solid #f1f1ef; color: var(--ink); vertical-align: middle; }
-.table tbody tr:hover { background: #fafafa; }
+.table tbody tr:hover { background: var(--parch); }
 .right { text-align: right; }
 .mono { font-variant-numeric: tabular-nums; color: var(--clay); font-size: 0.8rem; }
 .dim { color: var(--clay); font-size: 0.8rem; white-space: nowrap; }
@@ -281,7 +281,7 @@
 
 .modalSummary {
   display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
-  padding: 14px 22px; background: #fafafa; border-bottom: 1px solid #f1f1ef; font-size: 0.85rem;
+  padding: 14px 22px; background: var(--parch); border-bottom: 1px solid var(--line); font-size: 0.85rem;
 }
 .modalSummary strong { margin-left: auto; color: var(--forest-text); }
 .modalSummary small { font-weight: 400; color: var(--clay); }
@@ -298,7 +298,7 @@
 
 .formError {
   display: flex; align-items: center; gap: 8px; margin: 0 22px;
-  background: #fdf0f0; border: 1px solid #f3c9c9; color: #a32d2d;
+  background: var(--chip-mal-bg); border: 1px solid #f3c9c9; color: #a32d2d;
   border-radius: 8px; padding: 10px 14px; font-size: 0.82rem;
 }
 .formError svg { flex-shrink: 0; }

@@ -29,7 +29,7 @@
 .tabActive { color: var(--forest-text); border-bottom-color: var(--forest-text); font-weight: 600; }
 
 /* Offer */
-.offerSection { background: #f0f7f0; border: 1px solid #c8e2c8; border-radius: 6px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.offerSection { background: var(--chip-ok-bg); border: 1px solid #c8e2c8; border-radius: 6px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
 .offerDesc { font-size: 0.78rem; color: var(--sage-text); margin: 0; line-height: 1.5; }
 .offerBtn { display: flex; align-items: center; justify-content: center; gap: 6px; background: var(--forest); color: var(--cream); border: none; border-radius: 4px; padding: 9px 16px; font-size: 0.83rem; font-family: var(--font-jost), sans-serif; cursor: pointer; transition: background 0.15s; }
 .offerBtn:hover:not(:disabled) { background: var(--moss); }
@@ -48,7 +48,7 @@
 .stayId { font-size: 0.68rem; color: var(--clay); margin-top: 4px; }
 
 /* Notes hint */
-.notasHint { font-size: 0.75rem; color: var(--clay); font-style: italic; background: #fffbe6; border: 1px solid #f5e7a0; border-radius: 4px; padding: 8px 10px; margin: 0; line-height: 1.5; }
+.notasHint { font-size: 0.75rem; color: var(--clay); font-style: italic; background: var(--chip-aviso-bg); border: 1px solid #f5e7a0; border-radius: 4px; padding: 8px 10px; margin: 0; line-height: 1.5; }
 .notasLabel { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--clay); }
 
 /* Drawer */
@@ -78,3 +78,14 @@
 .saveBtn:disabled { opacity: 0.6; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .spin { animation: spin 0.7s linear infinite; }
+
+
+/* ─── Móvil ──────────────────────────────────────────────────────────────────
+   La tabla de clientes sólo tenía scroll horizontal. Se le da tamaño táctil y
+   se evita que el cajón lateral se coma la pantalla. */
+@media (max-width: 640px) {
+  .pageHeader { flex-direction: column; align-items: stretch; gap: 10px; }
+  .waBtn, .closeBtn, .offerBtn { min-height: 44px; }
+  .drawer { width: 100%; max-width: 100%; }
+  .table { min-width: 34rem; }
+}

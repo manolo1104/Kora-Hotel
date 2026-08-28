@@ -36,7 +36,7 @@
 .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--forest-text); }
 .field textarea { resize: vertical; }
 .pricePreview { padding: 9px 12px; background: var(--parch); border-radius: 4px; font-size: 0.95rem; font-weight: 600; color: var(--forest-text); }
-.error { font-size: 0.83rem; color: #8a1a1a; padding: 10px 14px; background: #fdf0f0; border-radius: 4px; }
+.error { font-size: 0.83rem; color: #8a1a1a; padding: 10px 14px; background: var(--chip-mal-bg); border-radius: 4px; }
 .actions { display: flex; gap: 10px; justify-content: flex-end; padding-top: 8px; border-top: 1px solid var(--line); }
 .secondaryBtn { background: none; border: 1px solid var(--line); border-radius: 4px; padding: 9px 16px; font-size: 0.875rem; font-family: var(--font-jost), sans-serif; color: var(--clay); cursor: pointer; }
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -49,7 +49,7 @@
 
 /* Filtros */
 .filterBadge { display: inline-block; background: var(--sand); color: var(--forest-text); font-size: 0.65rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; padding: 2px 7px; border-radius: 3px; margin-left: 8px; }
-.iconBtnActive { border-color: var(--forest-text); color: var(--forest-text); background: #f0f7f0; gap: 5px; }
+.iconBtnActive { border-color: var(--forest-text); color: var(--forest-text); background: var(--chip-ok-bg); gap: 5px; }
 .searchWrap { position: relative; margin-bottom: 10px; }
 .searchIcon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--clay); }
 .searchInput { width: 100%; padding: 9px 12px 9px 32px; border: 1px solid var(--line); border-radius: 4px; font-size: 0.875rem; font-family: var(--font-jost), sans-serif; background: var(--cream); outline: none; }
@@ -72,7 +72,7 @@
 .roomRowSelect { padding: 8px 10px; border: 1px solid var(--line); border-radius: 4px; font-size: 0.875rem; font-family: var(--font-jost), sans-serif; background: var(--cream); color: var(--ink); outline: none; }
 .roomRowSelect:focus { border-color: var(--forest-text); }
 .removeRoomBtn { background: none; border: 1px solid var(--line); border-radius: 4px; padding: 7px; cursor: pointer; color: #c9484a; display: flex; align-items: center; }
-.removeRoomBtn:hover { background: #fdf0f0; border-color: #c9484a; }
+.removeRoomBtn:hover { background: var(--chip-mal-bg); border-color: #c9484a; }
 
 /* Precio editable */
 .priceBreakdown { background: var(--parch); border-radius: 6px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; }
@@ -140,7 +140,7 @@
 }
 
 /* Anticipo / Restante */
-.anticipoSection { background: #f9fafb; border-radius: 6px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+.anticipoSection { background: var(--parch); border-radius: 6px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
 .anticipoLabel { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--clay); }
 .anticipoGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 @media (max-width: 480px) { .anticipoGrid { grid-template-columns: 1fr; } }
@@ -151,9 +151,9 @@
 
 /* Promo 3x2 */
 .promoRow { display: flex; align-items: center; gap: 10px; padding: 6px 0; }
-.promoBtn { display: flex; align-items: center; gap: 6px; border: 1px dashed #52b788; border-radius: 4px; padding: 7px 14px; font-size: 0.8rem; color: #8a6830; background: #f9fafb; cursor: pointer; font-family: var(--font-jost), sans-serif; transition: all 0.15s; white-space: nowrap; }
-.promoBtn:hover:not(:disabled) { border-color: #8a6830; background: #fdf3e0; }
+.promoBtn { display: flex; align-items: center; gap: 6px; border: 1px dashed #52b788; border-radius: 4px; padding: 7px 14px; font-size: 0.8rem; color: #8a6830; background: var(--parch); cursor: pointer; font-family: var(--font-jost), sans-serif; transition: all 0.15s; white-space: nowrap; }
+.promoBtn:hover:not(:disabled) { border-color: #8a6830; background: var(--chip-aviso-bg); }
 .promoBtn:disabled { opacity: 0.4; cursor: not-allowed; }
-.promoBtnActive { border-style: solid; border-color: #2d7a34; background: #f0f7f0; color: #2d7a34; font-weight: 600; }
-.promoBtnActive:hover:not(:disabled) { background: #e6f4e8; }
+.promoBtnActive { border-style: solid; border-color: #2d7a34; background: var(--chip-ok-bg); color: #2d7a34; font-weight: 600; }
+.promoBtnActive:hover:not(:disabled) { background: var(--chip-ok-bg); }
 .promoSaving { font-size: 0.78rem; color: #2d7a34; font-weight: 600; }
