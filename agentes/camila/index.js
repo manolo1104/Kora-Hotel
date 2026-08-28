@@ -40,6 +40,10 @@ const pausados = new Map();
 const botEnvioAt = new Map();
 // Clientes de WhatsApp VIVOS por hotel: slug -> Client. Fuente de verdad de qué
 // hoteles está atendiendo Camila ahora mismo (para arrancar/apagar en caliente).
+// slug -> { client, kora }. Guarda TAMBIÉN el KoraHotel para poder refrescarle
+// el token en cada pasada del fleet (K-289): antes sólo se guardaba el Client y
+// el token quedaba congelado desde el arranque, así que rotar tokens habría
+// dejado muda a Camila en todos los hoteles a la vez.
 const clientes = new Map();
 // Cada cuánto re-consultar el fleet para arrancar hoteles nuevos (registros en
 // prueba) y apagar los que caen (prueba vencida sin pago, bot apagado).
@@ -214,7 +218,7 @@ function arrancarHotel(hotel) {
     }
   });
 
-  return client;
+  return { client, kora };
 }
 
 async function onMensaje(client, slug, kora, msg) {
@@ -379,7 +383,7 @@ function servidorEstado() {
 // llaman por el uuid del hotel, que no se reutiliza nunca. Lo que queda en disco
 // es basura, no una puerta abierta.
 async function pararHotel(slug) {
-  const client = clientes.get(slug);
+  const { client } = clientes.get(slug) ?? {};
   clientes.delete(slug);
   estado.delete(slug);
   // Limpia el estado por-chat de ese hotel (claves `${slug}::chatId`).
@@ -422,6 +426,11 @@ async function sincronizarFleet() {
       if (!clientes.has(hotel.slug)) {
         console.log(`[camila] + arrancando ${hotel.slug}`);
         clientes.set(hotel.slug, arrancarHotel(hotel));
+      } else {
+        // Ya corre: se le refrescan los datos por si el token se rotó (o
+        // cambió el nombre o el idioma del hotel). Sin este `else`, un bot
+        // arrancado no volvía a mirar su token nunca más.
+        clientes.get(hotel.slug).kora.actualizar(hotel);
       }
     }
     // Apagar los que corren pero ya NO están en el fleet.

@@ -99,12 +99,23 @@ cero   "A10.2 nadie llama a emails.send fuera"     bash -c 'grep -rnI --exclude=
 sec "A11 · Runtime de Camila"
 cero "A11.1 sin página HTML en el runtime"         bash -c 'grep -niI "doctype html\|text/html" agentes/camila/index.js'
 cero "A11.2 sin portillo KORA_FLEET"               bash -c 'grep -rnI --exclude=verificar-arreglos.sh "KORA_FLEET" agentes/'
-cero "A11.3 Dockerfile con npm ci"                 bash -c 'grep -nI "npm install" agentes/camila/Dockerfile'
+# Ignora los comentarios: explicar POR QUÉ no se usa `npm install` no puede
+# volver a marcar el hallazgo (mismo fallo de un-solo-archivo que A11.8a).
+cero "A11.3 Dockerfile con npm ci"                 bash -c 'grep -nE "^[[:space:]]*[^#[:space:]].*npm install" agentes/camila/Dockerfile'
 cero "A11.4 Dockerfile no corre como root"         bash -c 'grep -qI "^USER " agentes/camila/Dockerfile || echo "falta USER en el Dockerfile"'
 cero "A11.5 KORA_BASE_URL valida https"            bash -c 'grep -qI "https" agentes/camila/fleet.js || echo "fleet.js no valida el esquema de KORA_BASE_URL"'
 cero "A11.6 apagado no compara 10 dígitos"         bash -c 'grep -nI "slice(-10)" agentes/camila/index.js'
 cero "A11.7 sesión por hotel_id, no por slug"      bash -c 'grep -nI "clientId: *slug\|clientId: *h.slug" agentes/camila/index.js'
-cero "A11.8 el fleet relee el token"               bash -c 'grep -qI "token !== \|tokenCambio\|token rotado" agentes/camila/index.js || echo "el fleet nunca compara el token"'
+# Buscaba la comparación del token en index.js, pero el arreglo del paso 6.4
+# —el que propone el plan— vive en kora.js (`KoraHotel.actualizar`). Con la
+# comprobación vieja, hacerlo bien dejaba el chivato en ROJO igual. Ahora se
+# miran las DOS mitades, que es lo que de verdad hace falta para que rotar los
+# tokens no apague la flota.
+# `sinComentarios` NO sirve aquí: espera el prefijo "archivo:línea:" que sólo
+# imprime `grep -rn` sobre varios archivos. Sobre uno solo hay que mirar que el
+# primer carácter no-espacio de la línea no sea el de un comentario.
+cero "A11.8a el fleet refresca a los que ya corren" bash -c 'grep -qE "^[[:space:]]*[^/*[:space:]].*kora\.actualizar\(" agentes/camila/index.js || echo "sincronizarFleet no refresca los hoteles ya arrancados"'
+cero "A11.8b actualizar() compara el token"       bash -c 'grep -A 12 "  actualizar(hotel)" agentes/camila/kora.js | grep -qI "this.token !== hotel.token" || echo "actualizar() no compara el token (o no existe)"'
 
 sec "A12 · Dependencias y versiones"
 cero "A12.1 npm audit sin high ni critical"        bash -c 'npm audit --audit-level=high --json 2>/dev/null | node -e "let s=\"\";process.stdin.on(\"data\",d=>s+=d).on(\"end\",()=>{try{const v=JSON.parse(s).metadata.vulnerabilities;if((v.high||0)+(v.critical||0)>0)console.log(\"high=\"+v.high+\" critical=\"+v.critical)}catch(e){console.log(\"npm audit no devolvió JSON\")}})"'

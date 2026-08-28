@@ -28,7 +28,7 @@ Stripe (link de pago)  →  webhook  →  reserva atómica + correos
 
 | Archivo | Qué hace |
 |---|---|
-| `index.js` | Arranca una sesión de WhatsApp por hotel; debounce, "toma humana", página de estado/QR + `/health`. |
+| `index.js` | Arranca una sesión de WhatsApp por hotel; debounce, "toma humana" (**apagada** por defecto, ver abajo), `/health`. La página de estado/QR se borró: era pública y servía el QR de vinculación de cualquier hotel. |
 | `brain.js` | La conversación con Claude (tool-use). Genérico; el contexto del hotel se inyecta. |
 | `kora.js` | Cliente de `/api/agent` para un hotel (knowledge / availability / reservar), con caché de conocimiento. |
 | `fleet.js` | Carga la flota desde `/api/bots/fleet` (o `KORA_FLEET` para pruebas). |
@@ -68,7 +68,11 @@ KORA_FLEET=[{"slug":"mi-hotel","nombre":"Mi Hotel","token":"kora_...","lang":"es
   ya hace bien, viable para arrancar. El salto correcto al escalar es la **API
   oficial de WhatsApp Cloud**: se aísla en un solo módulo (un `kora.js`-equivalente
   del lado transporte), no un rewrite.
-- **Costo de IA:** por defecto `claude-opus-4-8`. Para volumen, pon
+- **Toma humana APAGADA:** pausar el bot cuando alguien del hotel responde a mano
+  requiere `CAMILA_HUMAN_TAKEOVER=1`. Está apagada a propósito: con el formato
+  `@lid`, whatsapp-web.js reporta mal `fromMe` en mensajes ENTRANTES y pausaba
+  chats sin razón, dejando a Camila muda sin causa aparente.
+- **Costo de IA:** por defecto `claude-sonnet-5` (`brain.js:15`). Para volumen, pon
   `CAMILA_MODEL=claude-sonnet-5` (o `claude-haiku-4-5`).
 - **RAM:** cada hotel = un Chromium (~250–400 MB). Para muchas sesiones en un solo
   contenedor conviene subir el plan o repartir en varios servicios.

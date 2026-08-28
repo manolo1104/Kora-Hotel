@@ -25,6 +25,36 @@ export class KoraHotel {
     this._statusAt = 0;
   }
 
+  /**
+   * Refresca los datos del hotel desde el fleet: token rotado, nombre o idioma
+   * cambiados. Se llama en CADA pasada del fleet sobre los hoteles que ya
+   * corren.
+   *
+   * Sin esto (K-289), un hotel arrancado se quedaba con el token que leyó al
+   * arrancar y no volvía a mirarlo NUNCA. O sea: el día que se roten los tokens
+   * —que es lo que exige cerrar la fuga de `agent_token`— los bots vivos
+   * seguirían mandando el viejo, `/api/agent` respondería 401 a todo, y Camila
+   * se quedaría muda en los hoteles a la vez y sin que nadie supiera por qué.
+   * Esta función es la que hace que esa rotación sea un trámite y no un apagón.
+   *
+   * Las cachés se invalidan SÓLO si el token cambió: hacerlo en cada pasada
+   * (cada 5 min) dispararía el gasto de `knowledge` sin motivo.
+   */
+  actualizar(hotel) {
+    if (!hotel) return;
+    const cambio = this.token !== hotel.token;
+    this.token = hotel.token;
+    this.nombre = hotel.nombre;
+    this.lang = hotel.lang === "en" ? "en" : "es";
+    if (cambio) {
+      this._knowledge = null;
+      this._knowledgeAt = 0;
+      this._status = null;
+      this._statusAt = 0;
+      console.log(`[${this.slug}] token rotado, cachés invalidadas`);
+    }
+  }
+
   // POST base a /api/agent. `conv` (teléfono/chat) alimenta las métricas del
   // panel sin doble conteo. Devuelve el JSON o lanza si la red/servidor falla.
   async _post(body) {

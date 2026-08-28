@@ -18,7 +18,14 @@
 create table if not exists public.agent_activity (
   id         uuid primary key default gen_random_uuid(),
   hotel_id   uuid not null references public.hoteles(id) on delete cascade,
-  tipo       text not null,           -- whatsapp_conv | email_confirmacion | email_preestancia | email_postestancia | blog_publicado | cotizacion_auto_enviada
+  -- Los 8 valores de `AgentActivityType` (lib/db/admin.ts:1482). Este comentario
+  -- listaba 6 y faltaban `whatsapp_reserva` y `resena_capturada`, que el código
+  -- lleva escribiendo desde hace meses. SIN `check`: `logAgentActivity` es
+  -- fail-safe a propósito (una métrica perdida no puede tumbar una reserva), y
+  -- un CHECK convertiría un tipo nuevo en un error de escritura.
+  tipo       text not null,           -- whatsapp_conv | whatsapp_reserva | resena_capturada |
+                                      -- email_confirmacion | email_preestancia | email_postestancia |
+                                      -- blog_publicado | cotizacion_auto_enviada
   fecha      date not null,           -- día en zona America/Mexico_City (lo pone el servidor)
   detalle    text not null default '',-- p.ej. "conv:5214891234567", "post_day7:PE-2026-ABCD"
   created_at timestamptz not null default now()
