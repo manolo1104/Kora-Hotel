@@ -2,7 +2,7 @@ import { negar } from "@/lib/panel/permisos";
 import { NextRequest, NextResponse } from 'next/server';
 import { getActiveHotel } from '@/lib/panel/active-hotel';
 import { getQuote, updateQuoteStatus, logAgentActivity } from '@/lib/db/admin';
-import { type TourItem } from '@/lib/booking-html';
+import { parseNotas, type TourItem } from '@/lib/notas';
 import { buildBrandedBookingEmailHtml, bookingBrandFromHotel, bookingFromHotel } from '@/lib/email/booking-branded';
 import { enviarEmailOFallar } from '@/lib/email/resend';
 import { rutaSegura } from '@/lib/api/responder';
@@ -11,24 +11,11 @@ export const dynamic = 'force-dynamic';
 
 interface PaqueteItem { nombre: string; habitacion: string; noches: number; personas: number; precio: number }
 
-function parseTours(notas: string): TourItem[] {
-  const idx = notas.indexOf('||TOURS||');
-  if (idx === -1) return [];
-  try { return JSON.parse(notas.slice(idx + 9).split('||PAQUETES||')[0]); } catch { return []; }
-}
-function parsePaquetes(notas: string): PaqueteItem[] {
-  const idx = notas.indexOf('||PAQUETES||');
-  if (idx === -1) return [];
-  try { return JSON.parse(notas.slice(idx + 12).split('||HABS||')[0]); } catch { return []; }
-}
-function parseNotasCliente(notas: string): string {
-  return (notas || '')
-    .split('||INTERNO||')[0]
-    .split('||TOURS||')[0]
-    .split('||PAQUETES||')[0]
-    .split('||HABS||')[0]
-    .trim();
-}
+// El parser vive en `lib/notas.ts` (paso 7.3): había cinco copias y tres
+// cortaban mal, cada una olvidando una marca distinta.
+const parseTours = (notas: string) => parseNotas(notas).tours;
+const parsePaquetes = (notas: string) => parseNotas(notas).paquetes;
+const parseNotasCliente = (notas: string) => parseNotas(notas).cliente;
 
 export async function POST(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   return rutaSegura('admin.cotizaciones.sendEmail', async () => {

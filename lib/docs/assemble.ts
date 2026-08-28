@@ -9,6 +9,7 @@ import { bookingBrandFromHotel, type BookingBrand } from "@/lib/email/booking-br
 import { bookingRules } from "@/lib/booking/rooms";
 import { calcDepositAmount } from "@/lib/booking/engine";
 import type { CotizacionDocData, ReservaDocData, DocConcepto } from "./documento-branded";
+import { parseNotas, type PaqueteItem, type HabItem } from "@/lib/notas";
 
 // ── Helpers de formato ───────────────────────────────────────────────────────
 const WD = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
@@ -58,24 +59,12 @@ function limpiaSuites(csv: string): string {
 
 // ── Parsers del campo `notas` (sobrecargado con separadores) ─────────────────
 interface TourItem { nombre: string; personas: number; precio: number }
-interface PaqueteItem { nombre: string; habitacion: string; noches: number; personas: number; precio: number }
-interface HabItem { suite: string; huespedes: number }
 
-function parseTours(notas: string): TourItem[] {
-  const i = (notas || "").indexOf("||TOURS||");
-  if (i === -1) return [];
-  try { return JSON.parse(notas.slice(i + 9).split("||PAQUETES||")[0].split("||HABS||")[0]); } catch { return []; }
-}
-function parsePaquetes(notas: string): PaqueteItem[] {
-  const i = (notas || "").indexOf("||PAQUETES||");
-  if (i === -1) return [];
-  try { return JSON.parse(notas.slice(i + 12).split("||HABS||")[0]); } catch { return []; }
-}
-function parseHabs(notas: string): HabItem[] {
-  const i = (notas || "").indexOf("||HABS||");
-  if (i === -1) return [];
-  try { return JSON.parse(notas.slice(i + 8)); } catch { return []; }
-}
+// Éste era el ÚNICO de los cinco parsers que cortaba bien, y de aquí salió
+// `lib/notas.ts`. Se queda como envoltorio para que no haya dos.
+const parseTours = (notas: string) => parseNotas(notas).tours;
+const parsePaquetes = (notas: string) => parseNotas(notas).paquetes;
+const parseHabs = (notas: string) => parseNotas(notas).habitaciones;
 
 // Conceptos = línea de hospedaje (total − extras) + tours + paquetes. Es la misma
 // aproximación que ya usaban los /render (no hay desglose persistido).

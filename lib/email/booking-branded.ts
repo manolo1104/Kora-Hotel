@@ -6,7 +6,7 @@
 // SOLO servidor. Los usan: send-email del panel, el webhook (confirmación) y el
 // cron de abandono (recordatorio) — vía lib/email/reserva.ts.
 
-import type { TourItem } from "@/lib/booking-html";
+import type { TourItem } from "@/lib/notas";
 import type { HotelRow } from "@/lib/tenant";
 // Tipografía, paleta y piezas: TODO viene del sistema de diseño único de
 // correos. Aquí solo se mantienen los alias con los nombres locales para no

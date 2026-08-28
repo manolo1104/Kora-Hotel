@@ -2,27 +2,19 @@ import { negar } from "@/lib/panel/permisos";
 import { NextRequest, NextResponse } from 'next/server';
 import { getActiveHotel } from '@/lib/panel/active-hotel';
 import { getAllBookings, logAgentActivity } from '@/lib/db/admin';
-import { type TourItem } from '@/lib/booking-html';
+import { parseNotas } from '@/lib/notas';
 import { buildBrandedBookingEmailHtml, bookingBrandFromHotel, bookingFromHotel } from '@/lib/email/booking-branded';
 import { enviarEmailOFallar } from '@/lib/email/resend';
 import { rutaSegura } from '@/lib/api/responder';
 
 export const dynamic = 'force-dynamic';
 
-function parseTours(notas: string): TourItem[] {
-  const idx = notas.indexOf('||TOURS||');
-  if (idx === -1) return [];
-  try { return JSON.parse(notas.slice(idx + 9).split('||PAQUETES||')[0]); } catch { return []; }
-}
-
-function parseNotasCliente(notas: string): string {
-  return (notas || '')
-    .split('||INTERNO||')[0]
-    .split('||TOURS||')[0]
-    .split('||PAQUETES||')[0]
-    .split('||HABS||')[0]
-    .trim();
-}
+// El parser vive en `lib/notas.ts`. La copia que había aquí cortaba los tours
+// por ||PAQUETES|| pero NO por ||HABS||: una reserva con tours y habitaciones y
+// sin paquetes —el caso normal— reventaba el JSON.parse y el `catch` devolvía
+// []. Los tours que el huésped PAGÓ no salían en su correo de confirmación.
+const parseTours = (notas: string) => parseNotas(notas).tours;
+const parseNotasCliente = (notas: string) => parseNotas(notas).cliente;
 
 export async function POST(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   return rutaSegura('admin.reservas.sendEmail', async () => {

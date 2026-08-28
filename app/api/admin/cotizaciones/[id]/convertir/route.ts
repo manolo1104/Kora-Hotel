@@ -6,6 +6,7 @@ import { getQuote, updateQuoteStatus } from "@/lib/db/admin";
 import { createBookingAtomic, generarConfirmacion } from "@/lib/db/bookings";
 import { bookingRules } from "@/lib/booking";
 import { calcDepositAmount } from "@/lib/booking/engine";
+import { parseNotas } from "@/lib/notas";
 
 export const dynamic = "force-dynamic";
 
@@ -13,17 +14,14 @@ export const dynamic = "force-dynamic";
 // (createBookingAtomic) para no sobrevender, genera un folio de reserva nuevo y
 // marca la cotización ACEPTADA. Idempotente-ish: si ya está ACEPTADA, no repite.
 
-/** Huéspedes totales del JSON ||HABS|| de la cotización (fallback suites*2). */
+/** Huéspedes totales del bloque de habitaciones (fallback suites*2). */
 function huespedesDeNotas(notas: string, nSuites: number): number {
-  const idx = notas.indexOf("||HABS||");
-  if (idx !== -1) {
-    try {
-      const habs = JSON.parse(notas.slice(idx + 8)) as Array<{ huespedes?: number }>;
-      const suma = habs.reduce((s, h) => s + (Number(h?.huespedes) || 0), 0);
-      if (suma > 0) return suma;
-    } catch {
-      /* cae al fallback */
-    }
+  {
+    const suma = parseNotas(notas).habitaciones.reduce(
+      (s, h) => s + (Number(h?.huespedes) || 0),
+      0,
+    );
+    if (suma > 0) return suma;
   }
   return Math.max(1, nSuites * 2);
 }
@@ -72,7 +70,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     huespedes: huespedesDeNotas(q.notas || "", habitaciones.length),
     estado: "MANUAL",
     origen: "cotizacion",
-    notas: q.notas || null, // conserva ||TOURS||/||PAQUETES||/||HABS|| para render/email
+    notas: q.notas || null, // se copia entero: los bloques de máquina los necesitan el render y el correo
   });
 
   // El folio son 4 caracteres al azar: si choca con el índice único

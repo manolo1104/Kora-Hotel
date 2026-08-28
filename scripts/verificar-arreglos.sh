@@ -76,8 +76,8 @@ cero "A6.3 sin STRIPE_PRICE_ del plan viejo"       bash -c 'grep -rnI --exclude=
 
 sec "A7 · Un solo parser del campo notas"
 cero "A7.0 existe lib/notas.ts"                    bash -c '[ -f lib/notas.ts ] || echo "falta lib/notas.ts"'
-cero "A7.1 ||TOURS||/||HABS|| sólo en lib/notas.ts" bash -c 'grep -rnI --exclude=verificar-arreglos.sh --include="*.ts" --include="*.tsx" -- "||TOURS||\|||HABS||\|||PAQUETES||" app lib components | grep -v "^lib/notas.ts"'
-cero "A7.2 sin la plantilla vieja booking-html"    bash -c 'grep -rnI --exclude=verificar-arreglos.sh --include="*.ts" --include="*.tsx" "booking-html\|buildBookingHtml\|printBookingPDF" app lib components'
+cero "A7.1 ||TOURS||/||HABS|| sólo en lib/notas.ts" bash -c 'grep -rnI --exclude=verificar-arreglos.sh --include="*.ts" --include="*.tsx" -- "||TOURS||\|||HABS||\|||PAQUETES||" app lib components | grep -v "^lib/notas.ts" | grep -vE "^[^:]+:[0-9]+:[[:space:]]*(//|\*|/\*)"'
+cero "A7.2 sin la plantilla vieja booking-html"    bash -c 'grep -rnI --exclude=verificar-arreglos.sh --include="*.ts" --include="*.tsx" "booking-html\|buildBookingHtml\|printBookingPDF" app lib components | grep -vE "^[^:]+:[0-9]+:[[:space:]]*(//|\*|/\*)"'
 
 sec "A8 · Secretos, credenciales y cadena de suministro"
 cero "A8.1 .env fuera de git"                      bash -c 'git ls-files | grep "^\.env$"'
@@ -93,8 +93,11 @@ cero "A9.1 sin Map de rate limit en el proceso"    bash -c 'grep -rnI --exclude=
 cero "A9.2 toda ruta pública llama a limitar()"    bash -c 'for f in app/api/leads/route.ts app/api/soporte/route.ts app/api/crm/login/route.ts app/api/agent/route.ts app/api/agent-demo/route.ts app/api/herramientas/generar/route.ts app/api/reserva/reenviar/route.ts app/api/reserva/cancelar/route.ts app/api/reserva/consultar/route.ts app/api/h/*/checkout/route.ts app/api/h/*/intento/route.ts app/api/h/*/hold/route.ts app/api/admin/bot-preview/route.ts; do [ -f "$f" ] && ! grep -q "limitar(" "$f" && echo "SIN LIMITE: $f"; done'
 
 sec "A10 · Una sola puerta de salida de correo"
-exacto "A10.1 un solo new Resend()"              1 bash -c 'grep -rnI --exclude=verificar-arreglos.sh --include="*.ts" "new Resend(" app lib'
-cero   "A10.2 nadie llama a emails.send fuera"     bash -c 'grep -rnI --exclude=verificar-arreglos.sh --include="*.ts" "emails.send(" app lib | grep -v "lib/email/resend.ts"'
+# A10.1/A10.2 contaban sus PROPIOS comentarios: explicar por escrito que antes
+# había cinco `new Resend()` volvía a marcar el hallazgo ya arreglado. Es el
+# mismo fallo que A11.3 y A11.8a. La puerta única existe desde la etapa 4.
+exacto "A10.1 un solo new Resend()"              1 bash -c 'grep -rnI --exclude=verificar-arreglos.sh --include="*.ts" "new Resend(" app lib | grep -vE "^[^:]+:[0-9]+:[[:space:]]*(//|\*|/\*)"'
+cero   "A10.2 nadie llama a emails.send fuera"     bash -c 'grep -rnI --exclude=verificar-arreglos.sh --include="*.ts" "emails.send(" app lib | grep -v "lib/email/resend.ts" | grep -vE "^[^:]+:[0-9]+:[[:space:]]*(//|\*|/\*)"'
 
 sec "A11 · Runtime de Camila"
 cero "A11.1 sin página HTML en el runtime"         bash -c 'grep -niI "doctype html\|text/html" agentes/camila/index.js'

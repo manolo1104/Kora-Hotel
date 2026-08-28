@@ -407,7 +407,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   if (!asignacion.ok) {
     // Imposible salvo error de programación: el candado devolvió exactamente lo
     // pedido. Se suelta el apartado en vez de dejarlo colgando 35 minutos.
-    await releaseHold(hotel.id, sessionId).catch(() => {});
+    await releaseHold(hotel.id, sessionId).catch((e) =>
+      console.error("[h/[slug]/checkout] no pude soltar el apartado tras un reparto imposible:", e),
+    );
     console.error("[h/[slug]/checkout] reparto imposible tras apartar:", apartado.unidades);
     return NextResponse.json({ error: "No se pudo iniciar el pago" }, { status: 500 });
   }

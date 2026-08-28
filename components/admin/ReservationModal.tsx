@@ -5,8 +5,7 @@ import { X, Loader2, AlertTriangle, CheckCircle, Plus, MessageSquare, Mail, Down
 import type { AdminBooking } from '@/lib/admin/sheets-admin';
 import { getRoomBasePrice, type BookingRoom } from '@/lib/booking';
 import { type TourCat, type PaqueteCat } from '@/lib/admin/cotizaciones-catalogo';
-import type { TourItem } from '@/lib/booking-html';
-import type { PaqueteItem } from '@/app/panel/[slug]/(operativo)/cotizaciones/CotizacionesClient';
+import { parseNotas, construirNotas, type TourItem, type PaqueteItem } from '@/lib/notas';
 import styles from './Modal.module.css';
 import { postJson } from '@/lib/ui/api';
 
@@ -169,31 +168,15 @@ export default function ReservationModal({ booking, rooms, slug, defaultCheckin,
     total: booking?.total || 0,
   });
 
-  const INTERNO_SEP = '||INTERNO||';
-  const TOURS_SEP_LOCAL = '||TOURS||';
-  const rawNotas = booking?.notas || '';
-  const [notasCliente, setNotasCliente] = useState(() => {
-    const idx = rawNotas.indexOf(INTERNO_SEP);
-    return idx === -1 ? rawNotas.replace(/\|\|TOURS\|\|.*$/, '').trim() : rawNotas.slice(0, idx).trim();
-  });
-  const [notasInternas, setNotasInternas] = useState(() => {
-    const idx = rawNotas.indexOf(INTERNO_SEP);
-    if (idx === -1) return '';
-    const after = rawNotas.slice(idx + INTERNO_SEP.length);
-    const toursIdx = after.indexOf(TOURS_SEP_LOCAL);
-    return toursIdx === -1 ? after.trim() : after.slice(0, toursIdx).trim();
-  });
-  const PAQUETES_SEP_LOCAL = '||PAQUETES||';
-  const [tourItems, setTourItems] = useState<TourItem[]>(() => {
-    const idx = rawNotas.indexOf(TOURS_SEP_LOCAL);
-    if (idx === -1) return [];
-    try { return JSON.parse(rawNotas.slice(idx + TOURS_SEP_LOCAL.length).split(PAQUETES_SEP_LOCAL)[0]); } catch { return []; }
-  });
-  const [paqueteItems, setPaqueteItems] = useState<PaqueteItem[]>(() => {
-    const idx = rawNotas.indexOf(PAQUETES_SEP_LOCAL);
-    if (idx === -1) return [];
-    try { return JSON.parse(rawNotas.slice(idx + PAQUETES_SEP_LOCAL.length)); } catch { return []; }
-  });
+  // Los cuatro parsers locales que había aquí se fueron a `lib/notas.ts` (paso
+  // 7.3). Dos estaban mal: los paquetes no se cortaban por ||HABS||, así que
+  // desaparecían al reabrir una reserva para editarla — y al guardar se
+  // reescribían las notas SIN ellos, o sea, se perdían de verdad.
+  const notasLeidas = parseNotas(booking?.notas || '');
+  const [notasCliente, setNotasCliente] = useState(notasLeidas.cliente);
+  const [notasInternas, setNotasInternas] = useState(notasLeidas.interno);
+  const [tourItems, setTourItems] = useState<TourItem[]>(notasLeidas.tours);
+  const [paqueteItems, setPaqueteItems] = useState<PaqueteItem[]>(notasLeidas.paquetes);
 
   function addTourM() { const first = tours[0]; if (!first) return; setTourItems(t => [...t, { nombre: first.nombre, personas: 2, precio: first.precio }]); }
   function removeTourM(i: number) { setTourItems(t => t.filter((_, idx) => idx !== i)); }
@@ -393,9 +376,15 @@ export default function ReservationModal({ booking, rooms, slug, defaultCheckin,
     setError('');
     try {
       const habitacion = habitaciones.map(h => h.suite).join(', ');
-      let notas = notasInternas.trim() ? `${notasCliente}${INTERNO_SEP}${notasInternas}` : notasCliente;
-      if (tourItems.length > 0) notas += `${TOURS_SEP_LOCAL}${JSON.stringify(tourItems)}`;
-      if (paqueteItems.length > 0) notas += `${PAQUETES_SEP_LOCAL}${JSON.stringify(paqueteItems)}`;
+      // Se CONSERVAN las habitaciones que ya venían en las notas: este modal no
+      // las edita, y escribirlas fuera las borraría en cada guardado.
+      const notas = construirNotas({
+        cliente: notasCliente,
+        interno: notasInternas,
+        tours: tourItems,
+        paquetes: paqueteItems,
+        habitaciones: notasLeidas.habitaciones,
+      });
       const url = isEdit ? `/api/admin/reservas/${booking!.confirmacion}` : '/api/admin/reservas';
       const method = isEdit ? 'PATCH' : 'POST';
       const res = await fetch(url, {

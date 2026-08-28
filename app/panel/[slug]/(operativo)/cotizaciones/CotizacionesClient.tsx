@@ -2,8 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { Plus, Send, MessageSquare, RefreshCw, Loader2, X, Download, Pencil, Trash2, ChevronDown, ChevronUp, Search, CalendarCheck } from 'lucide-react';
-import { buildBookingHtml } from '@/lib/booking-html';
-import type { TourItem } from '@/lib/booking-html';
+import { parseNotas, construirNotas, type TourItem, type PaqueteItem as PaqueteItemNotas, type HabItem as HabItemNotas } from '@/lib/notas';
 import type { AdminQuote } from '@/lib/admin/sheets-admin';
 import type { BookingRoom } from '@/lib/booking';
 import { type TourCat, type PaqueteCat } from '@/lib/admin/cotizaciones-catalogo';
@@ -25,31 +24,22 @@ function getPrecioNoche(rooms: BookingRoom[], suite: string, personas: number): 
 }
 
 // ── Paquetes Todo Incluido ────────────────────────────────────────────────────
-export interface PaqueteItem {
-  nombre: string;
-  habitacion: string; // suite seleccionada para este paquete
-  noches: number;
-  personas: number;
-  precio: number;     // precio total del paquete (editable)
-}
+// Los tipos del formato viven en `lib/notas.ts`, que es quien lo lee y lo
+// escribe. Se re-exportan porque media pantalla los usa por nombre corto.
+export type PaqueteItem = PaqueteItemNotas;
 
 // Los catálogos de tours/paquetes ya no viven aquí (fugaban datos de Paraíso a
 // otros hoteles). Se resuelven por hotel desde lib/admin/cotizaciones-catalogo y
 // llegan por props (tours/paquetes) a cada modal.
 
-const PAQUETES_SEP = '||PAQUETES||';
-function parsePaquetes(notas: string): PaqueteItem[] {
-  const idx = notas.indexOf(PAQUETES_SEP);
-  if (idx === -1) return [];
-  try { return JSON.parse(notas.slice(idx + PAQUETES_SEP.length).split('||HABS||')[0]); } catch { return []; }
-}
-
-const HABS_SEP = '||HABS||';
-function parseHabs(notas: string): HabItem[] | null {
-  const idx = notas.indexOf(HABS_SEP);
-  if (idx === -1) return null;
-  try { return JSON.parse(notas.slice(idx + HABS_SEP.length)); } catch { return null; }
-}
+// Los parsers viven en `lib/notas.ts` (paso 7.3). El de tours que había aquí no
+// cortaba por NINGUNA marca: una cotización con tours y cualquier bloque detrás
+// los perdía enteros al reabrirla.
+const parsePaquetes = (notas: string) => parseNotas(notas).paquetes;
+const parseHabs = (notas: string): HabItem[] | null => {
+  const h = parseNotas(notas).habitaciones;
+  return h.length ? h : null; // el llamador distingue "no hay bloque" de "vacío"
+};
 function inferGuests(rooms: BookingRoom[], suite: string, ratePerNight: number): number {
   const room = rooms.find(r => r.name === suite);
   if (!room) return 2;
@@ -65,12 +55,7 @@ function getPaquetesTotal(paquetes: PaqueteItem[]): number {
 }
 
 // ── Tours / Experiencias ──────────────────────────────────────────────────────
-const TOURS_SEP = '||TOURS||';
-function parseTours(notas: string): TourItem[] {
-  const idx = notas.indexOf(TOURS_SEP);
-  if (idx === -1) return [];
-  try { return JSON.parse(notas.slice(idx + TOURS_SEP.length)); } catch { return []; }
-}
+const parseTours = (notas: string) => parseNotas(notas).tours;
 function getToursTotalQ(tours: TourItem[]): number {
   return tours.reduce((s, t) => s + t.precio * t.personas, 0);
 }
@@ -79,7 +64,7 @@ const ESTADO_COLOR: Record<string, string> = {
   BORRADOR: '#888', ENVIADA: '#2e6b8a', ACEPTADA: '#2d7a34', EXPIRADA: '#c9484a',
 };
 
-interface HabItem { suite: string; huespedes: number; precioOverride?: number }
+type HabItem = HabItemNotas;
 
 function getHabPrecioQ(rooms: BookingRoom[], hab: HabItem): number {
   return hab.precioOverride ?? getPrecioNoche(rooms, hab.suite, hab.huespedes);
@@ -115,49 +100,18 @@ function parseNotasCliente(notas: string): string {
   const idx = notas.indexOf(INTERNO_SEP);
   return idx === -1 ? notas.trim() : notas.slice(0, idx).trim();
 }
-function joinNotas(cliente: string, interno: string, tours: TourItem[] = [], paquetes: PaqueteItem[] = [], habs: HabItem[] = []): string {
-  let base = interno.trim() ? `${cliente}${INTERNO_SEP}${interno}` : cliente;
-  if (tours.length > 0) base += `${TOURS_SEP}${JSON.stringify(tours)}`;
-  if (paquetes.length > 0) base += `${PAQUETES_SEP}${JSON.stringify(paquetes)}`;
-  if (habs.length > 0) base += `${HABS_SEP}${JSON.stringify(habs)}`;
-  return base;
-}
+const joinNotas = (cliente: string, interno: string, tours: TourItem[] = [], paquetes: PaqueteItem[] = [], habs: HabItem[] = []): string =>
+  construirNotas({ cliente, interno, tours, paquetes, habitaciones: habs });
 
-// ── PDF Confirmación de reserva ─────────────────────────────────────────────
-// En multi-tenant las imágenes por suite del hotel no están mapeadas aquí; el
-// template buildBookingHtml degrada con gradientes cuando no recibe imágenes.
-export function printBookingPDF(b: {
-  confirmacion: string; cliente: string; email: string; telefono: string;
-  habitaciones: string; checkin: string; checkout: string; noches: number;
-  huespedes: number; total: number; notas: string; fecha: string;
-  anticipo?: number; restante?: number; fechaLimitePago?: string;
-  tourItems?: TourItem[];
-  compact?: boolean;
-}) {
-  const suites = b.habitaciones.split(', ').filter(Boolean).map(s => s.trim());
-
-  const win = window.open('', '_blank');
-  if (!win) return;
-  win.document.write(buildBookingHtml({
-    confirmacion: b.confirmacion,
-    cliente: b.cliente,
-    suites,
-    checkin: b.checkin,
-    checkout: b.checkout,
-    noches: b.noches,
-    huespedes: b.huespedes,
-    total: b.total,
-    anticipo: b.anticipo,
-    restante: b.restante,
-    cancelDateStr: calcCancelDate(b.checkin),
-    fechaLimiteStr: fmtDateFull(b.fechaLimitePago || b.checkin),
-    notasClienteText: parseNotasCliente(b.notas || ''),
-    forPrint: true,
-    tourItems: b.tourItems ?? parseTours(b.notas || ''),
-    compact: b.compact ?? false,
-  }));
-  win.document.close();
-}
+// El PDF de confirmación se genera en el SERVIDOR:
+// `/api/admin/cotizaciones/[id]/render` y `/api/admin/reservas/[id]/render`,
+// con la marca del hotel de verdad y el texto escapado (`lib/docs/render.ts`).
+//
+// Aquí vivía `printBookingPDF`, que abría una ventana y le escribía dentro el
+// HTML de `lib/booking-html.ts`. Se borró junto con esa plantilla (paso 7.1):
+// no lo llamaba nadie, escribía "Paraíso Encantado" a mano SIETE veces —en un
+// producto que vende otros nueve hoteles— e interpolaba el nombre del cliente y
+// sus notas SIN escapar, o sea, un XSS de regalo dentro del documento.
 
 interface Props { initialQuotes: AdminQuote[]; rooms: BookingRoom[]; slug: string }
 
@@ -501,13 +455,9 @@ function EditQuoteModal({ quote, rooms, tours, paquetes, onClose, onSaved }: {
   const [precioManual, setPrecioManual] = useState<number | null>(quote.precioTotal || null);
   const [promoActiva, setPromoActiva] = useState(false);
   const [notasCliente, setNotasCliente] = useState(() => parseNotasCliente(quote.notas || ''));
-  const [notasInternas, setNotasInternas] = useState(() => {
-    const idx = (quote.notas || '').indexOf(INTERNO_SEP);
-    if (idx === -1) return '';
-    const after = quote.notas.slice(idx + INTERNO_SEP.length);
-    const toursIdx = after.indexOf(TOURS_SEP);
-    return toursIdx === -1 ? after.trim() : after.slice(0, toursIdx).trim();
-  });
+  // Antes esto cortaba la nota interna sólo por ||TOURS||: una cotización con
+  // paquetes y sin tours se metía el JSON entero DENTRO de la nota interna.
+  const [notasInternas, setNotasInternas] = useState(() => parseNotas(quote.notas || '').interno);
   const [loading, setLoading] = useState(false);
 
   function set(k: string, v: string) { setForm(f => ({ ...f, [k]: v })); }
