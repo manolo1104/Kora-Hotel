@@ -17,6 +17,7 @@ import { LogoutButton } from "@/components/panel/LogoutButton";
 import { TemaToggle } from "@/components/panel/TemaToggle";
 import { SuscripcionCard } from "@/components/panel/SuscripcionCard";
 import { EliminarHotelButton } from "@/components/panel/EliminarHotelButton";
+import { pantallaDe } from "@/components/panel/SinPermiso";
 import { createClient } from "@/lib/supabase/server";
 import { supabaseEnvReady } from "@/lib/supabase/env";
 import { getSuscripcion } from "@/lib/suscripcion";
@@ -81,6 +82,14 @@ export default async function PanelPage() {
     getSuscripcion(user.id),
     getHotelesDelUsuario(),
   ]);
+
+  // Un EMPLEADO con un solo hotel no necesita ver un selector de hoteles: entra
+  // derecho a lo suyo (la camarista a Operaciones, recepción a Reservas). De
+  // paso deja de ver la tarjeta del plan y "Eliminar hotel", que no le tocan.
+  // El dueño SÍ se queda aquí: esta pantalla es su tablero de cuenta.
+  if (hoteles.length === 1 && hoteles[0].rol !== "dueno") {
+    redirect(pantallaDe(hoteles[0].rol, hoteles[0].hotel.slug));
+  }
 
   // Tope de hoteles por cuenta: solo cuentan los que el usuario es dueño.
   const hotelesPropios = hoteles.filter(({ rol }) => rol === "dueno").length;

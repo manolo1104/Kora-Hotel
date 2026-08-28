@@ -4,6 +4,8 @@ import { ArrowLeft, LayoutDashboard } from "lucide-react";
 import { Reveal } from "@/components/shared/Reveal";
 import { PanelEditor } from "@/components/panel/PanelEditor";
 import { requireHotelMember } from "@/lib/tenant";
+import { puede } from "@/lib/panel/permisos";
+import { SinPermiso, pantallaDe } from "@/components/panel/SinPermiso";
 import { ownerTienePlanActivo } from "@/lib/suscripcion";
 
 export const dynamic = "force-dynamic";
@@ -21,6 +23,12 @@ export default async function EditarSitioPage({
   const { slug } = await params;
   // Gate: redirige a /entrar si no hay sesión, a /panel si no es miembro.
   const ctx = await requireHotelMember(slug);
+
+  // Editar el sitio cambia la cara pública del hotel y sus precios: es de
+  // mando, no de mostrador. Antes bastaba con ser miembro.
+  if (!puede(ctx.rol, "sitio:leer")) {
+    return <SinPermiso titulo="Mi sitio" quien="encargada" volverA={pantallaDe(ctx.rol, slug)} />;
+  }
   // El gancho premium (quitar marca, etc.) depende del plan del DUEÑO del hotel,
   // no del usuario que edita (puede ser un encargado).
   const planActivo = await ownerTienePlanActivo(ctx.hotel.owner_id);

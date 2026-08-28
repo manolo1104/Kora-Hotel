@@ -7,22 +7,27 @@ import { createClient } from '@/lib/supabase/client';
 import styles from './AdminSidebar.module.css';
 import { useTema } from '@/components/panel/TemaToggle';
 import type { RolHotel } from '@/lib/tenant';
+import { puede } from '@/lib/panel/permisos';
 import { CANALES_OTA_DISPONIBLES } from '@/lib/panel/canales-ota';
 
+// Cada entrada lleva el permiso que abre su pantalla. Antes se pintaban las 9 a
+// todo el mundo: la camarista veía "Ingresos", "Pagos" y "Cotizaciones" y al
+// entrar se topaba con un aviso de que no le tocan. Un enlace que lleva a una
+// puerta cerrada es peor que no tener el enlace.
 const NAV = [
-  { seg: 'insights',     label: 'Inicio',         icon: LayoutDashboard },
-  { seg: 'camila',       label: 'Camila (bot)',   icon: Bot },
-  { seg: 'calendario',   label: 'Calendario',     icon: Calendar },
-  { seg: 'reservas',     label: 'Reservas',       icon: BookOpen },
-  { seg: 'cotizaciones', label: 'Cotizaciones',   icon: FileText },
-  { seg: 'ingresos',     label: 'Ingresos',       icon: TrendingUp },
-  { seg: 'pagos',        label: 'Pagos',          icon: CreditCard },
-  { seg: 'clientes',     label: 'Clientes',       icon: Users },
-  { seg: 'operaciones',  label: 'Operaciones',    icon: ClipboardCheck },
+  { seg: 'insights',     label: 'Inicio',         icon: LayoutDashboard, permiso: 'ingresos:ver' as const },
+  { seg: 'camila',       label: 'Camila (bot)',   icon: Bot,             permiso: 'bot:leer' as const },
+  { seg: 'calendario',   label: 'Calendario',     icon: Calendar,        permiso: 'reservas:leer' as const },
+  { seg: 'reservas',     label: 'Reservas',       icon: BookOpen,        permiso: 'reservas:leer' as const },
+  { seg: 'cotizaciones', label: 'Cotizaciones',   icon: FileText,        permiso: 'cotizaciones:leer' as const },
+  { seg: 'ingresos',     label: 'Ingresos',       icon: TrendingUp,      permiso: 'ingresos:ver' as const },
+  { seg: 'pagos',        label: 'Pagos',          icon: CreditCard,      permiso: 'pagos:ver' as const },
+  { seg: 'clientes',     label: 'Clientes',       icon: Users,           permiso: 'clientes:leer' as const },
+  { seg: 'operaciones',  label: 'Operaciones',    icon: ClipboardCheck,  permiso: 'operaciones:leer' as const },
   // Canales OTA retirado del panel: ver CANALES_OTA_DISPONIBLES en
   // lib/panel/canales-ota.ts. Los feeds ya pegados en una extranet siguen vivos
   // a propósito — cortarlos provoca sobreventa.
-  ...(CANALES_OTA_DISPONIBLES ? [{ seg: 'canales', label: 'Canales OTA', icon: Globe2 }] : []),
+  ...(CANALES_OTA_DISPONIBLES ? [{ seg: 'canales', label: 'Canales OTA', icon: Globe2, permiso: 'canales:leer' as const }] : []),
 ];
 
 export default function AdminSidebar({
@@ -88,7 +93,9 @@ export default function AdminSidebar({
         </div>
 
         <nav className={styles.nav}>
-          {NAV.map(({ seg, label, icon: Icon }) => {
+          {/* Sin rol conocido se pinta todo (comportamiento de antes): más vale
+              un enlace de más que un panel vacío si el rol no llegó. */}
+          {NAV.filter(({ permiso }) => !rol || puede(rol, permiso)).map(({ seg, label, icon: Icon }) => {
             const href = `${base}/${seg}`;
             return (
               <a
@@ -118,7 +125,10 @@ export default function AdminSidebar({
             </a>
           )}
 
-          {/* La cara pública del hotel: editar el sitio y ver el motor en vivo */}
+          {/* La cara pública del hotel: editar el sitio y ver el motor en vivo.
+              Editarlo es de mando (cambia precios y la cara del hotel). */}
+          {(!rol || puede(rol, 'sitio:leer')) && (
+          <>
           <p className={styles.navGroupLabel}>Mi sitio</p>
           <a
             href={`${base}/sitio`}
@@ -140,6 +150,8 @@ export default function AdminSidebar({
             <CalendarCheck size={18} strokeWidth={1.5} />
             <span>Ver mi motor</span>
           </a>
+          </>
+          )}
           <a href="/panel" className={styles.navItem} onClick={() => setOpen(false)}>
             <Building2 size={18} strokeWidth={1.5} />
             <span>Mis hoteles</span>

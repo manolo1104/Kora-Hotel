@@ -5,6 +5,8 @@
 
 import { getAllOTACalendars } from "@/lib/db/admin";
 import { requireHotelMember } from "@/lib/tenant";
+import { puede } from "@/lib/panel/permisos";
+import { SinPermiso, pantallaDe } from "@/components/panel/SinPermiso";
 import { tipoNamesOf } from "@/lib/booking";
 import CanalesClient from "./CanalesClient";
 import { redirect } from "next/navigation";
@@ -20,6 +22,13 @@ export default async function CanalesPage({
 }) {
   const { slug } = await params;
   const ctx = await requireHotelMember(slug);
+
+  // `requireHotelMember` sólo comprueba MEMBRESÍA. Sin esto, cualquier rol
+  // del hotel abría esta pantalla — y las que cargan datos en el servidor
+  // (ingresos, facturación, cotizaciones, canales) se los enseñaban.
+  if (!puede(ctx.rol, "canales:leer")) {
+    return <SinPermiso titulo="Canales OTA" quien="encargada" volverA={pantallaDe(ctx.rol, slug)} />;
+  }
   // Retirada del panel. Se redirige en vez de borrar la pantalla: el día que
   // vuelva (o llegue el channel manager) es una constante, no un rescate de git.
   if (!CANALES_OTA_DISPONIBLES) redirect(`/panel/${slug}/calendario`);

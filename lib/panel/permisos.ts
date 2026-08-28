@@ -27,6 +27,7 @@ export type Permiso =
   | "cotizaciones:escribir"
   | "clientes:leer"
   | "clientes:escribir"
+  | "ingresos:ver"
   | "operaciones:leer"
   | "operaciones:escribir"
   | "canales:leer"
@@ -59,6 +60,10 @@ export const PERMISOS: Record<Permiso, RolHotel[]> = {
   "cotizaciones:escribir": MOSTRADOR,
   "clientes:leer": MOSTRADOR,
   "clientes:escribir": MOSTRADOR,
+  // Las pantallas de DINERO (Inicio/insights e Ingresos): facturación del mes,
+  // ADR, RevPAR y el histórico. No existía permiso que las cubriera, así que
+  // cargaban sus datos para cualquier miembro — incluida la camarista.
+  "ingresos:ver": MANDO,
   "operaciones:leer": TODOS, // limpieza y cocina viven aquí
   "operaciones:escribir": ["dueno", "encargada", "recepcion", "limpieza"],
   "canales:leer": MANDO,
