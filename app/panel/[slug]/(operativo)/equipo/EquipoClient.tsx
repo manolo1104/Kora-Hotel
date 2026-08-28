@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { UserPlus, Trash2, Loader2, Mail, Info } from 'lucide-react';
+import { UserPlus, Trash2, Loader2, Mail, Info, Copy, Check } from 'lucide-react';
 import { ROLES, type MiembroHotel } from '@/lib/db/equipo';
 import type { RolHotel } from '@/lib/tenant';
 import { postJson, mensajeDeError } from '@/lib/ui/api';
@@ -15,7 +15,37 @@ import styles from './equipo.module.css';
 // El texto está escrito para un dueño de hotel, no para un administrador de
 // sistemas: nada de "invitar usuario", "asignar permisos" ni "provisionar".
 
-export default function EquipoClient({ inicial }: { inicial: MiembroHotel[] }) {
+/**
+ * El mensaje que el dueño le manda por WhatsApp a su empleado.
+ *
+ * Es la pieza que faltaba: el problema real no era dar de alta a la camarista,
+ * era EXPLICARLE cómo entrar. Va en segunda persona, con los pasos numerados y
+ * sin una sola palabra de sistemas.
+ */
+function instrucciones(m: { email: string; rol: RolHotel }, hotel: string): string {
+  const queHace = ROLES.find((r) => r.valor === m.rol)?.que ?? '';
+  return [
+    `Hola, ya te di de alta en el sistema del hotel ${hotel}.`,
+    '',
+    'Para entrar:',
+    '1) Abre kora-hotel.com/entrar',
+    '2) Elige la opción "Enlace al correo"',
+    `3) Escribe tu correo: ${m.email}`,
+    '4) Te llega un correo, ábrelo y listo — no necesitas contraseña.',
+    '',
+    `Lo que vas a poder hacer: ${queHace}`,
+    '',
+    'Guarda la página en tu celular para entrar rápido.',
+  ].join('\n');
+}
+
+export default function EquipoClient({
+  inicial,
+  hotelNombre,
+}: {
+  inicial: MiembroHotel[];
+  hotelNombre: string;
+}) {
   const [equipo, setEquipo] = useState(inicial);
   const [email, setEmail] = useState('');
   const [rol, setRol] = useState<RolHotel>('limpieza');
@@ -23,6 +53,23 @@ export default function EquipoClient({ inicial }: { inicial: MiembroHotel[] }) {
   const [ocupado, setOcupado] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [aviso, setAviso] = useState('');
+  const [copiado, setCopiado] = useState<string | null>(null);
+  const [aLaMano, setALaMano] = useState<MiembroHotel | null>(null);
+
+  async function copiarInstrucciones(m: MiembroHotel) {
+    const texto = instrucciones(m, hotelNombre);
+    try {
+      await navigator.clipboard.writeText(texto);
+      setCopiado(m.userId);
+      setTimeout(() => setCopiado((c) => (c === m.userId ? null : c)), 2500);
+    } catch {
+      // El portapapeles falla sin permiso (Safari, o http sin candado). En vez
+      // de un `prompt()` —que bloquea toda la pestaña— el mensaje se enseña
+      // aquí mismo para copiarlo a mano. Fallar en silencio dejaría al dueño
+      // sin saber qué mandarle a su empleada, que es todo el punto del botón.
+      setALaMano(m);
+    }
+  }
 
   async function refrescar() {
     const res = await fetch('/api/admin/equipo');
@@ -202,6 +249,15 @@ export default function EquipoClient({ inicial }: { inicial: MiembroHotel[] }) {
                     <td className={styles.acciones}>
                       <button
                         type="button"
+                        className={styles.copiarBtn}
+                        onClick={() => copiarInstrucciones(m)}
+                        title="Copiar el mensaje de cómo entrar, listo para WhatsApp"
+                      >
+                        {copiado === m.userId ? <Check size={14} /> : <Copy size={14} />}
+                        <span>{copiado === m.userId ? 'Copiado' : 'Cómo entrar'}</span>
+                      </button>
+                      <button
+                        type="button"
                         className={styles.quitarBtn}
                         onClick={() => quitar(m)}
                         disabled={ocupado === m.userId}
@@ -221,6 +277,29 @@ export default function EquipoClient({ inicial }: { inicial: MiembroHotel[] }) {
           </div>
         )}
       </div>
+
+      {/* Respaldo si el navegador no dejó copiar: el texto, para tomarlo a mano. */}
+      {aLaMano && (
+        <div className={styles.card}>
+          <h2 className={styles.cardTitle}>
+            Cómo entra {aLaMano.email}
+          </h2>
+          <p className={styles.ayudaRol}>
+            Tu navegador no dejó copiarlo solo. Selecciona el texto y mándaselo por
+            WhatsApp:
+          </p>
+          <textarea
+            className={styles.textoAMano}
+            readOnly
+            rows={12}
+            value={instrucciones(aLaMano, hotelNombre)}
+            onFocus={(e) => e.currentTarget.select()}
+          />
+          <button type="button" className={styles.copiarBtn} onClick={() => setALaMano(null)}>
+            Cerrar
+          </button>
+        </div>
+      )}
 
       {/* Qué ve cada quien: evita la pregunta "¿y si le doy este rol qué pasa?" */}
       <div className={styles.card}>

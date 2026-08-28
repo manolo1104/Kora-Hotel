@@ -112,8 +112,8 @@
   margin: 14px 0 0;
   padding: 10px 12px;
   border-radius: 8px;
-  background: #fdf0f0;
-  color: #8a1a1a;
+  background: var(--chip-mal-bg);
+  color: var(--chip-mal-text);
   font-size: 0.84rem;
 }
 .aviso {
@@ -169,8 +169,8 @@
   margin-top: 4px;
   padding: 2px 8px;
   border-radius: 999px;
-  background: #fff3d4;
-  color: #7a5a00;
+  background: var(--chip-aviso-bg);
+  color: var(--chip-aviso-text);
   font-size: 0.7rem;
   font-weight: 600;
 }
@@ -187,7 +187,28 @@
 }
 .selectRol:disabled { opacity: 0.55; cursor: not-allowed; }
 
-.acciones { text-align: right; }
+.acciones { text-align: right; white-space: nowrap; }
+
+/* "Cómo entrar": el botón que resuelve el problema de verdad — explicarle a la
+   camarista cómo entrar. Lleva texto, no sólo icono: es la acción que el dueño
+   va a buscar. */
+.copiarBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 8px;
+  padding: 7px 12px;
+  border: 1px solid var(--sage-text);
+  border-radius: 7px;
+  background: rgba(53, 122, 91, 0.10);
+  color: var(--sage-text);
+  font-size: 0.78rem;
+  font-weight: 600;
+  font-family: var(--font-jost), sans-serif;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.copiarBtn:hover { background: rgba(53, 122, 91, 0.20); }
 .quitarBtn {
   display: inline-flex;
   align-items: center;
@@ -197,12 +218,26 @@
   border: 1px solid var(--line);
   border-radius: 7px;
   background: none;
-  color: #c9484a;
+  color: var(--chip-mal-text);
   cursor: pointer;
   transition: background 0.15s;
 }
-.quitarBtn:hover:not(:disabled) { background: #fdf0f0; }
+.quitarBtn:hover:not(:disabled) { background: var(--chip-mal-bg); }
 .quitarBtn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.textoAMano {
+  width: 100%;
+  margin: 10px 0 12px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--parch);
+  color: var(--ink);
+  font-family: var(--font-jost), sans-serif;
+  font-size: 0.83rem;
+  line-height: 1.6;
+  resize: vertical;
+}
 
 .listaRoles {
   margin: 0;
@@ -218,5 +253,10 @@
 
 @media (max-width: 640px) {
   .fila { flex-direction: column; align-items: stretch; }
-  .primaryBtn { justify-content: center; }
+  .primaryBtn { justify-content: center; padding: 13px 18px; }
+  /* 44px es el mínimo táctil: con 30px se falla el toque en un celular. */
+  .quitarBtn { width: 44px; height: 44px; }
+  .copiarBtn { padding: 12px 14px; }
+  .selectRol { padding: 11px 10px; }
+  .acciones { display: flex; gap: 8px; justify-content: flex-end; }
 }

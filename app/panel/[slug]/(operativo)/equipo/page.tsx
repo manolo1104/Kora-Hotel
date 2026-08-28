@@ -17,5 +17,5 @@ export default async function EquipoPage({
   // (vacía) para una recepcionista y parecería un error del sistema.
   if (ctx.rol !== "dueno") redirect(`/panel/${slug}/operaciones`);
 
-  return <EquipoClient inicial={await getEquipo(ctx.hotelId)} />;
+  return <EquipoClient inicial={await getEquipo(ctx.hotelId)} hotelNombre={ctx.hotel.nombre} />;
 }

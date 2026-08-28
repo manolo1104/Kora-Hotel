@@ -96,6 +96,31 @@ body {
   color-scheme: dark;
 }
 
+/* La VISTA PREVIA del sitio del hotel vive dentro del panel (el editor), pero
+   enseña la página PÚBLICA, que siempre es clara. Sin esto heredaba los tokens
+   oscuros: su `text-kora-text` se aclaraba mientras sus `bg-white` seguían
+   blancos — texto claro sobre blanco, el bug original metido en la vista previa.
+   Se le devuelven los valores claros y se vuelve inmune al tema del panel. */
+.preview-claro,
+[data-tema="oscuro"] .panel-root .preview-claro {
+  --kora-primary: 27 67 50;
+  --kora-bg: 250 250 248;
+  --kora-text: 26 26 26;
+  --kora-muted: 107 114 128;
+  --panel-surface: 255 255 255;
+  --panel-surface-2: 249 250 251;
+  --panel-border: 229 231 235;
+  --panel-border-soft: 243 244 246;
+  --panel-faint: 156 163 175;
+  --panel-contrast: 0 0 0;
+  color-scheme: light;
+}
+/* El botón sólido de la vista previa no debe llevar el trato del panel oscuro. */
+[data-tema="oscuro"] .panel-root .preview-claro .bg-kora-primary {
+  background-color: #1B4332;
+  color: #ffffff;
+}
+
 /* ─── Button press feedback ─────────────────────────────────────────────────── */
 
 .btn-press {

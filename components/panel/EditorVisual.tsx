@@ -940,7 +940,10 @@ export function EditorVisual({
           } lg:block flex-1 min-w-0 overflow-y-auto bg-panel-surface-2 p-0 lg:p-6`}
         >
           <div
-            className={`relative mx-auto bg-panel-surface overflow-hidden ${
+            // `preview-claro`: la vista previa enseña la página PÚBLICA del
+            // hotel, que siempre es clara. Sin esta clase heredaba el tema
+            // oscuro del panel a medias y salía texto claro sobre blanco.
+            className={`preview-claro relative mx-auto bg-panel-surface overflow-hidden ${
               vista === "movil"
                 ? "w-full max-w-[390px] lg:rounded-[2rem] lg:border-8 lg:border-panel-border lg:shadow-2xl"
                 : "w-full max-w-3xl lg:rounded-2xl lg:shadow-xl lg:border lg:border-panel-border"
