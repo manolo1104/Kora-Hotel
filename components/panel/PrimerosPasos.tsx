@@ -49,7 +49,7 @@ export default function PrimerosPasos({
   }
 
   return (
-    <section className="rounded-2xl border border-black/10 bg-white p-5">
+    <section className="rounded-2xl border border-panel-contrast/10 bg-panel-surface p-5">
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
           <h2 className="text-lg font-bold text-kora-text">
@@ -71,7 +71,7 @@ export default function PrimerosPasos({
       </div>
 
       {!completo && (
-        <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-black/5">
+        <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-panel-contrast/5">
           <div
             className="h-full rounded-full bg-kora-primary transition-all"
             style={{ width: `${(hechas / total) * 100}%` }}
@@ -86,7 +86,7 @@ export default function PrimerosPasos({
               <span className="flex min-w-0 items-center gap-2 text-sm">
                 <span
                   className={`grid h-5 w-5 shrink-0 place-items-center rounded-full ${
-                    t.ok ? "bg-green-100 text-green-700" : "bg-black/5 text-gray-400"
+                    t.ok ? "bg-green-100 text-green-700" : "bg-panel-contrast/5 text-panel-faint"
                   }`}
                 >
                   <Check size={13} />
@@ -124,7 +124,7 @@ export default function PrimerosPasos({
 
       <button
         onClick={verTour}
-        className="btn-press mt-4 inline-flex items-center gap-2 rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-kora-text hover:border-kora-accent"
+        className="btn-press mt-4 inline-flex items-center gap-2 rounded-full border border-panel-border px-4 py-2 text-sm font-semibold text-kora-text hover:border-kora-accent"
       >
         <Sparkles size={15} className="text-kora-primary" /> Ver el tour otra vez
       </button>

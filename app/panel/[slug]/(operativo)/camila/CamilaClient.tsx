@@ -515,14 +515,14 @@ export default function CamilaClient({
       </header>
 
       {/* Progreso + navegación por pasos (cabecera del asistente) */}
-      <div className="rounded-2xl border border-black/10 bg-white p-4 space-y-3">
+      <div className="rounded-2xl border border-panel-contrast/10 bg-panel-surface p-4 space-y-3">
         <div className="flex items-center justify-between">
           <p className="text-sm font-semibold text-kora-text">Salud de {nombreBot}</p>
           <p className="text-sm font-semibold text-kora-primary">
             {Math.round((listos / TOTAL_PASOS) * 100)}% · {listos}/{TOTAL_PASOS} pasos
           </p>
         </div>
-        <div className="h-2 w-full overflow-hidden rounded-full bg-black/5">
+        <div className="h-2 w-full overflow-hidden rounded-full bg-panel-contrast/5">
           <div
             className="h-full rounded-full bg-kora-primary transition-all"
             style={{ width: `${(listos / TOTAL_PASOS) * 100}%` }}
@@ -561,11 +561,11 @@ export default function CamilaClient({
               </p>
               <button
                 onClick={toggleEnabled}
-                className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors ${enabled ? "bg-kora-primary" : "bg-gray-300"}`}
+                className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors ${enabled ? "bg-kora-primary" : "bg-panel-border"}`}
                 aria-label={enabled ? "Apagar bot" : "Encender bot"}
               >
                 <span
-                  className={`inline-block h-5 w-5 rounded-full bg-white transition-transform ${enabled ? "translate-x-6" : "translate-x-1"}`}
+                  className={`inline-block h-5 w-5 rounded-full bg-panel-surface transition-transform ${enabled ? "translate-x-6" : "translate-x-1"}`}
                 />
               </button>
             </div>
@@ -576,7 +576,7 @@ export default function CamilaClient({
                 <button
                   key={l}
                   onClick={() => cambiarIdioma(l)}
-                  className={`px-3 py-1 rounded-full font-semibold transition-colors ${lang === l ? "bg-kora-primary text-white" : "bg-black/5 text-kora-text hover:bg-black/10"}`}
+                  className={`px-3 py-1 rounded-full font-semibold transition-colors ${lang === l ? "bg-kora-primary text-white" : "bg-panel-contrast/5 text-kora-text hover:bg-panel-contrast/10"}`}
                 >
                   {l === "es" ? "Español" : "English"}
                 </button>
@@ -584,7 +584,7 @@ export default function CamilaClient({
             </div>
 
             {/* Control por WhatsApp desde un número autorizado */}
-            <div className="rounded-xl border border-black/10 bg-kora-bg/40 p-3 space-y-2">
+            <div className="rounded-xl border border-panel-contrast/10 bg-kora-bg/40 p-3 space-y-2">
               <div className="flex items-center gap-2 text-sm font-semibold text-kora-text">
                 <Phone size={15} className="text-kora-primary" />
                 Apágala o enciéndela por WhatsApp
@@ -657,7 +657,7 @@ export default function CamilaClient({
               </Campo>
 
               {/* Estilo de emojis: cuánto usa y cuáles prefiere (marca del hotel) */}
-              <div className="rounded-2xl border border-black/10 bg-black/[0.015] p-4 space-y-3">
+              <div className="rounded-2xl border border-panel-contrast/10 bg-panel-contrast/[0.015] p-4 space-y-3">
                 <div>
                   <p className="text-sm font-bold text-kora-text">Emojis en sus mensajes</p>
                   <p className="mt-0.5 text-xs text-kora-muted">
@@ -675,7 +675,7 @@ export default function CamilaClient({
                       className={`btn-press rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
                         bot.emojis.nivel === n.key
                           ? "border-kora-primary bg-kora-primary/10 text-kora-primary"
-                          : "border-black/10 text-kora-muted hover:bg-black/5"
+                          : "border-panel-contrast/10 text-kora-muted hover:bg-panel-contrast/5"
                       }`}
                     >
                       {n.label}
@@ -768,7 +768,7 @@ export default function CamilaClient({
               </Campo>
 
               {/* Formas de pago: para que Camila ofrezca transferencia/depósito/OXXO */}
-              <div className="rounded-2xl border border-black/10 bg-black/[0.015] p-4">
+              <div className="rounded-2xl border border-panel-contrast/10 bg-panel-contrast/[0.015] p-4">
                 <p className="text-sm font-bold text-kora-text">Datos para pago por transferencia</p>
                 <p className="mb-3 mt-0.5 text-xs text-kora-muted">
                   Si los llenas, Camila podrá ofrecer pago por transferencia, depósito u OXXO
@@ -835,7 +835,7 @@ export default function CamilaClient({
 
               {/* Preguntas rápidas: entrenamiento guiado sin pensar qué escribir.
                   Cada respuesta se guarda como FAQ del bot; en blanco = no aplica. */}
-              <div className="rounded-2xl border border-black/10 bg-black/[0.015] p-4">
+              <div className="rounded-2xl border border-panel-contrast/10 bg-panel-contrast/[0.015] p-4">
                 <p className="text-sm font-bold text-kora-text">
                   Preguntas típicas de huésped — responde las que apliquen
                 </p>
@@ -849,7 +849,7 @@ export default function CamilaClient({
                     return (
                       <div
                         key={p.q}
-                        className={`rounded-xl border p-2.5 ${val.trim() ? "border-green-200 bg-green-50/50" : "border-black/10 bg-white"}`}
+                        className={`rounded-xl border p-2.5 ${val.trim() ? "border-green-200 bg-green-50/50" : "border-panel-contrast/10 bg-panel-surface"}`}
                       >
                         <p className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-kora-text">
                           {val.trim() ? <Check size={13} className="shrink-0 text-green-600" /> : null}
@@ -871,7 +871,7 @@ export default function CamilaClient({
               <Campo label="Otras preguntas y respuestas (las que quieras, 100% tuyas)">
                 <div className="space-y-2">
                   {bot.faqs.map((f, i) => PRESET_QS.has(f.q) ? null : (
-                    <div key={i} className="grid gap-1.5 rounded-xl border border-black/10 p-2">
+                    <div key={i} className="grid gap-1.5 rounded-xl border border-panel-contrast/10 p-2">
                       <input
                         value={f.q}
                         onChange={(e) => setFaq(i, "q", e.target.value)}
@@ -925,7 +925,7 @@ export default function CamilaClient({
                 `Hazle ${META_PRUEBAS} preguntas para darla por probada (${Math.min(pruebas, META_PRUEBAS)}/${META_PRUEBAS})`
               )}
             </span>
-            <div className="rounded-xl border border-black/10 bg-kora-bg/50 h-72 overflow-y-auto p-3 space-y-2">
+            <div className="rounded-xl border border-panel-contrast/10 bg-kora-bg/50 h-72 overflow-y-auto p-3 space-y-2">
               {mensajes.length === 0 && (
                 <p className="text-sm text-kora-muted text-center py-8">
                   Escribe algo como <em>&ldquo;¿Tienen disponibilidad este fin?&rdquo;</em>
@@ -934,7 +934,7 @@ export default function CamilaClient({
               {mensajes.map((m, i) => (
                 <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
                   <div
-                    className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm whitespace-pre-wrap ${m.role === "user" ? "bg-kora-primary text-white" : "bg-white border border-black/10 text-kora-text"}`}
+                    className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm whitespace-pre-wrap ${m.role === "user" ? "bg-kora-primary text-white" : "bg-panel-surface border border-panel-contrast/10 text-kora-text"}`}
                   >
                     {m.content}
                   </div>
@@ -942,7 +942,7 @@ export default function CamilaClient({
               ))}
               {enviando && (
                 <div className="flex justify-start">
-                  <div className="rounded-2xl px-3 py-2 bg-white border border-black/10 text-kora-muted">
+                  <div className="rounded-2xl px-3 py-2 bg-panel-surface border border-panel-contrast/10 text-kora-muted">
                     <Loader2 size={14} className="animate-spin" />
                   </div>
                 </div>
@@ -981,7 +981,7 @@ export default function CamilaClient({
             </div>
 
             {/* Verificador de disponibilidad: exactamente lo que Camila ofrecería */}
-            <div className="rounded-xl border border-black/10 bg-white p-4 space-y-3">
+            <div className="rounded-xl border border-panel-contrast/10 bg-panel-surface p-4 space-y-3">
               <div className="flex items-center gap-2">
                 <CalendarDays size={16} className="text-kora-primary" />
                 <p className="text-sm font-semibold text-kora-text">
@@ -1025,7 +1025,7 @@ export default function CamilaClient({
               {vError && <p className="text-sm text-red-600">{vError}</p>}
 
               {vResultado && (
-                <div className="rounded-lg border border-black/10 bg-kora-bg/40 p-3">
+                <div className="rounded-lg border border-panel-contrast/10 bg-kora-bg/40 p-3">
                   {vResultado.hayDisponibilidad ? (
                     <>
                       <p className="text-xs font-semibold text-kora-text mb-2">
@@ -1035,7 +1035,7 @@ export default function CamilaClient({
                         {vResultado.disponibles.map((r) => (
                           <li
                             key={r.id}
-                            className="flex items-center justify-between gap-3 text-sm border-b border-black/5 pb-1.5 last:border-0 last:pb-0"
+                            className="flex items-center justify-between gap-3 text-sm border-b border-panel-contrast/5 pb-1.5 last:border-0 last:pb-0"
                           >
                             <span className="min-w-0">
                               <span className="font-semibold text-kora-text">{r.nombre}</span>
@@ -1070,7 +1070,7 @@ export default function CamilaClient({
                 <p>Ya responde a tus huéspedes 24/7 (si está encendida en el paso 1).</p>
               </div>
             ) : qrStatus === "sin-permiso" ? (
-              <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700">
+              <div className="rounded-xl border border-panel-border bg-panel-surface-2 px-4 py-3 text-sm text-kora-text">
                 <p className="font-semibold">Esto lo hace el dueño del hotel.</p>
                 <p>
                   Escanear el código vincula un teléfono al WhatsApp del hotel de forma permanente, así
@@ -1097,13 +1097,13 @@ export default function CamilaClient({
                 </ol>
                 <div className="flex justify-center py-2">
                   {qrImg ? (
-                    <div className="rounded-xl border border-black/10 bg-white p-3">
+                    <div className="rounded-xl border border-panel-contrast/10 bg-panel-surface p-3">
                       {/* QR = data URL que rota; <img> plano es lo correcto (no next/image) */}
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={qrImg} alt="Código QR para vincular WhatsApp" width={240} height={240} />
                     </div>
                   ) : (
-                    <div className="flex h-[240px] w-[240px] flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-black/15 text-kora-muted">
+                    <div className="flex h-[240px] w-[240px] flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-panel-contrast/15 text-kora-muted">
                       <Loader2 size={22} className="animate-spin" />
                       <span className="text-xs">Preparando el código…</span>
                     </div>
@@ -1126,7 +1126,7 @@ export default function CamilaClient({
                     <input readOnly value={token} className="input-kora flex-1 font-mono text-xs" />
                     <button
                       onClick={copiarToken}
-                      className="btn-press inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-black/5 text-kora-text text-sm font-semibold hover:bg-black/10"
+                      className="btn-press inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-panel-contrast/5 text-kora-text text-sm font-semibold hover:bg-panel-contrast/10"
                     >
                       {tokenCopiado ? <Check size={15} /> : <Copy size={15} />}
                       {tokenCopiado ? "Copiado" : "Copiar"}
@@ -1136,7 +1136,7 @@ export default function CamilaClient({
                   <button
                     onClick={verToken}
                     disabled={tokenCargando}
-                    className="btn-press inline-flex items-center gap-2 px-4 py-2 rounded-full bg-black/5 text-kora-text font-semibold text-sm hover:bg-black/10 disabled:opacity-60"
+                    className="btn-press inline-flex items-center gap-2 px-4 py-2 rounded-full bg-panel-contrast/5 text-kora-text font-semibold text-sm hover:bg-panel-contrast/10 disabled:opacity-60"
                   >
                     {tokenCargando ? <Loader2 size={15} className="animate-spin" /> : <Eye size={15} />}
                     Ver el token de mi bot
@@ -1154,7 +1154,7 @@ export default function CamilaClient({
         <button
           onClick={() => setPaso((p) => Math.max(0, p - 1))}
           disabled={paso === 0}
-          className="btn-press inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-black/5 text-kora-text font-semibold text-sm hover:bg-black/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          className="btn-press inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-panel-contrast/5 text-kora-text font-semibold text-sm hover:bg-panel-contrast/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         >
           <ChevronLeft size={16} /> Atrás
         </button>
@@ -1177,17 +1177,17 @@ function BadgeEstado({ status, nombreBot }: { status: string | null; nombreBot: 
   const map: Record<string, { dot: string; txt: string }> = {
     ready: { dot: "bg-green-500", txt: `${nombreBot} está conectada` },
     qr: { dot: "bg-amber-500", txt: "Escanea el código QR" },
-    starting: { dot: "bg-gray-400", txt: "Preparando la conexión…" },
+    starting: { dot: "bg-panel-faint", txt: "Preparando la conexión…" },
     disconnected: { dot: "bg-red-500", txt: "Desconectada — reconectando…" },
     auth_failure: { dot: "bg-red-500", txt: "Falló la vinculación — escanea de nuevo" },
     error: { dot: "bg-red-500", txt: "Servicio no disponible" },
-    "sin-servicio": { dot: "bg-gray-400", txt: "Preparando tu conexión" },
-    desconocido: { dot: "bg-gray-400", txt: "Preparando tu conexión" },
-    "sin-permiso": { dot: "bg-gray-400", txt: "Solo el dueño puede vincular" },
+    "sin-servicio": { dot: "bg-panel-faint", txt: "Preparando tu conexión" },
+    desconocido: { dot: "bg-panel-faint", txt: "Preparando tu conexión" },
+    "sin-permiso": { dot: "bg-panel-faint", txt: "Solo el dueño puede vincular" },
   };
   const s = map[status ?? "sin-servicio"] ?? map["sin-servicio"];
   return (
-    <span className="inline-flex items-center gap-2 rounded-full bg-black/5 px-3 py-1 text-xs font-semibold text-kora-text">
+    <span className="inline-flex items-center gap-2 rounded-full bg-panel-contrast/5 px-3 py-1 text-xs font-semibold text-kora-text">
       <span className={`h-2 w-2 rounded-full ${s.dot} ${status === "qr" || status === "starting" ? "animate-pulse" : ""}`} />
       {status === null ? "Consultando estado…" : s.txt}
     </span>
@@ -1208,7 +1208,7 @@ function Etapa({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-2xl border border-black/10 bg-white p-5 space-y-4">
+    <section className="rounded-2xl border border-panel-contrast/10 bg-panel-surface p-5 space-y-4">
       <div className="flex items-center gap-3">
         <span
           className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-sm font-bold ${
@@ -1246,12 +1246,12 @@ function StepPill({
       className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold transition-colors ${
         activo
           ? "border-kora-primary bg-kora-primary/10 text-kora-primary"
-          : "border-black/10 text-kora-muted hover:bg-black/5"
+          : "border-panel-contrast/10 text-kora-muted hover:bg-panel-contrast/5"
       }`}
     >
       <span
         className={`grid h-4 w-4 place-items-center rounded-full text-[9px] font-bold ${
-          ok ? "bg-green-500 text-white" : activo ? "bg-kora-primary text-white" : "bg-black/10 text-kora-muted"
+          ok ? "bg-green-500 text-white" : activo ? "bg-kora-primary text-white" : "bg-panel-contrast/10 text-kora-muted"
         }`}
       >
         {ok ? <Check size={10} /> : n}
@@ -1298,7 +1298,7 @@ function SabeItem({
 }) {
   return (
     <li className="flex items-start gap-2">
-      <span className={`mt-0.5 shrink-0 ${item.ok ? "text-green-600" : "text-gray-300"}`}>
+      <span className={`mt-0.5 shrink-0 ${item.ok ? "text-green-600" : "text-panel-faint"}`}>
         <Check size={15} />
       </span>
       <span className={item.ok ? "" : "text-kora-muted"}>

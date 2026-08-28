@@ -18,7 +18,7 @@ export default async function PagosPage({ params }: { params: Promise<{ slug: st
     return (
       <div className="mx-auto max-w-lg px-4 py-16 text-center">
         <h1 className="text-xl font-semibold text-[#1B4332]">Pagos</h1>
-        <p className="mt-3 text-sm text-gray-500">
+        <p className="mt-3 text-sm text-kora-muted">
           Solo el dueño del hotel puede ver los pagos y la cuenta bancaria.
         </p>
       </div>

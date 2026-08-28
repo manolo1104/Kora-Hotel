@@ -25,7 +25,7 @@
 
 .subtitle {
   font-size: 0.83rem;
-  color: var(--sage);
+  color: var(--sage-text);
   margin: 0;
   text-transform: capitalize;
 }
@@ -36,8 +36,8 @@
   gap: 6px;
   padding: 7px 14px;
   border-radius: 4px;
-  border: 1px solid #e5e7eb;
-  background: #fff;
+  border: 1px solid var(--line);
+  background: var(--cream);
   color: var(--clay);
   font-size: 0.8rem;
   font-family: var(--font-jost), sans-serif;
@@ -55,8 +55,8 @@
 }
 
 .kpiCard {
-  background: #fff;
-  border: 1px solid #e5e7eb;
+  background: var(--cream);
+  border: 1px solid var(--line);
   border-radius: 8px;
   padding: 20px;
   display: flex;
@@ -73,7 +73,7 @@
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--sage);
+  color: var(--sage-text);
   margin: 0 0 6px;
 }
 
@@ -109,8 +109,8 @@
 
 /* ── Sections ────────────────────────────────────────────────── */
 .section {
-  background: #fff;
-  border: 1px solid #e5e7eb;
+  background: var(--cream);
+  border: 1px solid var(--line);
   border-radius: 8px;
   padding: 20px 24px;
 }
@@ -124,7 +124,7 @@
 }
 
 .empty {
-  color: var(--sage);
+  color: var(--sage-text);
   font-size: 0.875rem;
   text-align: center;
   padding: 24px 0;
@@ -154,7 +154,7 @@
 
 .movRow {
   background: var(--parch);
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--line);
   border-radius: 6px;
   padding: 12px 14px;
 }
@@ -175,7 +175,7 @@
 
 .movSuite {
   font-size: 0.78rem;
-  color: var(--sand);
+  color: var(--sage-text);
   text-align: right;
 }
 
@@ -183,7 +183,7 @@
   display: flex;
   justify-content: space-between;
   font-size: 0.75rem;
-  color: var(--sage);
+  color: var(--sage-text);
 }
 
 .movTotal { color: var(--clay); font-weight: 600; }
@@ -196,8 +196,8 @@
 }
 
 .tooltip {
-  background: #fff;
-  border: 1px solid #e5e7eb;
+  background: var(--cream);
+  border: 1px solid var(--line);
   border-radius: 6px;
   padding: 8px 12px;
   font-family: var(--font-jost), sans-serif;
@@ -215,7 +215,7 @@
   justify-content: center;
   margin-top: 10px;
   font-size: 0.72rem;
-  color: var(--sage);
+  color: var(--sage-text);
   font-family: var(--font-jost), sans-serif;
 }
 
@@ -241,7 +241,7 @@
   font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.07em;
-  color: var(--sage);
+  color: var(--sage-text);
 }
 
 .otaValue {
@@ -259,7 +259,7 @@
 
 .agentCard {
   background: var(--parch);
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--line);
   border-radius: 6px;
   padding: 16px;
   display: flex;
@@ -290,7 +290,7 @@
 
 .agentLabel {
   font-size: 0.75rem;
-  color: var(--sage);
+  color: var(--sage-text);
 }
 
 .agentValue {
@@ -309,12 +309,12 @@
 
 .chatClearBtn {
   background: none;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--line);
   border-radius: 4px;
   padding: 4px 10px;
   font-size: 0.72rem;
   font-family: var(--font-jost), sans-serif;
-  color: var(--sage);
+  color: var(--sage-text);
   cursor: pointer;
   transition: border-color 0.15s, color 0.15s;
 }
@@ -322,7 +322,7 @@
 
 .chatWrap {
   background: var(--parch);
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--line);
   border-radius: 6px;
   min-height: 140px;
   max-height: 380px;
@@ -344,7 +344,7 @@
 
 .chatEmpty p {
   font-size: 0.875rem;
-  color: var(--sage);
+  color: var(--sage-text);
   margin: 0;
   text-align: center;
 }
@@ -362,8 +362,8 @@
   gap: 4px;
   padding: 6px 12px;
   border-radius: 20px;
-  border: 1px solid #e5e7eb;
-  background: #fff;
+  border: 1px solid var(--line);
+  background: var(--cream);
   color: var(--clay);
   font-size: 0.78rem;
   font-family: var(--font-jost), sans-serif;
@@ -373,7 +373,7 @@
 }
 .suggestedChip:hover {
   border-color: var(--forest);
-  background: #fff;
+  background: var(--cream);
   color: var(--forest);
 }
 
@@ -398,9 +398,9 @@
 }
 
 .chatAssistant .chatBubble {
-  background: #fff;
+  background: var(--cream);
   color: var(--clay);
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--line);
   border-bottom-left-radius: 3px;
 }
 
@@ -413,8 +413,8 @@
   flex: 1;
   padding: 10px 14px;
   border-radius: 4px;
-  border: 1px solid #e5e7eb;
-  background: #fff;
+  border: 1px solid var(--line);
+  background: var(--cream);
   color: var(--clay);
   font-size: 0.875rem;
   font-family: var(--font-jost), sans-serif;
@@ -422,7 +422,7 @@
   transition: border-color 0.15s;
 }
 .chatInput:focus { border-color: var(--forest); }
-.chatInput::placeholder { color: #bbb; }
+.chatInput::placeholder { color: var(--clay); }
 .chatInput:disabled { opacity: 0.6; background: var(--parch); }
 
 .chatSend {
@@ -447,7 +447,7 @@
   justify-content: center;
   min-height: 50vh;
   gap: 16px;
-  color: var(--sage);
+  color: var(--sage-text);
   font-size: 0.875rem;
   font-family: var(--font-jost), sans-serif;
 }
@@ -455,7 +455,7 @@
 .loadingSpinner {
   width: 28px;
   height: 28px;
-  border: 2px solid #e5e7eb;
+  border: 2px solid var(--line);
   border-top-color: var(--forest);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;

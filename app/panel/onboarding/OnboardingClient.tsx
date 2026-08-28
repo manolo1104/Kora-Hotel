@@ -8,7 +8,7 @@ import { useState } from "react";
 import { Loader2, Plus, Trash2, ArrowRight, ArrowLeft, Lightbulb } from "lucide-react";
 
 const inputCls =
-  "w-full px-4 py-3 rounded-xl border border-gray-200 text-kora-text text-sm placeholder:text-kora-muted focus:outline-none focus:ring-2 focus:ring-kora-accent focus:border-transparent transition-all duration-200";
+  "w-full px-4 py-3 rounded-xl border border-panel-border text-kora-text text-sm placeholder:text-kora-muted focus:outline-none focus:ring-2 focus:ring-kora-accent focus:border-transparent transition-all duration-200";
 
 interface Cuarto {
   nombre: string;
@@ -16,7 +16,7 @@ interface Cuarto {
   maxGuests: string;
 }
 
-const card = "bg-white rounded-2xl p-6 sm:p-7 border border-gray-100 shadow-sm";
+const card = "bg-panel-surface rounded-2xl p-6 sm:p-7 border border-panel-border-soft shadow-sm";
 const TOTAL_PASOS = 6;
 
 export function OnboardingClient() {
@@ -133,7 +133,7 @@ export function OnboardingClient() {
             <div
               key={i}
               className={`h-1.5 flex-1 rounded-full transition-colors ${
-                i <= paso ? "bg-kora-primary" : "bg-gray-200"
+                i <= paso ? "bg-kora-primary" : "bg-panel-border"
               }`}
             />
           ))}
@@ -222,7 +222,7 @@ export function OnboardingClient() {
               {cuartos.map((c, i) => (
                 <div
                   key={i}
-                  className="rounded-xl border border-gray-100 p-4 bg-kora-bg/50 space-y-3"
+                  className="rounded-xl border border-panel-border-soft p-4 bg-kora-bg/50 space-y-3"
                 >
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-xs font-bold text-kora-muted uppercase tracking-widest">
@@ -265,7 +265,7 @@ export function OnboardingClient() {
               <button
                 type="button"
                 onClick={addCuarto}
-                className="btn-press inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-gray-200 text-kora-text font-semibold text-sm hover:border-kora-accent transition-colors"
+                className="btn-press inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-panel-border text-kora-text font-semibold text-sm hover:border-kora-accent transition-colors"
               >
                 <Plus size={15} /> Agregar otra habitación
               </button>
@@ -295,7 +295,7 @@ export function OnboardingClient() {
               setPaso((p) => Math.max(0, p - 1));
             }}
             disabled={paso === 0 || enviando}
-            className="btn-press inline-flex items-center gap-1.5 px-5 py-3 rounded-full border border-gray-200 text-kora-text font-semibold text-sm disabled:opacity-40 hover:border-kora-accent transition-colors"
+            className="btn-press inline-flex items-center gap-1.5 px-5 py-3 rounded-full border border-panel-border text-kora-text font-semibold text-sm disabled:opacity-40 hover:border-kora-accent transition-colors"
           >
             <ArrowLeft size={15} /> Atrás
           </button>

@@ -31,13 +31,13 @@ import { comprimirImagen } from "@/lib/images-client";
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
 
-const card = "bg-white rounded-2xl p-6 sm:p-7 border border-gray-100 shadow-sm";
+const card = "bg-panel-surface rounded-2xl p-6 sm:p-7 border border-panel-border-soft shadow-sm";
 const inputCls =
-  "w-full px-4 py-3 rounded-xl border border-gray-200 text-kora-text text-sm placeholder:text-kora-muted focus:outline-none focus:ring-2 focus:ring-kora-accent focus:border-transparent transition-all duration-200";
+  "w-full px-4 py-3 rounded-xl border border-panel-border text-kora-text text-sm placeholder:text-kora-muted focus:outline-none focus:ring-2 focus:ring-kora-accent focus:border-transparent transition-all duration-200";
 const btnPrimario =
   "btn-press btn-fill inline-flex items-center gap-2 px-7 py-3 rounded-full bg-kora-accent text-kora-primary font-bold text-sm hover:bg-kora-accent-dark transition-colors disabled:opacity-50";
 const btnSecundario =
-  "btn-press inline-flex items-center gap-1.5 px-5 py-3 rounded-full border border-gray-200 text-kora-text font-semibold text-sm disabled:opacity-40 hover:border-kora-accent transition-colors";
+  "btn-press inline-flex items-center gap-1.5 px-5 py-3 rounded-full border border-panel-border text-kora-text font-semibold text-sm disabled:opacity-40 hover:border-kora-accent transition-colors";
 
 interface Props {
   slug: string;
@@ -344,13 +344,13 @@ export function OnboardingHotelClient(props: Props) {
             href={urlMotor}
             target="_blank"
             rel="noopener noreferrer"
-            className="btn-press inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-full border border-gray-200 text-kora-text font-semibold text-sm hover:border-kora-accent transition-colors"
+            className="btn-press inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-full border border-panel-border text-kora-text font-semibold text-sm hover:border-kora-accent transition-colors"
           >
             <ExternalLink size={16} aria-hidden="true" /> Ver mi motor de reservas
           </a>
         </div>
 
-        <div className="mt-6 rounded-2xl border border-gray-100 bg-kora-bg/50 p-5">
+        <div className="mt-6 rounded-2xl border border-panel-border-soft bg-kora-bg/50 p-5">
           <p className="text-sm font-bold text-kora-text">
             Pon el motor de reservas en tu propia web
           </p>
@@ -358,7 +358,7 @@ export function OnboardingHotelClient(props: Props) {
             Copia esta línea y pégala en tu sitio donde quieras que aparezca el motor.
           </p>
           <div className="mt-3 flex items-start gap-2">
-            <code className="flex-1 min-w-0 block rounded-xl bg-white border border-gray-200 px-3 py-2.5 text-[11px] sm:text-xs text-kora-text break-all font-mono">
+            <code className="flex-1 min-w-0 block rounded-xl bg-panel-surface border border-panel-border px-3 py-2.5 text-[11px] sm:text-xs text-kora-text break-all font-mono">
               {snippet}
             </code>
             <button
@@ -428,7 +428,7 @@ export function OnboardingHotelClient(props: Props) {
             <div
               key={i}
               className={`h-1.5 flex-1 rounded-full transition-colors ${
-                i < paso ? "bg-kora-primary" : "bg-gray-200"
+                i < paso ? "bg-kora-primary" : "bg-panel-border"
               }`}
             />
           ))}
@@ -451,12 +451,12 @@ export function OnboardingHotelClient(props: Props) {
                       <img
                         src={url}
                         alt="Foto del hotel"
-                        className="w-full h-20 object-cover rounded-xl border border-gray-100"
+                        className="w-full h-20 object-cover rounded-xl border border-panel-border-soft"
                       />
                       <button
                         type="button"
                         onClick={() => quitarFoto(url)}
-                        className="absolute top-1 right-1 w-6 h-6 rounded-full bg-white/90 border border-gray-200 flex items-center justify-center text-red-600 shadow-sm"
+                        className="absolute top-1 right-1 w-6 h-6 rounded-full bg-panel-surface/90 border border-panel-border flex items-center justify-center text-red-600 shadow-sm"
                         aria-label="Quitar foto"
                       >
                         <Trash2 size={13} />
@@ -532,7 +532,7 @@ export function OnboardingHotelClient(props: Props) {
                         : "Conectar mis cobros"}
                     </button>
                   ) : (
-                    <p className="rounded-xl bg-kora-bg/60 border border-gray-100 px-4 py-3 text-xs text-kora-muted">
+                    <p className="rounded-xl bg-kora-bg/60 border border-panel-border-soft px-4 py-3 text-xs text-kora-muted">
                       Solo el <b>dueño</b> de la cuenta puede conectar los cobros. Pídele que
                       entre a este paso o a Panel → Pagos.
                     </p>
@@ -562,7 +562,7 @@ export function OnboardingHotelClient(props: Props) {
                       className={`btn-press px-4 py-2 rounded-full border text-sm font-semibold transition-colors ${
                         anticipoPct === p
                           ? "border-kora-accent bg-kora-accent/10 text-kora-primary"
-                          : "border-gray-200 text-kora-muted hover:border-kora-accent"
+                          : "border-panel-border text-kora-muted hover:border-kora-accent"
                       }`}
                     >
                       {p === 100 ? "Total (100%)" : `${p}% de anticipo`}
@@ -654,13 +654,13 @@ export function OnboardingHotelClient(props: Props) {
                 {checklist.map((item) => (
                   <li
                     key={item.etiqueta}
-                    className="flex items-center justify-between gap-3 rounded-xl border border-gray-100 bg-kora-bg/40 px-4 py-3"
+                    className="flex items-center justify-between gap-3 rounded-xl border border-panel-border-soft bg-kora-bg/40 px-4 py-3"
                   >
                     <span className="flex items-center gap-2.5 text-sm text-kora-text">
                       {item.ok ? (
                         <CheckCircle2 size={18} className="text-emerald-600 flex-shrink-0" />
                       ) : (
-                        <Circle size={18} className="text-gray-300 flex-shrink-0" />
+                        <Circle size={18} className="text-panel-faint flex-shrink-0" />
                       )}
                       {item.etiqueta}
                     </span>

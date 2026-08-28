@@ -106,13 +106,13 @@ export default function PagosClient({ rol, hotelNombre }: { rol: string; hotelNo
         <CreditCard className="text-[#1B4332]" size={26} />
         <h1 className="text-2xl font-bold text-[#1B2421]">Pagos en línea</h1>
       </div>
-      <p className="text-gray-600 mb-6">
+      <p className="text-kora-muted mb-6">
         Conecta tu cuenta para recibir los pagos de las reservas de <b>{hotelNombre}</b> directo a
         tu banco. El dinero llega a tu cuenta, no a Kora — sin comisión por reserva.
       </p>
 
       {loading ? (
-        <div className="flex items-center gap-2 text-gray-500">
+        <div className="flex items-center gap-2 text-kora-muted">
           <Loader2 className="animate-spin" size={18} /> Cargando estado…
         </div>
       ) : status?.stripe === false ? (
@@ -135,11 +135,11 @@ export default function PagosClient({ rol, hotelNombre }: { rol: string; hotelNo
               Stripe los deposita a tu banco automáticamente.
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-xs font-semibold text-green-800 border border-green-200">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-panel-surface px-3 py-1 text-xs font-semibold text-green-800 border border-green-200">
                 <ShieldCheck size={13} /> Cobros activos
               </span>
               <span
-                className={`inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-xs font-semibold border ${
+                className={`inline-flex items-center gap-1.5 rounded-full bg-panel-surface px-3 py-1 text-xs font-semibold border ${
                   status.payoutsEnabled
                     ? "text-green-800 border-green-200"
                     : "text-amber-700 border-amber-200"
@@ -149,8 +149,8 @@ export default function PagosClient({ rol, hotelNombre }: { rol: string; hotelNo
                 {status.payoutsEnabled ? "Depósitos a tu banco activos" : "Depósitos pendientes de verificación"}
               </span>
               <span
-                className={`inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-xs font-semibold border ${
-                  status.oxxoEnabled ? "text-green-800 border-green-200" : "text-gray-500 border-gray-200"
+                className={`inline-flex items-center gap-1.5 rounded-full bg-panel-surface px-3 py-1 text-xs font-semibold border ${
+                  status.oxxoEnabled ? "text-green-800 border-green-200" : "text-kora-muted border-panel-border"
                 }`}
               >
                 <Store size={13} />
@@ -162,7 +162,7 @@ export default function PagosClient({ rol, hotelNombre }: { rol: string; hotelNo
                 href={status.dashboardUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-4 inline-flex items-center gap-2 rounded-lg border border-green-300 bg-white px-4 py-2 text-sm font-semibold text-green-800 hover:bg-green-100"
+                className="mt-4 inline-flex items-center gap-2 rounded-lg border border-green-300 bg-panel-surface px-4 py-2 text-sm font-semibold text-green-800 hover:bg-green-100"
               >
                 <ExternalLink size={15} /> Ver mi panel de Stripe (cobros y depósitos)
               </a>
@@ -171,9 +171,9 @@ export default function PagosClient({ rol, hotelNombre }: { rol: string; hotelNo
 
           {/* Saldo actual (neto, ya sin comisión) */}
           {status.balance && (
-            <div className="rounded-xl border border-gray-200 bg-white p-5">
+            <div className="rounded-xl border border-panel-border bg-panel-surface p-5">
               <h2 className="text-sm font-bold text-[#1B2421]">Tu saldo</h2>
-              <p className="mt-0.5 text-xs text-gray-500">
+              <p className="mt-0.5 text-xs text-kora-muted">
                 Ya con la comisión de Stripe descontada: es lo que realmente recibes.
               </p>
               <div className="mt-3 grid grid-cols-2 gap-3">
@@ -196,17 +196,17 @@ export default function PagosClient({ rol, hotelNombre }: { rol: string; hotelNo
           )}
 
           {/* Pagos recibidos (aunque aún no se depositen) con el neto real */}
-          <div className="rounded-xl border border-gray-200 bg-white p-5">
+          <div className="rounded-xl border border-panel-border bg-panel-surface p-5">
             <h2 className="text-sm font-bold text-[#1B2421]">Pagos recibidos</h2>
-            <p className="mt-0.5 text-xs text-gray-500">
+            <p className="mt-0.5 text-xs text-kora-muted">
               Cada reserva cobrada. <b>Recibes</b> es lo que te queda después de la comisión de Stripe.
             </p>
             {status.payments && status.payments.length > 0 ? (
-              <div className="mt-3 divide-y divide-gray-100">
+              <div className="mt-3 divide-y divide-panel-border-soft">
                 {status.payments.map((p, i) => (
                   <div key={i} className="py-2.5">
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-600">{fmtFecha(p.created)}</span>
+                      <span className="text-kora-muted">{fmtFecha(p.created)}</span>
                       <span
                         className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
                           p.status === "available"
@@ -218,18 +218,18 @@ export default function PagosClient({ rol, hotelNombre }: { rol: string; hotelNo
                       </span>
                     </div>
                     <div className="mt-1 flex items-center justify-between text-sm">
-                      <span className="text-gray-500">Cobrado al huésped</span>
-                      <span className="tabular-nums text-gray-600">{money(p.gross, p.currency)}</span>
+                      <span className="text-kora-muted">Cobrado al huésped</span>
+                      <span className="tabular-nums text-kora-muted">{money(p.gross, p.currency)}</span>
                     </div>
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-500">Comisión de Stripe</span>
-                      <span className="tabular-nums text-gray-500">−{money(p.fee, p.currency)}</span>
+                      <span className="text-kora-muted">Comisión de Stripe</span>
+                      <span className="tabular-nums text-kora-muted">−{money(p.fee, p.currency)}</span>
                     </div>
                     <div className="flex items-center justify-between text-sm font-semibold text-[#1B2421]">
                       <span>Recibes</span>
                       <span className="tabular-nums text-green-800">{money(p.net, p.currency)}</span>
                     </div>
-                    <div className="mt-1 flex items-center gap-1.5 text-xs text-gray-500">
+                    <div className="mt-1 flex items-center gap-1.5 text-xs text-kora-muted">
                       <CalendarClock size={13} className="shrink-0" />
                       {p.status === "available"
                         ? "Ya disponible — se deposita a tu banco en el siguiente pago"
@@ -239,20 +239,20 @@ export default function PagosClient({ rol, hotelNombre }: { rol: string; hotelNo
                 ))}
               </div>
             ) : (
-              <p className="mt-2 text-sm text-gray-500">
+              <p className="mt-2 text-sm text-kora-muted">
                 Aún no hay pagos. Aparecerán aquí en cuanto recibas tu primera reserva pagada.
               </p>
             )}
           </div>
 
           {/* Últimos depósitos */}
-          <div className="rounded-xl border border-gray-200 bg-white p-5">
+          <div className="rounded-xl border border-panel-border bg-panel-surface p-5">
             <h2 className="text-sm font-bold text-[#1B2421]">Últimos depósitos a tu banco</h2>
             {status.payouts && status.payouts.length > 0 ? (
-              <div className="mt-3 divide-y divide-gray-100">
+              <div className="mt-3 divide-y divide-panel-border-soft">
                 {status.payouts.map((p, i) => (
                   <div key={i} className="flex items-center justify-between py-2 text-sm">
-                    <span className="text-gray-600">{fmtFecha(p.arrivalDate)}</span>
+                    <span className="text-kora-muted">{fmtFecha(p.arrivalDate)}</span>
                     <span className="font-semibold tabular-nums">{fmtMonto(p)}</span>
                     <span
                       className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
@@ -269,7 +269,7 @@ export default function PagosClient({ rol, hotelNombre }: { rol: string; hotelNo
                 ))}
               </div>
             ) : (
-              <p className="mt-2 text-sm text-gray-500">
+              <p className="mt-2 text-sm text-kora-muted">
                 Aún no hay depósitos. Aparecerán aquí en cuanto recibas tus primeras reservas
                 pagadas.
               </p>
@@ -277,7 +277,7 @@ export default function PagosClient({ rol, hotelNombre }: { rol: string; hotelNo
           </div>
         </div>
       ) : (
-        <div className="rounded-xl border border-gray-200 bg-white p-5">
+        <div className="rounded-xl border border-panel-border bg-panel-surface p-5">
           {status?.status === "requiere_info" ? (
             <p className="text-sm text-amber-700 mb-3">
               Stripe necesita más información para terminar de verificar tu cuenta
@@ -292,7 +292,7 @@ export default function PagosClient({ rol, hotelNombre }: { rol: string; hotelNo
             </p>
           ) : null}
           {rol !== "dueno" ? (
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-kora-muted">
               Solo el dueño del hotel puede conectar la cuenta de pagos.
             </p>
           ) : (
@@ -308,7 +308,7 @@ export default function PagosClient({ rol, hotelNombre }: { rol: string; hotelNo
                   : "Conectar mi cuenta bancaria"}
               </button>
               {error && <p className="text-sm text-red-600 mt-3">{error}</p>}
-              <p className="text-xs text-gray-400 mt-3">
+              <p className="text-xs text-panel-faint mt-3">
                 Te llevamos a Stripe (nuestro procesador de pagos) para verificar tu identidad y tu
                 cuenta bancaria. Toma 2–3 minutos. Kora nunca ve ni guarda tus datos bancarios.
               </p>

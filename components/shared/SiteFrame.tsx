@@ -30,7 +30,13 @@ export function SiteFrame({ children }: { children: React.ReactNode }) {
   if (esApp) {
     return (
       <>
-        <header className="fixed top-0 left-0 right-0 z-50 h-16 bg-white/95 backdrop-blur-sm border-b border-gray-100">
+        {/* `data-app-header` es el gancho del tema oscuro del panel: esta
+            barra vive FUERA de .panel-root, así que no puede heredar sus
+            variables y se pintaría clara sobre un panel oscuro. */}
+        <header
+          data-app-header
+          className="fixed top-0 left-0 right-0 z-50 h-16 bg-white/95 backdrop-blur-sm border-b border-gray-100"
+        >
           <div
             className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center ${
               esPanel ? "pl-16 sm:pl-16 md:pl-6 lg:pl-8" : ""

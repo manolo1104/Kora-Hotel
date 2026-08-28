@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { supabaseEnvReady } from "@/lib/supabase/env";
 
 const inputCls =
-  "w-full px-4 py-3 rounded-xl border border-gray-200 text-kora-text text-sm placeholder:text-kora-muted focus:outline-none focus:ring-2 focus:ring-kora-accent focus:border-transparent transition-all duration-200";
+  "w-full px-4 py-3 rounded-xl border border-panel-border text-kora-text text-sm placeholder:text-kora-muted focus:outline-none focus:ring-2 focus:ring-kora-accent focus:border-transparent transition-all duration-200";
 
 type Modo = "password" | "magico";
 
@@ -23,7 +23,7 @@ export function AuthForm({ next = "/panel" }: { next?: string }) {
 
   if (!supabaseEnvReady) {
     return (
-      <div className="bg-white rounded-2xl p-6 sm:p-8 border border-gray-100 shadow-sm text-center">
+      <div className="bg-panel-surface rounded-2xl p-6 sm:p-8 border border-panel-border-soft shadow-sm text-center">
         <p className="text-kora-text font-semibold">Configuración pendiente</p>
         <p className="mt-2 text-sm text-kora-muted leading-relaxed">
           Las cuentas todavía no están activas. En cuanto se configure la base de
@@ -74,7 +74,7 @@ export function AuthForm({ next = "/panel" }: { next?: string }) {
 
   if (enviado) {
     return (
-      <div className="bg-white rounded-2xl p-6 sm:p-8 border border-gray-100 shadow-sm text-center">
+      <div className="bg-panel-surface rounded-2xl p-6 sm:p-8 border border-panel-border-soft shadow-sm text-center">
         <div className="w-14 h-14 rounded-full bg-kora-accent/15 flex items-center justify-center mx-auto mb-4">
           <Check size={28} className="text-kora-primary" />
         </div>
@@ -88,7 +88,7 @@ export function AuthForm({ next = "/panel" }: { next?: string }) {
   }
 
   return (
-    <div className="bg-white rounded-2xl p-6 sm:p-8 border border-gray-100 shadow-sm">
+    <div className="bg-panel-surface rounded-2xl p-6 sm:p-8 border border-panel-border-soft shadow-sm">
       {/* Selector de método */}
       <div className="flex gap-2 mb-6">
         {[
@@ -107,7 +107,7 @@ export function AuthForm({ next = "/panel" }: { next?: string }) {
               className={`btn-press flex-1 px-3 py-2.5 rounded-xl text-sm font-semibold border transition-colors ${
                 active
                   ? "bg-kora-primary text-white border-kora-primary"
-                  : "bg-white text-kora-text border-gray-200 hover:border-kora-accent"
+                  : "bg-panel-surface text-kora-text border-panel-border hover:border-kora-accent"
               }`}
             >
               {o.label}

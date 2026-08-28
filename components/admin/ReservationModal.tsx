@@ -109,7 +109,7 @@ function SuccessPanel({ data, onEdit, onClose }: {
           <button className={styles.successActionBtn} style={{ background: '#624820' }} onClick={downloadPDF}>
             <Download size={14} /> PDF
           </button>
-          <button className={styles.successActionBtn} style={{ background: 'var(--clay)' }} onClick={onEdit}>
+          <button className={styles.successActionBtn} style={{ background: '#4B5563' }} onClick={onEdit}>
             <Pencil size={14} /> Editar
           </button>
         </div>

@@ -73,13 +73,13 @@ export function EliminarHotelButton({
 
       {open && createPortal(
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 overflow-y-auto"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-panel-contrast/40 overflow-y-auto"
           role="dialog"
           aria-modal="true"
           onClick={cerrar}
         >
           <div
-            className="w-full max-w-md bg-white rounded-2xl shadow-xl p-6"
+            className="w-full max-w-md bg-panel-surface rounded-2xl shadow-xl p-6"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start gap-3">
@@ -117,7 +117,7 @@ export function EliminarHotelButton({
                   placeholder={nombre}
                   autoComplete="off"
                   disabled={loading}
-                  className="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm focus:border-kora-accent focus:outline-none disabled:opacity-60"
+                  className="mt-1 w-full rounded-xl border border-panel-border px-3 py-2.5 text-sm focus:border-kora-accent focus:outline-none disabled:opacity-60"
                 />
               </label>
               <label className="block">
@@ -133,7 +133,7 @@ export function EliminarHotelButton({
                   // nombre del hotel y bloqueaba la confirmación).
                   autoComplete="new-password"
                   disabled={loading}
-                  className="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm focus:border-kora-accent focus:outline-none disabled:opacity-60"
+                  className="mt-1 w-full rounded-xl border border-panel-border px-3 py-2.5 text-sm focus:border-kora-accent focus:outline-none disabled:opacity-60"
                 />
               </label>
             </div>
@@ -145,7 +145,7 @@ export function EliminarHotelButton({
                 type="button"
                 onClick={cerrar}
                 disabled={loading}
-                className="btn-press px-4 py-2 rounded-full border border-gray-200 text-kora-text font-semibold text-sm hover:border-kora-accent disabled:opacity-60"
+                className="btn-press px-4 py-2 rounded-full border border-panel-border text-kora-text font-semibold text-sm hover:border-kora-accent disabled:opacity-60"
               >
                 Cancelar
               </button>

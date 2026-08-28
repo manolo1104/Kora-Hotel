@@ -1,10 +1,11 @@
 'use client';
 
 import { usePathname, useRouter } from 'next/navigation';
-import { Calendar, BookOpen, FileText, TrendingUp, Users, LogOut, Menu, X, LayoutDashboard, ClipboardCheck, Globe2, CreditCard, Pencil, CalendarCheck, Building2, Bot, Sparkles } from 'lucide-react';
+import { Calendar, BookOpen, FileText, TrendingUp, Users, LogOut, Menu, X, LayoutDashboard, ClipboardCheck, Globe2, CreditCard, Pencil, CalendarCheck, Building2, Bot, Sparkles, Moon, Sun } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import styles from './AdminSidebar.module.css';
+import { useTema } from '@/components/panel/TemaToggle';
 import { CANALES_OTA_DISPONIBLES } from '@/lib/panel/canales-ota';
 
 const NAV = [
@@ -27,6 +28,7 @@ export default function AdminSidebar({ slug, hotelName }: { slug: string; hotelN
   const pathname = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const { oscuro, montado: temaMontado, alternar: alternarTema } = useTema();
   const [botEnabled, setBotEnabled] = useState<boolean | null>(null);
   // Conexión REAL de WhatsApp (runtime): 'ready' = vinculada. Antes el punto
   // decía "Activo" solo por el flag on/off aunque nunca se hubiera escaneado el QR.
@@ -145,6 +147,22 @@ export default function AdminSidebar({ slug, hotelName }: { slug: string; hotelN
             Configurar
           </span>
         </a>
+
+        <button
+          className={styles.tema}
+          onClick={alternarTema}
+          aria-pressed={temaMontado ? oscuro : undefined}
+          aria-label={
+            temaMontado
+              ? oscuro
+                ? 'Cambiar a tema claro'
+                : 'Cambiar a tema oscuro'
+              : 'Cambiar el tema'
+          }
+        >
+          {oscuro ? <Sun size={16} strokeWidth={1.5} /> : <Moon size={16} strokeWidth={1.5} />}
+          <span>{oscuro ? 'Tema claro' : 'Tema oscuro'}</span>
+        </button>
 
         <button className={styles.logout} onClick={handleLogout}>
           <LogOut size={16} strokeWidth={1.5} />

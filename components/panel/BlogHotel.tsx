@@ -43,7 +43,7 @@ const ENFOQUES_IA = [
 ] as const;
 
 const inputCls =
-  "w-full px-3 py-2 rounded-lg border border-gray-200 text-sm text-kora-text placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-kora-primary/30 focus:border-kora-primary transition";
+  "w-full px-3 py-2 rounded-lg border border-panel-border text-sm text-kora-text placeholder:text-panel-faint focus:outline-none focus:ring-2 focus:ring-kora-primary/30 focus:border-kora-primary transition";
 const labelCls = "block text-xs font-semibold text-kora-muted mb-1";
 const ayudaCls = "mt-1 text-[11px] text-kora-muted leading-snug";
 
@@ -173,7 +173,7 @@ function ListaPosts({
   }
   if (posts.length === 0) {
     return (
-      <div className="mt-8 rounded-2xl border-2 border-dashed border-gray-300 bg-white p-8 text-center">
+      <div className="mt-8 rounded-2xl border-2 border-dashed border-panel-border bg-panel-surface p-8 text-center">
         <p className="text-sm font-semibold text-kora-text">Todavía no tienes artículos.</p>
         <p className="mt-1 text-sm text-kora-muted max-w-md mx-auto">
           Ideas que funcionan: “Qué hacer en tu pueblo en 2 días”, “Cuándo es la mejor época para
@@ -189,7 +189,7 @@ function ListaPosts({
           key={p.id}
           type="button"
           onClick={() => onAbrir(p)}
-          className="w-full text-left rounded-xl border border-gray-200 bg-white p-4 hover:border-kora-accent transition-colors"
+          className="w-full text-left rounded-xl border border-panel-border bg-panel-surface p-4 hover:border-kora-accent transition-colors"
         >
           <span className="flex items-center gap-2 flex-wrap">
             <span className="font-semibold text-sm text-kora-text">
@@ -496,7 +496,7 @@ function EditorPost({
             className={`btn-press px-4 py-2 rounded-full border text-sm font-semibold transition-colors ${
               sucio
                 ? "border-kora-primary text-kora-primary hover:bg-kora-primary/5"
-                : "border-gray-200 text-gray-400"
+                : "border-panel-border text-panel-faint"
             }`}
           >
             {guardando ? "Guardando…" : sucio ? "Guardar" : "Guardado"}
@@ -536,7 +536,7 @@ function EditorPost({
               className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${
                 iaAgotada
                   ? "text-amber-700 bg-amber-50 border-amber-200"
-                  : "text-kora-primary bg-white border-kora-primary/30"
+                  : "text-kora-primary bg-panel-surface border-kora-primary/30"
               }`}
             >
               {iaAgotada
@@ -556,7 +556,7 @@ function EditorPost({
                 className={`px-2.5 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
                   enfoque === e.key
                     ? "border-kora-primary bg-kora-primary/10 text-kora-primary"
-                    : "border-gray-200 bg-white text-kora-muted hover:border-gray-300"
+                    : "border-panel-border bg-panel-surface text-kora-muted hover:border-panel-border"
                 }`}
               >
                 {e.label}
@@ -588,7 +588,7 @@ function EditorPost({
           disabled={generando || iaAgotada}
           className={`btn-press inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-colors ${
             iaAgotada
-              ? "bg-gray-200 text-gray-400"
+              ? "bg-panel-border text-panel-faint"
               : "bg-kora-primary text-white hover:bg-kora-primary-dark"
           }`}
         >
@@ -604,7 +604,7 @@ function EditorPost({
       </div>
 
       {/* Campos del artículo */}
-      <div className="rounded-2xl border border-gray-200 bg-white p-4 space-y-3">
+      <div className="rounded-2xl border border-panel-border bg-panel-surface p-4 space-y-3">
         <div>
           <label className={labelCls}>Título</label>
           <input
@@ -639,10 +639,10 @@ function EditorPost({
               <img
                 src={post.portada}
                 alt=""
-                className="w-24 h-16 object-cover rounded-lg border border-gray-200"
+                className="w-24 h-16 object-cover rounded-lg border border-panel-border"
               />
             )}
-            <label className="btn-press inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 text-sm font-semibold text-kora-text cursor-pointer hover:border-kora-accent transition-colors">
+            <label className="btn-press inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-panel-border text-sm font-semibold text-kora-text cursor-pointer hover:border-kora-accent transition-colors">
               {subiendo ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
               {subiendo ? "Subiendo…" : post.portada ? "Cambiar foto" : "Subir foto"}
               <input
@@ -667,7 +667,7 @@ function EditorPost({
         <div>
           <div className="flex items-center justify-between gap-2 mb-1">
             <label className={`${labelCls} mb-0`}>Artículo</label>
-            <label className="btn-press inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs font-semibold text-kora-text cursor-pointer hover:border-kora-accent transition-colors">
+            <label className="btn-press inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-panel-border text-xs font-semibold text-kora-text cursor-pointer hover:border-kora-accent transition-colors">
               {subiendoFotoTexto ? (
                 <Loader2 size={13} className="animate-spin" />
               ) : (
@@ -719,7 +719,7 @@ function EditorPost({
 
       {/* Vista previa */}
       {post.contenido.trim() && (
-        <div className="rounded-2xl border border-gray-200 bg-white p-5">
+        <div className="rounded-2xl border border-panel-border bg-panel-surface p-5">
           <p className="text-[10px] font-bold uppercase tracking-wide text-kora-muted mb-3">
             Así se verá
           </p>

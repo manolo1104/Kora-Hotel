@@ -177,7 +177,7 @@ export default function GuidedTour({ initialVisto }: { initialVisto: boolean }) 
       {/* Tarjeta */}
       <div
         style={cardStyle}
-        className="rounded-2xl border border-black/10 bg-white p-4 shadow-xl"
+        className="rounded-2xl border border-panel-contrast/10 bg-panel-surface p-4 shadow-xl"
         role="dialog"
         aria-label={paso.titulo}
       >
@@ -206,7 +206,7 @@ export default function GuidedTour({ initialVisto }: { initialVisto: boolean }) 
             {idx > 0 && (
               <button
                 onClick={() => setIdx((i) => Math.max(0, i - 1))}
-                className="btn-press inline-flex items-center gap-1 rounded-full border border-gray-200 px-3 py-1.5 text-xs font-semibold text-kora-text hover:border-kora-accent"
+                className="btn-press inline-flex items-center gap-1 rounded-full border border-panel-border px-3 py-1.5 text-xs font-semibold text-kora-text hover:border-kora-accent"
               >
                 <ArrowLeft size={13} /> Atrás
               </button>

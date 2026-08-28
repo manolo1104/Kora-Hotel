@@ -9,7 +9,13 @@
   --forest: #1B4332;   /* verde oscuro primario (sidebar, títulos) */
   --moss:   #2D5A45;
   --jade:   #40916C;
-  --sage:   #52B788;   /* verde acento Kora (labels, subtítulos) */
+  --sage:   #52B788;   /* verde acento Kora — SÓLO fondos, bordes e iconos sobre oscuro */
+  /* El mismo #52B788 como TEXTO sobre tarjeta blanca da 2.47:1, muy por debajo
+     del mínimo legible (4.5:1). Un hotelero reportó que "las letras son blancas
+     y uno no sabe qué está haciendo" y tuvo que instalar una extensión de modo
+     oscuro para poder usar el panel. Este es el verde de marca oscurecido a
+     5.14:1, que sí se lee. Usar SIEMPRE éste para texto. */
+  --sage-text: #357A5B;
   --accent: #52B788;
 
   /* Acentos (antes dorados) → verde */
@@ -19,6 +25,7 @@
   /* Fondos limpios */
   --parch:  #FAFAF8;   /* fondo de página */
   --cream:  #FFFFFF;   /* tarjetas */
+  --line:   #e5e7eb;   /* líneas divisorias (antes #e5e7eb suelto en 13 módulos) */
 
   /* Texto neutro */
   --ink:    #1A1A1A;   /* texto primario */
@@ -57,4 +64,32 @@
 
 @media (max-width: 640px) {
   .calGrid { grid-template-columns: 1fr; }
+}
+
+
+/* ─── Tema oscuro ────────────────────────────────────────────────────────────
+   El panel operativo no usa Tailwind sino estas variables, así que el modo
+   oscuro se resuelve volteándolas aquí. `:global` deja pasar el atributo del
+   <html> sin que CSS Modules le cambie el nombre.
+   Ver también app/globals.css (la mitad Tailwind del mismo tema).            */
+:global([data-tema="oscuro"]) .shell {
+  --forest: #74D0A3;   /* el verde de marca, aclarado para leerse en oscuro */
+  --moss:   #5FBF90;
+  --jade:   #52B788;
+  --sage:   #74D0A3;
+  --accent: #52B788;
+  --sand:   #74C69D;
+  --gold:   #74D0A3;
+
+  --parch:  #0F1412;   /* fondo de página */
+  --cream:  #1A211E;   /* tarjetas */
+  --line:   #2F3C36;   /* líneas divisorias */
+
+  --sage-text: #74D0A3;  /* el verde de texto, aclarado (8.8:1 sobre la tarjeta oscura) */
+
+  --ink:    #E8EDEA;   /* texto primario */
+  --bark:   #C3CDC8;
+  --clay:   #9AA8A1;   /* texto secundario */
+
+  color-scheme: dark;
 }

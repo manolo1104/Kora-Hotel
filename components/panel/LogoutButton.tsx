@@ -25,7 +25,7 @@ export function LogoutButton() {
       type="button"
       onClick={salir}
       disabled={loading}
-      className="btn-press inline-flex items-center gap-2 px-4 py-2 rounded-full border border-gray-200 text-kora-text text-sm font-semibold hover:border-kora-accent transition-colors disabled:opacity-60"
+      className="btn-press inline-flex items-center gap-2 px-4 py-2 rounded-full border border-panel-border text-kora-text text-sm font-semibold hover:border-kora-accent transition-colors disabled:opacity-60"
     >
       <LogOut size={15} aria-hidden="true" />
       Cerrar sesión

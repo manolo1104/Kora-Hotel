@@ -32,7 +32,7 @@
   margin: 0 0 4px;
 }
 
-.sub { font-size: 0.83rem; color: var(--sage); margin: 0; }
+.sub { font-size: 0.83rem; color: var(--sage-text); margin: 0; }
 
 .headerActions {
   display: flex;
@@ -52,7 +52,7 @@
 /* View toggle */
 .viewToggle {
   display: flex;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--line);
   border-radius: 4px;
   overflow: hidden;
 }
@@ -61,7 +61,7 @@
   display: flex;
   align-items: center;
   gap: 5px;
-  background: #fff;
+  background: var(--cream);
   border: none;
   padding: 6px 12px;
   font-size: 0.8rem;
@@ -69,15 +69,15 @@
   cursor: pointer;
   color: var(--clay);
   transition: background 0.15s, color 0.15s;
-  border-right: 1px solid #e5e7eb;
+  border-right: 1px solid var(--line);
 }
 .viewBtn:last-child { border-right: none; }
 .viewBtn:hover { background: var(--parch); }
 .viewBtnActive { background: var(--forest) !important; color: var(--cream) !important; }
 
 .iconBtn {
-  background: #fff;
-  border: 1px solid #e5e7eb;
+  background: var(--cream);
+  border: 1px solid var(--line);
   border-radius: 4px;
   padding: 6px 8px;
   cursor: pointer;
@@ -105,9 +105,9 @@
 .primaryBtn:hover { background: var(--moss); }
 
 .calWrap {
-  background: #fff;
+  background: var(--cream);
   border-radius: 8px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--line);
   overflow: hidden;
 }
 
@@ -136,7 +136,7 @@
   border-right: 1px solid #f4f4f2;
   border-bottom: 1px solid #f4f4f2;
   min-height: 100px;
-  background: #ffffff;
+  background: var(--cream);
 }
 
 .day {
@@ -182,7 +182,7 @@
 
 .more {
   font-size: 0.65rem;
-  color: var(--sage);
+  color: var(--sage-text);
   padding-left: 4px;
 }
 
@@ -211,7 +211,7 @@
 @media (max-width: 640px) {
   .day { min-height: 60px; padding: 4px; }
   .event { display: none; }
-  .day:has(.dayEvents > .event) .dayNum::after { content: '●'; color: var(--sand); font-size: 0.5rem; }
+  .day:has(.dayEvents > .event) .dayNum::after { content: '●'; color: var(--sage-text); font-size: 0.5rem; }
 }
 
 /* Keyframe global para los spinners inline (style={{ animation: 'spin ...' }})

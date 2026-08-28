@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { Reveal } from "@/components/shared/Reveal";
 import { LogoutButton } from "@/components/panel/LogoutButton";
+import { TemaToggle } from "@/components/panel/TemaToggle";
 import { SuscripcionCard } from "@/components/panel/SuscripcionCard";
 import { EliminarHotelButton } from "@/components/panel/EliminarHotelButton";
 import { createClient } from "@/lib/supabase/server";
@@ -90,7 +91,7 @@ export default async function PanelPage() {
   const alcanzoTope =
     hotelesPropios >= MAX_HOTELES_POR_CUENTA && suscripcion?.estado !== "cortesia";
 
-  const card = "bg-white rounded-2xl p-6 sm:p-7 border border-gray-100 shadow-sm";
+  const card = "bg-panel-surface rounded-2xl p-6 sm:p-7 border border-panel-border-soft shadow-sm";
 
   return (
     <main className="pt-16">
@@ -104,7 +105,10 @@ export default async function PanelPage() {
                 </h1>
                 <p className="mt-1 text-sm text-kora-muted">{user.email}</p>
               </div>
-              <LogoutButton />
+              <div className="flex items-center gap-3">
+                <TemaToggle />
+                <LogoutButton />
+              </div>
             </div>
           </Reveal>
 
@@ -183,7 +187,7 @@ export default async function PanelPage() {
                         href={`/h/${hotel.slug}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="btn-press inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border border-gray-200 text-kora-text font-semibold text-xs sm:text-sm hover:border-kora-accent transition-colors"
+                        className="btn-press inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border border-panel-border text-kora-text font-semibold text-xs sm:text-sm hover:border-kora-accent transition-colors"
                       >
                         <Globe size={15} aria-hidden="true" /> Ver sitio
                       </Link>
@@ -191,13 +195,13 @@ export default async function PanelPage() {
                         href={`/h/${hotel.slug}/reservar`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="btn-press inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border border-gray-200 text-kora-text font-semibold text-xs sm:text-sm hover:border-kora-accent transition-colors"
+                        className="btn-press inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border border-panel-border text-kora-text font-semibold text-xs sm:text-sm hover:border-kora-accent transition-colors"
                       >
                         <CalendarCheck size={15} aria-hidden="true" /> Reservas
                       </Link>
                       <Link
                         href={`/panel/${hotel.slug}/sitio`}
-                        className="btn-press inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border border-gray-200 text-kora-text font-semibold text-xs sm:text-sm hover:border-kora-accent transition-colors"
+                        className="btn-press inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border border-panel-border text-kora-text font-semibold text-xs sm:text-sm hover:border-kora-accent transition-colors"
                       >
                         <Pencil size={15} aria-hidden="true" /> Editar sitio
                       </Link>
@@ -205,7 +209,7 @@ export default async function PanelPage() {
 
                     {/* Zona de peligro: eliminar hotel (solo dueño, con contraseña) */}
                     {rol === "dueno" && (
-                      <div className="mt-4 pt-4 border-t border-gray-100 flex justify-end">
+                      <div className="mt-4 pt-4 border-t border-panel-border-soft flex justify-end">
                         <EliminarHotelButton slug={hotel.slug} nombre={hotel.nombre} />
                       </div>
                     )}
@@ -215,7 +219,7 @@ export default async function PanelPage() {
 
               <Reveal delay={0.05 * hoteles.length}>
                 {alcanzoTope ? (
-                  <div className="flex flex-col items-center gap-1 w-full px-5 py-4 rounded-2xl border border-gray-100 bg-white text-center">
+                  <div className="flex flex-col items-center gap-1 w-full px-5 py-4 rounded-2xl border border-panel-border-soft bg-panel-surface text-center">
                     <p className="text-sm font-semibold text-kora-text">
                       {MAX_HOTELES_POR_CUENTA === 1
                         ? "Tu plan cubre un hotel."
@@ -228,7 +232,7 @@ export default async function PanelPage() {
                 ) : (
                   <Link
                     href="/panel/onboarding"
-                    className="btn-press group flex items-center justify-center gap-2 w-full px-5 py-4 rounded-2xl border-2 border-dashed border-gray-200 text-kora-muted font-semibold text-sm hover:border-kora-accent hover:text-kora-primary transition-colors"
+                    className="btn-press group flex items-center justify-center gap-2 w-full px-5 py-4 rounded-2xl border-2 border-dashed border-panel-border text-kora-muted font-semibold text-sm hover:border-kora-accent hover:text-kora-primary transition-colors"
                   >
                     <Plus size={16} /> Agregar otro hotel
                     <ArrowRight

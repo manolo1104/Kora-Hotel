@@ -152,14 +152,14 @@ export default function DocumentoEditor({ kind, slug, id, brand, data }: Props) 
           <button
             onClick={guardar}
             disabled={guardando}
-            className="btn-press inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-black/5 text-kora-text font-semibold text-sm hover:bg-black/10 disabled:opacity-60"
+            className="btn-press inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-panel-contrast/5 text-kora-text font-semibold text-sm hover:bg-panel-contrast/10 disabled:opacity-60"
           >
             {guardando ? <Loader2 size={15} className="animate-spin" /> : guardado ? <Check size={15} /> : <Save size={15} />}
             {guardando ? "Guardando…" : guardado ? "Guardado" : "Guardar cambios"}
           </button>
           <button
             onClick={descargarHtml}
-            className="btn-press inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-black/5 text-kora-text font-semibold text-sm hover:bg-black/10"
+            className="btn-press inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-panel-contrast/5 text-kora-text font-semibold text-sm hover:bg-panel-contrast/10"
           >
             <Download size={15} /> .html
           </button>
@@ -203,10 +203,10 @@ export default function DocumentoEditor({ kind, slug, id, brand, data }: Props) 
           <Bloque titulo="Conceptos">
             <div className="space-y-3">
               {conceptos.map((c, i) => (
-                <div key={i} className="rounded-xl border border-black/10 p-3 space-y-2">
+                <div key={i} className="rounded-xl border border-panel-contrast/10 p-3 space-y-2">
                   <div className="flex items-center gap-2">
                     <input className="input-kora flex-1" placeholder="Concepto" value={c.nombre} onChange={(e) => setConcepto(i, "nombre", e.target.value)} />
-                    <button onClick={() => removeConcepto(i)} className="shrink-0 grid place-items-center w-9 h-9 rounded-full bg-black/5 text-red-500 hover:bg-black/10" title="Quitar" aria-label="Quitar concepto">
+                    <button onClick={() => removeConcepto(i)} className="shrink-0 grid place-items-center w-9 h-9 rounded-full bg-panel-contrast/5 text-red-500 hover:bg-panel-contrast/10" title="Quitar" aria-label="Quitar concepto">
                       <Trash2 size={15} />
                     </button>
                   </div>
@@ -246,7 +246,7 @@ export default function DocumentoEditor({ kind, slug, id, brand, data }: Props) 
           </Bloque>
 
           {/* Datos del cliente y estancia (menos comunes → plegado) */}
-          <details className="rounded-2xl border border-black/10 bg-white">
+          <details className="rounded-2xl border border-panel-contrast/10 bg-panel-surface">
             <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-kora-text">Cliente y estancia</summary>
             <div className="px-4 pb-4 space-y-3">
               <div className="grid sm:grid-cols-3 gap-3">
@@ -270,7 +270,7 @@ export default function DocumentoEditor({ kind, slug, id, brand, data }: Props) 
         {/* Vista previa en vivo */}
         <div className="lg:sticky lg:top-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-kora-muted mb-2">Vista previa</p>
-          <div className="rounded-2xl border border-black/10 overflow-hidden bg-[#e7e4dc]">
+          <div className="rounded-2xl border border-panel-contrast/10 overflow-hidden bg-[#e7e4dc]">
             <iframe title="Vista previa del documento" srcDoc={html} className="w-full" style={{ height: "760px", border: "0", background: "#e7e4dc" }} />
           </div>
         </div>
@@ -281,7 +281,7 @@ export default function DocumentoEditor({ kind, slug, id, brand, data }: Props) 
 
 function Bloque({ titulo, children }: { titulo: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-2xl border border-black/10 bg-white p-4 space-y-3">
+    <section className="rounded-2xl border border-panel-contrast/10 bg-panel-surface p-4 space-y-3">
       <h2 className="text-sm font-bold text-kora-text">{titulo}</h2>
       {children}
     </section>

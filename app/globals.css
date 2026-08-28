@@ -27,6 +27,75 @@ body {
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
 }
 
+/* ─── Tema: claro (por defecto) y oscuro del panel ───────────────────────────
+   Los valores claros son EXACTAMENTE los hex que tenía tailwind.config.ts, así
+   que el sitio público no cambia ni un pixel.
+
+   El tema oscuro se activa con data-tema="oscuro" en <html>, pero sus overrides
+   están encerrados dentro de `.panel-root`: si el hotelero prende el modo
+   oscuro y luego navega a la página pública, la landing NO se oscurece.        */
+
+:root {
+  /* Marca (valores claros) */
+  --kora-primary: 27 67 50;      /* #1B4332 */
+  --kora-bg: 250 250 248;        /* #FAFAF8 */
+  --kora-text: 26 26 26;         /* #1A1A1A */
+  --kora-muted: 107 114 128;     /* #6B7280 */
+
+  /* Superficies del panel (equivalen a los grises literales de antes) */
+  --panel-surface: 255 255 255;    /* bg-white      */
+  --panel-surface-2: 249 250 251;  /* bg-gray-50    */
+  --panel-border: 229 231 235;     /* gray-200      */
+  --panel-border-soft: 243 244 246;/* gray-100      */
+  --panel-faint: 156 163 175;      /* gray-400      */
+  --panel-contrast: 0 0 0;         /* las capas black/5, black/10… */
+}
+
+[data-tema="oscuro"] .panel-root {
+  /* Verde de marca aclarado: como TEXTO tiene que leerse sobre fondo oscuro. */
+  --kora-primary: 116 208 163;
+  --kora-bg: 15 20 18;
+  --kora-text: 232 237 234;
+  --kora-muted: 154 168 161;
+
+  --panel-surface: 26 33 30;
+  --panel-surface-2: 34 43 39;
+  --panel-border: 47 60 54;
+  --panel-border-soft: 40 51 46;
+  --panel-faint: 122 138 130;
+  --panel-contrast: 255 255 255;   /* las capas pasan de negras a blancas */
+
+  color: rgb(var(--kora-text));
+}
+
+/* El botón sólido no puede usar el verde CLARO con su texto blanco: se queda
+   sin contraste. En oscuro se le da el verde vivo con texto oscuro, que es
+   legible y además resalta contra las tarjetas. */
+[data-tema="oscuro"] .panel-root .bg-kora-primary,
+[data-tema="oscuro"] .panel-root .hover\:bg-kora-primary:hover {
+  background-color: #52B788;
+  color: #0E1A14;
+}
+
+/* El fondo del documento sólo se oscurece si hay panel en pantalla; si no, la
+   landing conservaría su fondo claro con una franja oscura al hacer overscroll. */
+[data-tema="oscuro"] body:has(.panel-root) {
+  background-color: rgb(15 20 18);
+}
+
+/* La barra fija del área de cuenta vive fuera de .panel-root (la pinta
+   SiteFrame), así que no hereda las variables: se oscurece a mano y sólo
+   cuando hay panel en pantalla. */
+[data-tema="oscuro"] body:has(.panel-root) [data-app-header] {
+  background-color: rgb(26 33 30 / 0.95);
+  border-bottom-color: rgb(47 60 54);
+}
+
+/* Los campos de formulario nativos y el scrollbar tienen que saber el tema. */
+[data-tema="oscuro"] .panel-root {
+  color-scheme: dark;
+}
+
 /* ─── Button press feedback ─────────────────────────────────────────────────── */
 
 .btn-press {

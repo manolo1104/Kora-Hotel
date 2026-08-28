@@ -118,7 +118,7 @@ export function HerramientasPanelClient({ hotelNombre }: { hotelNombre: string }
               className={`btn-press inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-semibold border transition-colors ${
                 on
                   ? "bg-kora-primary text-white border-kora-primary"
-                  : "bg-white text-kora-muted border-gray-200 hover:border-kora-accent"
+                  : "bg-panel-surface text-kora-muted border-panel-border hover:border-kora-accent"
               }`}
             >
               <h.Icon size={16} aria-hidden="true" />
@@ -143,7 +143,7 @@ export function HerramientasPanelClient({ hotelNombre }: { hotelNombre: string }
 
       {/* Más herramientas (calculadoras) */}
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 mt-12">
-        <div className="bg-white rounded-2xl p-6 sm:p-7 border border-gray-100 shadow-sm">
+        <div className="bg-panel-surface rounded-2xl p-6 sm:p-7 border border-panel-border-soft shadow-sm">
           <div className="flex items-center gap-2 mb-1">
             <Calculator size={18} className="text-kora-primary" aria-hidden="true" />
             <h2 className="text-lg font-bold text-kora-text">Calculadoras para tu hotel</h2>
@@ -158,7 +158,7 @@ export function HerramientasPanelClient({ hotelNombre }: { hotelNombre: string }
                 href={`/herramientas/${c.slug}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="btn-press inline-flex items-center justify-between gap-2 px-4 py-3 rounded-xl border border-gray-200 text-sm font-semibold text-kora-text hover:border-kora-accent transition-colors"
+                className="btn-press inline-flex items-center justify-between gap-2 px-4 py-3 rounded-xl border border-panel-border text-sm font-semibold text-kora-text hover:border-kora-accent transition-colors"
               >
                 {c.label}
                 <ExternalLink size={14} className="text-kora-muted" aria-hidden="true" />

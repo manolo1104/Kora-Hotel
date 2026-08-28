@@ -80,7 +80,7 @@ import {
 } from "@/lib/mini";
 
 const inputCls =
-  "w-full px-3 py-2 rounded-lg border border-gray-200 text-sm text-kora-text placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-kora-primary/30 focus:border-kora-primary transition";
+  "w-full px-3 py-2 rounded-lg border border-panel-border text-sm text-kora-text placeholder:text-panel-faint focus:outline-none focus:ring-2 focus:ring-kora-primary/30 focus:border-kora-primary transition";
 
 const labelCls = "block text-xs font-semibold text-kora-muted mb-1";
 
@@ -111,7 +111,7 @@ function IconoTipo({ tipo }: { tipo: BloqueTipo }) {
   if (tipo === "menu") return <UtensilsCrossed size={15} className={cls} />;
   if (tipo === "cta") return <MousePointerClick size={15} className={cls} />;
   if (tipo === "pdf") return <FileText size={15} className={cls} />;
-  return <GripVertical size={15} className="text-gray-300" />;
+  return <GripVertical size={15} className="text-panel-faint" />;
 }
 
 type PanelKey = "bloques" | "estilo" | "botones" | "textos" | "aviso";
@@ -736,7 +736,7 @@ export function EditorVisual({
   return (
     <div className="fixed inset-0 top-16 flex flex-col bg-kora-bg">
       {/* Barra superior */}
-      <header className="flex-shrink-0 border-b border-gray-200 bg-white px-3 sm:px-5 py-2.5 flex items-center gap-2 sm:gap-3">
+      <header className="flex-shrink-0 border-b border-panel-border bg-panel-surface px-3 sm:px-5 py-2.5 flex items-center gap-2 sm:gap-3">
         <Link
           href={rutaSalida}
           onClick={(e) => {
@@ -764,7 +764,7 @@ export function EditorVisual({
         </button>
 
         {/* Móvil / escritorio (solo afecta la vista previa) */}
-        <div className="hidden lg:flex items-center rounded-full border border-gray-200 p-0.5">
+        <div className="hidden lg:flex items-center rounded-full border border-panel-border p-0.5">
           <button
             type="button"
             onClick={() => setVista("escritorio")}
@@ -787,7 +787,7 @@ export function EditorVisual({
           href={`/h/${slug}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-full border border-gray-200 text-sm font-semibold text-kora-text hover:border-kora-accent transition-colors"
+          className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-full border border-panel-border text-sm font-semibold text-kora-text hover:border-kora-accent transition-colors"
         >
           <ExternalLink size={14} /> Ver publicada
         </a>
@@ -814,7 +814,7 @@ export function EditorVisual({
       )}
 
       {/* Pestañas solo en pantallas chicas (no cabe la pantalla partida) */}
-      <div className="flex-shrink-0 lg:hidden grid grid-cols-2 border-b border-gray-200 bg-white">
+      <div className="flex-shrink-0 lg:hidden grid grid-cols-2 border-b border-panel-border bg-panel-surface">
         {(["editar", "ver"] as const).map((p) => (
           <button
             key={p}
@@ -836,9 +836,9 @@ export function EditorVisual({
         <aside
           className={`${
             pestanaMovil === "editar" ? "flex" : "hidden"
-          } lg:flex flex-col w-full lg:w-[420px] flex-shrink-0 border-r border-gray-200 bg-white min-h-0`}
+          } lg:flex flex-col w-full lg:w-[420px] flex-shrink-0 border-r border-panel-border bg-panel-surface min-h-0`}
         >
-          <nav className="flex-shrink-0 grid grid-cols-5 border-b border-gray-200">
+          <nav className="flex-shrink-0 grid grid-cols-5 border-b border-panel-border">
             {PANELES.map(({ key, label, Icon }) => (
               <button
                 key={key}
@@ -937,13 +937,13 @@ export function EditorVisual({
         <main
           className={`${
             pestanaMovil === "ver" ? "block" : "hidden"
-          } lg:block flex-1 min-w-0 overflow-y-auto bg-gray-100 p-0 lg:p-6`}
+          } lg:block flex-1 min-w-0 overflow-y-auto bg-panel-surface-2 p-0 lg:p-6`}
         >
           <div
-            className={`relative mx-auto bg-white overflow-hidden ${
+            className={`relative mx-auto bg-panel-surface overflow-hidden ${
               vista === "movil"
-                ? "w-full max-w-[390px] lg:rounded-[2rem] lg:border-8 lg:border-gray-800 lg:shadow-2xl"
-                : "w-full max-w-3xl lg:rounded-2xl lg:shadow-xl lg:border lg:border-gray-200"
+                ? "w-full max-w-[390px] lg:rounded-[2rem] lg:border-8 lg:border-panel-border lg:shadow-2xl"
+                : "w-full max-w-3xl lg:rounded-2xl lg:shadow-xl lg:border lg:border-panel-border"
             }`}
             // Los enlaces de la vista previa no navegan: el hotelero sigue
             // editando en vez de irse a otra página a media edición.
@@ -969,12 +969,12 @@ export function EditorVisual({
       </div>
 
       {confirmarSalida && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-panel-contrast/40">
           <div
             role="dialog"
             aria-modal="true"
             aria-labelledby="salir-titulo"
-            className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl"
+            className="w-full max-w-sm rounded-2xl bg-panel-surface p-5 shadow-2xl"
           >
             <h2 id="salir-titulo" className="text-lg font-bold text-kora-text">
               Tienes cambios sin guardar
@@ -995,7 +995,7 @@ export function EditorVisual({
               <button
                 type="button"
                 onClick={() => setConfirmarSalida(false)}
-                className="btn-press w-full px-4 py-2.5 rounded-full border border-gray-200 text-sm font-semibold text-kora-text hover:border-kora-accent transition-colors"
+                className="btn-press w-full px-4 py-2.5 rounded-full border border-panel-border text-sm font-semibold text-kora-text hover:border-kora-accent transition-colors"
               >
                 Seguir editando
               </button>
@@ -1040,7 +1040,7 @@ function BotonIA({
         {generando ? "Escribiendo…" : "Escríbelo por mí"}
       </button>
       {abierto && !generando && (
-        <div className="absolute z-20 mt-1 left-0 w-56 rounded-xl border border-gray-200 bg-white shadow-lg p-2">
+        <div className="absolute z-20 mt-1 left-0 w-56 rounded-xl border border-panel-border bg-panel-surface shadow-lg p-2">
           <p className="px-1.5 pb-1.5 text-[11px] text-kora-muted leading-snug">
             {hayTexto
               ? "Mejora lo que ya escribiste, con este tono:"
@@ -1179,12 +1179,12 @@ function PanelBloques({
                 if (arrastrado.current !== null) mover(arrastrado.current, i);
                 arrastrado.current = null;
               }}
-              className={`rounded-xl border bg-white transition-colors ${
-                b.oculto ? "border-gray-200 opacity-60" : "border-gray-200"
+              className={`rounded-xl border bg-panel-surface transition-colors ${
+                b.oculto ? "border-panel-border opacity-60" : "border-panel-border"
               } ${abiertoEste ? "ring-2 ring-kora-primary/30" : ""}`}
             >
               <div className="flex items-center gap-2 p-2.5">
-                <span className="cursor-grab active:cursor-grabbing text-gray-300" aria-hidden="true">
+                <span className="cursor-grab active:cursor-grabbing text-panel-faint" aria-hidden="true">
                   <GripVertical size={16} />
                 </span>
                 <IconoTipo tipo={b.tipo} />
@@ -1216,7 +1216,7 @@ function PanelBloques({
                   onClick={() => actualizar(b.id, { oculto: !b.oculto })}
                   aria-label={b.oculto ? "Mostrar bloque" : "Ocultar bloque"}
                   className={`p-1.5 rounded-lg transition-colors ${
-                    b.oculto ? "text-gray-400 hover:text-kora-text" : "text-kora-primary"
+                    b.oculto ? "text-panel-faint hover:text-kora-text" : "text-kora-primary"
                   }`}
                 >
                   {b.oculto ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -1235,7 +1235,7 @@ function PanelBloques({
               </div>
 
               {abiertoEste && (
-                <div className="border-t border-gray-100 p-3 space-y-3">
+                <div className="border-t border-panel-border-soft p-3 space-y-3">
                   <div>
                     <label className={labelCls}>Título de la sección</label>
                     <input
@@ -1259,7 +1259,7 @@ function PanelBloques({
                           className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
                             (b.fondo ?? "ninguno") === f
                               ? "border-kora-primary bg-kora-primary/10 text-kora-primary"
-                              : "border-gray-200 text-kora-muted hover:border-gray-300"
+                              : "border-panel-border text-kora-muted hover:border-panel-border"
                           }`}
                         >
                           {f === "ninguno" ? "Normal" : f === "tarjeta" ? "Tarjeta blanca" : "Color de marca"}
@@ -1303,7 +1303,7 @@ function PanelBloques({
       {/* Agregar bloque */}
       <div className="mt-3">
         {menuAgregar ? (
-          <div className="rounded-xl border border-gray-200 bg-white p-2">
+          <div className="rounded-xl border border-panel-border bg-panel-surface p-2">
             <div className="flex items-center justify-between px-1 pb-2">
               <p className="text-xs font-bold text-kora-text">Agregar bloque</p>
               <button type="button" onClick={() => setMenuAgregar(false)} aria-label="Cerrar">
@@ -1336,7 +1336,7 @@ function PanelBloques({
               ))}
 
               {/* Secciones prehechas: varios bloques ya armados de un clic */}
-              <p className="pt-2 mt-1 px-1 border-t border-gray-100 text-[10px] font-bold uppercase tracking-wide text-kora-muted">
+              <p className="pt-2 mt-1 px-1 border-t border-panel-border-soft text-[10px] font-bold uppercase tracking-wide text-kora-muted">
                 Secciones prehechas
               </p>
               {PLANTILLAS_BLOQUES.map((pl) => (
@@ -1361,7 +1361,7 @@ function PanelBloques({
           <button
             type="button"
             onClick={() => setMenuAgregar(true)}
-            className="btn-press w-full inline-flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-dashed border-gray-300 text-sm font-semibold text-kora-muted hover:border-kora-primary hover:text-kora-primary transition-colors"
+            className="btn-press w-full inline-flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-dashed border-panel-border text-sm font-semibold text-kora-muted hover:border-kora-primary hover:text-kora-primary transition-colors"
           >
             <Plus size={16} /> Agregar bloque
           </button>
@@ -1413,7 +1413,7 @@ function SelectorPagina({
   };
 
   return (
-    <div className="mb-3 rounded-xl border border-gray-200 bg-white p-2.5 space-y-2">
+    <div className="mb-3 rounded-xl border border-panel-border bg-panel-surface p-2.5 space-y-2">
       <div>
         <label className={labelCls}>Página que estás editando</label>
         <select
@@ -1478,7 +1478,7 @@ function SelectorPagina({
                 setNombre("");
                 setErrorCrear("");
               }}
-              className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-semibold text-kora-muted"
+              className="px-3 py-1.5 rounded-lg border border-panel-border text-xs font-semibold text-kora-muted"
             >
               Cancelar
             </button>
@@ -1623,9 +1623,9 @@ function CamposBloque({
             {imgs.map((url, i) => (
               <div key={url} className="relative">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={url} alt="" className="w-full h-16 object-cover rounded-lg border border-gray-200" />
+                <img src={url} alt="" className="w-full h-16 object-cover rounded-lg border border-panel-border" />
                 {i === 0 && (
-                  <span className="absolute bottom-0.5 left-0.5 text-[9px] font-bold bg-white/90 text-kora-text px-1 rounded">
+                  <span className="absolute bottom-0.5 left-0.5 text-[9px] font-bold bg-panel-surface/90 text-kora-text px-1 rounded">
                     portada
                   </span>
                 )}
@@ -1633,7 +1633,7 @@ function CamposBloque({
                   type="button"
                   onClick={() => aplicar({ fotos: imgs.filter((u) => u !== url) })}
                   aria-label="Quitar foto"
-                  className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-white border border-gray-300 shadow-sm flex items-center justify-center text-gray-500 hover:text-red-600"
+                  className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-panel-surface border border-panel-border shadow-sm flex items-center justify-center text-kora-muted hover:text-red-600"
                 >
                   <X size={11} />
                 </button>
@@ -1641,7 +1641,7 @@ function CamposBloque({
             ))}
           </div>
         )}
-        <label className="btn-press inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 text-sm font-semibold text-kora-text cursor-pointer hover:border-kora-accent transition-colors">
+        <label className="btn-press inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-panel-border text-sm font-semibold text-kora-text cursor-pointer hover:border-kora-accent transition-colors">
           {subiendo === "fotos-hotel" ? (
             <Loader2 size={14} className="animate-spin" />
           ) : (
@@ -1682,7 +1682,7 @@ function CamposBloque({
                 className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
                   activa
                     ? "border-kora-primary bg-kora-primary/10 text-kora-primary"
-                    : "border-gray-200 text-kora-muted hover:border-gray-300"
+                    : "border-panel-border text-kora-muted hover:border-panel-border"
                 }`}
               >
                 <a.Icon size={13} />
@@ -1702,7 +1702,7 @@ function CamposBloque({
         <label className={labelCls}>Preguntas frecuentes</label>
         <div className="space-y-2">
           {faqs.map((f, i) => (
-            <div key={i} className="rounded-lg border border-gray-200 p-2 space-y-2">
+            <div key={i} className="rounded-lg border border-panel-border p-2 space-y-2">
               <div className="flex items-center gap-2">
                 <input
                   className={inputCls}
@@ -1718,7 +1718,7 @@ function CamposBloque({
                   type="button"
                   onClick={() => aplicar({ faqs: faqs.filter((_, j) => j !== i) })}
                   aria-label="Quitar pregunta"
-                  className="p-1 text-gray-400 hover:text-red-600"
+                  className="p-1 text-panel-faint hover:text-red-600"
                 >
                   <Trash2 size={14} />
                 </button>
@@ -1861,12 +1861,12 @@ function CamposBloque({
             {imgs.map((url) => (
               <div key={url} className="relative group">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={url} alt="" className="w-full h-16 object-cover rounded-lg border border-gray-200" />
+                <img src={url} alt="" className="w-full h-16 object-cover rounded-lg border border-panel-border" />
                 <button
                   type="button"
                   onClick={() => actualizar(b.id, { imagenes: imgs.filter((u) => u !== url) })}
                   aria-label="Quitar foto"
-                  className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-white border border-gray-300 shadow-sm flex items-center justify-center text-gray-500 hover:text-red-600"
+                  className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-panel-surface border border-panel-border shadow-sm flex items-center justify-center text-kora-muted hover:text-red-600"
                 >
                   <X size={11} />
                 </button>
@@ -1874,7 +1874,7 @@ function CamposBloque({
             ))}
           </div>
         )}
-        <label className="btn-press inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 text-sm font-semibold text-kora-text cursor-pointer hover:border-kora-accent transition-colors">
+        <label className="btn-press inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-panel-border text-sm font-semibold text-kora-text cursor-pointer hover:border-kora-accent transition-colors">
           {subiendo === b.id ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
           {subiendo === b.id ? "Subiendo…" : "Subir fotos"}
           <input
@@ -1914,7 +1914,7 @@ function CamposBloque({
         <label className={labelCls}>Puntos fuertes</label>
         <div className="space-y-2">
           {items.map((it, i) => (
-            <div key={i} className="rounded-lg border border-gray-200 p-2 space-y-2">
+            <div key={i} className="rounded-lg border border-panel-border p-2 space-y-2">
               <div className="flex items-center gap-2">
                 <SelectorIcono
                   valor={it.icono}
@@ -1938,7 +1938,7 @@ function CamposBloque({
                   type="button"
                   onClick={() => actualizar(b.id, { items: items.filter((_, j) => j !== i) })}
                   aria-label="Quitar"
-                  className="p-1 text-gray-400 hover:text-red-600"
+                  className="p-1 text-panel-faint hover:text-red-600"
                 >
                   <Trash2 size={14} />
                 </button>
@@ -2033,7 +2033,7 @@ function CamposBloque({
         <label className={labelCls}>Lugares y actividades cerca de tu hotel</label>
         <div className="space-y-2">
           {items.map((it, i) => (
-            <div key={i} className="rounded-lg border border-gray-200 p-2 space-y-2">
+            <div key={i} className="rounded-lg border border-panel-border p-2 space-y-2">
               <div className="flex items-center gap-2">
                 <input
                   className={inputCls}
@@ -2045,7 +2045,7 @@ function CamposBloque({
                   type="button"
                   onClick={() => actualizar(b.id, { cercanos: items.filter((_, j) => j !== i) })}
                   aria-label="Quitar lugar"
-                  className="p-1 text-gray-400 hover:text-red-600"
+                  className="p-1 text-panel-faint hover:text-red-600"
                 >
                   <Trash2 size={14} />
                 </button>
@@ -2057,7 +2057,7 @@ function CamposBloque({
                   placeholder="A 10 min caminando"
                   onChange={(e) => setItem(i, { distancia: e.target.value }, `cerc-k:${b.id}:${i}`)}
                 />
-                <label className="btn-press flex-shrink-0 inline-flex items-center gap-1.5 px-2.5 py-2 rounded-lg border border-gray-200 text-xs font-semibold text-kora-text cursor-pointer hover:border-kora-accent transition-colors">
+                <label className="btn-press flex-shrink-0 inline-flex items-center gap-1.5 px-2.5 py-2 rounded-lg border border-panel-border text-xs font-semibold text-kora-text cursor-pointer hover:border-kora-accent transition-colors">
                   {subiendo === `${b.id}:${i}` ? (
                     <Loader2 size={13} className="animate-spin" />
                   ) : it.foto ? (
@@ -2109,7 +2109,7 @@ function CamposBloque({
         <label className={labelCls}>Secciones de tu menú o lista de precios</label>
         <div className="space-y-3">
           {secciones.map((s, i) => (
-            <div key={i} className="rounded-lg border border-gray-200 p-2 space-y-2">
+            <div key={i} className="rounded-lg border border-panel-border p-2 space-y-2">
               <div className="flex items-center gap-2">
                 <input
                   className={inputCls}
@@ -2121,13 +2121,13 @@ function CamposBloque({
                   type="button"
                   onClick={() => setSecciones(secciones.filter((_, j) => j !== i))}
                   aria-label="Quitar sección"
-                  className="p-1 text-gray-400 hover:text-red-600"
+                  className="p-1 text-panel-faint hover:text-red-600"
                 >
                   <Trash2 size={14} />
                 </button>
               </div>
               {(s.items ?? []).map((it, j) => (
-                <div key={j} className="rounded-lg bg-gray-50 p-2 space-y-1.5">
+                <div key={j} className="rounded-lg bg-panel-surface-2 p-2 space-y-1.5">
                   <div className="flex items-center gap-2">
                     <input
                       className={inputCls}
@@ -2155,7 +2155,7 @@ function CamposBloque({
                         setSeccion(i, { items: (s.items ?? []).filter((_, k) => k !== j) })
                       }
                       aria-label="Quitar platillo"
-                      className="p-1 text-gray-400 hover:text-red-600"
+                      className="p-1 text-panel-faint hover:text-red-600"
                     >
                       <Trash2 size={14} />
                     </button>
@@ -2268,7 +2268,7 @@ function CamposBloque({
           />
         </div>
         <div className="flex items-center gap-3 flex-wrap">
-          <label className="btn-press inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 text-sm font-semibold text-kora-text cursor-pointer hover:border-kora-accent transition-colors">
+          <label className="btn-press inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-panel-border text-sm font-semibold text-kora-text cursor-pointer hover:border-kora-accent transition-colors">
             {subiendo === b.id ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
             {subiendo === b.id ? "Subiendo…" : b.pdfUrl ? "Cambiar PDF" : "Subir PDF"}
             <input
@@ -2314,12 +2314,12 @@ function SelectorIcono({
         type="button"
         onClick={() => setAbierto((v) => !v)}
         aria-label="Elegir ícono"
-        className="w-9 h-9 rounded-lg border border-gray-200 flex items-center justify-center text-kora-text hover:border-kora-accent transition-colors"
+        className="w-9 h-9 rounded-lg border border-panel-border flex items-center justify-center text-kora-text hover:border-kora-accent transition-colors"
       >
-        {Icon ? <Icon size={17} /> : <Plus size={15} className="text-gray-400" />}
+        {Icon ? <Icon size={17} /> : <Plus size={15} className="text-panel-faint" />}
       </button>
       {abierto && (
-        <div className="absolute z-20 mt-1 left-0 w-56 rounded-xl border border-gray-200 bg-white shadow-lg p-2 grid grid-cols-6 gap-1">
+        <div className="absolute z-20 mt-1 left-0 w-56 rounded-xl border border-panel-border bg-panel-surface shadow-lg p-2 grid grid-cols-6 gap-1">
           {ICONOS.map((ic) => {
             const I = ICONO_MAP[ic.key];
             if (!I) return null;
@@ -2392,7 +2392,7 @@ function PanelEstilo({
             value={color}
             onChange={(e) => set({ color: e.target.value }, "color")}
             aria-label="Elegir otro color"
-            className="w-10 h-9 rounded-lg border border-gray-200 cursor-pointer bg-white"
+            className="w-10 h-9 rounded-lg border border-panel-border cursor-pointer bg-panel-surface"
           />
           <input
             className={inputCls}
@@ -2414,7 +2414,7 @@ function PanelEstilo({
               className={`px-3 py-2.5 rounded-xl border text-left transition-colors ${
                 (diseno.fuente ?? "jakarta") === f.key
                   ? "border-kora-primary bg-kora-primary/5"
-                  : "border-gray-200 hover:border-gray-300"
+                  : "border-panel-border hover:border-panel-border"
               }`}
             >
               <span
@@ -2442,7 +2442,7 @@ function PanelEstilo({
             <img
               src={diseno.logoUrl}
               alt="Logo"
-              className="h-12 w-auto max-w-[140px] object-contain rounded-lg border border-gray-200 bg-white p-1"
+              className="h-12 w-auto max-w-[140px] object-contain rounded-lg border border-panel-border bg-panel-surface p-1"
             />
             <button
               type="button"
@@ -2453,7 +2453,7 @@ function PanelEstilo({
             </button>
           </div>
         ) : (
-          <label className="btn-press inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 text-sm font-semibold text-kora-text cursor-pointer hover:border-kora-accent transition-colors">
+          <label className="btn-press inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-panel-border text-sm font-semibold text-kora-text cursor-pointer hover:border-kora-accent transition-colors">
             {subiendoLogo ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
             {subiendoLogo ? "Subiendo…" : "Subir logo"}
             <input
@@ -2483,7 +2483,7 @@ function PanelEstilo({
               className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
                 (diseno.heroEstilo ?? "banda") === k
                   ? "border-kora-primary bg-kora-primary/10 text-kora-primary"
-                  : "border-gray-200 text-kora-muted hover:border-gray-300"
+                  : "border-panel-border text-kora-muted hover:border-panel-border"
               }`}
             >
               {label}
@@ -2535,7 +2535,7 @@ function PanelBotones({
           return (
             <div
               key={b.id}
-              className={`rounded-xl border border-gray-200 bg-white ${
+              className={`rounded-xl border border-panel-border bg-panel-surface ${
                 abiertoEste ? "ring-2 ring-kora-primary/30" : ""
               }`}
             >
@@ -2564,7 +2564,7 @@ function PanelBotones({
               </button>
 
               {abiertoEste && (
-                <div className="border-t border-gray-100 p-3 space-y-3">
+                <div className="border-t border-panel-border-soft p-3 space-y-3">
                   <div>
                     <label className={labelCls}>Texto del botón</label>
                     <input
@@ -2638,14 +2638,14 @@ function PanelBotones({
                             className={`w-full flex items-start gap-2 px-3 py-2 rounded-lg border text-left transition-colors ${
                               activa
                                 ? "border-kora-primary bg-kora-primary/5"
-                                : "border-gray-200 hover:border-gray-300"
+                                : "border-panel-border hover:border-panel-border"
                             }`}
                           >
                             <span
                               className={`mt-0.5 w-4 h-4 rounded flex-shrink-0 border flex items-center justify-center ${
                                 activa
                                   ? "bg-kora-primary border-kora-primary text-white"
-                                  : "border-gray-300"
+                                  : "border-panel-border"
                               }`}
                             >
                               {activa && <Check size={11} />}
@@ -2679,7 +2679,7 @@ function PanelBotones({
                           className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
                             (b.estilo ?? "contorno") === k
                               ? "border-kora-primary bg-kora-primary/10 text-kora-primary"
-                              : "border-gray-200 text-kora-muted hover:border-gray-300"
+                              : "border-panel-border text-kora-muted hover:border-panel-border"
                           }`}
                         >
                           {label}
@@ -2713,7 +2713,7 @@ function PanelBotones({
       <button
         type="button"
         onClick={agregar}
-        className="btn-press mt-3 w-full inline-flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-dashed border-gray-300 text-sm font-semibold text-kora-muted hover:border-kora-primary hover:text-kora-primary transition-colors"
+        className="btn-press mt-3 w-full inline-flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-dashed border-panel-border text-sm font-semibold text-kora-muted hover:border-kora-primary hover:text-kora-primary transition-colors"
       >
         <Plus size={16} /> Agregar botón
       </button>
@@ -2757,7 +2757,7 @@ function PanelTextos({
           onChange={(e) => set({ heroSubtitulo: e.target.value }, "heroSubtitulo")}
         />
       </div>
-      <hr className="border-gray-100" />
+      <hr className="border-panel-border-soft" />
       <div>
         <label className={labelCls}>Título del cierre (abajo de todo)</label>
         <input
@@ -2802,17 +2802,17 @@ function PanelAviso({
         type="button"
         onClick={() => set({ activo: !aviso.activo })}
         className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl border transition-colors ${
-          aviso.activo ? "border-kora-primary bg-kora-primary/5" : "border-gray-200"
+          aviso.activo ? "border-kora-primary bg-kora-primary/5" : "border-panel-border"
         }`}
       >
         <span className="text-sm font-semibold text-kora-text">Mostrar el aviso</span>
         <span
           className={`w-10 h-6 rounded-full p-0.5 transition-colors ${
-            aviso.activo ? "bg-kora-primary" : "bg-gray-300"
+            aviso.activo ? "bg-kora-primary" : "bg-panel-border"
           }`}
         >
           <span
-            className={`block w-5 h-5 rounded-full bg-white transition-transform ${
+            className={`block w-5 h-5 rounded-full bg-panel-surface transition-transform ${
               aviso.activo ? "translate-x-4" : ""
             }`}
           />

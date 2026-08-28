@@ -147,6 +147,24 @@
 }
 .logout:hover { color: var(--cream); }
 
+/* Interruptor de tema: mismo tratamiento que "Cerrar sesión" para que la
+   barra siga leyéndose como una sola lista de acciones al pie. */
+.tema {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 14px 22px;
+  border: none;
+  background: none;
+  color: rgba(250,248,245,0.4);
+  font-size: 0.83rem;
+  font-family: var(--font-jost), sans-serif;
+  cursor: pointer;
+  text-align: left;
+}
+.tema:hover { color: var(--cream); }
+
 /* Mobile */
 .mobileToggle {
   display: none;

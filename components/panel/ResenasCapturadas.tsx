@@ -116,7 +116,7 @@ export function ResenasCapturadas() {
       </p>
 
       {resenas.length === 0 ? (
-        <p className="rounded-xl bg-gray-50 p-4 text-sm text-kora-muted">
+        <p className="rounded-xl bg-panel-surface-2 p-4 text-sm text-kora-muted">
           Aún no hay reseñas verificadas. Se irán llenando conforme tus huéspedes respondan el correo del
           día 7. (Si acabas de activarlas, corre <code>sql/kora-reviews.sql</code> en Supabase.)
         </p>
@@ -126,7 +126,7 @@ export function ResenasCapturadas() {
             <div
               key={r.id}
               className={`rounded-2xl border p-4 ${
-                r.publicada ? "border-gray-100 bg-white" : "border-gray-200 bg-gray-50 opacity-70"
+                r.publicada ? "border-panel-border-soft bg-panel-surface" : "border-panel-border bg-panel-surface-2 opacity-70"
               }`}
             >
               <div className="flex items-start justify-between gap-3">
@@ -146,7 +146,7 @@ export function ResenasCapturadas() {
                   onClick={() => togglePublicada(r)}
                   disabled={guardando}
                   title={r.publicada ? "Ocultar de tu página" : "Mostrar en tu página"}
-                  className="shrink-0 inline-flex items-center gap-1 rounded-full border border-gray-200 px-2.5 py-1 text-xs font-medium text-kora-muted hover:bg-gray-50"
+                  className="shrink-0 inline-flex items-center gap-1 rounded-full border border-panel-border px-2.5 py-1 text-xs font-medium text-kora-muted hover:bg-panel-surface-2"
                 >
                   {r.publicada ? <Eye size={13} /> : <EyeOff size={13} />}
                   {r.publicada ? "Visible" : "Oculta"}
@@ -154,7 +154,7 @@ export function ResenasCapturadas() {
               </div>
 
               {r.respuesta && respondiendo !== r.id && (
-                <div className="mt-3 rounded-xl bg-gray-50 p-3">
+                <div className="mt-3 rounded-xl bg-panel-surface-2 p-3">
                   <p className="text-[11px] font-semibold text-kora-muted">Tu respuesta</p>
                   <p className="mt-1 text-sm text-kora-text leading-relaxed">{r.respuesta}</p>
                 </div>
@@ -168,7 +168,7 @@ export function ResenasCapturadas() {
                     rows={3}
                     maxLength={1500}
                     placeholder="Responde con amabilidad — se muestra debajo de la reseña en tu página."
-                    className="w-full resize-none rounded-xl border border-gray-200 p-2.5 text-sm text-kora-text outline-none focus:border-kora-primary"
+                    className="w-full resize-none rounded-xl border border-panel-border p-2.5 text-sm text-kora-text outline-none focus:border-kora-primary"
                   />
                   <div className="mt-2 flex gap-2">
                     <button
@@ -185,7 +185,7 @@ export function ResenasCapturadas() {
                         setRespondiendo(null);
                         setBorrador("");
                       }}
-                      className="rounded-full border border-gray-200 px-4 py-1.5 text-xs font-medium text-kora-muted"
+                      className="rounded-full border border-panel-border px-4 py-1.5 text-xs font-medium text-kora-muted"
                     >
                       Cancelar
                     </button>

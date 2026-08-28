@@ -50,7 +50,7 @@ import {
 } from "@/lib/mini";
 
 const inputCls =
-  "w-full px-4 py-3 rounded-xl border border-gray-200 text-kora-text text-sm placeholder:text-kora-muted focus:outline-none focus:ring-2 focus:ring-kora-accent focus:border-transparent transition-all duration-200";
+  "w-full px-4 py-3 rounded-xl border border-panel-border text-kora-text text-sm placeholder:text-kora-muted focus:outline-none focus:ring-2 focus:ring-kora-accent focus:border-transparent transition-all duration-200";
 
 interface Tarifa {
   personas: string;
@@ -147,12 +147,12 @@ function AgregarChip({
         }}
         placeholder={placeholder}
         maxLength={40}
-        className="flex-1 min-w-0 px-3 py-1.5 rounded-lg border border-gray-200 text-xs text-kora-text placeholder:text-kora-muted focus:outline-none focus:ring-2 focus:ring-kora-accent"
+        className="flex-1 min-w-0 px-3 py-1.5 rounded-lg border border-panel-border text-xs text-kora-text placeholder:text-kora-muted focus:outline-none focus:ring-2 focus:ring-kora-accent"
       />
       <button
         type="button"
         onClick={agregar}
-        className="btn-press inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-gray-200 text-kora-primary text-xs font-semibold hover:border-kora-accent"
+        className="btn-press inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-panel-border text-kora-primary text-xs font-semibold hover:border-kora-accent"
       >
         <Plus size={13} /> Agregar
       </button>
@@ -1356,7 +1356,7 @@ export function PanelEditor({
   const urlGuia = `${SITE}/g/${slug}`;
   const urlMotor = `${SITE}/h/${slug}/reservar`;
   const embedSnippet = `<script src="${SITE}/embed.js" data-hotel="${slug}"></script>`;
-  const card = "bg-white rounded-2xl p-6 sm:p-7 border border-gray-100 shadow-sm";
+  const card = "bg-panel-surface rounded-2xl p-6 sm:p-7 border border-panel-border-soft shadow-sm";
 
   // ─── Wizard de bienvenida: 4 pasos y tu página queda publicada ─────────────
   if (!hotelId) {
@@ -1378,7 +1378,7 @@ export function PanelEditor({
               <div
                 key={i}
                 className={`h-1.5 flex-1 rounded-full transition-colors ${
-                  i <= paso ? "bg-kora-primary" : "bg-gray-200"
+                  i <= paso ? "bg-kora-primary" : "bg-panel-border"
                 }`}
               />
             ))}
@@ -1461,12 +1461,12 @@ export function PanelEditor({
                         <img
                           src={url}
                           alt="Foto del hotel"
-                          className="w-full h-20 object-cover rounded-xl border border-gray-100"
+                          className="w-full h-20 object-cover rounded-xl border border-panel-border-soft"
                         />
                         <button
                           type="button"
                           onClick={() => removeFoto(url)}
-                          className="absolute top-1 right-1 w-6 h-6 rounded-full bg-white/90 border border-gray-200 flex items-center justify-center text-red-600 shadow-sm"
+                          className="absolute top-1 right-1 w-6 h-6 rounded-full bg-panel-surface/90 border border-panel-border flex items-center justify-center text-red-600 shadow-sm"
                           aria-label="Quitar foto"
                         >
                           <Trash2 size={13} />
@@ -1515,7 +1515,7 @@ export function PanelEditor({
                 <button
                   type="button"
                   onClick={addHab}
-                  className="btn-press inline-flex items-center gap-2 px-4 py-2 rounded-full border border-gray-200 text-kora-text font-semibold text-sm hover:border-kora-accent transition-colors"
+                  className="btn-press inline-flex items-center gap-2 px-4 py-2 rounded-full border border-panel-border text-kora-text font-semibold text-sm hover:border-kora-accent transition-colors"
                 >
                   <Plus size={15} /> {habitaciones.length === 0 ? "Agregar mi primera habitación" : "Otra habitación"}
                 </button>
@@ -1538,7 +1538,7 @@ export function PanelEditor({
               type="button"
               onClick={() => setPaso((p) => Math.max(0, p - 1))}
               disabled={paso === 0}
-              className="btn-press px-5 py-3 rounded-full border border-gray-200 text-kora-text font-semibold text-sm disabled:opacity-40 hover:border-kora-accent transition-colors"
+              className="btn-press px-5 py-3 rounded-full border border-panel-border text-kora-text font-semibold text-sm disabled:opacity-40 hover:border-kora-accent transition-colors"
             >
               Atrás
             </button>
@@ -1579,7 +1579,7 @@ export function PanelEditor({
   return (
     <div className="mt-8 space-y-6">
       {/* Dirección / enlaces (siempre visible) */}
-      <div className="bg-white rounded-2xl p-5 sm:p-6 border border-gray-100 shadow-sm">
+      <div className="bg-panel-surface rounded-2xl p-5 sm:p-6 border border-panel-border-soft shadow-sm">
         <p className="text-[10px] font-bold text-kora-muted uppercase tracking-widest mb-2">
           La dirección de tu mini-página
         </p>
@@ -1600,7 +1600,7 @@ export function PanelEditor({
               href={`/h/${slug}/reservar`}
               target="_blank"
               rel="noopener noreferrer"
-              className="btn-press inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-gray-200 text-kora-text font-semibold text-sm hover:border-kora-accent transition-colors"
+              className="btn-press inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-panel-border text-kora-text font-semibold text-sm hover:border-kora-accent transition-colors"
             >
               <CalendarCheck size={14} /> Mi motor de reservas
             </a>
@@ -1608,14 +1608,14 @@ export function PanelEditor({
               href={`/h/${slug}?preview=1`}
               target="_blank"
               rel="noopener noreferrer"
-              className="btn-press inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-gray-200 text-kora-text font-semibold text-sm hover:border-kora-accent transition-colors"
+              className="btn-press inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-panel-border text-kora-text font-semibold text-sm hover:border-kora-accent transition-colors"
             >
               <Eye size={14} /> Vista previa
             </a>
             <button
               type="button"
               onClick={() => navigator.clipboard?.writeText(urlPagina)}
-              className="btn-press inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-gray-200 text-kora-text font-semibold text-sm hover:border-kora-accent transition-colors"
+              className="btn-press inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-panel-border text-kora-text font-semibold text-sm hover:border-kora-accent transition-colors"
             >
               <Copy size={14} /> Copiar enlace
             </button>
@@ -1640,7 +1640,7 @@ export function PanelEditor({
         const hechos = items.filter((i) => i.ok).length;
         if (hechos === items.length) return null;
         return (
-          <div className="bg-white rounded-2xl p-5 sm:p-6 border border-kora-primary/15 shadow-sm">
+          <div className="bg-panel-surface rounded-2xl p-5 sm:p-6 border border-kora-primary/15 shadow-sm">
             <div className="flex items-center justify-between gap-3 mb-3">
               <p className="text-sm font-bold text-kora-text">
                 Deja tu página lista para recibir reservas
@@ -1649,7 +1649,7 @@ export function PanelEditor({
                 {hechos}/{items.length}
               </span>
             </div>
-            <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden mb-4">
+            <div className="h-1.5 rounded-full bg-panel-surface-2 overflow-hidden mb-4">
               <div
                 className="h-full rounded-full bg-kora-primary transition-all"
                 style={{ width: `${(hechos / items.length) * 100}%` }}
@@ -1664,7 +1664,7 @@ export function PanelEditor({
                   className={`btn-press inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-semibold transition-colors ${
                     i.ok
                       ? "border-kora-accent bg-kora-accent/10 text-kora-primary"
-                      : "border-gray-200 text-kora-muted hover:border-kora-accent"
+                      : "border-panel-border text-kora-muted hover:border-kora-accent"
                   }`}
                 >
                   {i.ok ? <Check size={12} /> : <Plus size={12} />}
@@ -1686,7 +1686,7 @@ export function PanelEditor({
             className={`btn-press whitespace-nowrap px-4 py-2 rounded-full text-sm font-semibold transition-colors ${
               tab === t.key
                 ? "bg-kora-primary text-white"
-                : "bg-white border border-gray-200 text-kora-muted hover:border-kora-accent"
+                : "bg-panel-surface border border-panel-border text-kora-muted hover:border-kora-accent"
             }`}
           >
             {t.label}
@@ -1762,7 +1762,7 @@ export function PanelEditor({
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-[11px] text-kora-muted">Generar con IA — tono:</span>
                 <select
-                  className="text-xs rounded-lg border border-gray-200 px-2 py-1.5 text-kora-text bg-white focus:outline-none focus:ring-2 focus:ring-kora-accent"
+                  className="text-xs rounded-lg border border-panel-border px-2 py-1.5 text-kora-text bg-panel-surface focus:outline-none focus:ring-2 focus:ring-kora-accent"
                   value={tonoDescHotel}
                   onChange={(e) => setTonoDescHotel(e.target.value)}
                 >
@@ -1799,12 +1799,12 @@ export function PanelEditor({
                     <img
                       src={url}
                       alt="Foto del hotel"
-                      className="w-full h-24 object-cover rounded-xl border border-gray-100"
+                      className="w-full h-24 object-cover rounded-xl border border-panel-border-soft"
                     />
                     <button
                       type="button"
                       onClick={() => removeFoto(url)}
-                      className="absolute top-1 right-1 w-6 h-6 rounded-full bg-white/90 border border-gray-200 flex items-center justify-center text-red-600 shadow-sm"
+                      className="absolute top-1 right-1 w-6 h-6 rounded-full bg-panel-surface/90 border border-panel-border flex items-center justify-center text-red-600 shadow-sm"
                       aria-label="Quitar foto"
                     >
                       <Trash2 size={13} />
@@ -1845,7 +1845,7 @@ export function PanelEditor({
                     className={`btn-press flex items-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-semibold text-left transition-colors ${
                       activa
                         ? "border-kora-accent bg-kora-accent/10 text-kora-primary"
-                        : "border-gray-200 text-kora-muted hover:border-kora-accent"
+                        : "border-panel-border text-kora-muted hover:border-kora-accent"
                     }`}
                   >
                     <Icon size={16} aria-hidden={true} />
@@ -1894,7 +1894,7 @@ export function PanelEditor({
               </div>
               {mapEmbedUrl && (
                 <div className="mt-3">
-                  <div className="rounded-xl overflow-hidden border border-gray-200">
+                  <div className="rounded-xl overflow-hidden border border-panel-border">
                     <iframe
                       src={mapEmbedUrl}
                       title="Vista previa del mapa"
@@ -1950,7 +1950,7 @@ export function PanelEditor({
           </p>
           <div className="space-y-3">
             {habitaciones.map((h, i) => (
-              <div key={i} className="rounded-xl border border-gray-100 p-4 bg-kora-bg/50 space-y-3">
+              <div key={i} className="rounded-xl border border-panel-border-soft p-4 bg-kora-bg/50 space-y-3">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <input
                     className={inputCls}
@@ -1985,7 +1985,7 @@ export function PanelEditor({
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-[11px] text-kora-muted">Descripción con IA — tono:</span>
                     <select
-                      className="text-xs rounded-lg border border-gray-200 px-2 py-1.5 text-kora-text bg-white focus:outline-none focus:ring-2 focus:ring-kora-accent"
+                      className="text-xs rounded-lg border border-panel-border px-2 py-1.5 text-kora-text bg-panel-surface focus:outline-none focus:ring-2 focus:ring-kora-accent"
                       value={tonoDesc}
                       onChange={(e) => setTonoDesc(e.target.value)}
                     >
@@ -2021,7 +2021,7 @@ export function PanelEditor({
                 </div>
 
                 {/* Inventario: cuántas unidades físicas idénticas de este tipo */}
-                <div className="rounded-lg bg-white border border-gray-100 p-3">
+                <div className="rounded-lg bg-panel-surface border border-panel-border-soft p-3">
                   <div className="flex flex-wrap items-center gap-3">
                     <label className="text-xs font-semibold text-kora-text">
                       Unidades de este tipo
@@ -2059,7 +2059,7 @@ export function PanelEditor({
                   )}
                 </div>
 
-                <div className="rounded-lg bg-white border border-gray-100 p-3">
+                <div className="rounded-lg bg-panel-surface border border-panel-border-soft p-3">
                   <p className="text-xs font-semibold text-kora-text mb-2">
                     Precios por número de personas{" "}
                     <span className="font-normal text-kora-muted">(opcional)</span>
@@ -2083,7 +2083,7 @@ export function PanelEditor({
                       <button
                         type="button"
                         onClick={() => removeTarifa(i, j)}
-                        className="btn-press flex-shrink-0 w-9 h-9 rounded-lg border border-gray-200 flex items-center justify-center text-red-600 hover:border-red-300"
+                        className="btn-press flex-shrink-0 w-9 h-9 rounded-lg border border-panel-border flex items-center justify-center text-red-600 hover:border-red-300"
                         aria-label="Quitar tarifa"
                       >
                         <Trash2 size={14} />
@@ -2100,7 +2100,7 @@ export function PanelEditor({
                 </div>
 
                 {/* Camas de la habitación (tipo + cantidad) → habitacion.camas */}
-                <div className="rounded-lg bg-white border border-gray-100 p-3">
+                <div className="rounded-lg bg-panel-surface border border-panel-border-soft p-3">
                   <p className="text-xs font-semibold text-kora-text mb-2">
                     Camas{" "}
                     <span className="font-normal text-kora-muted">
@@ -2117,7 +2117,7 @@ export function PanelEditor({
                           className={`flex items-center justify-between gap-2 px-3 py-2 rounded-xl border text-xs font-semibold transition-colors ${
                             activa
                               ? "border-kora-accent bg-kora-accent/10 text-kora-primary"
-                              : "border-gray-200 text-kora-muted"
+                              : "border-panel-border text-kora-muted"
                           }`}
                         >
                           <button
@@ -2135,7 +2135,7 @@ export function PanelEditor({
                                 type="button"
                                 onClick={() => updateHabCamaCantidad(i, label, (cama?.cantidad ?? 1) - 1)}
                                 aria-label="Menos"
-                                className="grid h-6 w-6 place-items-center rounded-md border border-gray-200 text-kora-text"
+                                className="grid h-6 w-6 place-items-center rounded-md border border-panel-border text-kora-text"
                               >
                                 −
                               </button>
@@ -2168,7 +2168,7 @@ export function PanelEditor({
                             type="button"
                             onClick={() => updateHabCamaCantidad(i, c.tipo, c.cantidad - 1)}
                             aria-label="Menos"
-                            className="grid h-6 w-6 place-items-center rounded-md border border-gray-200 text-kora-text"
+                            className="grid h-6 w-6 place-items-center rounded-md border border-panel-border text-kora-text"
                           >
                             −
                           </button>
@@ -2193,7 +2193,7 @@ export function PanelEditor({
                 </div>
 
                 {/* Características de la habitación (chips → habitacion.features) */}
-                <div className="rounded-lg bg-white border border-gray-100 p-3">
+                <div className="rounded-lg bg-panel-surface border border-panel-border-soft p-3">
                   <p className="text-xs font-semibold text-kora-text mb-2">
                     Características de la habitación{" "}
                     <span className="font-normal text-kora-muted">
@@ -2212,7 +2212,7 @@ export function PanelEditor({
                           className={`btn-press flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-semibold text-left transition-colors ${
                             activa
                               ? "border-kora-accent bg-kora-accent/10 text-kora-primary"
-                              : "border-gray-200 text-kora-muted hover:border-kora-accent"
+                              : "border-panel-border text-kora-muted hover:border-kora-accent"
                           }`}
                         >
                           <Icon size={14} aria-hidden={true} />
@@ -2261,12 +2261,12 @@ export function PanelEditor({
                           <img
                             src={url}
                             alt="Foto de la habitación"
-                            className="w-full h-16 object-cover rounded-lg border border-gray-100"
+                            className="w-full h-16 object-cover rounded-lg border border-panel-border-soft"
                           />
                           <button
                             type="button"
                             onClick={() => removeFotoHab(i, url)}
-                            className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-white/90 border border-gray-200 flex items-center justify-center text-red-600 shadow-sm"
+                            className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-panel-surface/90 border border-panel-border flex items-center justify-center text-red-600 shadow-sm"
                             aria-label="Quitar foto"
                           >
                             <Trash2 size={11} />
@@ -2275,7 +2275,7 @@ export function PanelEditor({
                       ))}
                     </div>
                   )}
-                  <label className="btn-press inline-flex items-center gap-2 px-4 py-2 rounded-full border border-gray-200 text-kora-text font-semibold text-sm hover:border-kora-accent transition-colors cursor-pointer">
+                  <label className="btn-press inline-flex items-center gap-2 px-4 py-2 rounded-full border border-panel-border text-kora-text font-semibold text-sm hover:border-kora-accent transition-colors cursor-pointer">
                     {subiendoHab === i ? (
                       <Loader2 size={15} className="animate-spin" />
                     ) : (
@@ -2306,7 +2306,7 @@ export function PanelEditor({
           <button
             type="button"
             onClick={addHab}
-            className="btn-press mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-gray-200 text-kora-text font-semibold text-sm hover:border-kora-accent transition-colors"
+            className="btn-press mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-panel-border text-kora-text font-semibold text-sm hover:border-kora-accent transition-colors"
           >
             <Plus size={16} /> Agregar habitación
           </button>
@@ -2381,19 +2381,19 @@ export function PanelEditor({
                     <img
                       src={logoUrl}
                       alt="Logo"
-                      className="h-16 w-16 object-contain rounded-xl border border-gray-100 bg-white p-1"
+                      className="h-16 w-16 object-contain rounded-xl border border-panel-border-soft bg-panel-surface p-1"
                     />
                     <button
                       type="button"
                       onClick={() => setLogoUrl("")}
-                      className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-white border border-gray-200 flex items-center justify-center text-red-600 shadow-sm"
+                      className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-panel-surface border border-panel-border flex items-center justify-center text-red-600 shadow-sm"
                       aria-label="Quitar logo"
                     >
                       <Trash2 size={12} />
                     </button>
                   </div>
                 )}
-                <label className="btn-press inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-gray-200 text-kora-text font-semibold text-sm hover:border-kora-accent transition-colors cursor-pointer">
+                <label className="btn-press inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-panel-border text-kora-text font-semibold text-sm hover:border-kora-accent transition-colors cursor-pointer">
                   {subiendoLogo ? <Loader2 size={15} className="animate-spin" /> : <ImagePlus size={15} />}
                   {subiendoLogo ? "Subiendo…" : logoUrl ? "Cambiar logo" : "Subir logo"}
                   <input
@@ -2432,7 +2432,7 @@ export function PanelEditor({
                     type="color"
                     value={color || COLOR_DEFAULT}
                     onChange={(e) => setColor(e.target.value)}
-                    className="w-9 h-9 rounded-lg border border-gray-200 cursor-pointer bg-white"
+                    className="w-9 h-9 rounded-lg border border-panel-border cursor-pointer bg-panel-surface"
                   />
                   Personalizado
                 </label>
@@ -2464,7 +2464,7 @@ export function PanelEditor({
                     type="color"
                     value={acento || color || COLOR_DEFAULT}
                     onChange={(e) => setAcento(e.target.value)}
-                    className="w-9 h-9 rounded-lg border border-gray-200 cursor-pointer bg-white"
+                    className="w-9 h-9 rounded-lg border border-panel-border cursor-pointer bg-panel-surface"
                   />
                   Personalizado
                 </label>
@@ -2476,7 +2476,7 @@ export function PanelEditor({
 
             {/* Foto de portada en el motor */}
             <div>
-              <label className="flex items-center justify-between gap-4 cursor-pointer rounded-xl border border-gray-100 bg-kora-bg/40 px-4 py-3">
+              <label className="flex items-center justify-between gap-4 cursor-pointer rounded-xl border border-panel-border-soft bg-kora-bg/40 px-4 py-3">
                 <span className="text-sm font-semibold text-kora-text">
                   Foto de portada en el motor
                   <span className="block text-xs font-normal text-kora-muted">
@@ -2487,7 +2487,7 @@ export function PanelEditor({
                   type="checkbox"
                   checked={portada}
                   onChange={(e) => setPortada(e.target.checked)}
-                  className="h-5 w-5 flex-shrink-0 rounded border-gray-300 cursor-pointer"
+                  className="h-5 w-5 flex-shrink-0 rounded border-panel-border cursor-pointer"
                   style={{ accentColor: "#1B4332" }}
                 />
               </label>
@@ -2508,7 +2508,7 @@ export function PanelEditor({
                     className={`btn-press px-4 py-2 rounded-full border text-sm font-semibold transition-colors ${
                       fuente === f.key
                         ? "border-kora-accent bg-kora-accent/10 text-kora-primary"
-                        : "border-gray-200 text-kora-muted hover:border-kora-accent"
+                        : "border-panel-border text-kora-muted hover:border-kora-accent"
                     }`}
                   >
                     {f.label}
@@ -2517,7 +2517,7 @@ export function PanelEditor({
               </div>
               {/* Muestra en vivo de la fuente elegida */}
               <div
-                className="mt-3 rounded-xl border border-gray-100 bg-kora-bg/40 px-5 py-4"
+                className="mt-3 rounded-xl border border-panel-border-soft bg-kora-bg/40 px-5 py-4"
                 style={{ fontFamily: fontStack(fuente) }}
               >
                 <p className="text-2xl font-bold text-kora-text leading-tight">
@@ -2549,22 +2549,22 @@ export function PanelEditor({
                       className={`btn-press rounded-xl border p-2 text-left transition-colors ${
                         activo
                           ? "border-kora-accent bg-kora-accent/10"
-                          : "border-gray-200 hover:border-kora-accent"
+                          : "border-panel-border hover:border-kora-accent"
                       }`}
                     >
                       <div className="relative h-20 rounded-lg overflow-hidden bg-gradient-to-br from-kora-primary to-kora-accent">
                         {o.k === "banda" ? (
                           <>
                             <div className="absolute inset-x-0 top-0 h-10 bg-gradient-to-br from-kora-primary to-kora-accent" />
-                            <div className="absolute inset-x-3 top-7 bottom-1 rounded-md bg-white shadow-sm flex flex-col justify-center px-2 gap-1">
-                              <div className="h-1.5 w-2/3 rounded bg-gray-300" />
-                              <div className="h-1 w-1/2 rounded bg-gray-200" />
+                            <div className="absolute inset-x-3 top-7 bottom-1 rounded-md bg-panel-surface shadow-sm flex flex-col justify-center px-2 gap-1">
+                              <div className="h-1.5 w-2/3 rounded bg-panel-border" />
+                              <div className="h-1 w-1/2 rounded bg-panel-border" />
                             </div>
                           </>
                         ) : (
                           <div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
-                            <div className="h-2 w-2/3 rounded bg-white/90" />
-                            <div className="h-1.5 w-1/2 rounded bg-white/70" />
+                            <div className="h-2 w-2/3 rounded bg-panel-surface/90" />
+                            <div className="h-1.5 w-1/2 rounded bg-panel-surface/70" />
                           </div>
                         )}
                       </div>
@@ -2628,7 +2628,7 @@ export function PanelEditor({
             </p>
             <div className="space-y-3">
               {resenas.map((r, i) => (
-                <div key={i} className="rounded-xl border border-gray-100 p-4 bg-kora-bg/50 space-y-3">
+                <div key={i} className="rounded-xl border border-panel-border-soft p-4 bg-kora-bg/50 space-y-3">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <input
                       className={inputCls}
@@ -2647,7 +2647,7 @@ export function PanelEditor({
                         >
                           <Star
                             size={22}
-                            className={n <= r.estrellas ? "fill-kora-accent text-kora-accent" : "text-gray-300"}
+                            className={n <= r.estrellas ? "fill-kora-accent text-kora-accent" : "text-panel-faint"}
                           />
                         </button>
                       ))}
@@ -2681,7 +2681,7 @@ export function PanelEditor({
             <button
               type="button"
               onClick={addResena}
-              className="btn-press mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-gray-200 text-kora-text font-semibold text-sm hover:border-kora-accent transition-colors"
+              className="btn-press mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-panel-border text-kora-text font-semibold text-sm hover:border-kora-accent transition-colors"
             >
               <Plus size={16} /> Agregar reseña
             </button>
@@ -2699,7 +2699,7 @@ export function PanelEditor({
             </p>
             <div className="space-y-3">
               {faqs.map((f, i) => (
-                <div key={i} className="rounded-xl border border-gray-100 p-4 bg-kora-bg/50 space-y-3">
+                <div key={i} className="rounded-xl border border-panel-border-soft p-4 bg-kora-bg/50 space-y-3">
                   <input
                     className={inputCls}
                     value={f.pregunta}
@@ -2726,7 +2726,7 @@ export function PanelEditor({
             <button
               type="button"
               onClick={addFaq}
-              className="btn-press mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-gray-200 text-kora-text font-semibold text-sm hover:border-kora-accent transition-colors"
+              className="btn-press mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-panel-border text-kora-text font-semibold text-sm hover:border-kora-accent transition-colors"
             >
               <Plus size={16} /> Agregar pregunta
             </button>
@@ -2757,7 +2757,7 @@ export function PanelEditor({
                       className={`btn-press px-4 py-2 rounded-full border text-sm font-semibold transition-colors ${
                         anticipoPct === p
                           ? "border-kora-accent bg-kora-accent/10 text-kora-primary"
-                          : "border-gray-200 text-kora-muted hover:border-kora-accent"
+                          : "border-panel-border text-kora-muted hover:border-kora-accent"
                       }`}
                     >
                       {p === 100 ? "Total (100%)" : `${p}% de anticipo`}
@@ -2872,7 +2872,7 @@ export function PanelEditor({
               {temporadas.map((t, i) => (
                 <div
                   key={t.id}
-                  className="rounded-xl border border-gray-100 bg-kora-bg/40 p-4 space-y-3"
+                  className="rounded-xl border border-panel-border-soft bg-kora-bg/40 p-4 space-y-3"
                 >
                   <div className="flex flex-wrap items-end gap-2">
                     <div className="flex-1 min-w-[140px]">
@@ -2889,7 +2889,7 @@ export function PanelEditor({
                     <button
                       type="button"
                       onClick={() => removeTemporada(i)}
-                      className="btn-press w-9 h-9 rounded-lg border border-gray-200 flex items-center justify-center text-red-600 hover:border-red-300"
+                      className="btn-press w-9 h-9 rounded-lg border border-panel-border flex items-center justify-center text-red-600 hover:border-red-300"
                       aria-label="Quitar temporada"
                     >
                       <Trash2 size={14} />
@@ -2970,13 +2970,13 @@ export function PanelEditor({
             <button
               type="button"
               onClick={addTemporada}
-              className="btn-press inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-gray-200 text-kora-text font-semibold text-sm hover:border-kora-accent transition-colors"
+              className="btn-press inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-panel-border text-kora-text font-semibold text-sm hover:border-kora-accent transition-colors"
             >
               <Plus size={15} /> Agregar temporada
             </button>
 
             {/* Recargo de fin de semana */}
-            <div className="pt-4 border-t border-gray-100 space-y-3">
+            <div className="pt-4 border-t border-panel-border-soft space-y-3">
               <label className="flex items-center gap-2.5 text-sm font-semibold text-kora-text">
                 <input
                   type="checkbox"
@@ -3005,7 +3005,7 @@ export function PanelEditor({
                           className={`btn-press px-3 py-1.5 rounded-full border text-sm font-semibold transition-colors ${
                             finSemDias.includes(d)
                               ? "border-kora-accent bg-kora-accent/10 text-kora-primary"
-                              : "border-gray-200 text-kora-muted hover:border-kora-accent"
+                              : "border-panel-border text-kora-muted hover:border-kora-accent"
                           }`}
                         >
                           {l}
@@ -3173,7 +3173,7 @@ export function PanelEditor({
                   <button
                     type="button"
                     onClick={copiarTokenAgente}
-                    className="btn-press inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-gray-200 text-kora-text font-semibold text-sm hover:border-kora-accent transition-colors"
+                    className="btn-press inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-panel-border text-kora-text font-semibold text-sm hover:border-kora-accent transition-colors"
                   >
                     {agentTokenCopiado ? <Check size={15} /> : <Copy size={15} />}
                     {agentTokenCopiado ? "Copiado" : "Copiar"}
@@ -3184,7 +3184,7 @@ export function PanelEditor({
                   type="button"
                   onClick={verTokenAgente}
                   disabled={agentTokenCargando}
-                  className="btn-press inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-gray-200 text-kora-primary font-semibold text-sm hover:border-kora-accent transition-colors disabled:opacity-50"
+                  className="btn-press inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-panel-border text-kora-primary font-semibold text-sm hover:border-kora-accent transition-colors disabled:opacity-50"
                 >
                   {agentTokenCargando ? <Loader2 size={15} className="animate-spin" /> : <Eye size={15} />}
                   Ver mi token del bot
@@ -3212,7 +3212,7 @@ export function PanelEditor({
               {addons.map((a, i) => (
                 <div
                   key={i}
-                  className="flex flex-wrap items-end gap-2 rounded-xl border border-gray-100 bg-kora-bg/40 p-3"
+                  className="flex flex-wrap items-end gap-2 rounded-xl border border-panel-border-soft bg-kora-bg/40 p-3"
                 >
                   <div className="flex-1 min-w-[140px]">
                     <label className="block text-[11px] font-semibold text-kora-muted mb-1">
@@ -3255,9 +3255,9 @@ export function PanelEditor({
                   <div className="flex items-center gap-2">
                     {a.imagen ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={a.imagen} alt="" className="w-11 h-11 rounded-lg object-cover border border-gray-200" />
+                      <img src={a.imagen} alt="" className="w-11 h-11 rounded-lg object-cover border border-panel-border" />
                     ) : null}
-                    <label className="btn-press inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 text-kora-text font-semibold text-xs cursor-pointer hover:border-kora-accent">
+                    <label className="btn-press inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-panel-border text-kora-text font-semibold text-xs cursor-pointer hover:border-kora-accent">
                       {subiendoImgAddon === i ? <Loader2 size={13} className="animate-spin" /> : <ImagePlus size={13} />}
                       {a.imagen ? "Cambiar" : "Foto"}
                       <input
@@ -3281,7 +3281,7 @@ export function PanelEditor({
                   <button
                     type="button"
                     onClick={() => removeAddon(i)}
-                    className="btn-press w-9 h-9 rounded-lg border border-gray-200 flex items-center justify-center text-red-600 hover:border-red-300"
+                    className="btn-press w-9 h-9 rounded-lg border border-panel-border flex items-center justify-center text-red-600 hover:border-red-300"
                     aria-label="Quitar extra"
                   >
                     <Trash2 size={14} />
@@ -3292,7 +3292,7 @@ export function PanelEditor({
             <button
               type="button"
               onClick={addAddon}
-              className="btn-press inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-gray-200 text-kora-text font-semibold text-sm hover:border-kora-accent transition-colors"
+              className="btn-press inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-panel-border text-kora-text font-semibold text-sm hover:border-kora-accent transition-colors"
             >
               <Plus size={15} /> Agregar extra
             </button>
@@ -3312,7 +3312,7 @@ export function PanelEditor({
             </p>
             <div className="space-y-3">
               {experiencias.map((e, i) => (
-                <div key={i} className="rounded-xl border border-gray-100 bg-kora-bg/40 p-3 space-y-2">
+                <div key={i} className="rounded-xl border border-panel-border-soft bg-kora-bg/40 p-3 space-y-2">
                   <div className="flex flex-wrap items-end gap-2">
                     <div className="flex-1 min-w-[160px]">
                       <label className="block text-[11px] font-semibold text-kora-muted mb-1">Nombre</label>
@@ -3338,7 +3338,7 @@ export function PanelEditor({
                     <button
                       type="button"
                       onClick={() => removeExperiencia(i)}
-                      className="btn-press w-9 h-9 rounded-lg border border-gray-200 flex items-center justify-center text-red-600 hover:border-red-300"
+                      className="btn-press w-9 h-9 rounded-lg border border-panel-border flex items-center justify-center text-red-600 hover:border-red-300"
                       aria-label="Quitar experiencia"
                     >
                       <Trash2 size={14} />
@@ -3401,7 +3401,7 @@ export function PanelEditor({
                                 className={`btn-press h-8 w-8 rounded-lg border text-[11px] font-bold transition-colors ${
                                   on
                                     ? "border-kora-primary bg-kora-primary text-white"
-                                    : "border-gray-200 text-kora-muted hover:border-kora-accent"
+                                    : "border-panel-border text-kora-muted hover:border-kora-accent"
                                 }`}
                               >
                                 {d}
@@ -3457,9 +3457,9 @@ export function PanelEditor({
                   <div className="flex items-center gap-3">
                     {e.imagen ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={e.imagen} alt="" className="w-16 h-16 rounded-lg object-cover border border-gray-200" />
+                      <img src={e.imagen} alt="" className="w-16 h-16 rounded-lg object-cover border border-panel-border" />
                     ) : null}
-                    <label className="btn-press inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 text-kora-text font-semibold text-xs cursor-pointer hover:border-kora-accent">
+                    <label className="btn-press inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-panel-border text-kora-text font-semibold text-xs cursor-pointer hover:border-kora-accent">
                       {subiendoImgExp === i ? <Loader2 size={13} className="animate-spin" /> : <ImagePlus size={13} />}
                       {e.imagen ? "Cambiar foto" : "Subir foto"}
                       <input
@@ -3487,7 +3487,7 @@ export function PanelEditor({
               <button
                 type="button"
                 onClick={addExperiencia}
-                className="btn-press inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-gray-200 text-kora-text font-semibold text-sm hover:border-kora-accent transition-colors"
+                className="btn-press inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-panel-border text-kora-text font-semibold text-sm hover:border-kora-accent transition-colors"
               >
                 <Plus size={15} /> Agregar experiencia
               </button>
@@ -3495,14 +3495,14 @@ export function PanelEditor({
                 <button
                   type="button"
                   onClick={importarToursComoExperiencias}
-                  className="btn-press inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-gray-200 text-kora-primary font-semibold text-sm hover:border-kora-accent transition-colors"
+                  className="btn-press inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-panel-border text-kora-primary font-semibold text-sm hover:border-kora-accent transition-colors"
                 >
                   <ArrowRight size={15} /> Importar de mis tours
                 </button>
               )}
             </div>
             {/* Descuento de paquete: N+ experiencias → % sobre las experiencias */}
-            <div className="rounded-xl border border-gray-100 bg-kora-bg/40 p-3">
+            <div className="rounded-xl border border-panel-border-soft bg-kora-bg/40 p-3">
               <p className="text-sm font-semibold text-kora-text">Descuento de paquete</p>
               <p className="mt-0.5 text-xs text-kora-muted">
                 Premia a quien arma su paquete: si el huésped agrega este número de
@@ -3551,7 +3551,7 @@ export function PanelEditor({
             <div className="space-y-3">
               <p className="text-xs font-semibold text-kora-text">Paquetes</p>
               {paquetesCat.map((p, i) => (
-                <div key={i} className="rounded-xl border border-gray-100 bg-kora-bg/40 p-3 space-y-2">
+                <div key={i} className="rounded-xl border border-panel-border-soft bg-kora-bg/40 p-3 space-y-2">
                   <div className="flex flex-wrap gap-2">
                     <input
                       className={`${inputCls} flex-1 min-w-[160px]`}
@@ -3562,7 +3562,7 @@ export function PanelEditor({
                     <button
                       type="button"
                       onClick={() => removePaquete(i)}
-                      className="btn-press w-9 h-9 rounded-lg border border-gray-200 flex items-center justify-center text-red-600 hover:border-red-300"
+                      className="btn-press w-9 h-9 rounded-lg border border-panel-border flex items-center justify-center text-red-600 hover:border-red-300"
                       aria-label="Quitar paquete"
                     >
                       <Trash2 size={14} />
@@ -3585,17 +3585,17 @@ export function PanelEditor({
               <button
                 type="button"
                 onClick={addPaquete}
-                className="btn-press inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-gray-200 text-kora-text font-semibold text-sm hover:border-kora-accent transition-colors"
+                className="btn-press inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-panel-border text-kora-text font-semibold text-sm hover:border-kora-accent transition-colors"
               >
                 <Plus size={15} /> Agregar paquete
               </button>
             </div>
 
             {/* Tours */}
-            <div className="space-y-3 pt-3 border-t border-gray-100">
+            <div className="space-y-3 pt-3 border-t border-panel-border-soft">
               <p className="text-xs font-semibold text-kora-text">Tours</p>
               {toursCat.map((t, i) => (
-                <div key={i} className="flex flex-wrap items-center gap-2 rounded-xl border border-gray-100 bg-kora-bg/40 p-3">
+                <div key={i} className="flex flex-wrap items-center gap-2 rounded-xl border border-panel-border-soft bg-kora-bg/40 p-3">
                   <input
                     className={`${inputCls} !py-2 flex-1 min-w-[160px]`}
                     value={t.nombre}
@@ -3612,7 +3612,7 @@ export function PanelEditor({
                   <button
                     type="button"
                     onClick={() => removeTourCat(i)}
-                    className="btn-press w-9 h-9 rounded-lg border border-gray-200 flex items-center justify-center text-red-600 hover:border-red-300"
+                    className="btn-press w-9 h-9 rounded-lg border border-panel-border flex items-center justify-center text-red-600 hover:border-red-300"
                     aria-label="Quitar tour"
                   >
                     <Trash2 size={14} />
@@ -3622,7 +3622,7 @@ export function PanelEditor({
               <button
                 type="button"
                 onClick={addTourCat}
-                className="btn-press inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-gray-200 text-kora-text font-semibold text-sm hover:border-kora-accent transition-colors"
+                className="btn-press inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-panel-border text-kora-text font-semibold text-sm hover:border-kora-accent transition-colors"
               >
                 <Plus size={15} /> Agregar tour
               </button>
@@ -3694,7 +3694,7 @@ export function PanelEditor({
                     className={`btn-press px-3 py-2 rounded-xl border text-sm font-semibold transition-colors ${
                       formasPago.includes(f)
                         ? "border-kora-accent bg-kora-accent/10 text-kora-primary"
-                        : "border-gray-200 text-kora-muted hover:border-kora-accent"
+                        : "border-panel-border text-kora-muted hover:border-kora-accent"
                     }`}
                   >
                     {f}
@@ -3728,7 +3728,7 @@ export function PanelEditor({
                     className={`btn-press px-3 py-2 rounded-xl border text-sm font-semibold transition-colors ${
                       idiomas.includes(l)
                         ? "border-kora-accent bg-kora-accent/10 text-kora-primary"
-                        : "border-gray-200 text-kora-muted hover:border-kora-accent"
+                        : "border-panel-border text-kora-muted hover:border-kora-accent"
                     }`}
                   >
                     {l}
@@ -3843,7 +3843,7 @@ export function PanelEditor({
 
             <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
               {KORA_PRO.map(({ Icon, t, d }) => (
-                <div key={t} className="flex items-start gap-3 rounded-xl bg-white/5 border border-white/10 p-4">
+                <div key={t} className="flex items-start gap-3 rounded-xl bg-panel-surface/5 border border-white/10 p-4">
                   <div className="flex-shrink-0 w-9 h-9 rounded-full bg-kora-accent/20 flex items-center justify-center">
                     <Icon size={17} className="text-kora-accent" aria-hidden="true" />
                   </div>
@@ -3861,7 +3861,7 @@ export function PanelEditor({
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {KORA_PRO_PAGINA.map(({ Icon, t, d }) => (
-                  <div key={t} className="rounded-xl bg-white/5 border border-white/10 p-4">
+                  <div key={t} className="rounded-xl bg-panel-surface/5 border border-white/10 p-4">
                     <Icon size={15} className="text-white/70 mb-2" aria-hidden="true" />
                     <p className="text-sm font-bold text-white">{t}</p>
                     <p className="text-xs text-white/60 mt-0.5 leading-snug">{d}</p>
@@ -3881,7 +3881,7 @@ export function PanelEditor({
                 href="/precios"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="btn-press inline-flex items-center gap-1.5 px-5 py-3 rounded-full border border-white/30 text-white font-semibold text-sm hover:bg-white/10 transition-colors"
+                className="btn-press inline-flex items-center gap-1.5 px-5 py-3 rounded-full border border-white/30 text-white font-semibold text-sm hover:bg-panel-surface/10 transition-colors"
               >
                 Ver precios
               </a>
@@ -3901,40 +3901,40 @@ export function PanelEditor({
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
               <div className="text-center">
-                <div ref={qrPaginaRef} className="inline-flex p-3 rounded-xl border border-gray-100 bg-white">
+                <div ref={qrPaginaRef} className="inline-flex p-3 rounded-xl border border-panel-border-soft bg-panel-surface">
                   <QRCodeCanvas value={urlPagina} size={150} fgColor="#1B4332" level="M" marginSize={2} />
                 </div>
                 <p className="mt-2 text-xs font-semibold text-kora-text">Página de reservas</p>
                 <button
                   type="button"
                   onClick={() => descargarQR(qrPaginaRef, "qr-reservas.png")}
-                  className="btn-press mt-2 inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-gray-200 text-kora-text text-sm font-semibold hover:border-kora-accent transition-colors"
+                  className="btn-press mt-2 inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-panel-border text-kora-text text-sm font-semibold hover:border-kora-accent transition-colors"
                 >
                   <Download size={14} /> Descargar
                 </button>
               </div>
               <div className="text-center">
-                <div ref={qrMotorRef} className="inline-flex p-3 rounded-xl border border-gray-100 bg-white">
+                <div ref={qrMotorRef} className="inline-flex p-3 rounded-xl border border-panel-border-soft bg-panel-surface">
                   <QRCodeCanvas value={urlMotor} size={150} fgColor="#1B4332" level="M" marginSize={2} />
                 </div>
                 <p className="mt-2 text-xs font-semibold text-kora-text">Motor de reservas</p>
                 <button
                   type="button"
                   onClick={() => descargarQR(qrMotorRef, "qr-motor.png")}
-                  className="btn-press mt-2 inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-gray-200 text-kora-text text-sm font-semibold hover:border-kora-accent transition-colors"
+                  className="btn-press mt-2 inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-panel-border text-kora-text text-sm font-semibold hover:border-kora-accent transition-colors"
                 >
                   <Download size={14} /> Descargar
                 </button>
               </div>
               <div className="text-center">
-                <div ref={qrGuiaRef} className="inline-flex p-3 rounded-xl border border-gray-100 bg-white">
+                <div ref={qrGuiaRef} className="inline-flex p-3 rounded-xl border border-panel-border-soft bg-panel-surface">
                   <QRCodeCanvas value={urlGuia} size={150} fgColor="#1B4332" level="M" marginSize={2} />
                 </div>
                 <p className="mt-2 text-xs font-semibold text-kora-text">Guía del huésped</p>
                 <button
                   type="button"
                   onClick={() => descargarQR(qrGuiaRef, "qr-guia.png")}
-                  className="btn-press mt-2 inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-gray-200 text-kora-text text-sm font-semibold hover:border-kora-accent transition-colors"
+                  className="btn-press mt-2 inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-panel-border text-kora-text text-sm font-semibold hover:border-kora-accent transition-colors"
                 >
                   <Download size={14} /> Descargar
                 </button>
@@ -3963,7 +3963,7 @@ export function PanelEditor({
                   setCopiadoEmbed(true);
                   setTimeout(() => setCopiadoEmbed(false), 2000);
                 }}
-                className="btn-press inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-gray-200 text-kora-text text-sm font-semibold hover:border-kora-accent transition-colors"
+                className="btn-press inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-panel-border text-kora-text text-sm font-semibold hover:border-kora-accent transition-colors"
               >
                 {copiadoEmbed ? <Check size={14} /> : <Copy size={14} />}
                 {copiadoEmbed ? "Copiado" : "Copiar código"}
@@ -3972,7 +3972,7 @@ export function PanelEditor({
                 href={urlMotor}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="btn-press inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-gray-200 text-kora-text text-sm font-semibold hover:border-kora-accent transition-colors"
+                className="btn-press inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-panel-border text-kora-text text-sm font-semibold hover:border-kora-accent transition-colors"
               >
                 <ExternalLink size={14} /> Ver mi motor
               </a>
@@ -3990,7 +3990,7 @@ export function PanelEditor({
 
       {/* Guardar (sticky) */}
       <div className="sticky bottom-4 z-10">
-        <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-4 border border-gray-100 shadow-lg flex items-center justify-between gap-4 flex-wrap">
+        <div className="bg-panel-surface/95 backdrop-blur-sm rounded-2xl p-4 border border-panel-border-soft shadow-lg flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-4">
             <label className="inline-flex items-center gap-2 text-sm font-semibold text-kora-text cursor-pointer">
               <input

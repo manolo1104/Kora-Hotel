@@ -11,7 +11,7 @@ export function PruebaBanner({ prueba }: { prueba: PruebaHotel }) {
   return (
     <div
       className={`flex items-center justify-between gap-3 flex-wrap px-4 py-2.5 text-sm ${
-        urgente ? "bg-amber-50 border-b border-amber-200" : "bg-kora-bg border-b border-gray-100"
+        urgente ? "bg-amber-50 border-b border-amber-200" : "bg-kora-bg border-b border-panel-border-soft"
       }`}
     >
       <p className={`flex items-center gap-2 ${urgente ? "text-amber-900" : "text-kora-text"}`}>
@@ -39,7 +39,7 @@ export function PruebaBanner({ prueba }: { prueba: PruebaHotel }) {
 export function PruebaVencida({ hotelNombre }: { hotelNombre: string }) {
   return (
     <div className="min-h-[70vh] flex items-center justify-center px-4 py-16">
-      <div className="max-w-lg w-full rounded-3xl border border-gray-100 bg-white p-8 sm:p-10 text-center shadow-sm">
+      <div className="max-w-lg w-full rounded-3xl border border-panel-border-soft bg-panel-surface p-8 sm:p-10 text-center shadow-sm">
         <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-amber-100" aria-hidden="true">
           <Lock size={26} className="text-amber-600" />
         </div>
@@ -89,7 +89,7 @@ export function HotelBloqueado({
 }) {
   return (
     <div className="flex min-h-[70vh] items-center justify-center px-4 py-10">
-      <div className="w-full max-w-md rounded-3xl border border-red-200 bg-white p-8 text-center shadow-sm">
+      <div className="w-full max-w-md rounded-3xl border border-red-200 bg-panel-surface p-8 text-center shadow-sm">
         <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-red-50">
           <Lock size={26} className="text-red-600" aria-hidden="true" />
         </div>

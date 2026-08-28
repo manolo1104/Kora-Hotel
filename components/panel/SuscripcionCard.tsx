@@ -15,8 +15,8 @@ const ESTADOS: Record<string, { label: string; cls: string }> = {
   activa: { label: "Activa", cls: "bg-emerald-100 text-emerald-800" },
   cortesia: { label: "Fundador", cls: "bg-kora-accent/30 text-kora-primary" },
   pago_vencido: { label: "Pago pendiente", cls: "bg-amber-100 text-amber-800" },
-  cancelada: { label: "Cancelada", cls: "bg-gray-100 text-gray-600" },
-  incompleta: { label: "Sin completar", cls: "bg-gray-100 text-gray-600" },
+  cancelada: { label: "Cancelada", cls: "bg-panel-surface-2 text-kora-muted" },
+  incompleta: { label: "Sin completar", cls: "bg-panel-surface-2 text-kora-muted" },
 };
 
 export function SuscripcionCard({
@@ -74,7 +74,7 @@ export function SuscripcionCard({
   // botón del portal de Stripe, que es su única vía para bajar sus recibos.
   if (!info || (cerrada && !esStripe)) {
     return (
-      <div className="mt-6 flex items-center justify-between gap-4 flex-wrap rounded-2xl border border-kora-primary/15 bg-white px-5 py-4">
+      <div className="mt-6 flex items-center justify-between gap-4 flex-wrap rounded-2xl border border-kora-primary/15 bg-panel-surface px-5 py-4">
         <div className="flex items-center gap-3">
           <Sparkles size={18} className="text-kora-primary" aria-hidden="true" />
           <p className="text-sm text-kora-text">
@@ -101,7 +101,7 @@ export function SuscripcionCard({
   }
 
   return (
-    <div className="mt-6 flex items-center justify-between gap-4 flex-wrap rounded-2xl border border-kora-primary/15 bg-white px-5 py-4">
+    <div className="mt-6 flex items-center justify-between gap-4 flex-wrap rounded-2xl border border-kora-primary/15 bg-panel-surface px-5 py-4">
       <div className="flex items-center gap-3 flex-wrap">
         <span className={`px-3 py-1 rounded-full text-xs font-bold ${info.cls}`}>
           {info.label}
@@ -144,7 +144,7 @@ export function SuscripcionCard({
             type="button"
             onClick={abrirPortal}
             disabled={abriendo}
-            className="btn-press inline-flex items-center gap-2 px-4 py-2 rounded-full border border-gray-200 text-kora-text font-semibold text-sm hover:border-kora-accent transition-colors disabled:opacity-60"
+            className="btn-press inline-flex items-center gap-2 px-4 py-2 rounded-full border border-panel-border text-kora-text font-semibold text-sm hover:border-kora-accent transition-colors disabled:opacity-60"
           >
             {abriendo ? (
               <Loader2 size={14} className="animate-spin" aria-hidden="true" />

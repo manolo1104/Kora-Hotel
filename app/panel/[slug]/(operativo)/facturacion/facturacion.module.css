@@ -23,7 +23,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #52b788;
+  color: var(--sage-text);
   flex-shrink: 0;
 }
 
@@ -37,7 +37,7 @@
 
 .subtitle {
   font-size: 0.83rem;
-  color: var(--sage);
+  color: var(--sage-text);
   margin: 0;
 }
 
@@ -69,11 +69,11 @@
   line-height: 1.6;
 }
 
-.alert svg { flex-shrink: 0; margin-top: 2px; color: #d4a017; }
+.alert svg { flex-shrink: 0; margin-top: 2px; color: #8a6a0a; }
 
 .section {
-  background: #fff;
-  border: 1px solid #e5e7eb;
+  background: var(--cream);
+  border: 1px solid var(--line);
   border-radius: 10px;
   padding: 22px 26px;
 }
@@ -83,7 +83,7 @@
   font-weight: 600;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--sage);
+  color: var(--sage-text);
   margin: 0 0 16px;
 }
 
@@ -97,28 +97,28 @@
 }
 
 .iconDone { color: #2d7a34; flex-shrink: 0; }
-.iconPending { color: #ccc; flex-shrink: 0; }
-.reqDone { text-decoration: line-through; color: #aaa; font-size: 0.875rem; }
+.iconPending { color: var(--clay); flex-shrink: 0; }
+.reqDone { text-decoration: line-through; color: var(--clay); font-size: 0.875rem; }
 .reqText { font-size: 0.875rem; color: var(--clay); }
 
 /* Plan */
 .planList { display: flex; flex-direction: column; gap: 8px; }
 
 /* Acordeón de fases */
-.faseAccordion { border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; background: #fff; }
+.faseAccordion { border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--cream); }
 .faseAccordionHeader {
   width: 100%; display: flex; align-items: center; gap: 10px;
   padding: 14px 18px; background: var(--parch); border: none; cursor: pointer;
   text-align: left; transition: background 0.1s;
 }
-.faseAccordionHeader:hover { background: #e5e7eb; }
+.faseAccordionHeader:hover { background: var(--line); }
 .faseChevron { font-size: 1.3rem; color: var(--clay); margin-left: auto; transition: transform 0.2s; line-height: 1; }
 .faseChevronOpen { transform: rotate(90deg); }
-.faseAccordionBody { padding: 16px 18px; border-top: 1px solid #e5e7eb; }
+.faseAccordionBody { padding: 16px 18px; border-top: 1px solid var(--line); }
 
 .faseCard {
   background: var(--parch);
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--line);
   border-radius: 8px;
   padding: 16px 18px;
 }
@@ -167,7 +167,7 @@
   line-height: 1.4;
 }
 
-.faseOptIcon { flex-shrink: 0; color: var(--sand); margin-top: 2px; }
+.faseOptIcon { flex-shrink: 0; color: var(--sage-text); margin-top: 2px; }
 
 .faseRec {
   font-size: 0.78rem;
@@ -188,7 +188,7 @@
 
 .estimCard {
   background: var(--parch);
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--line);
   border-radius: 8px;
   padding: 16px;
   display: flex;
@@ -200,7 +200,7 @@
   font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--sage);
+  color: var(--sage-text);
 }
 
 .estimVal {
@@ -211,7 +211,7 @@
 
 .estimSub {
   font-size: 0.72rem;
-  color: #aaa;
+  color: var(--clay);
 }
 
 @media (max-width: 640px) {
@@ -229,14 +229,14 @@
   border-radius: 8px; padding: 12px 16px;
   font-size: 0.82rem; color: var(--forest);
 }
-.infoBanner svg { flex-shrink: 0; color: var(--sage); }
+.infoBanner svg { flex-shrink: 0; color: var(--sage-text); }
 
 .tableWrap { overflow-x: auto; -webkit-overflow-scrolling: touch; min-width: 0; max-width: 100%; }
 .table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
 .table thead th {
   text-align: left; font-size: 0.68rem; font-weight: 600;
-  letter-spacing: 0.06em; text-transform: uppercase; color: var(--sage);
-  padding: 8px 12px; border-bottom: 1px solid #e5e7eb; white-space: nowrap;
+  letter-spacing: 0.06em; text-transform: uppercase; color: var(--sage-text);
+  padding: 8px 12px; border-bottom: 1px solid var(--line); white-space: nowrap;
 }
 .table tbody td { padding: 11px 12px; border-bottom: 1px solid #f1f1ef; color: var(--ink); vertical-align: middle; }
 .table tbody tr:hover { background: #fafafa; }
@@ -254,7 +254,7 @@
 .generarBtn:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .cfdiDone { display: inline-flex; flex-direction: column; align-items: flex-end; gap: 3px; }
-.cfdiUuid { display: inline-flex; align-items: center; gap: 5px; color: var(--sage); font-size: 0.78rem; font-weight: 600; }
+.cfdiUuid { display: inline-flex; align-items: center; gap: 5px; color: var(--sage-text); font-size: 0.78rem; font-weight: 600; }
 .cfdiLinks { display: inline-flex; gap: 10px; }
 .cfdiLinks a {
   display: inline-flex; align-items: center; gap: 3px;
@@ -268,12 +268,12 @@
   display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px;
 }
 .modal {
-  background: #fff; border-radius: 14px; width: 100%; max-width: 540px;
+  background: var(--cream); border-radius: 14px; width: 100%; max-width: 540px;
   max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.25);
 }
 .modalHeader {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 18px 22px; border-bottom: 1px solid #e5e7eb;
+  padding: 18px 22px; border-bottom: 1px solid var(--line);
 }
 .modalHeader h3 { margin: 0; font-size: 1rem; font-weight: 600; color: var(--forest); }
 .modalClose { background: none; border: none; color: var(--clay); cursor: pointer; display: flex; }
@@ -292,7 +292,7 @@
 .field span { font-size: 0.72rem; font-weight: 600; color: var(--clay); text-transform: uppercase; letter-spacing: 0.04em; }
 .field input, .field select {
   padding: 9px 11px; border: 1px solid #d9d9d6; border-radius: 7px;
-  font-size: 0.85rem; color: var(--ink); background: #fff; font-family: inherit;
+  font-size: 0.85rem; color: var(--ink); background: var(--cream); font-family: inherit;
 }
 .field input:focus, .field select:focus { outline: none; border-color: var(--sage); box-shadow: 0 0 0 3px rgba(82,183,136,0.15); }
 
@@ -313,7 +313,7 @@
 .btnPrimary:disabled { opacity: 0.6; cursor: not-allowed; }
 .btnSecondary {
   padding: 10px 18px; border-radius: 8px; border: 1px solid #d9d9d6;
-  background: #fff; color: var(--clay); font-size: 0.85rem; cursor: pointer;
+  background: var(--cream); color: var(--clay); font-size: 0.85rem; cursor: pointer;
 }
 .btnSecondary:hover:not(:disabled) { border-color: var(--forest); color: var(--forest); }
 
