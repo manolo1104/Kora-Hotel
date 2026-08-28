@@ -9,8 +9,19 @@ import type { MiniExtras } from "@/lib/mini";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-// La generación investiga en internet antes de escribir: puede tardar 1-3 min.
-export const maxDuration = 300;
+// La generación investiga en internet antes de escribir.
+//
+// 🔴 300 era MENTIRA: el plan Hobby de Vercel corta cualquier función a 60 s,
+// así que declararlo no daba más tiempo — sólo escondía el problema. Lo que
+// pasaba de verdad: el hotelero pulsaba "generar", esperaba, y a los 60 s le
+// llegaba un 504 pelado del borde de Vercel, sin explicación y sin que esta
+// ruta llegara a devolver ninguno de sus mensajes. Ahora el número dice la
+// verdad y el trabajo se acota para caber dentro (ver PRESUPUESTO_MS).
+export const maxDuration = 60;
+
+// Cuánto se le deja a la IA antes de rendirse, dejando margen para responder
+// con un error propio en vez de que Vercel corte la conexión a medias.
+const PRESUPUESTO_MS = 50_000;
 
 // Escribe un artículo del BLOG DEL HOTEL con IA. El agente INVESTIGA de verdad
 // (búsqueda web): qué hay cerca del hotel, datos del destino o del tema que el
@@ -24,7 +35,10 @@ export const maxDuration = 300;
 
 const MODEL = "claude-sonnet-5";
 const MAX_TOKENS = 12000; // el pensamiento adaptativo y las búsquedas también consumen de aquí
-const MAX_BUSQUEDAS = 6;
+// Bajado de 6 a 3: cada búsqueda son varios segundos y con 6 la generación se
+// iba a 1-3 minutos, que en Hobby no existen. Tres bastan para documentar un
+// artículo de hotel y hacen que quepa en el presupuesto.
+const MAX_BUSQUEDAS = 3;
 
 const ENFOQUES: Record<string, string> = {
   cerca: "Qué hacer cerca del hotel: investiga lugares y actividades REALES alrededor de la ubicación del hotel (atracciones, caminatas, miradores) y descríbelos con lo que encuentres.",
@@ -146,7 +160,17 @@ Notas del hotelero (lo que quiere que incluya): ${notas || "ninguna"}
 Investiga lo necesario y escribe el artículo.`;
 
   try {
-    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    const arranque = Date.now();
+    const restante = () => PRESUPUESTO_MS - (Date.now() - arranque);
+    const anthropic = new Anthropic({
+      apiKey: process.env.ANTHROPIC_API_KEY,
+      // Sin reintentos: el SDK reintenta 2 veces por defecto, así que un
+      // timeout podía multiplicarse por tres y comerse el presupuesto entero
+      // sin que llegara ni una respuesta. Aquí el reintento lo decide el
+      // hotelero pulsando el botón otra vez, que además no le gasta cuota.
+      maxRetries: 0,
+      timeout: PRESUPUESTO_MS, // milisegundos (el SDK de TS no usa segundos)
+    });
     const params = {
       model: MODEL,
       max_tokens: MAX_TOKENS,
@@ -173,19 +197,40 @@ Investiga lo necesario y escribe el artículo.`;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any;
 
-    let msg = await anthropic.messages.create(params);
-    // Con herramientas del servidor, el turno puede pausarse (pause_turn):
-    // se reenvía la conversación y el servidor retoma donde iba.
+    let msg = await anthropic.messages.create(params, { timeout: restante() });
+    // Con herramientas del servidor, el turno puede pausarse (pause_turn): se
+    // reenvía la conversación y el servidor retoma donde iba. El corte lo pone
+    // el TIEMPO que queda, no un número de vueltas: con un contador a secas, la
+    // tercera vuelta podía arrancar con 2 s de presupuesto y morir a media
+    // petición, que es exactamente el 504 sin explicación de antes.
     let reintentos = 0;
     while (msg.stop_reason === "pause_turn" && reintentos < 3) {
+      // Menos de 8 s no da ni para una búsqueda: mejor rendirse a tiempo y
+      // contestar con un mensaje que el hotelero pueda entender.
+      if (restante() < 8_000) break;
       reintentos += 1;
-      msg = await anthropic.messages.create({
-        ...params,
-        messages: [
-          { role: "user", content: user },
-          { role: "assistant", content: msg.content },
-        ],
-      });
+      msg = await anthropic.messages.create(
+        {
+          ...params,
+          messages: [
+            { role: "user", content: user },
+            { role: "assistant", content: msg.content },
+          ],
+        },
+        { timeout: restante() },
+      );
+    }
+
+    // Se quedó a medias por tiempo: no hay artículo que devolver.
+    if (msg.stop_reason === "pause_turn") {
+      return NextResponse.json(
+        {
+          error:
+            "La investigación tardó más de lo que permite el servidor. Prueba con un tema más concreto " +
+            "o con menos notas (no se gastó tu artículo del mes).",
+        },
+        { status: 504 },
+      );
     }
 
     // El JSON final viene en el último bloque de texto (los bloques de búsqueda
@@ -229,6 +274,18 @@ Investiga lo necesario y escribe el artículo.`;
     });
   } catch (e) {
     console.error("[blog-post] error de IA:", e);
+    // Un timeout merece un mensaje distinto: "intenta de nuevo" con el mismo
+    // tema volvería a tardar lo mismo.
+    if (e instanceof Anthropic.APIConnectionTimeoutError) {
+      return NextResponse.json(
+        {
+          error:
+            "La investigación tardó más de lo que permite el servidor. Prueba con un tema más concreto " +
+            "o con menos notas (no se gastó tu artículo del mes).",
+        },
+        { status: 504 },
+      );
+    }
     return NextResponse.json(
       { error: "No se pudo escribir el artículo. Intenta de nuevo (no se gastó tu artículo del mes)." },
       { status: 502 }

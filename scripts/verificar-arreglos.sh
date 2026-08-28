@@ -161,7 +161,11 @@ cero "A19.2 el sitemap no repite mini-pagina"      bash -c 'n=$(grep -cI "herram
 cero "A19.3 next/image acotado al proyecto real"   bash -c 'grep -nI "\*.supabase.co" next.config.mjs'
 cero "A19.4 ningún PNG del portfolio >120 KB"      bash -c 'find public -name "*.png" -size +120k 2>/dev/null'
 cero "A19.5 maxDuration <= 60 (Vercel Hobby)"      bash -c 'grep -rnI --exclude=verificar-arreglos.sh "maxDuration = " app | awk -F"= " "{if (\$2+0 > 60) print}"'
-exacto "A19.6 siguen siendo 7 crons"             7 bash -c 'grep -o "\"path\": \"/api/cron/" vercel.json'
+# 8 desde la captación por correo (`/api/cron/suscriptores`, 27 ago). Hobby
+# admite hasta 100 crons PERO todos ≤1/día; el número aquí es un chivato para
+# que añadir uno sea una decisión y no un descuido. Al añadir otro: subirlo, y
+# comprobar antes que su horario es diario o el despliegue ENTERO falla.
+exacto "A19.6 siguen siendo 8 crons"             8 bash -c 'grep -o "\"path\": \"/api/cron/" vercel.json'
 
 sec "A20 · Apartado atómico e inventario (etapa 3: pasos 3.10, 3.12, 3.14, 3.15)"
 cero "A20.1 existe el SQL del apartado atómico"    bash -c '[ -f sql/kora-e3-apartado-atomico.sql ] || echo "falta sql/kora-e3-apartado-atomico.sql"'
