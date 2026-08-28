@@ -1,5 +1,5 @@
 .pageHeader { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 24px; gap: 16px; flex-wrap: wrap; }
-.pageTitle { font-family: var(--font-cormorant), Georgia, serif; font-size: 1.8rem; font-weight: 400; color: var(--forest); margin: 0 0 4px; }
+.pageTitle { font-family: var(--font-cormorant), Georgia, serif; font-size: 1.8rem; font-weight: 400; color: var(--forest-text); margin: 0 0 4px; }
 .pageSub { font-size: 0.83rem; color: var(--sage-text); margin: 0; }
 .headerActions { display: flex; gap: 10px; align-items: center; }
 .primaryBtn { display: flex; align-items: center; gap: 6px; background: var(--forest); color: var(--cream); border: none; border-radius: 4px; padding: 9px 16px; font-size: 0.875rem; font-family: var(--font-jost), sans-serif; font-weight: 600; cursor: pointer; }
@@ -13,7 +13,7 @@
 .clienteName { font-weight: 500; }
 .clienteEmail { font-size: 0.78rem; color: var(--sage-text); }
 .mono { font-family: monospace; font-size: 0.78rem; color: var(--clay); }
-.total { font-weight: 600; color: var(--forest); white-space: nowrap; }
+.total { font-weight: 600; color: var(--forest-text); white-space: nowrap; }
 .badge { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
 .empty { text-align: center; padding: 40px; color: var(--sage-text); }
 .sendActions { display: flex; gap: 6px; }
@@ -26,16 +26,16 @@
 .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 1000; display: flex; align-items: flex-start; justify-content: center; padding: 40px 16px; overflow-y: auto; }
 .modal { background: var(--cream); border-radius: 8px; width: 100%; max-width: 640px; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
 .modalHeader { display: flex; align-items: center; justify-content: space-between; padding: 20px 24px; border-bottom: 1px solid var(--line); }
-.modalHeader h2 { font-family: var(--font-cormorant), Georgia, serif; font-size: 1.3rem; font-weight: 400; color: var(--forest); margin: 0; }
+.modalHeader h2 { font-family: var(--font-cormorant), Georgia, serif; font-size: 1.3rem; font-weight: 400; color: var(--forest-text); margin: 0; }
 .modalHeader button { background: none; border: none; cursor: pointer; color: var(--clay); padding: 4px; }
 .modalForm { padding: 24px; display: flex; flex-direction: column; gap: 14px; }
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 @media (max-width: 480px) { .grid2 { grid-template-columns: 1fr; } }
 .field { display: flex; flex-direction: column; gap: 5px; font-size: 0.75rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.07em; color: var(--clay); }
 .field input, .field select, .field textarea { padding: 9px 12px; border: 1px solid var(--line); border-radius: 4px; font-size: 0.9rem; font-family: var(--font-jost), sans-serif; background: var(--cream); color: var(--ink); outline: none; }
-.field input:focus, .field select:focus, .field textarea:focus { border-color: var(--forest); }
+.field input:focus, .field select:focus, .field textarea:focus { border-color: var(--forest-text); }
 .field textarea { resize: vertical; }
-.pricePreview { padding: 9px 12px; background: var(--parch); border-radius: 4px; font-size: 0.95rem; font-weight: 600; color: var(--forest); }
+.pricePreview { padding: 9px 12px; background: var(--parch); border-radius: 4px; font-size: 0.95rem; font-weight: 600; color: var(--forest-text); }
 .error { font-size: 0.83rem; color: #8a1a1a; padding: 10px 14px; background: #fdf0f0; border-radius: 4px; }
 .actions { display: flex; gap: 10px; justify-content: flex-end; padding-top: 8px; border-top: 1px solid var(--line); }
 .secondaryBtn { background: none; border: 1px solid var(--line); border-radius: 4px; padding: 9px 16px; font-size: 0.875rem; font-family: var(--font-jost), sans-serif; color: var(--clay); cursor: pointer; }
@@ -48,29 +48,29 @@
 .deleteBtn:hover { opacity: 0.85; }
 
 /* Filtros */
-.filterBadge { display: inline-block; background: var(--sand); color: var(--forest); font-size: 0.65rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; padding: 2px 7px; border-radius: 3px; margin-left: 8px; }
-.iconBtnActive { border-color: var(--forest); color: var(--forest); background: #f0f7f0; gap: 5px; }
+.filterBadge { display: inline-block; background: var(--sand); color: var(--forest-text); font-size: 0.65rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; padding: 2px 7px; border-radius: 3px; margin-left: 8px; }
+.iconBtnActive { border-color: var(--forest-text); color: var(--forest-text); background: #f0f7f0; gap: 5px; }
 .searchWrap { position: relative; margin-bottom: 10px; }
 .searchIcon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--clay); }
 .searchInput { width: 100%; padding: 9px 12px 9px 32px; border: 1px solid var(--line); border-radius: 4px; font-size: 0.875rem; font-family: var(--font-jost), sans-serif; background: var(--cream); outline: none; }
-.searchInput:focus { border-color: var(--forest); }
+.searchInput:focus { border-color: var(--forest-text); }
 .filtersPanel { background: var(--cream); border: 1px solid var(--line); border-radius: 8px; padding: 16px 20px; margin-bottom: 12px; }
 .filtersGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; margin-bottom: 10px; }
 .filterField { display: flex; flex-direction: column; gap: 5px; font-size: 0.72rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.07em; color: var(--clay); }
 .filterField input, .filterField select { padding: 8px 10px; border: 1px solid var(--line); border-radius: 4px; font-size: 0.875rem; font-family: var(--font-jost), sans-serif; background: var(--cream); outline: none; }
-.filterField input:focus, .filterField select:focus { border-color: var(--forest); }
+.filterField input:focus, .filterField select:focus { border-color: var(--forest-text); }
 .clearBtn { background: none; border: 1px solid var(--line); border-radius: 4px; padding: 6px 14px; font-size: 0.78rem; font-family: var(--font-jost), sans-serif; color: var(--clay); cursor: pointer; }
-.clearBtn:hover { border-color: var(--forest); color: var(--forest); }
+.clearBtn:hover { border-color: var(--forest-text); color: var(--forest-text); }
 
 /* Multi-habitación */
 .roomsSection { display: flex; flex-direction: column; gap: 8px; border: 1px solid var(--line); border-radius: 6px; padding: 12px 14px; }
 .roomsSectionHeader { display: flex; align-items: center; justify-content: space-between; }
 .roomsSectionLabel { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--clay); }
 .addRoomBtn { display: flex; align-items: center; gap: 5px; background: none; border: 1px dashed #a7d4bb; border-radius: 4px; padding: 5px 10px; font-size: 0.75rem; color: var(--clay); cursor: pointer; font-family: var(--font-jost), sans-serif; }
-.addRoomBtn:hover { border-color: var(--forest); color: var(--forest); }
+.addRoomBtn:hover { border-color: var(--forest-text); color: var(--forest-text); }
 .roomRow { display: grid; grid-template-columns: 1fr auto auto auto; gap: 8px; align-items: center; }
 .roomRowSelect { padding: 8px 10px; border: 1px solid var(--line); border-radius: 4px; font-size: 0.875rem; font-family: var(--font-jost), sans-serif; background: var(--cream); color: var(--ink); outline: none; }
-.roomRowSelect:focus { border-color: var(--forest); }
+.roomRowSelect:focus { border-color: var(--forest-text); }
 .removeRoomBtn { background: none; border: 1px solid var(--line); border-radius: 4px; padding: 7px; cursor: pointer; color: #c9484a; display: flex; align-items: center; }
 .removeRoomBtn:hover { background: #fdf0f0; border-color: #c9484a; }
 
@@ -80,13 +80,13 @@
 .priceTotalRow { display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--line); padding-top: 10px; gap: 12px; }
 .priceTotalLabel { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--clay); white-space: nowrap; }
 .priceEditRow { display: flex; align-items: center; gap: 8px; }
-.priceInput { padding: 8px 12px; border: 1px solid var(--line); border-radius: 4px; font-size: 1rem; font-weight: 700; color: var(--forest); font-family: var(--font-jost), sans-serif; background: var(--cream); outline: none; width: 140px; text-align: right; }
-.priceInput:focus { border-color: var(--forest); }
+.priceInput { padding: 8px 12px; border: 1px solid var(--line); border-radius: 4px; font-size: 1rem; font-weight: 700; color: var(--forest-text); font-family: var(--font-jost), sans-serif; background: var(--cream); outline: none; width: 140px; text-align: right; }
+.priceInput:focus { border-color: var(--forest-text); }
 .resetPriceBtn { background: none; border: 1px solid var(--sage); border-radius: 4px; padding: 7px 10px; font-size: 0.75rem; color: var(--sage-text); cursor: pointer; white-space: nowrap; font-family: var(--font-jost), sans-serif; }
 .resetPriceBtn:hover { background: var(--parch); }
 
-.roomPriceInput { padding: 7px 8px; border: 1px solid var(--line); border-radius: 4px; font-size: 0.82rem; font-family: var(--font-jost), sans-serif; background: var(--cream); color: var(--forest); width: 88px; text-align: right; outline: none; }
-.roomPriceInput:focus { border-color: var(--forest); }
+.roomPriceInput { padding: 7px 8px; border: 1px solid var(--line); border-radius: 4px; font-size: 0.82rem; font-family: var(--font-jost), sans-serif; background: var(--cream); color: var(--forest-text); width: 88px; text-align: right; outline: none; }
+.roomPriceInput:focus { border-color: var(--forest-text); }
 
 /* ── Scroll indicator ─────────────────────────────────────────────────── */
 .tableScrollWrap { position: relative; }
@@ -116,7 +116,7 @@
 .mobileCardEmail { font-size: 0.75rem; color: var(--sage-text); margin-bottom: 6px; }
 .mobileCardSuite { font-size: 0.82rem; color: var(--clay); margin-bottom: 3px; }
 .mobileCardDates { font-size: 0.82rem; color: var(--clay); margin-bottom: 4px; }
-.mobileCardTotal { font-size: 0.875rem; font-weight: 600; color: var(--forest); margin-bottom: 10px; }
+.mobileCardTotal { font-size: 0.875rem; font-weight: 600; color: var(--forest-text); margin-bottom: 10px; }
 .mobileCardActions { display: flex; gap: 7px; flex-wrap: wrap; }
 .mobileCardBtn {
   flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px;
@@ -147,7 +147,7 @@
 .anticipoFieldWrap { display: flex; flex-direction: column; gap: 5px; }
 .anticipoFieldWrap span { font-size: 0.72rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.07em; color: var(--clay); }
 .anticipoFieldWrap input { padding: 9px 12px; border: 1px solid var(--line); border-radius: 4px; font-size: 0.9rem; font-family: var(--font-jost), sans-serif; background: var(--cream); color: var(--ink); outline: none; }
-.anticipoFieldWrap input:focus { border-color: var(--forest); }
+.anticipoFieldWrap input:focus { border-color: var(--forest-text); }
 
 /* Promo 3x2 */
 .promoRow { display: flex; align-items: center; gap: 10px; padding: 6px 0; }

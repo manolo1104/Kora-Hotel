@@ -11,7 +11,7 @@
   font-family: var(--font-cormorant), Georgia, serif;
   font-size: 1.8rem;
   font-weight: 400;
-  color: var(--forest);
+  color: var(--forest-text);
   margin: 0 0 4px;
 }
 
@@ -55,13 +55,13 @@
   align-items: center;
   transition: border-color 0.15s;
 }
-.iconBtn:hover { border-color: var(--forest); }
+.iconBtn:hover { border-color: var(--forest-text); }
 .iconBtn:disabled { opacity: 0.5; }
 
 .filterBadge {
   display: inline-block;
   background: var(--sand);
-  color: var(--forest);
+  color: var(--forest-text);
   font-size: 0.65rem;
   font-weight: 600;
   letter-spacing: 0.08em;
@@ -72,8 +72,8 @@
 }
 
 .iconBtnActive {
-  border-color: var(--forest);
-  color: var(--forest);
+  border-color: var(--forest-text);
+  color: var(--forest-text);
   background: #f0f7f0;
   gap: 5px;
 }
@@ -115,7 +115,7 @@
   outline: none;
 }
 .filterField input:focus,
-.filterField select:focus { border-color: var(--forest); }
+.filterField select:focus { border-color: var(--forest-text); }
 
 .clearBtn {
   background: none;
@@ -127,7 +127,7 @@
   color: var(--clay);
   cursor: pointer;
 }
-.clearBtn:hover { border-color: var(--forest); color: var(--forest); }
+.clearBtn:hover { border-color: var(--forest-text); color: var(--forest-text); }
 
 .searchWrap {
   position: relative;
@@ -152,7 +152,7 @@
   background: var(--cream);
   outline: none;
 }
-.searchInput:focus { border-color: var(--forest); }
+.searchInput:focus { border-color: var(--forest-text); }
 
 .select {
   padding: 9px 12px;
@@ -164,7 +164,7 @@
   outline: none;
   min-width: 160px;
 }
-.select:focus { border-color: var(--forest); }
+.select:focus { border-color: var(--forest-text); }
 
 .tableWrap {
   background: var(--cream);
@@ -204,7 +204,7 @@
 
 .mono { font-family: monospace; font-size: 0.78rem; color: var(--clay); }
 
-.total { font-weight: 600; color: var(--forest); white-space: nowrap; }
+.total { font-weight: 600; color: var(--forest-text); white-space: nowrap; }
 
 .badge {
   font-size: 0.72rem;
@@ -273,7 +273,7 @@
 .mobileCardName { font-size: 0.9rem; font-weight: 600; color: var(--ink); margin-bottom: 4px; }
 .mobileCardEmail { font-size: 0.75rem; color: var(--sage-text); margin-bottom: 8px; }
 .mobileCardDates { font-size: 0.82rem; color: var(--clay); margin-bottom: 4px; }
-.mobileCardTotal { font-size: 0.82rem; font-weight: 600; color: var(--forest); margin-bottom: 10px; }
+.mobileCardTotal { font-size: 0.82rem; font-weight: 600; color: var(--forest-text); margin-bottom: 10px; }
 .mobileCardActions { display: flex; gap: 8px; flex-wrap: wrap; }
 .mobileCardBtn {
   flex: 1;
@@ -318,9 +318,9 @@
   font-family: var(--font-jost), sans-serif; color: var(--clay);
   cursor: pointer; transition: all 0.15s;
 }
-.todayBtn:hover { border-color: var(--forest); color: var(--forest); }
+.todayBtn:hover { border-color: var(--forest-text); color: var(--forest-text); }
 .todayBtnActive {
-  background: #e6f4e8; border-color: var(--forest); color: var(--forest);
+  background: #e6f4e8; border-color: var(--forest-text); color: var(--forest-text);
   font-weight: 600;
 }
 .todayCount {

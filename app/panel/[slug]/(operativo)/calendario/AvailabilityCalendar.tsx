@@ -180,17 +180,17 @@ export default function AvailabilityCalendar({ slug, bookings, rooms, roomPrices
       {/* Grid of mini-calendars: en móvil un mes ocupa todo el ancho para que
           cada día sea táctil (~44px) */}
       <div className={panelStyles.calGrid} style={{
-        background: '#e5e7eb',
-        border: '1px solid #e5e7eb',
+        background: 'var(--line)',
+        border: '1px solid var(--line)',
         borderRadius: 8,
         overflow: 'hidden',
       }}>
         {rooms.map(room => {
           const free = countFree(room);
           return (
-            <div key={room} style={{ background: '#f9fafb', padding: '14px 14px 10px' }}>
+            <div key={room} style={{ background: 'var(--parch)', padding: '14px 14px 10px' }}>
               {/* Suite name */}
-              <div style={{ fontSize: 12, fontWeight: 600, color: '#1a1a1a', marginBottom: 8, letterSpacing: '0.3px', fontFamily: 'var(--font-jost,sans-serif)' }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)', marginBottom: 8, letterSpacing: '0.3px', fontFamily: 'var(--font-jost,sans-serif)' }}>
                 {room}
               </div>
 
@@ -254,7 +254,7 @@ export default function AvailabilityCalendar({ slug, bookings, rooms, roomPrices
               </div>
 
               {/* Footer */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, paddingTop: 8, borderTop: '1px solid #e5e7eb' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--line)' }}>
                 <span style={{ fontSize: 11, color: '#6b7280', fontFamily: 'var(--font-jost,sans-serif)' }}>
                   <span style={{ color: '#3B6D11', fontWeight: 600 }}>{free}</span> libres
                 </span>
@@ -275,10 +275,10 @@ export default function AvailabilityCalendar({ slug, bookings, rooms, roomPrices
           style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
           onClick={e => { if (e.target === e.currentTarget) { setClicked(null); setSaveError(''); } }}
         >
-          <div style={{ background: '#f9fafb', borderRadius: 8, width: 'min(92vw, 340px)', maxHeight: '85dvh', boxShadow: '0 20px 60px rgba(0,0,0,0.25)', overflow: 'hidden auto' }}>
+          <div style={{ background: 'var(--parch)', borderRadius: 8, width: 'min(92vw, 340px)', maxHeight: '85dvh', boxShadow: '0 20px 60px rgba(0,0,0,0.25)', overflow: 'hidden auto' }}>
             {/* Modal header */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', borderBottom: '1px solid #e5e7eb' }}>
-              <span style={{ fontSize: 14, fontWeight: 600, color: '#1a1a1a', fontFamily: 'var(--font-jost,sans-serif)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', borderBottom: '1px solid var(--line)' }}>
+              <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', fontFamily: 'var(--font-jost,sans-serif)' }}>
                 {clicked.state.status === 'available' ? 'Fecha disponible'
                   : clicked.state.status === 'blocked' ? 'Fecha bloqueada'
                   : 'Fecha ocupada'}
@@ -301,12 +301,12 @@ export default function AvailabilityCalendar({ slug, bookings, rooms, roomPrices
               </span>
 
               {/* Suite + date */}
-              <div style={{ fontSize: 16, fontWeight: 600, color: '#1a1a1a', marginBottom: 2, fontFamily: 'var(--font-cormorant,Georgia,serif)' }}>{clicked.room}</div>
+              <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--ink)', marginBottom: 2, fontFamily: 'var(--font-cormorant,Georgia,serif)' }}>{clicked.room}</div>
               <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 14, fontFamily: 'var(--font-jost,sans-serif)' }}>{fmtDay(clicked.date)}, {year}</div>
 
               {/* Booking info */}
               {clicked.state.status === 'booking' && clicked.state.booking && (
-                <div style={{ background: '#f9fafb', borderRadius: 6, padding: '10px 12px', marginBottom: 14 }}>
+                <div style={{ background: 'var(--parch)', borderRadius: 6, padding: '10px 12px', marginBottom: 14 }}>
                   {[
                     ['Huésped', clicked.state.booking.cliente],
                     ['Check-in', clicked.state.booking.checkin],
@@ -317,7 +317,7 @@ export default function AvailabilityCalendar({ slug, bookings, rooms, roomPrices
                   ].map(([label, val]) => (
                     <div key={label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '2px 0', fontFamily: 'var(--font-jost,sans-serif)' }}>
                       <span style={{ color: '#9ca3af' }}>{label}</span>
-                      <span style={{ color: '#1a1a1a', fontWeight: 500 }}>{val}</span>
+                      <span style={{ color: 'var(--ink)', fontWeight: 500 }}>{val}</span>
                     </div>
                   ))}
                 </div>
@@ -356,7 +356,7 @@ export default function AvailabilityCalendar({ slug, bookings, rooms, roomPrices
                     <button
                       onClick={handleBlock}
                       disabled={saving}
-                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '10px', background: '#1a1a1a', color: '#fff', border: 'none', borderRadius: 6, cursor: saving ? 'not-allowed' : 'pointer', fontSize: 13, fontFamily: 'var(--font-jost,sans-serif)', opacity: saving ? 0.6 : 1 }}
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '10px', background: 'var(--ink)', color: '#fff', border: 'none', borderRadius: 6, cursor: saving ? 'not-allowed' : 'pointer', fontSize: 13, fontFamily: 'var(--font-jost,sans-serif)', opacity: saving ? 0.6 : 1 }}
                     >
                       {saving ? <Loader2 size={14} style={{ animation: 'spin 0.7s linear infinite' }} /> : <Lock size={14} />}
                       Bloquear esta fecha
@@ -387,7 +387,7 @@ export default function AvailabilityCalendar({ slug, bookings, rooms, roomPrices
 
                 <button
                   onClick={() => { setClicked(null); setSaveError(''); }}
-                  style={{ padding: '9px', background: 'transparent', border: '1px solid #e5e7eb', borderRadius: 6, cursor: 'pointer', fontSize: 12, color: '#6b7280', fontFamily: 'var(--font-jost,sans-serif)' }}
+                  style={{ padding: '9px', background: 'transparent', border: '1px solid var(--line)', borderRadius: 6, cursor: 'pointer', fontSize: 12, color: '#6b7280', fontFamily: 'var(--font-jost,sans-serif)' }}
                 >
                   Cancelar
                 </button>
@@ -426,7 +426,7 @@ export default function AvailabilityCalendar({ slug, bookings, rooms, roomPrices
 // ── Shared micro-styles ───────────────────────────────────────────────────────
 
 const navBtnStyle: React.CSSProperties = {
-  background: '#fff', border: '1px solid #e5e7eb', borderRadius: 4,
+  background: '#fff', border: '1px solid var(--line)', borderRadius: 4,
   padding: '5px 8px', cursor: 'pointer', color: '#6b7280',
   display: 'flex', alignItems: 'center', justifyContent: 'center',
   transition: 'border-color 0.15s',

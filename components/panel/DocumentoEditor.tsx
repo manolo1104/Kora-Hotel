@@ -270,8 +270,8 @@ export default function DocumentoEditor({ kind, slug, id, brand, data }: Props) 
         {/* Vista previa en vivo */}
         <div className="lg:sticky lg:top-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-kora-muted mb-2">Vista previa</p>
-          <div className="rounded-2xl border border-panel-contrast/10 overflow-hidden bg-[#e7e4dc]">
-            <iframe title="Vista previa del documento" srcDoc={html} className="w-full" style={{ height: "760px", border: "0", background: "#e7e4dc" }} />
+          <div className="rounded-2xl border border-panel-contrast/10 overflow-hidden bg-[var(--line)]">
+            <iframe title="Vista previa del documento" srcDoc={html} className="w-full" style={{ height: "760px", border: "0", background: "var(--line)" }} />
           </div>
         </div>
       </div>

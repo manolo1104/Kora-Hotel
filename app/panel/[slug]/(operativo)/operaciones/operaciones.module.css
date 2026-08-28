@@ -1,6 +1,6 @@
 .wrap { display: flex; flex-direction: column; gap: 20px; }
 .pageHeader { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
-.pageTitle { font-family: var(--font-cormorant), Georgia, serif; font-size: 1.8rem; font-weight: 400; color: var(--forest); margin: 0 0 4px; }
+.pageTitle { font-family: var(--font-cormorant), Georgia, serif; font-size: 1.8rem; font-weight: 400; color: var(--forest-text); margin: 0 0 4px; }
 .pageSub { font-size: 0.83rem; color: var(--sage-text); margin: 0; }
 .headerActions { display: flex; gap: 10px; }
 .iconBtn { background: var(--cream); border: 1px solid var(--line); border-radius: 4px; padding: 8px 10px; cursor: pointer; color: var(--clay); display: flex; align-items: center; }
@@ -19,7 +19,7 @@
 /* Tabs */
 .tabs { display: flex; gap: 0; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
 .tab { background: none; border: none; border-bottom: 2px solid transparent; padding: 10px 20px; font-size: 0.875rem; font-family: var(--font-jost), sans-serif; color: var(--clay); cursor: pointer; display: flex; align-items: center; gap: 6px; margin-bottom: -1px; }
-.tabActive { color: var(--forest); border-bottom-color: var(--forest); font-weight: 600; }
+.tabActive { color: var(--forest-text); border-bottom-color: var(--forest-text); font-weight: 600; }
 .badge { background: #c9484a; color: #fff; border-radius: 10px; padding: 2px 7px; font-size: 0.7rem; font-weight: 700; }
 
 /* Suite Grid */
@@ -41,7 +41,7 @@
 .badgeSoon { background: #f9fafb; color: #8a6830; font-size: 0.7rem; font-weight: 600; padding: 3px 8px; border-radius: 4px; }
 .badgeOk { background: #f0f7f0; color: #2d7a34; font-size: 0.7rem; font-weight: 600; padding: 3px 8px; border-radius: 4px; }
 .doneBtn { background: none; border: 1px solid var(--line); border-radius: 4px; padding: 5px 12px; font-size: 0.78rem; cursor: pointer; color: var(--clay); white-space: nowrap; }
-.doneBtn:hover { border-color: var(--forest); color: var(--forest); }
+.doneBtn:hover { border-color: var(--forest-text); color: var(--forest-text); }
 
 /* Pills de estado y prioridad (modelo Kora) */
 .prio_alta { background: #fdf0f0; color: #c9484a; font-size: 0.7rem; font-weight: 600; padding: 3px 8px; border-radius: 4px; }
@@ -83,7 +83,7 @@
 .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 1000; display: flex; align-items: flex-start; justify-content: center; padding: 40px 16px; overflow-y: auto; }
 .modal { background: var(--cream); border-radius: 8px; width: 100%; max-width: 560px; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
 .modalHeader { display: flex; align-items: center; justify-content: space-between; padding: 18px 24px; border-bottom: 1px solid var(--line); }
-.modalHeader h3 { font-family: var(--font-cormorant), serif; font-size: 1.2rem; font-weight: 400; color: var(--forest); margin: 0; }
+.modalHeader h3 { font-family: var(--font-cormorant), serif; font-size: 1.2rem; font-weight: 400; color: var(--forest-text); margin: 0; }
 .modalHeader button { background: none; border: none; cursor: pointer; color: var(--clay); }
 .modalBody { padding: 20px 24px; display: flex; flex-direction: column; gap: 14px; }
 .modalFooter { display: flex; gap: 8px; justify-content: flex-end; padding: 16px 24px; border-top: 1px solid var(--line); }
@@ -91,15 +91,15 @@
 .checklistHeader { display: flex; align-items: center; justify-content: space-between; }
 .checklistProgress { font-size: 0.8rem; color: var(--sage-text); }
 .checkAllBtn { background: none; border: 1px solid var(--line); border-radius: 4px; padding: 4px 10px; font-size: 0.75rem; cursor: pointer; color: var(--clay); }
-.checkAllBtn:hover { border-color: var(--forest); color: var(--forest); }
+.checkAllBtn:hover { border-color: var(--forest-text); color: var(--forest-text); }
 .checklistItems { display: flex; flex-direction: column; gap: 6px; max-height: 280px; overflow-y: auto; border: 1px solid var(--line); border-radius: 4px; padding: 10px; }
 .checkItem { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 4px; cursor: pointer; font-size: 0.875rem; color: var(--ink); transition: background 0.1s; }
 .checkItem:hover { background: #f9fafb; }
 .checkItemDone { color: var(--sage-text); text-decoration: line-through; }
-.checkItem input { flex-shrink: 0; accent-color: var(--forest); width: 16px; height: 16px; cursor: pointer; }
+.checkItem input { flex-shrink: 0; accent-color: var(--forest-text); width: 16px; height: 16px; cursor: pointer; }
 .field { display: flex; flex-direction: column; gap: 5px; font-size: 0.75rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.07em; color: var(--clay); }
 .field input, .field select, .field textarea { padding: 9px 12px; border: 1px solid var(--line); border-radius: 4px; font-size: 0.9rem; font-family: var(--font-jost), sans-serif; background: var(--cream); color: var(--ink); outline: none; }
-.field input:focus, .field select:focus, .field textarea:focus { border-color: var(--forest); }
+.field input:focus, .field select:focus, .field textarea:focus { border-color: var(--forest-text); }
 .field textarea { resize: vertical; }
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 @keyframes spin { to { transform: rotate(360deg); } }

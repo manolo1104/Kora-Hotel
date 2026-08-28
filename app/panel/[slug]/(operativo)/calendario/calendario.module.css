@@ -28,7 +28,7 @@
   font-family: var(--font-cormorant), Georgia, serif;
   font-size: 1.8rem;
   font-weight: 400;
-  color: var(--forest);
+  color: var(--forest-text);
   margin: 0 0 4px;
 }
 
@@ -44,7 +44,7 @@
 .monthLabel {
   font-family: var(--font-cormorant), Georgia, serif;
   font-size: 1.2rem;
-  color: var(--forest);
+  color: var(--forest-text);
   min-width: 160px;
   text-align: center;
 }
@@ -86,7 +86,7 @@
   align-items: center;
   transition: border-color 0.15s;
 }
-.iconBtn:hover { border-color: var(--forest); }
+.iconBtn:hover { border-color: var(--forest-text); }
 
 .primaryBtn {
   display: flex;

@@ -206,3 +206,12 @@
   }
   .sidebar.open { transform: translateX(0); }
 }
+
+
+/* ─── Tema oscuro ────────────────────────────────────────────────────────────
+   La barra lateral YA es una superficie oscura en el tema claro, así que en
+   oscuro no se invierte: sólo se re-fija --cream (que fuera de aquí pasa a ser
+   la tarjeta oscura) para que su texto siga siendo claro sobre el verde. */
+:global([data-tema="oscuro"]) .sidebar {
+  --cream: #F2F5F3;
+}

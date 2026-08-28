@@ -206,7 +206,7 @@ export default function CanalesClient({ initial, rooms, slug }: Props) {
         <div className={styles.tableScroll}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
           <thead>
-            <tr style={{ borderBottom: '2px solid #e5e7eb' }}>
+            <tr style={{ borderBottom: '2px solid var(--line)' }}>
               <th style={{ textAlign: 'left', padding: '8px 12px', color: '#374151', fontWeight: 600 }}>Habitación</th>
               {PLATFORMS.map(p => (
                 <th key={p.value} style={{ textAlign: 'left', padding: '8px 12px', color: '#374151', fontWeight: 600 }}>
@@ -218,7 +218,7 @@ export default function CanalesClient({ initial, rooms, slug }: Props) {
           </thead>
           <tbody>
             {ALL_ROOMS.map((roomName, i) => (
-              <tr key={roomName} style={{ borderBottom: '1px solid #f3f4f6', background: i % 2 === 0 ? '#fff' : '#f9fafb' }}>
+              <tr key={roomName} style={{ borderBottom: '1px solid var(--parch)', background: i % 2 === 0 ? '#fff' : 'var(--parch)' }}>
                 <td style={{ padding: '10px 12px', fontWeight: 500 }}>{roomName}</td>
 
                 {PLATFORMS.map(p => {
@@ -348,7 +348,7 @@ export default function CanalesClient({ initial, rooms, slug }: Props) {
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
               <button
                 onClick={() => setModal(null)}
-                style={{ background: '#f3f4f6', border: 'none', borderRadius: 6, padding: '8px 16px', cursor: 'pointer' }}
+                style={{ background: 'var(--parch)', border: 'none', borderRadius: 6, padding: '8px 16px', cursor: 'pointer' }}
               >
                 Cancelar
               </button>

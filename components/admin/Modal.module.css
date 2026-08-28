@@ -36,7 +36,7 @@
   font-family: var(--font-cormorant), Georgia, serif;
   font-size: 1.3rem;
   font-weight: 400;
-  color: var(--forest);
+  color: var(--forest-text);
   margin: 0;
   flex: 1;
 }
@@ -105,7 +105,7 @@
 .field input:focus,
 .field select:focus,
 .field textarea:focus {
-  border-color: var(--forest);
+  border-color: var(--forest-text);
 }
 .field textarea { resize: vertical; }
 
@@ -156,7 +156,7 @@
   cursor: pointer;
   transition: border-color 0.15s;
 }
-.secondaryBtn:hover { border-color: var(--forest); color: var(--forest); }
+.secondaryBtn:hover { border-color: var(--forest-text); color: var(--forest-text); }
 
 .dangerBtn {
   background: none;
@@ -194,7 +194,7 @@
 }
 .priceCalcRow strong {
   font-size: 1rem;
-  color: var(--forest);
+  color: var(--forest-text);
 }
 .totalRow {
   display: flex;
@@ -253,10 +253,10 @@
 .roomsSectionHeader { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px; }
 .roomsSectionLabel { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--clay); }
 .addRoomBtn { display: flex; align-items: center; gap: 5px; background: none; border: 1px dashed #c9b99a; border-radius: 4px; padding: 5px 10px; font-size: 0.75rem; color: var(--clay); cursor: pointer; font-family: var(--font-jost), sans-serif; }
-.addRoomBtn:hover { border-color: var(--forest); color: var(--forest); }
+.addRoomBtn:hover { border-color: var(--forest-text); color: var(--forest-text); }
 .roomRow { display: grid; grid-template-columns: 1fr auto auto auto; gap: 8px; align-items: center; }
 .roomRowSelect { padding: 8px 10px; border: 1px solid #d4cec7; border-radius: 4px; font-size: 0.875rem; font-family: var(--font-jost), sans-serif; background: var(--cream); color: var(--ink); outline: none; }
-.roomRowSelect:focus { border-color: var(--forest); }
+.roomRowSelect:focus { border-color: var(--forest-text); }
 @media (max-width: 480px) {
   /* En pantallas chicas la fila colapsa: la suite toma su propia fila */
   .roomRow { grid-template-columns: 1fr auto; row-gap: 6px; }
@@ -273,12 +273,12 @@
   font-size: 0.82rem;
   font-family: var(--font-jost), sans-serif;
   background: var(--cream);
-  color: var(--forest);
+  color: var(--forest-text);
   width: 88px;
   text-align: right;
   outline: none;
 }
-.roomPriceInput:focus { border-color: var(--forest); }
+.roomPriceInput:focus { border-color: var(--forest-text); }
 
 /* Anticipo / Restante */
 .anticipoSection {
@@ -316,7 +316,7 @@
   color: var(--ink);
   outline: none;
 }
-.anticipoFieldWrap input:focus { border-color: var(--forest); }
+.anticipoFieldWrap input:focus { border-color: var(--forest-text); }
 .anticipoReset {
   background: none;
   border: 1px solid var(--sage);
@@ -381,7 +381,7 @@
   font-family: var(--font-cormorant), Georgia, serif;
   font-size: 1.2rem;
   font-weight: 400;
-  color: var(--forest);
+  color: var(--forest-text);
 }
 .successBody {
   padding: 24px;

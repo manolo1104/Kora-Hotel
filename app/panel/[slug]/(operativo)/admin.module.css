@@ -6,7 +6,8 @@
    ============================================ */
 .shell {
   /* Verdes Kora */
-  --forest: #1B4332;   /* verde oscuro primario (sidebar, títulos) */
+  --forest: #1B4332;   /* verde oscuro — SÓLO fondos (barra lateral, cabeceras, botón) */
+  --forest-text: #1B4332; /* el mismo verde como TEXTO y BORDE (11:1 sobre blanco) */
   --moss:   #2D5A45;
   --jade:   #40916C;
   --sage:   #52B788;   /* verde acento Kora — SÓLO fondos, bordes e iconos sobre oscuro */
@@ -73,10 +74,15 @@
    <html> sin que CSS Modules le cambie el nombre.
    Ver también app/globals.css (la mitad Tailwind del mismo tema).            */
 :global([data-tema="oscuro"]) .shell {
-  --forest: #74D0A3;   /* el verde de marca, aclarado para leerse en oscuro */
-  --moss:   #5FBF90;
-  --jade:   #52B788;
-  --sage:   #74D0A3;
+  /* El verde de FONDO se queda oscuro (apenas levantado para separarse de la
+     tarjeta): la barra lateral y las cabeceras siguen siendo superficies
+     oscuras con texto claro encima, igual que en el tema claro. */
+  --forest: #21503C;
+  --moss:   #2A5F47;
+  --jade:   #2F6B4F;
+  /* El verde de TEXTO y BORDE sí se aclara: es lo que tiene que leerse. */
+  --forest-text: #74D0A3;
+  --sage:   #52B788;
   --accent: #52B788;
   --sand:   #74C69D;
   --gold:   #74D0A3;

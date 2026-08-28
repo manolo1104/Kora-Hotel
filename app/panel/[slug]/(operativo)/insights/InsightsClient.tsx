@@ -274,7 +274,7 @@ export default function InsightsClient() {
           <div className={styles.chartLegend}>
             <span><span className={styles.dot} style={{ background: '#2d7a34' }} /> +80%</span>
             <span><span className={styles.dot} style={{ background: '#52b788' }} /> 50-79%</span>
-            <span><span className={styles.dot} style={{ background: '#e5e7eb' }} /> &lt;50%</span>
+            <span><span className={styles.dot} style={{ background: 'var(--line)' }} /> &lt;50%</span>
           </div>
         </section>
 
@@ -295,7 +295,7 @@ export default function InsightsClient() {
                       <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <span style={{ width: 10, height: 10, borderRadius: '50%', background: o.color, flexShrink: 0 }} />
                         <span style={{ flex: 1, fontSize: 12, color: '#6b7280', fontFamily: 'var(--font-jost)' }}>{o.label}</span>
-                        <span style={{ fontSize: 12, fontWeight: 700, color: '#1a1a1a', fontFamily: 'var(--font-jost)' }}>{p}%</span>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--font-jost)' }}>{p}%</span>
                         <span style={{ fontSize: 11, color: '#9ca3af', fontFamily: 'var(--font-jost)' }}>({o.count})</span>
                       </div>
                     );
@@ -418,7 +418,7 @@ function ForecastBars({ data, total }: { data: DayForecast[]; total: number }) {
   const n = data.length || 1;
   const slot = plotW / n;
   const barW = slot * 0.4;
-  const colorFor = (p: number) => (p >= 80 ? '#2d7a34' : p >= 50 ? '#52b788' : '#e5e7eb');
+  const colorFor = (p: number) => (p >= 80 ? '#2d7a34' : p >= 50 ? '#52b788' : 'var(--line)');
 
   return (
     <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} role="img" aria-label="Ocupación próximos 7 días">

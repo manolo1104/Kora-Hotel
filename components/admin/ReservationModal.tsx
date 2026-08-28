@@ -545,7 +545,7 @@ export default function ReservationModal({ booking, rooms, slug, defaultCheckin,
             </label>
             <label className={styles.field}>
               <span>Noches</span>
-              <input type="number" min={1} value={form.noches} readOnly style={{ background: '#f5f3ef' }} />
+              <input type="number" min={1} value={form.noches} readOnly style={{ background: 'var(--parch)' }} />
             </label>
           </div>
 

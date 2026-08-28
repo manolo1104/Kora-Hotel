@@ -31,7 +31,7 @@
   font-family: var(--font-cormorant), Georgia, serif;
   font-size: 1.8rem;
   font-weight: 400;
-  color: var(--forest);
+  color: var(--forest-text);
   margin: 0 0 2px;
 }
 
@@ -145,7 +145,7 @@
 .faseTitulo {
   font-size: 0.95rem;
   font-weight: 600;
-  color: var(--forest);
+  color: var(--forest-text);
   margin: 0;
 }
 
@@ -206,7 +206,7 @@
 .estimVal {
   font-family: var(--font-cormorant), Georgia, serif;
   font-size: 1.4rem;
-  color: var(--forest);
+  color: var(--forest-text);
 }
 
 .estimSub {
@@ -227,7 +227,7 @@
   background: var(--brandLight, #f0fdf4);
   border: 1px solid #c8e6d4;
   border-radius: 8px; padding: 12px 16px;
-  font-size: 0.82rem; color: var(--forest);
+  font-size: 0.82rem; color: var(--forest-text);
 }
 .infoBanner svg { flex-shrink: 0; color: var(--sage-text); }
 
@@ -246,7 +246,7 @@
 
 .generarBtn {
   display: inline-flex; align-items: center; gap: 6px;
-  padding: 7px 13px; border-radius: 7px; border: 1px solid var(--forest);
+  padding: 7px 13px; border-radius: 7px; border: 1px solid var(--forest-text);
   background: var(--forest); color: #fff; font-size: 0.78rem; font-weight: 500;
   cursor: pointer; transition: opacity 0.15s; white-space: nowrap;
 }
@@ -258,7 +258,7 @@
 .cfdiLinks { display: inline-flex; gap: 10px; }
 .cfdiLinks a {
   display: inline-flex; align-items: center; gap: 3px;
-  color: var(--forest); font-size: 0.74rem; text-decoration: none;
+  color: var(--forest-text); font-size: 0.74rem; text-decoration: none;
 }
 .cfdiLinks a:hover { text-decoration: underline; }
 
@@ -275,7 +275,7 @@
   display: flex; align-items: center; justify-content: space-between;
   padding: 18px 22px; border-bottom: 1px solid var(--line);
 }
-.modalHeader h3 { margin: 0; font-size: 1rem; font-weight: 600; color: var(--forest); }
+.modalHeader h3 { margin: 0; font-size: 1rem; font-weight: 600; color: var(--forest-text); }
 .modalClose { background: none; border: none; color: var(--clay); cursor: pointer; display: flex; }
 .modalClose:hover { color: var(--ink); }
 
@@ -283,7 +283,7 @@
   display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
   padding: 14px 22px; background: #fafafa; border-bottom: 1px solid #f1f1ef; font-size: 0.85rem;
 }
-.modalSummary strong { margin-left: auto; color: var(--forest); }
+.modalSummary strong { margin-left: auto; color: var(--forest-text); }
 .modalSummary small { font-weight: 400; color: var(--clay); }
 
 .formGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; padding: 20px 22px; }
@@ -315,7 +315,7 @@
   padding: 10px 18px; border-radius: 8px; border: 1px solid #d9d9d6;
   background: var(--cream); color: var(--clay); font-size: 0.85rem; cursor: pointer;
 }
-.btnSecondary:hover:not(:disabled) { border-color: var(--forest); color: var(--forest); }
+.btnSecondary:hover:not(:disabled) { border-color: var(--forest-text); color: var(--forest-text); }
 
 .spin { animation: spin 0.9s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
