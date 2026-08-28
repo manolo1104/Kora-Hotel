@@ -48,7 +48,7 @@ export default async function PanelOperativoLayout({
 
   return (
     <div className={styles.shell}>
-      <AdminSidebar slug={slug} hotelName={ctx.hotel.nombre} />
+      <AdminSidebar slug={slug} hotelName={ctx.hotel.nombre} rol={ctx.rol} />
       <div className={styles.content}>
         {acceso.prueba && !acceso.prueba.vencida && <PruebaBanner prueba={acceso.prueba} />}
         {acceso.activo ? children : <PruebaVencida hotelNombre={ctx.hotel.nombre} />}

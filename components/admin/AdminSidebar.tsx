@@ -1,11 +1,12 @@
 'use client';
 
 import { usePathname, useRouter } from 'next/navigation';
-import { Calendar, BookOpen, FileText, TrendingUp, Users, LogOut, Menu, X, LayoutDashboard, ClipboardCheck, Globe2, CreditCard, Pencil, CalendarCheck, Building2, Bot, Sparkles, Moon, Sun } from 'lucide-react';
+import { Calendar, BookOpen, FileText, TrendingUp, Users, LogOut, Menu, X, LayoutDashboard, ClipboardCheck, Globe2, CreditCard, Pencil, CalendarCheck, Building2, Bot, Sparkles, Moon, Sun, UserCog } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import styles from './AdminSidebar.module.css';
 import { useTema } from '@/components/panel/TemaToggle';
+import type { RolHotel } from '@/lib/tenant';
 import { CANALES_OTA_DISPONIBLES } from '@/lib/panel/canales-ota';
 
 const NAV = [
@@ -24,7 +25,16 @@ const NAV = [
   ...(CANALES_OTA_DISPONIBLES ? [{ seg: 'canales', label: 'Canales OTA', icon: Globe2 }] : []),
 ];
 
-export default function AdminSidebar({ slug, hotelName }: { slug: string; hotelName: string }) {
+export default function AdminSidebar({
+  slug,
+  hotelName,
+  rol,
+}: {
+  slug: string;
+  hotelName: string;
+  /** Rol del usuario en ESTE hotel: decide qué enlaces se pintan. */
+  rol?: RolHotel;
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -93,6 +103,20 @@ export default function AdminSidebar({ slug, hotelName }: { slug: string; hotelN
               </a>
             );
           })}
+
+          {/* Sólo el dueño puede dar de alta gente (es tocar identidad), así
+              que a los demás ni se les pinta el enlace: un enlace que lleva a
+              un redirect es peor que no tenerlo. */}
+          {rol === 'dueno' && (
+            <a
+              href={`${base}/equipo`}
+              className={`${styles.navItem} ${pathname === `${base}/equipo` ? styles.active : ''}`}
+              onClick={() => setOpen(false)}
+            >
+              <UserCog size={18} strokeWidth={1.5} />
+              <span>Quién trabaja aquí</span>
+            </a>
+          )}
 
           {/* La cara pública del hotel: editar el sitio y ver el motor en vivo */}
           <p className={styles.navGroupLabel}>Mi sitio</p>

@@ -1,0 +1,222 @@
+/* Pantalla "Quién trabaja aquí".
+   Todo va con las variables del shell (--cream, --ink, --clay, --line,
+   --sage-text) para que siga el tema claro/oscuro sola. Nada de #fff ni #52b788
+   sueltos: ese fue justo el bug que dejó el panel ilegible. */
+
+.header {
+  margin-bottom: 22px;
+}
+.pageTitle {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+.pageSub {
+  margin: 6px 0 0;
+  font-size: 0.875rem;
+  color: var(--sage-text);
+  max-width: 60ch;
+}
+
+.card {
+  background: var(--cream);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 20px 22px;
+  margin-bottom: 18px;
+}
+.cardTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 16px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+/* ── Alta ─────────────────────────────────────────────────────────────────── */
+
+.fila {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+.campo {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+.label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--clay);
+}
+.input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--cream);
+  color: var(--ink);
+  font-size: 0.9rem;
+  font-family: var(--font-jost), sans-serif;
+}
+.input:focus {
+  outline: 2px solid var(--sage-text);
+  outline-offset: 1px;
+  border-color: transparent;
+}
+
+.primaryBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 18px;
+  border: none;
+  border-radius: 8px;
+  background: var(--forest);
+  color: var(--cream);
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: var(--font-jost), sans-serif;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.15s;
+}
+.primaryBtn:hover:not(:disabled) { opacity: 0.9; }
+.primaryBtn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.ayudaRol {
+  margin: 12px 0 0;
+  font-size: 0.82rem;
+  color: var(--clay);
+}
+
+.nota {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin: 14px 0 0;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--clay);
+}
+.nota strong { color: var(--ink); font-weight: 600; }
+
+.error {
+  margin: 14px 0 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #fdf0f0;
+  color: #8a1a1a;
+  font-size: 0.84rem;
+}
+.aviso {
+  margin: 14px 0 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(53, 122, 91, 0.12);
+  color: var(--sage-text);
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+
+/* ── Lista ────────────────────────────────────────────────────────────────── */
+
+.empty {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--sage-text);
+}
+
+.tablaWrap { overflow-x: auto; }
+.tabla {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 32rem;
+}
+.tabla thead th {
+  text-align: left;
+  padding: 9px 12px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--clay);
+  border-bottom: 1px solid var(--line);
+}
+.tabla tbody td {
+  padding: 12px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: middle;
+  color: var(--ink);
+  font-size: 0.875rem;
+}
+.tabla tbody tr:last-child td { border-bottom: none; }
+
+.correo {
+  display: block;
+  color: var(--ink);
+  word-break: break-all;
+}
+.pendiente {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #fff3d4;
+  color: #7a5a00;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.selectRol {
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--cream);
+  color: var(--ink);
+  font-size: 0.83rem;
+  font-family: var(--font-jost), sans-serif;
+  cursor: pointer;
+}
+.selectRol:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.acciones { text-align: right; }
+.quitarBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: none;
+  color: #c9484a;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.quitarBtn:hover:not(:disabled) { background: #fdf0f0; }
+.quitarBtn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.listaRoles {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 0.85rem;
+  line-height: 1.75;
+  color: var(--clay);
+}
+.listaRoles strong { color: var(--ink); font-weight: 600; }
+
+.spin { animation: equipoSpin 0.8s linear infinite; }
+@keyframes equipoSpin { to { transform: rotate(360deg); } }
+
+@media (max-width: 640px) {
+  .fila { flex-direction: column; align-items: stretch; }
+  .primaryBtn { justify-content: center; }
+}

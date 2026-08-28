@@ -42,6 +42,7 @@ export type Permiso =
   | "sitio:leer"
   | "sitio:editar"
   | "ia:usar"
+  | "equipo:gestionar"
   | "hotel:eliminar";
 
 const TODOS: RolHotel[] = ["dueno", "encargada", "recepcion", "limpieza", "cocina"];
@@ -76,6 +77,10 @@ export const PERMISOS: Record<Permiso, RolHotel[]> = {
   "sitio:leer": MANDO,
   "sitio:editar": MANDO,
   "ia:usar": MANDO,
+  // Dar de alta a alguien en el hotel es tocar IDENTIDAD: quien puede invitar
+  // puede darse a sí mismo cualquier rol. Por eso sólo el dueño, con el mismo
+  // criterio que el dinero y el bot.
+  "equipo:gestionar": SOLO_DUENO,
   "hotel:eliminar": SOLO_DUENO,
 };
 
