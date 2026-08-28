@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { BarraCTA } from "@/components/shared/BarraCTA";
 import { Reveal } from "@/components/shared/Reveal";
+import { FirmaKora } from "@/components/herramientas/FirmaKora";
 import { DiagnosticoHotel } from "@/components/herramientas/DiagnosticoHotel";
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
@@ -97,6 +98,10 @@ export default function DiagnosticoPage() {
       <section className="py-14 sm:py-20 bg-kora-bg">
         <DiagnosticoHotel />
       </section>
+
+      {/* Firma de marca pegada a la herramienta: quien llega de Google la usa
+          y se va sin bajar más, así que aquí es donde tiene que ver de quién es. */}
+      <FirmaKora />
 
       {/* Contenido SEO */}
       <section className="py-14 sm:py-20 bg-white border-t border-gray-100">

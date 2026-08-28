@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { BarraCTA } from "@/components/shared/BarraCTA";
 import { Reveal } from "@/components/shared/Reveal";
+import { FirmaKora } from "@/components/herramientas/FirmaKora";
 import { CalculadoraTarifa } from "@/components/herramientas/CalculadoraTarifa";
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
@@ -80,7 +81,7 @@ export default function CalculadoraTarifaPage() {
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <Reveal>
             <p className="text-kora-accent text-sm font-semibold uppercase tracking-widest mb-4">
-              Herramienta gratis
+              Herramienta gratis de Kora
             </p>
           </Reveal>
           <Reveal delay={0.12}>
@@ -101,6 +102,10 @@ export default function CalculadoraTarifaPage() {
       <section className="py-14 sm:py-20 bg-kora-bg">
         <CalculadoraTarifa />
       </section>
+
+      {/* Firma de marca pegada a la herramienta: quien llega de Google la usa
+          y se va sin bajar más, así que aquí es donde tiene que ver de quién es. */}
+      <FirmaKora />
 
       {/* Contenido SEO */}
       <section className="py-14 sm:py-20 bg-white border-t border-gray-100">

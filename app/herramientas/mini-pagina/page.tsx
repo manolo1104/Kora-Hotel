@@ -73,7 +73,7 @@ export default function MiniPaginaLanding() {
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <Reveal>
             <p className="text-kora-accent text-sm font-semibold uppercase tracking-widest mb-4">
-              Gratis para hoteleros
+              Gratis para hoteleros · de Kora
             </p>
           </Reveal>
           <Reveal delay={0.12}>
