@@ -56,7 +56,11 @@ const ESCRITORES_OK = ["lib/db/availability.ts", "lib/db/admin.ts"];
 // hacen fallar el guardia: si no, sería inútil hasta terminar la etapa entera.
 // Esta lista sólo puede ENCOGER. Al vaciarse, se borra junto con este bloque.
 const PENDIENTES = new Map([
-  ["app/api/admin/disponibilidad/route.ts", "paso 3.14 — bloquear/desbloquear noches sin hueco"],
+  // El 3.14 YA está hecho: la ruta llama a `recortar_bloqueo` (transaccional).
+  // Lo que queda aquí es su camino de degradación, para el rato entre desplegar
+  // el código y correr sql/kora-e3-apartado-atomico.sql. Se borra al confirmar
+  // que la función existe en producción.
+  ["app/api/admin/disponibilidad/route.ts", "paso 3.14 — sólo la degradación, mientras falte correr el SQL"],
   ["app/api/h/webhooks/stripe/route.ts", "paso 3.9 — resync de ocupación al cancelar"],
   ["lib/db/portal.ts", "paso 3.9 — cancelación desde el portal del huésped"],
 ]);

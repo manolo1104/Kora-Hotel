@@ -21,7 +21,7 @@ import { rutaSegura } from "@/lib/api/responder";
 import { NextRequest, NextResponse } from "next/server";
 import { getActiveHotel } from "@/lib/panel/active-hotel";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { blockDates } from "@/lib/db/availability";
+import { blockDates, recortarBloqueo } from "@/lib/db/availability";
 
 export const dynamic = "force-dynamic";
 
@@ -195,10 +195,31 @@ export async function DELETE(req: NextRequest) {
     );
   }
 
-  // Para cada bloque que cubre esta noche: si es exactamente 1 noche, se borra;
-  // si abarca más noches, se recorta para que la noche `date` quede libre y el
-  // resto siga bloqueado (se borra y se reinsertan los tramos anterior/posterior).
+  // Para cada bloque que cubre esta noche: si es exactamente 1 noche
+  // desaparece; si abarca más, se recorta para que sólo `date` quede libre.
+  //
+  // LO HACE LA BASE, EN UNA TRANSACCIÓN (K-80, K-179). Antes eran tres
+  // escrituras sueltas desde aquí: borrar el bloqueo entero y después reponer
+  // los tramos de antes y de después. Entre la primera y las otras, TODAS esas
+  // noches quedaban vendibles; y si la reposición fallaba, el bloqueo que el
+  // hotelero había puesto a propósito simplemente ya no existía.
   for (const r of rows) {
+    const res = await recortarBloqueo(ctx.hotelId, r.id, date);
+    if (res.ok) continue;
+
+    if (!res.falta) {
+      console.error("DELETE disponibilidad (recortar) error:", res.detalle);
+      return NextResponse.json({ error: "Error al desbloquear" }, { status: 500 });
+    }
+
+    // La base todavía no tiene `recortar_bloqueo` (falta correr
+    // sql/kora-e3-apartado-atomico.sql). Se hace como siempre —con su hueco—
+    // pero queda dicho en el log, no disimulado.
+    console.error(
+      "[admin/disponibilidad] recortar_bloqueo no existe; desbloqueando por el " +
+        "camino viejo (hay un instante en que esas noches quedan vendibles). " +
+        "Falta correr sql/kora-e3-apartado-atomico.sql.",
+    );
     const { error: delErr } = await supabase
       .from("blocks")
       .delete()
@@ -208,9 +229,7 @@ export async function DELETE(req: NextRequest) {
       console.error("DELETE disponibilidad (delete) error:", delErr.message);
       return NextResponse.json({ error: "Error al desbloquear" }, { status: 500 });
     }
-
     const status = r.status === "MANTENIMIENTO" ? "MANTENIMIENTO" : "BLOQUEADO";
-    // Tramo anterior [checkin, date) y tramo posterior [date+1, checkout).
     if (r.checkin < date) {
       await blockDates(ctx.hotelId, [room], r.checkin, date, status as "BLOQUEADO" | "MANTENIMIENTO");
     }
