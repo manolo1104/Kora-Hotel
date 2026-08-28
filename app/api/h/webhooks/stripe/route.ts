@@ -10,7 +10,11 @@ import {
   type CrearReservaResult,
 } from "@/lib/db/bookings";
 import { releaseHold, extendHold } from "@/lib/db/availability";
-import { registrarExperienciaVentas, liberarExperienciaVentas } from "@/lib/db/experiencias";
+import {
+  registrarExperienciaVentas,
+  liberarExperienciaVentas,
+  liberarExperienciaApartado,
+} from "@/lib/db/experiencias";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { alertar } from "@/lib/alertas";
 import {
@@ -313,6 +317,10 @@ async function confirmarReserva(
           qty: Number(d?.[1]) || 0,
           fecha: String(d?.[2] ?? ""),
         })),
+        // Si la caja ya había APARTADO estos lugares, esto es un ascenso (se les
+        // pone el folio), no un alta. Insertarlos de nuevo los contaría dos
+        // veces contra el cupo hasta que caducara el apartado.
+        md.holdSession || null,
       );
     } catch {
       // Metadata ausente o malformada: la reserva queda sin registro de cupo.
@@ -477,6 +485,11 @@ async function manejarEvento(event: Stripe.Event, origin: string): Promise<NextR
       const md = session.metadata || {};
       if (md.hotel_id && md.holdSession) {
         await releaseHold(md.hotel_id, md.holdSession).catch((e) => console.error("[h/webhooks/stripe] ignorado:", e));
+        // Y los lugares de experiencias que ese apartado tenía reservados: si no,
+        // el cupo de un tour se queda ocupado por alguien que no pagó.
+        await liberarExperienciaApartado(md.hotel_id, md.holdSession).catch((e) =>
+          console.error("[h/webhooks/stripe] ignorado:", e),
+        );
       }
       return NextResponse.json({ received: true, released: true });
     }

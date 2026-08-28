@@ -26,13 +26,14 @@ export async function ventasPorExperiencia(
   nombres: string[],
   desde: string,
   hasta: string,
+  excluirApartado?: string | null,
 ): Promise<Record<string, Record<string, number>>> {
   if (nombres.length === 0) return {};
   try {
     const supabase = createAdminClient();
     const { data, error } = await supabase
       .from("experiencia_ventas")
-      .select("experiencia, fecha, qty")
+      .select("experiencia, fecha, qty, confirmacion, hold_session, expires_at")
       .eq("hotel_id", hotelId)
       .in("experiencia", nombres)
       .gte("fecha", desde)
@@ -42,11 +43,22 @@ export async function ventasPorExperiencia(
       console.error("ventasPorExperiencia:", error.message);
       return {};
     }
+    const ahora = Date.now();
     const out: Record<string, Record<string, number>> = {};
     for (const r of data ?? []) {
       const nombre = String(r.experiencia ?? "");
       const fecha = String(r.fecha ?? "");
       if (!nombre || !fecha) continue;
+      // Una fila SIN folio es un lugar APARTADO: cuenta mientras no caduque.
+      // Si ya caducó, el huésped no pagó y el lugar volvió a estar a la venta.
+      const apartado = !r.confirmacion;
+      if (apartado) {
+        const vence = r.expires_at ? Date.parse(String(r.expires_at)) : 0;
+        if (!vence || vence <= ahora) continue;
+        // Y el apartado PROPIO no se cuenta contra uno mismo (si no, reintentar
+        // el checkout se choca con su propia reserva de lugares).
+        if (excluirApartado && r.hold_session === excluirApartado) continue;
+      }
       out[nombre] = out[nombre] ?? {};
       out[nombre][fecha] = (out[nombre][fecha] ?? 0) + (Number(r.qty) || 0);
     }
@@ -54,6 +66,73 @@ export async function ventasPorExperiencia(
   } catch (e) {
     console.error("ventasPorExperiencia:", e);
     return {};
+  }
+}
+
+/**
+ * APARTA los lugares de una reserva que todavía no está pagada.
+ *
+ * El defecto que arregla (K-18): el cupo se COMPROBABA en la caja y se ESCRIBÍA
+ * en el webhook, o sea, al pagar. Entre una cosa y otra —los minutos que el
+ * huésped pasa en Stripe— cualquier número de personas pasaba la misma
+ * comprobación, todas la pasaban, y el tour de 8 lugares acababa con 14
+ * vendidos. Ahora el lugar se aparta cuando se promete y se confirma cuando se
+ * paga; si no paga, caduca solo junto con el cuarto.
+ *
+ * Mejor esfuerzo a propósito: si las columnas todavía no existen
+ * (`sql/kora-e3-apartado-atomico.sql` sin correr) se comporta como antes —el
+ * cupo se sigue comprobando, sólo que sin apartar— y lo dice en el log. Un
+ * despliegue no debe dejar de vender por esto.
+ */
+export async function apartarExperienciaVentas(
+  hotelId: string,
+  holdSession: string,
+  items: ExperienciaVenta[],
+  minutos: number,
+): Promise<boolean> {
+  const limpios = items.filter((i) => i.experiencia && i.fecha && i.qty > 0);
+  if (!holdSession || limpios.length === 0) return true;
+  try {
+    const supabase = createAdminClient();
+    const { error } = await supabase.from("experiencia_ventas").insert(
+      limpios.map((i) => ({
+        hotel_id: hotelId,
+        confirmacion: null,
+        hold_session: holdSession,
+        experiencia: i.experiencia.slice(0, 120),
+        fecha: i.fecha,
+        qty: Math.max(1, Math.floor(i.qty)),
+        expires_at: new Date(Date.now() + minutos * 60_000).toISOString(),
+      })),
+    );
+    if (error) throw new Error(error.message);
+    return true;
+  } catch (e) {
+    console.error(
+      "[experiencias] no se pudieron apartar los lugares (¿falta correr " +
+        "sql/kora-e3-apartado-atomico.sql?):",
+      e instanceof Error ? e.message : e,
+    );
+    return false;
+  }
+}
+
+/** Suelta los lugares apartados por una sesión que no llegó a pagar. */
+export async function liberarExperienciaApartado(
+  hotelId: string,
+  holdSession: string,
+): Promise<void> {
+  if (!holdSession) return;
+  try {
+    const supabase = createAdminClient();
+    await supabase
+      .from("experiencia_ventas")
+      .delete()
+      .eq("hotel_id", hotelId)
+      .eq("hold_session", holdSession)
+      .is("confirmacion", null);
+  } catch (e) {
+    console.error("[experiencias] liberarExperienciaApartado:", e);
   }
 }
 
@@ -66,11 +145,25 @@ export async function registrarExperienciaVentas(
   hotelId: string,
   confirmacion: string,
   items: ExperienciaVenta[],
+  holdSession?: string | null,
 ): Promise<void> {
   const limpios = items.filter((i) => i.experiencia && i.fecha && i.qty > 0);
   if (!confirmacion || limpios.length === 0) return;
   try {
     const supabase = createAdminClient();
+    // Si los lugares ya estaban APARTADOS por esta sesión, esto es un ascenso,
+    // no un alta: se les pone el folio y se les quita el vencimiento. Insertar
+    // de nuevo los contaría dos veces hasta que caducara el apartado.
+    if (holdSession) {
+      const { data, error } = await supabase
+        .from("experiencia_ventas")
+        .update({ confirmacion, expires_at: null })
+        .eq("hotel_id", hotelId)
+        .eq("hold_session", holdSession)
+        .is("confirmacion", null)
+        .select("id");
+      if (!error && (data?.length ?? 0) > 0) return;
+    }
     await supabase
       .from("experiencia_ventas")
       .delete()
