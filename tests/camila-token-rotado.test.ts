@@ -84,3 +84,48 @@ describe("el runtime de Camila relee su token", () => {
     expect(k.token).toBe("kora_VIEJO");
   });
 });
+
+// Paso 6.3 — Camila se calla cuando no sabe nada del hotel.
+//
+// EL DEFECTO (K-287): el `catch` de `status()` asumía `enabled: true` ante
+// CUALQUIER error. El fail-open se puso para los hipos de red — y está bien—,
+// pero se tragaba también el 401 y el 403, que no son hipos: 401 = el token
+// murió (lo rotaron, o borraron el hotel); 403 = la cuenta está bloqueada o la
+// prueba venció. En esos dos casos Camila seguía conversando con un cerebro que
+// ya no podía leer, inventándole a un huésped un hotel que no conoce.
+describe("Camila distingue un token muerto de un hipo de red", () => {
+  const originalFetch = globalThis.fetch;
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  function responder(status: number) {
+    globalThis.fetch = (async () =>
+      new Response(JSON.stringify({ error: "x" }), {
+        status,
+        headers: { "content-type": "application/json" },
+      })) as typeof fetch;
+  }
+
+  async function estadoTras(status: number) {
+    responder(status);
+    const k = new KoraHotel({ ...HOTEL }) as KoraHotelInterno & { status(): Promise<{ enabled: boolean }> };
+    return await k.status();
+  }
+
+  it("401 (token muerto) → se calla", async () => {
+    expect((await estadoTras(401)).enabled).toBe(false);
+  });
+
+  it("403 (cuenta bloqueada o prueba vencida) → se calla", async () => {
+    expect((await estadoTras(403)).enabled).toBe(false);
+  });
+
+  it("503 (Kora tuvo un hipo) → NO se calla, que era para lo que estaba el fail-open", async () => {
+    expect((await estadoTras(503)).enabled).toBe(true);
+  });
+
+  it("500 tampoco la calla", async () => {
+    expect((await estadoTras(500)).enabled).toBe(true);
+  });
+});

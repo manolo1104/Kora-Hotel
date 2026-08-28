@@ -14,10 +14,26 @@ const anthropic = new Anthropic(); // lee ANTHROPIC_API_KEY del entorno
 // para máxima capacidad) — es cambiar una variable de entorno, no el código.
 const MODEL = process.env.CAMILA_MODEL || "claude-sonnet-5";
 
-// La familia Opus/Sonnet 4.6+ acepta output_config.effort y thinking:{disabled};
-// Haiku 4.5 y modelos previos NO (dan 400). Detectamos para mandar los parámetros
-// correctos según el modelo y no reventar el bot al cambiar CAMILA_MODEL.
-const MODELO_CON_EFFORT = /claude-(opus-4-(6|7|8)|sonnet-(5|4-6)|fable-5|mythos-5)/.test(MODEL);
+// Qué parámetros de latencia admite el modelo. Es una lista de EXCLUSIÓN a
+// propósito: con la lista de inclusión que había, cada modelo nuevo quedaba
+// fuera sin que nadie se enterara — `claude-opus-5` ya lo estaba, y con él el
+// bot razonaba en cada mensaje (más lento y más caro) sin que nadie lo pidiera.
+const MODELO_CON_EFFORT = !/haiku|claude-3|claude-2/.test(MODEL);
+
+// Dónde NO se puede (o no se debe) pedir `thinking: { type: "disabled" }`:
+//
+//  - `claude-fable-5` y `claude-mythos-5`: el pensamiento está SIEMPRE encendido
+//    y cualquier configuración explícita se rechaza con un 400. Mandarlo dejaría
+//    al bot mudo en cuanto alguien cambiara CAMILA_MODEL.
+//  - `claude-opus-5`: lo acepta, pero con el pensamiento apagado a veces escribe
+//    la llamada a la herramienta como TEXTO en vez de emitir un bloque
+//    `tool_use`. El turno parece salir bien, la herramienta nunca corre y no hay
+//    error en ninguna parte: en un bot que consulta disponibilidad real, eso es
+//    Camila inventándole un precio a un huésped.
+//
+// En los dos casos basta con el esfuerzo bajo, que da casi la misma latencia.
+const SIN_PENSAR_ES_SEGURO =
+  MODELO_CON_EFFORT && !/claude-(opus-5|fable|mythos)/.test(MODEL);
 const MAX_TOKENS = Number(process.env.CAMILA_MAX_TOKENS || 1024);
 const MAX_HISTORY = Number(process.env.CAMILA_MAX_HISTORY || 20); // pares de turnos
 const MAX_TOOL_ITERS = 6; // tope de vueltas de herramientas por turno
@@ -76,71 +92,24 @@ function hoyMexico() {
   return new Date().toLocaleDateString("en-CA", { timeZone: "America/Mexico_City" });
 }
 
-// Arma el contexto del sistema con el conocimiento real del hotel. Genérico:
-// cualquier hotel se describe con los mismos campos que da /api/agent.
-function buildSystemPrompt(hotel, k) {
-  const habs = Array.isArray(k.habitaciones) ? k.habitaciones : [];
-  const amen = Array.isArray(k.amenidades) ? k.amenidades : [];
-  const faqs = Array.isArray(k.faqs) ? k.faqs : [];
-  const pol = k.politicas && typeof k.politicas === "object" ? k.politicas : {};
-  const guia = k.guia && typeof k.guia === "object" ? k.guia : {};
+// El prompt lo arma SIEMPRE el servidor (`buildBotSystemPrompt`, fuente única
+// con el entrenamiento del hotel). Aquí vivía una copia local de respaldo, y
+// se borró a propósito: era la única razón por la que Camila tenía algo que
+// decir cuando NO conseguía el cerebro del hotel — conversaba con un prompt
+// hueco, inventando un hotel que no conocía. Mientras esa copia existiera,
+// cualquier arreglo del `catch` se podía deshacer sin darse cuenta. Además no
+// llevaba los delimitadores del paso 6.14, así que era un segundo prompt sin
+// endurecer conviviendo con el bueno.
 
-  const cuartos = habs.length
-    ? habs
-        .map(
-          (r) =>
-            `- ${r.nombre} (hasta ${r.maxHuespedes} huéspedes) — desde ${r.desdeTexto || `$${r.desde}`} MXN/noche. ${r.descripcion || ""}`.trim(),
-        )
-        .join("\n")
-    : "(sin cuartos configurados)";
-
-  const faqsTxt = faqs
-    .map((f) => (f && f.q ? `P: ${f.q}\nR: ${f.a || ""}` : ""))
-    .filter(Boolean)
-    .join("\n\n");
-
-  return `Eres Camila, la asistente de reservas por WhatsApp del hotel "${k.nombre || hotel.nombre}".
-Hoy es ${hoyMexico()} (hora de México).
-
-TU META: contestar al instante, resolver dudas y CERRAR reservas con link de pago.
-
-TONO Y FORMATO
-- Cálida, humana y breve. Escribes para WhatsApp: frases cortas, saltos de línea, emojis con mesura.
-- Responde en el idioma del huésped (por defecto español).
-- Formato WhatsApp: *negritas* con un solo asterisco. Nada de tablas ni markdown pesado.
-- Responde SOLO con el mensaje para el huésped. No expliques tu razonamiento ni tus pasos.
-
-REGLAS DE ORO (no romper)
-- NUNCA inventes precios, disponibilidad ni políticas. Los precios "desde" de abajo son orientativos; el total real SIEMPRE sale de la herramienta checar_disponibilidad.
-- Para cerrar una reserva necesitas: fechas de llegada y salida, tipo de cuarto, número de huéspedes, y datos del huésped (nombre completo, email y teléfono). Si falta algo, pídelo con naturalidad antes de reservar.
-- Cuando "reservar" devuelva ok:true, manda el link de pago (campo url) TAL CUAL, y resume en pocas líneas: cuarto, fechas, total, anticipo a pagar ahora y resto al llegar. Aclara que al pagar recibe su confirmación automática por correo.
-- Si "reservar" devuelve ok:false, traduce el error al huésped con amabilidad:
-  · min-noches → esas fechas piden mínimo N noches.
-  · no-disponible / capacidad-insuficiente → ya no hay ese cuarto para esas fechas; ofrece otro tipo u otras fechas.
-  · datos-incompletos → pide el dato que falta.
-  · sin-pago / stripe-error → ofrece coordinar el pago directo con el hotel.
-- No prometas nada que la herramienta no confirme. Para grupos grandes o casos raros que no puedas resolver, ofrece pasar con una persona del hotel${k.whatsapp ? ` (WhatsApp ${k.whatsapp})` : ""}.
-
-DATOS DEL HOTEL
-Ubicación: ${k.ubicacion || "—"}
-${k.descripcion ? `Sobre el hotel: ${k.descripcion}` : ""}
-
-CUARTOS
-${cuartos}
-
-${amen.length ? `AMENIDADES\n${amen.join(", ")}\n` : ""}${
-    Object.keys(pol).length
-      ? `POLÍTICAS\n${Object.entries(pol)
-          .map(([kk, vv]) => `- ${kk}: ${vv}`)
-          .join("\n")}\n`
-      : ""
-  }${faqsTxt ? `PREGUNTAS FRECUENTES\n${faqsTxt}\n` : ""}${
-    Object.keys(guia).length
-      ? `GUÍA / RECOMENDACIONES\n${Object.entries(guia)
-          .map(([kk, vv]) => `- ${kk}: ${typeof vv === "string" ? vv : JSON.stringify(vv)}`)
-          .join("\n")}`
-      : ""
-  }`.trim();
+/**
+ * Lo que se le dice al huésped cuando Kora no responde. Corto y verdadero: no
+ * promete nada y le da una salida humana si el hotel tiene WhatsApp.
+ */
+function mensajeEscalada(hotel) {
+  const tel = (hotel && hotel.whatsapp ? String(hotel.whatsapp) : "").trim();
+  return tel
+    ? `Perdón, ahorita no puedo consultar el sistema. Escríbele al hotel al ${tel} y te atienden enseguida.`
+    : "Perdón, ahorita no puedo consultar el sistema. ¿Me escribes en unos minutos?";
 }
 
 // Ejecuta una herramienta pedida por el modelo contra /api/agent.
@@ -179,13 +148,34 @@ async function correrHerramienta(kora, conv, name, input) {
  * @returns {Promise<{ reply: string, history: any[] }>}
  */
 export async function handleTurn({ hotel, kora, history, userText, conv }) {
-  const knowledge = await kora.knowledge({ conv }).catch(() => ({ nombre: hotel.nombre }));
-  // El prompt lo arma el SERVIDOR (fuente única, con el entrenamiento del hotel).
-  // Fallback al build local si un Kora viejo aún no manda `systemPrompt`.
+  // Sin cerebro no hay conversación (K-287, K-185). Antes esto era un
+  // `.catch(() => ({ nombre: hotel.nombre }))`: ante CUALQUIER fallo se armaba un
+  // prompt hueco y Camila seguía hablando, inventando el hotel.
+  let knowledge;
+  try {
+    knowledge = await kora.knowledge({ conv });
+  } catch (e) {
+    if (e && (e.status === 401 || e.status === 403)) {
+      // El token murió o la cuenta está bloqueada. Silencio limpio: `procesar()`
+      // no manda nada cuando `reply` viene vacío.
+      console.warn(`[${hotel.slug}] sin cerebro (${e.status}): no contesto.`);
+      return { reply: "", history };
+    }
+    // Red o 5xx: es transitorio, así que se le dice al huésped algo verdadero en
+    // vez de callarse o de inventarle datos.
+    console.error(`[${hotel.slug}] no pude leer el cerebro:`, e && e.message);
+    return { reply: mensajeEscalada(hotel), history };
+  }
+
   const system =
     typeof knowledge.systemPrompt === "string" && knowledge.systemPrompt.trim()
       ? knowledge.systemPrompt
-      : buildSystemPrompt(hotel, knowledge);
+      : null;
+  if (!system) {
+    // El servidor contestó pero sin prompt. No hay con qué conversar.
+    console.error(`[${hotel.slug}] /api/agent no mandó systemPrompt.`);
+    return { reply: mensajeEscalada(hotel), history };
+  }
 
   const messages = [...history, { role: "user", content: userText }];
 
@@ -193,15 +183,18 @@ export async function handleTurn({ hotel, kora, history, userText, conv }) {
     const res = await anthropic.messages.create({
       model: MODEL,
       max_tokens: MAX_TOKENS,
-      system,
+      // CACHÉ DEL PROMPT (K-71). Éste era el ÚNICO sitio del repo que no la
+      // usaba, y es el que más la necesita: el system del hotel es idéntico en
+      // todos los mensajes de una conversación Y en cada vuelta de herramienta
+      // del mismo turno. Con 50 conversaciones al día de 6 mensajes, se estaba
+      // reenviando el mismo prompt unas 600 veces diarias POR HOTEL.
+      system: [{ type: "text", text: system, cache_control: { type: "ephemeral" } }],
       tools: HERRAMIENTAS,
       messages,
-      // Chat: prioriza latencia. En Opus/Sonnet 4.6+ se pide sin pensar y con
-      // esfuerzo bajo; en Haiku 4.5 esos parámetros no existen (se omiten y el
-      // modelo ya responde sin "thinking" por defecto).
-      ...(MODELO_CON_EFFORT
-        ? { thinking: { type: "disabled" }, output_config: { effort: "low" } }
-        : {}),
+      // Chat: prioriza latencia. En Haiku 4.5 y anteriores estos parámetros no
+      // existen (dan 400) y se omiten: esos modelos ya responden sin pensar.
+      ...(MODELO_CON_EFFORT ? { output_config: { effort: "low" } } : {}),
+      ...(SIN_PENSAR_ES_SEGURO ? { thinking: { type: "disabled" } } : {}),
     });
 
     // Guarda el turno del asistente (bloques crudos: texto + tool_use).

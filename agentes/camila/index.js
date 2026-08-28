@@ -49,6 +49,42 @@ const clientes = new Map();
 // prueba) y apagar los que caen (prueba vencida sin pago, bot apagado).
 const FLEET_POLL_MS = Number(process.env.FLEET_POLL_MS || 5 * 60 * 1000); // 5 min
 
+// Turnos EN CURSO por chat: `${slug}::${chatId}` -> Promise.
+//
+// Sin candado (K-336), dos mensajes separados por más de MESSAGE_DEBOUNCE_MS se
+// procesaban en paralelo sobre el MISMO historial: los dos leían la misma foto y
+// el segundo `historiales.set` pisaba al primero. Resultado: un turno entero
+// desaparecido del hilo, y Camila contestando sin acordarse de lo que acababa de
+// decir. Aquí se serializan por chat, que es la unidad natural.
+const enCurso = new Map();
+
+// Los cuatro Maps de arriba viven en un proceso que corre semanas sin reiniciar
+// y NADIE los limpiaba (K-170): cada chat nuevo dejaba su historial dentro para
+// siempre. Se purga lo que no se ha tocado en 6 h, en la misma pasada del fleet.
+const CHAT_TTL_MS = Number(process.env.CHAT_TTL_MS || 6 * 60 * 60 * 1000); // 6 h
+
+/** Última actividad por chat, para saber qué purgar. */
+const ultimaActividad = new Map();
+
+function purgarChatsInactivos() {
+  const corte = Date.now() - CHAT_TTL_MS;
+  let n = 0;
+  for (const [key, at] of [...ultimaActividad.entries()]) {
+    if (at > corte) continue;
+    // Un turno a medias NO se purga: se acabaría borrando su historial debajo.
+    if (enCurso.has(key)) continue;
+    const pend = pendientes.get(key);
+    if (pend && pend.timer) clearTimeout(pend.timer);
+    historiales.delete(key);
+    pendientes.delete(key);
+    pausados.delete(key);
+    botEnvioAt.delete(key);
+    ultimaActividad.delete(key);
+    n += 1;
+  }
+  if (n) console.log(`[camila] purgados ${n} chat(s) sin actividad en ${Math.round(CHAT_TTL_MS / 3600000)} h`);
+}
+
 // ── Comando de control desde el número admin (apagar/encender por WhatsApp) ──
 function soloDigitos(s) {
   return String(s || "").replace(/\D/g, "");
@@ -281,7 +317,26 @@ async function onMensaje(client, slug, kora, msg) {
 
 async function procesar(client, slug, kora, chatId, userText) {
   const key = `${slug}::${chatId}`;
-  const hotel = { slug, nombre: kora.nombre };
+  // Un turno por chat a la vez. Si ya hay uno vivo, éste espera a que termine en
+  // vez de correr en paralelo y pisarle el historial.
+  const anterior = enCurso.get(key);
+  const turno = (anterior ? anterior.catch(() => {}) : Promise.resolve()).then(() =>
+    procesarTurno(client, slug, kora, chatId, userText),
+  );
+  enCurso.set(key, turno);
+  try {
+    await turno;
+  } finally {
+    // Sólo lo borra el ÚLTIMO de la cola: si no, un turno que termina mientras
+    // otro espera dejaría al siguiente sin candado.
+    if (enCurso.get(key) === turno) enCurso.delete(key);
+  }
+}
+
+async function procesarTurno(client, slug, kora, chatId, userText) {
+  const key = `${slug}::${chatId}`;
+  ultimaActividad.set(key, Date.now());
+  const hotel = { slug, nombre: kora.nombre, whatsapp: kora.whatsapp };
 
   const chat = await client.getChatById(chatId).catch(() => null);
   if (chat) chat.sendStateTyping().catch(() => {});
@@ -387,7 +442,7 @@ async function pararHotel(slug) {
   clientes.delete(slug);
   estado.delete(slug);
   // Limpia el estado por-chat de ese hotel (claves `${slug}::chatId`).
-  for (const mapa of [historiales, pendientes, pausados, botEnvioAt]) {
+  for (const mapa of [historiales, pendientes, pausados, botEnvioAt, ultimaActividad, enCurso]) {
     for (const k of [...mapa.keys()]) {
       if (!k.startsWith(`${slug}::`)) continue;
       const v = mapa.get(k);
@@ -437,6 +492,7 @@ async function sincronizarFleet() {
     for (const slug of [...clientes.keys()]) {
       if (!enFleet.has(slug)) await pararHotel(slug);
     }
+    purgarChatsInactivos();
   } catch (e) {
     console.error("[camila] error sincronizando el fleet:", e && e.message);
   } finally {

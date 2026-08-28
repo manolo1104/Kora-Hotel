@@ -12,12 +12,16 @@ const KNOWLEDGE_TTL_MS = Number(process.env.KORA_KNOWLEDGE_TTL_MS || 15 * 60 * 1
 const STATUS_TTL_MS = Number(process.env.KORA_BOT_STATUS_TTL_MS || 45 * 1000); // 45 s
 
 export class KoraHotel {
-  /** @param {{ id?: string, slug: string, nombre: string, token: string, lang?: "es"|"en" }} hotel */
+  /** @param {{ id?: string, slug: string, nombre: string, token: string, whatsapp?: string|null, lang?: "es"|"en" }} hotel */
   constructor(hotel) {
     this.id = hotel.id || hotel.slug;
     this.slug = hotel.slug;
     this.nombre = hotel.nombre;
     this.token = hotel.token;
+    // El WhatsApp humano del hotel. Lo manda el fleet y hace falta cuando NO se
+    // puede leer el cerebro: es la única salida que se le puede ofrecer al
+    // huésped sin inventarle nada.
+    this.whatsapp = hotel.whatsapp || null;
     this.lang = hotel.lang === "en" ? "en" : "es";
     this._knowledge = null;
     this._knowledgeAt = 0;
@@ -45,6 +49,7 @@ export class KoraHotel {
     const cambio = this.token !== hotel.token;
     this.token = hotel.token;
     this.nombre = hotel.nombre;
+    this.whatsapp = hotel.whatsapp || null;
     this.lang = hotel.lang === "en" ? "en" : "es";
     if (cambio) {
       this._knowledge = null;
@@ -116,8 +121,19 @@ export class KoraHotel {
         enabled: data.enabled !== false,
         adminPhone: typeof data.adminPhone === "string" ? data.adminPhone : null,
       };
-    } catch {
-      this._status = this._status || { enabled: true, adminPhone: null };
+    } catch (e) {
+      // El fail-open se puso para los hipos de RED y los 5xx: no callar al bot
+      // porque Kora tardó un segundo. Pero se tragaba también el 401 y el 403,
+      // que no son hipos: 401 = el token murió (lo rotaron, o el hotel se borró);
+      // 403 = la cuenta está bloqueada o la prueba venció. En los dos casos, lo
+      // correcto es callarse — seguir conversando significa inventarle a un
+      // huésped precios y disponibilidad de un hotel del que ya no sabemos nada.
+      if (e && (e.status === 401 || e.status === 403)) {
+        this._status = { enabled: false, adminPhone: null };
+        console.warn(`[${this.slug}] Kora respondió ${e.status}: me callo hasta que se arregle.`);
+      } else {
+        this._status = this._status || { enabled: true, adminPhone: null };
+      }
     }
     this._statusAt = Date.now();
     return this._status;
