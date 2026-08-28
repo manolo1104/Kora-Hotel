@@ -209,6 +209,30 @@ function buildFreeByType(types: unknown): Record<string, number> {
 
 const EMAIL_RE = /.+@.+\..+/;
 
+/**
+ * Dónde recuerda esta pestaña su último apartado.
+ *
+ * El caso que arregla: el huésped llega a Stripe, se arrepiente y le da al
+ * botón "ATRÁS" del navegador (no al enlace de cancelar de Stripe, que es el
+ * único que hoy pasa por `?cancelado=1`). Su propio apartado le sigue
+ * bloqueando el cuarto 35 minutos, así que vuelve, busca las mismas fechas y
+ * ve "agotado". Se va creyendo que el hotel se llenó en un minuto.
+ *
+ * Mandando este id en el siguiente checkout, el candado suelta el apartado
+ * viejo y toma el nuevo en la misma transacción. `sessionStorage` y no
+ * `localStorage` a propósito: es por PESTAÑA, igual que el carrito.
+ */
+const APARTADO_KEY = "kora_apartado_previo";
+
+/** El apartado anterior de esta pestaña, o "" si no hay (o no hay almacén). */
+function prevApartado(): string {
+  try {
+    return sessionStorage.getItem(APARTADO_KEY) ?? "";
+  } catch {
+    return ""; // navegación privada con almacenamiento bloqueado
+  }
+}
+
 export default function ReservarClient({
   slug,
   hotelNombre,
@@ -281,6 +305,7 @@ export default function ReservarClient({
       // que su propio carrito no le bloquee el cuarto (ni a otros) ~30 min.
       const hs = q.get("hs") ?? "";
       if (q.get("cancelado") === "1" && /^web_[0-9a-f-]{36}$/.test(hs)) {
+        try { sessionStorage.removeItem(APARTADO_KEY); } catch { /* modo privado */ }
         fetch(`/api/h/${slug}/hold`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -804,6 +829,11 @@ export default function ReservarClient({
           payMode,
           aceptaPolitica: true,
           lang,
+          // El apartado anterior de ESTA pestaña, si lo hay: el servidor lo
+          // suelta dentro del mismo candado con que toma el nuevo. Sin esto, un
+          // huésped que llega a Stripe y vuelve con el botón "atrás" se
+          // encuentra sus propias fechas agotadas por su propio apartado.
+          ...(prevApartado() ? { prevSession: prevApartado() } : {}),
         }),
       });
 
@@ -831,6 +861,13 @@ export default function ReservarClient({
 
       // Éxito con Stripe → redirige al checkout hospedado.
       if (data?.url) {
+        // Se recuerda ANTES de salir de la página: si el huésped vuelve con el
+        // botón "atrás", el siguiente intento suelta este apartado.
+        try {
+          if (typeof data.holdSession === "string") {
+            sessionStorage.setItem(APARTADO_KEY, data.holdSession);
+          }
+        } catch { /* modo privado: se pierde la mejora, no la reserva */ }
         window.location.href = data.url as string;
         return;
       }

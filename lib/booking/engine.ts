@@ -226,6 +226,134 @@ export interface DisponibilidadTipo {
   freeUnitNames: string[];
 }
 
+/**
+ * Lo que se le manda al candado atómico: por cada TIPO del carrito, cuántas
+ * unidades se quieren y cuáles son las CANDIDATAS. No se eligen aquí: elegir
+ * fuera del candado es exactamente el defecto que se está arreglando.
+ */
+export interface CandidatasPorTipo {
+  tipo: string;
+  cantidad: number;
+  unidades: string[];
+}
+
+/**
+ * Agrupa el carrito por tipo (sumando cantidades) y le adjunta las unidades
+ * candidatas de ese tipo. El orden de los tipos es el de su primera aparición
+ * en el carrito, y ese mismo orden es el que devuelve el RPC: de ahí se pueden
+ * volver a repartir los nombres entre las líneas.
+ */
+export function candidatasPorTipo(
+  cart: CartItem[],
+  tipos: DisponibilidadTipo[],
+): CandidatasPorTipo[] {
+  const porId = new Map(tipos.map((t) => [String(t.id), t]));
+  const orden: string[] = [];
+  const pedido = new Map<string, number>();
+  for (const c of cart) {
+    const k = String(c.roomId);
+    if (!pedido.has(k)) orden.push(k);
+    pedido.set(k, (pedido.get(k) ?? 0) + Math.max(1, Math.floor(c.quantity ?? 1)));
+  }
+  return orden.map((k) => {
+    const t = porId.get(k);
+    return {
+      tipo: t?.name ?? String(k),
+      cantidad: pedido.get(k) ?? 0,
+      unidades: t?.freeUnitNames ?? [],
+    };
+  });
+}
+
+/**
+ * El camino de vuelta: el candado devuelve un array PLANO de nombres, en el
+ * orden de los tipos que se le pidieron. Se vuelve a partir por tipo para poder
+ * repartirlo entre las líneas del carrito con `asignarUnidades`, que es la
+ * misma función de siempre — así no hay dos reglas de reparto.
+ */
+export function tiposDesdeApartado(
+  cart: CartItem[],
+  candidatas: CandidatasPorTipo[],
+  apartadas: string[],
+): DisponibilidadTipo[] {
+  const idPorTipo = new Map<string, number | string>();
+  for (const c of cart) {
+    const k = String(c.roomId);
+    if (!idPorTipo.has(k)) idPorTipo.set(k, c.roomId);
+  }
+  const ids = [...idPorTipo.values()];
+  let desde = 0;
+  return candidatas.map((c, i) => {
+    const trozo = apartadas.slice(desde, desde + c.cantidad);
+    desde += c.cantidad;
+    return { id: ids[i] ?? c.tipo, name: c.tipo, freeCount: trozo.length, freeUnitNames: trozo };
+  });
+}
+
+/**
+ * Cuántas unidades puede apartar UNA sesión del motor web de una sola vez.
+ *
+ * Hoy no hay tope (K-87): el carrito admite 10 líneas y `quantity` hasta el
+ * total del tipo, así que una sola petición con nombre y correo inventados
+ * aparta TODAS las unidades libres del hotel durante 35 minutos, sin pagar un
+ * peso y sin dejar rastro de quién fue.
+ *
+ * El número sale de una tensión real: un grupo que reserva 6 cabañas para una
+ * reunión familiar es un cliente, no un atacante, y rechazarlo es perder la
+ * venta más grande del mes. Por eso el tope es RELATIVO al hotel —60 % de su
+ * inventario, mínimo 4— en vez de un número fijo: deja pasar al grupo grande y
+ * al mismo tiempo garantiza que ninguna sesión sola pueda cerrar el hotel.
+ *
+ * ⚠️ Esto acota lo que hace UNA sesión, no cuántas sesiones se pueden abrir.
+ * El límite por IP es otra cosa y vive en el paso 9.9 del plan.
+ */
+export function topeUnidadesPorSesion(rooms: { cantidad: number }[]): number {
+  const total = rooms.reduce((s, r) => s + Math.max(0, Math.floor(r.cantidad || 0)), 0);
+  return Math.max(4, Math.ceil(total * 0.6));
+}
+
+/** Lugares que una reserva consume de una experiencia en un día concreto. */
+export interface ConsumoExperiencia {
+  experiencia: string;
+  fecha: string;
+  qty: number;
+}
+
+export type CupoExperiencias =
+  | { ok: true }
+  | { ok: false; experiencia: string; fecha: string; restante: number };
+
+/**
+ * ¿Caben en el cupo del día los lugares que pide esta reserva?
+ *
+ * EL DEFECTO (K-100): el bucle comparaba CADA línea contra lo ya vendido, sin
+ * acumular lo que la propia reserva iba consumiendo. Dos líneas de la misma
+ * experiencia el mismo día se comparaban las dos contra el mismo número y
+ * pasaban las dos: un tour de 8 lugares se vendía dos veces a 5 personas en una
+ * sola compra, y el hotelero se enteraba el día del tour.
+ *
+ * `cupoPorExperiencia` viene del catálogo del hotel; 0 o ausente = sin cupo (no
+ * se comprueba nada). Función pura: se puede probar de verdad.
+ */
+export function validarCupoExperiencias(
+  items: ConsumoExperiencia[],
+  cupoPorExperiencia: Record<string, number>,
+  yaVendidos: Record<string, Record<string, number>>,
+): CupoExperiencias {
+  const propio = new Map<string, number>();
+  for (const v of items) {
+    const cupo = cupoPorExperiencia[v.experiencia] ?? 0;
+    if (cupo <= 0) continue;
+    const clave = `${v.experiencia}|${v.fecha}`;
+    const ya = (yaVendidos[v.experiencia]?.[v.fecha] ?? 0) + (propio.get(clave) ?? 0);
+    if (ya + v.qty > cupo) {
+      return { ok: false, experiencia: v.experiencia, fecha: v.fecha, restante: Math.max(0, cupo - ya) };
+    }
+    propio.set(clave, (propio.get(clave) ?? 0) + v.qty);
+  }
+  return { ok: true };
+}
+
 /** Una unidad física asignada, con la ocupación de SU línea del carrito. */
 export interface UnidadAsignada {
   name: string;

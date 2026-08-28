@@ -23,9 +23,22 @@ import {
   type ExperienciaSelection,
   validarCapacidadCarrito,
   asignarUnidades,
+  candidatasPorTipo,
+  tiposDesdeApartado,
+  topeUnidadesPorSesion,
+  validarCupoExperiencias,
 } from "@/lib/booking";
-import { freeUnitsByType, createTemporaryHold, releaseHold } from "@/lib/db/availability";
-import { ventasPorExperiencia } from "@/lib/db/experiencias";
+import {
+  freeUnitsByType,
+  apartarUnidades,
+  releaseHold,
+  anotarSesionStripe,
+} from "@/lib/db/availability";
+import {
+  ventasPorExperiencia,
+  apartarExperienciaVentas,
+  liberarExperienciaApartado,
+} from "@/lib/db/experiencias";
 import { accesoDelHotel } from "@/lib/suscripcion";
 import { getStripe, stripeEnvReady } from "@/lib/stripe/server";
 import { getConnectState } from "@/lib/stripe/connect";
@@ -93,6 +106,13 @@ const CheckoutBody = z.object({
   payMode: z.enum(["online", "hotel"]).default("online"),
   aceptaPolitica: z.literal(true), // el huésped debe aceptar la política de cancelación
   lang: z.enum(["es", "en"]).default("es"),
+  // Apartado anterior de ESTE navegador, para soltarlo al crear el nuevo. Mismo
+  // formato que /api/h/[slug]/hold: es un UUID que sólo conoce quien inició esa
+  // sesión, así que nadie puede soltarle el cuarto a un tercero.
+  prevSession: z
+    .string()
+    .regex(/^web_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/)
+    .optional(),
 });
 
 // Crea la sesión de pago (Stripe Checkout hospedado) del motor público. El precio
@@ -135,7 +155,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   if (!parsed.success) {
     return NextResponse.json({ error: "Datos de reserva inválidos" }, { status: 400 });
   }
-  const { cart, addons, experiencias, checkin, checkout, customerName, customerEmail, customerPhone, adults, children, ratePlan, payMode, lang } =
+  const { cart, addons, experiencias, checkin, checkout, customerName, customerEmail, customerPhone, adults, children, ratePlan, payMode, lang, prevSession } =
     parsed.data;
 
   const rooms = hotelRooms(hotel);
@@ -192,15 +212,18 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   // cada línea por separado: dos líneas del mismo tipo cogían los MISMOS
   // nombres, y como `calcCartSubtotal` cobra por línea, al huésped se le cobraban
   // 6 cabañas y se le apartaban 3 (K-17).
-  const asignacion = asignarUnidades(cleanCart, typesAvail);
-  if (!asignacion.ok) {
+  const preAsignacion = asignarUnidades(cleanCart, typesAvail);
+  if (!preAsignacion.ok) {
     return NextResponse.json(
-      { error: "no-disponible", unavailableRooms: asignacion.tipoAgotado ? [asignacion.tipoAgotado] : [] },
+      { error: "no-disponible", unavailableRooms: preAsignacion.tipoAgotado ? [preAsignacion.tipoAgotado] : [] },
       { status: 409 },
     );
   }
-  const allocated = asignacion.unidades;
-  const roomNames = allocated.map((a) => a.name);
+  // Esto es sólo un PRE-chequeo, para fallar barato antes de hablar con Stripe.
+  // La asignación de verdad la hace el candado más abajo, ya con las candidatas
+  // en la mano: elegir aquí y apartar 150 líneas después es justo el hueco por
+  // el que se cuela la sobreventa.
+  const candidatas = candidatasPorTipo(cleanCart, typesAvail);
 
   const opts = rules.nightOpts;
   const subtotal = calcCartSubtotal(rooms, cleanCart, checkin, checkout, opts);
@@ -262,18 +285,19 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     if (q > 0) ventaItems.push({ experiencia: e.nombre, fecha: sel.fecha, qty: q });
   }
   if (ventaItems.some((v) => conCupo.has(v.experiencia))) {
-    const vendidos = await ventasPorExperiencia(hotel.id, [...conCupo], checkin, checkout);
-    for (const v of ventaItems) {
-      const e = hotelExperiencias.find((x) => x.nombre === v.experiencia);
-      const cupo = e?.cupoDia ?? 0;
-      if (cupo <= 0) continue;
-      const ya = vendidos[v.experiencia]?.[v.fecha] ?? 0;
-      if (ya + v.qty > cupo) {
-        return NextResponse.json(
-          { error: "experiencia-cupo", experiencia: v.experiencia, fecha: v.fecha, restante: Math.max(0, cupo - ya) },
-          { status: 409 },
-        );
-      }
+    const vendidos = await ventasPorExperiencia(hotel.id, [...conCupo], checkin, checkout, prevSession);
+    // La regla vive en `validarCupoExperiencias` (pura, con sus pruebas): acumula
+    // lo que ESTA misma reserva va consumiendo. Sin eso (K-100), dos líneas de la
+    // misma experiencia el mismo día se comparaban las dos contra el mismo número
+    // y pasaban las dos.
+    const cupos: Record<string, number> = {};
+    for (const e of hotelExperiencias) if ((e.cupoDia ?? 0) > 0) cupos[e.nombre] = e.cupoDia as number;
+    const cupo = validarCupoExperiencias(ventaItems, cupos, vendidos);
+    if (!cupo.ok) {
+      return NextResponse.json(
+        { error: "experiencia-cupo", experiencia: cupo.experiencia, fecha: cupo.fecha, restante: cupo.restante },
+        { status: 409 },
+      );
     }
   }
   const experienciaNames = selectedExperiencias
@@ -348,7 +372,54 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   // quien inició la sesión lo conoce. Si el huésped genera un voucher OXXO, el
   // webhook extiende el hold.
   const sessionId = `web_${crypto.randomUUID()}`;
-  await createTemporaryHold(hotel.id, roomNames, checkin, checkout, sessionId, 35);
+  const apartado = await apartarUnidades(hotel.id, candidatas, checkin, checkout, sessionId, {
+    minutos: 35,
+    maxUnidades: topeUnidadesPorSesion(rooms),
+    // El apartado anterior de ESTE mismo huésped se suelta dentro del candado.
+    // Es el caso del botón "atrás" del navegador: hoy quien vuelve de Stripe sin
+    // pagar se bloquea su propio cuarto 35 minutos y se va creyendo que el hotel
+    // se llenó. La ruta /hold sólo cubre el `cancel_url`, no el "atrás".
+    prevSession,
+  });
+  if (!apartado.ok) {
+    if (apartado.motivo === "tope-de-apartados") {
+      await alertar(
+        `una sola sesión quiso apartar medio hotel (${slug})`,
+        `Se pidieron más unidades de las que el tope permite en una sesión. ${apartado.detalle ?? ""} ` +
+          `Si el hotel es grande y esto le pasa a clientes de verdad, el tope vive en ` +
+          `topeUnidadesPorSesion() (lib/booking/engine.ts).`,
+      );
+      return NextResponse.json({ error: "demasiadas-unidades" }, { status: 409 });
+    }
+    if (apartado.motivo === "no-disponible") {
+      // Alguien ganó la carrera entre el pre-chequeo y el candado. Es el caso
+      // que ANTES acababa en dos reservas sobre el mismo cuarto y un reembolso.
+      return NextResponse.json({ error: "no-disponible", unavailableRooms: [] }, { status: 409 });
+    }
+    console.error("[h/[slug]/checkout] no se pudo apartar:", apartado.detalle);
+    return NextResponse.json({ error: "No se pudo iniciar el pago" }, { status: 500 });
+  }
+
+  // Los nombres los decidió el candado, no este proceso. Se reparten entre las
+  // líneas del carrito con la MISMA función de siempre, para que no haya dos
+  // reglas de reparto según por dónde entre la reserva.
+  const asignacion = asignarUnidades(cleanCart, tiposDesdeApartado(cleanCart, candidatas, apartado.unidades));
+  if (!asignacion.ok) {
+    // Imposible salvo error de programación: el candado devolvió exactamente lo
+    // pedido. Se suelta el apartado en vez de dejarlo colgando 35 minutos.
+    await releaseHold(hotel.id, sessionId).catch(() => {});
+    console.error("[h/[slug]/checkout] reparto imposible tras apartar:", apartado.unidades);
+    return NextResponse.json({ error: "No se pudo iniciar el pago" }, { status: 500 });
+  }
+  const allocated = asignacion.unidades;
+  const roomNames = allocated.map((a) => a.name);
+
+  // Y los lugares de las experiencias con cupo, con el MISMO id de apartado que
+  // los cuartos: se apartan al prometerlos y el webhook los confirma al cobrar.
+  // Si no paga, caducan solos a la vez que el cuarto.
+  if (ventaItems.length > 0) {
+    await apartarExperienciaVentas(hotel.id, sessionId, ventaItems, 35);
+  }
 
   // Metadata: una entrada por UNIDAD asignada ("Unidad:huespedes"). El webhook las
   // reserva por nombre con el candado atómico (igual que hoy con varios cuartos).
@@ -467,7 +538,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
         },
         requestOptions,
       );
-      return NextResponse.json({ url: session.url });
+      // Deja anotada la sesión de pago EN el apartado. Al soltar el cuarto hay
+      // que apagarla también: si no, el huésped puede volver a esa pestaña y
+      // pagar por algo que ya no tiene apartado (K-102).
+      await anotarSesionStripe(hotel.id, sessionId, session.id);
+      return NextResponse.json({ url: session.url, holdSession: sessionId });
     }
 
     // Métodos: tarjeta siempre; OXXO si la cuenta del hotel tiene la capability
@@ -510,10 +585,17 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       },
       requestOptions,
     );
-    return NextResponse.json({ url: session.url });
+    await anotarSesionStripe(hotel.id, sessionId, session.id);
+    // `holdSession` viaja de vuelta para que la pestaña lo recuerde y lo mande
+    // como `prevSession` si el huésped se arrepiente y vuelve con el botón
+    // "atrás". No es un secreto nuevo: ya iba en el `cancel_url`.
+    return NextResponse.json({ url: session.url, holdSession: sessionId });
   } catch (e) {
-    // Si Stripe falló, el hold no debe quedarse apartando el cuarto.
+    // Si Stripe falló, ni el cuarto ni los lugares deben quedarse apartados.
     await releaseHold(hotel.id, sessionId).catch((e) => console.error("[h/[slug]/checkout] ignorado:", e));
+    await liberarExperienciaApartado(hotel.id, sessionId).catch((e) =>
+      console.error("[h/[slug]/checkout] ignorado:", e),
+    );
     console.error("checkout session error:", e);
     return NextResponse.json({ error: "No se pudo iniciar el pago" }, { status: 500 });
   }

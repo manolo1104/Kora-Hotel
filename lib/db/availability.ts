@@ -11,6 +11,7 @@
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { escribir } from "@/lib/db/result";
+import { alertar } from "@/lib/alertas";
 import { hotelRooms } from "@/lib/booking";
 
 export interface AvailabilityResult {
@@ -77,8 +78,19 @@ export async function getOccupiedRoomNames(
   // Al EDITAR una reserva, sus propios blocks no deben contar como ocupación
   // (si no, la reserva "chocaría" consigo misma al revalidar).
   if (excludeBookingId) query = query.or(`booking_id.is.null,booking_id.neq.${excludeBookingId}`);
-  const { data, error } = await query;
+  // Tope EXPLÍCITO. PostgREST corta las respuestas por `db.max_rows` sin decirlo:
+  // un truncamiento silencioso aquí devuelve MENOS cuartos ocupados de los que
+  // hay, o sea, sobreventa. Con el tope escrito, si alguna vez se alcanza se
+  // sabe por el log en vez de por dos huéspedes en la misma cabaña.
+  const TOPE = 5000;
+  const { data, error } = await query.limit(TOPE);
   if (error) throw error;
+  if ((data?.length ?? 0) >= TOPE) {
+    console.error(
+      `[availability] getOccupiedRoomNames alcanzó el tope de ${TOPE} bloqueos ` +
+        `(hotel ${hotelId}, ${checkin}→${checkout}). La ocupación puede estar INCOMPLETA.`,
+    );
+  }
   const names = new Set<string>();
   for (const b of (data ?? []) as (BlockRow & { hold_session: string | null })[]) {
     names.add(b.habitacion);
@@ -249,6 +261,115 @@ export async function createTemporaryHold(
   await escribir("blocks.holdTemporal", supabase.from("blocks").insert(rows));
 }
 
+export interface ApartadoResult {
+  ok: boolean;
+  /** Las unidades que quedaron apartadas, en el orden de los tipos pedidos. */
+  unidades: string[];
+  motivo?: "no-disponible" | "tope-de-apartados" | "error";
+  detalle?: string;
+  /** true = la base todavía no tiene el RPC y se apartó por el camino viejo. */
+  degradado?: boolean;
+}
+
+/** Sólo se avisa una vez por instancia de que falta el RPC; si no, es spam. */
+let yaAvisadoSinRpc = false;
+
+/**
+ * ELEGIR Y APARTAR, EN UNA SOLA OPERACIÓN Y BAJO CANDADO.
+ *
+ * El defecto que arregla (K-17, K-148): hoy el motor pregunta qué unidades hay
+ * libres, se va a construir la sesión de pago de Stripe —una llamada de red a
+ * otra empresa— y sólo entonces aparta. Entre la lectura y la escritura no hay
+ * nada que impida que otro huésped haga exactamente lo mismo: los dos ven libre
+ * la última cabaña, los dos llegan a la caja, los dos pagan, y al segundo el
+ * webhook le devuelve el dinero con un correo de disculpa por un cuarto que sí
+ * estaba libre cuando lo compró. Medido contra un Postgres real: el camino
+ * viejo deja 2 apartados sobre 1 unidad; éste deja 1.
+ *
+ * Por eso NO se le pasan las unidades ya elegidas, sino las CANDIDATAS: elegir
+ * es justo lo que tiene que pasar dentro del candado. El RPC toma el mismo
+ * `pg_advisory_xact_lock(hotel)` que `crear_reserva_atomica`, así que apartar y
+ * reservar se serializan entre sí sin trabajo extra.
+ *
+ * DEGRADA si la base todavía no tiene la función (`sql/kora-e3-apartado-atomico.sql`
+ * sin correr): vuelve al comportamiento de siempre y lo dice en el log y por
+ * correo. Prefiero un despliegue que no arregla a un despliegue que no vende.
+ */
+export async function apartarUnidades(
+  hotelId: string,
+  candidatas: { tipo: string; cantidad: number; unidades: string[] }[],
+  checkin: string,
+  checkout: string,
+  sessionId: string,
+  opts: { minutos?: number; maxUnidades?: number; prevSession?: string | null } = {},
+): Promise<ApartadoResult> {
+  const { minutos = 35, maxUnidades = 0, prevSession = null } = opts;
+  const pedidas = candidatas.reduce((s, c) => s + Math.max(0, c.cantidad), 0);
+  if (pedidas === 0) return { ok: true, unidades: [] };
+
+  const supabase = createAdminClient();
+  const { data, error } = await supabase.rpc("apartar_unidades_atomico", {
+    p_hotel_id: hotelId,
+    p_asignacion: candidatas,
+    p_checkin: checkin,
+    p_checkout: checkout,
+    p_session: sessionId,
+    p_minutos: minutos,
+    p_max_holds: maxUnidades,
+    p_prev_session: prevSession,
+  });
+
+  if (!error) {
+    const unidades = (data ?? []) as string[];
+    // Contrato: el RPC lanza si no alcanza, así que nunca debería devolver de
+    // menos. Si lo hiciera, apartar menos de lo que se va a cobrar es vender
+    // aire: se corta aquí en vez de mandar al huésped a pagar.
+    if (unidades.length !== pedidas) {
+      return {
+        ok: false,
+        unidades: [],
+        motivo: "error",
+        detalle: `el candado devolvió ${unidades.length} unidades de ${pedidas}`,
+      };
+    }
+    return { ok: true, unidades };
+  }
+
+  const msg = error.message ?? "";
+  if (msg.startsWith("CUARTO_NO_DISPONIBLE")) {
+    return { ok: false, unidades: [], motivo: "no-disponible", detalle: msg };
+  }
+  if (msg.startsWith("TOPE_DE_APARTADOS")) {
+    return { ok: false, unidades: [], motivo: "tope-de-apartados", detalle: msg };
+  }
+
+  // La función no existe todavía → camino viejo, avisando. `PGRST202` es
+  // PostgREST ("no está en el schema cache") y `42883` es Postgres.
+  const falta = error.code === "PGRST202" || error.code === "42883" || /does not exist|Could not find the function/i.test(msg);
+  if (falta) {
+    if (!yaAvisadoSinRpc) {
+      yaAvisadoSinRpc = true;
+      await alertar(
+        "falta correr sql/kora-e3-apartado-atomico.sql",
+        `El motor está apartando cuartos por el camino VIEJO (leer y luego escribir, sin ` +
+          `candado), que permite sobreventa cuando dos huéspedes pagan a la vez. No es ` +
+          `urgente-hoy, pero hasta correr ese SQL el arreglo del paso 3.10 no tiene efecto. ` +
+          `Detalle: ${msg}`,
+      );
+    }
+    console.error("[availability] apartar_unidades_atomico no existe; degradando al camino viejo");
+    const elegidas = candidatas.flatMap((c) => c.unidades.slice(0, c.cantidad));
+    if (elegidas.length !== pedidas) {
+      return { ok: false, unidades: [], motivo: "no-disponible", detalle: "sin unidades libres suficientes" };
+    }
+    if (prevSession && prevSession !== sessionId) await releaseHold(hotelId, prevSession);
+    await createTemporaryHold(hotelId, elegidas, checkin, checkout, sessionId, minutos);
+    return { ok: true, unidades: elegidas, degradado: true };
+  }
+
+  return { ok: false, unidades: [], motivo: "error", detalle: msg };
+}
+
 /**
  * Extiende el hold de una sesión. Se usa cuando el huésped genera un voucher
  * OXXO: el cuarto queda apartado mientras va a pagar en efectivo.
@@ -265,7 +386,13 @@ export async function extendHold(hotelId: string, sessionId: string, hours: numb
     .update({ expires_at: expires })
     .eq("hotel_id", hotelId)
     .eq("status", "HOLD")
-    .eq("hold_session", sessionId));
+    .eq("hold_session", sessionId)
+    // Sólo se extiende lo que TODAVÍA está vivo (K-236). Sin esta línea, un
+    // apartado ya vencido —cuyo cuarto puede haber reservado otra persona hace
+    // rato— resucitaba con 24 horas nuevas por delante y volvía a bloquearlo.
+    // El caso real: el huésped pide un voucher OXXO justo después de que su
+    // apartado expiró.
+    .gt("expires_at", new Date().toISOString()));
 }
 
 /**
@@ -292,6 +419,96 @@ export async function releaseHold(hotelId: string, sessionId: string): Promise<b
     return false;
   }
   return true;
+}
+
+/**
+ * Deja anotado en el apartado a qué sesión de pago de Stripe corresponde, para
+ * poder apagarla cuando el huésped suelte el cuarto (K-102). Mejor esfuerzo: si
+ * la columna no existe todavía, no pasa nada — simplemente no se podrá apagar
+ * la sesión, que es exactamente como está hoy.
+ */
+export async function anotarSesionStripe(
+  hotelId: string,
+  sessionId: string,
+  stripeSessionId: string,
+): Promise<void> {
+  const supabase = createAdminClient();
+  const { error } = await supabase
+    .from("blocks")
+    .update({ stripe_session_id: stripeSessionId })
+    .eq("hotel_id", hotelId)
+    .eq("status", "HOLD")
+    .eq("hold_session", sessionId);
+  if (error) console.error("[availability] anotarSesionStripe:", error.message);
+}
+
+/** La sesión de Stripe anotada en un apartado, si la hay. */
+export async function sesionStripeDelApartado(
+  hotelId: string,
+  sessionId: string,
+): Promise<string | null> {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("blocks")
+    .select("stripe_session_id")
+    .eq("hotel_id", hotelId)
+    .eq("status", "HOLD")
+    .eq("hold_session", sessionId)
+    .not("stripe_session_id", "is", null)
+    .limit(1);
+  if (error) {
+    console.error("[availability] sesionStripeDelApartado:", error.message);
+    return null;
+  }
+  return (data?.[0]?.stripe_session_id as string | undefined) ?? null;
+}
+
+/**
+ * Borra los apartados ya vencidos. La función existe en la base desde la fase 1
+ * y NO LA LLAMABA NADIE (K-265): los apartados muertos se quedaban en `blocks`
+ * para siempre. No causan sobreventa —todas las lecturas filtran por
+ * `expires_at`— pero engordan la tabla y vuelven ilegible cualquier consulta a
+ * mano. La llama el cron diario; devuelve cuántos borró, o null si no pudo.
+ */
+export async function limpiarHoldsVencidos(): Promise<number | null> {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase.rpc("limpiar_holds_vencidos");
+  if (error) {
+    console.error("[availability] limpiar_holds_vencidos:", error.message);
+    return null;
+  }
+  return typeof data === "number" ? data : 0;
+}
+
+/**
+ * Libera UNA noche de un bloqueo manual conservando el resto, en una sola
+ * transacción.
+ *
+ * El defecto que arregla (K-80, K-179): el panel borraba el bloqueo ENTERO y
+ * después reinsertaba los tramos de antes y de después. Entre las dos
+ * escrituras, todas esas noches quedaban vendibles; y si la reinserción fallaba,
+ * el bloqueo ya no existía y nadie se enteraba hasta que se vendiera una noche
+ * que el hotelero había cerrado a propósito.
+ *
+ * Devuelve cuántos tramos quedaron (0, 1 o 2), o `null` si la base todavía no
+ * tiene la función — en cuyo caso el llamador hace lo de siempre.
+ */
+export async function recortarBloqueo(
+  hotelId: string,
+  blockId: string,
+  fecha: string,
+): Promise<{ ok: true; tramos: number } | { ok: false; falta: boolean; detalle: string }> {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase.rpc("recortar_bloqueo", {
+    p_hotel_id: hotelId,
+    p_block_id: blockId,
+    p_fecha: fecha,
+  });
+  if (!error) return { ok: true, tramos: typeof data === "number" ? data : 0 };
+  const msg = error.message ?? "";
+  const falta =
+    error.code === "PGRST202" || error.code === "42883" || /Could not find the function/i.test(msg);
+  return { ok: false, falta, detalle: msg };
 }
 
 /** Bloqueo manual de fechas (BLOQUEADO / MANTENIMIENTO) desde el panel. */

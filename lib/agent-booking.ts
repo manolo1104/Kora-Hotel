@@ -28,8 +28,9 @@ import {
   type CartItem,
   validarCapacidadCarrito,
   asignarUnidades,
+  candidatasPorTipo,
 } from "@/lib/booking";
-import { freeUnitsByType, createTemporaryHold, releaseHold } from "@/lib/db/availability";
+import { freeUnitsByType, apartarUnidades, releaseHold } from "@/lib/db/availability";
 import { getConnectState } from "@/lib/stripe/connect";
 import { getStripe, stripeEnvReady } from "@/lib/stripe/server";
 import type { HotelRow } from "@/lib/tenant";
@@ -203,9 +204,12 @@ export async function crearLinkReservaAgente(
   // hueco latente: se miraba `freeCount` sin comprobar que `freeUnitNames`
   // trajera de verdad esos nombres, y apartar menos nombres de los cobrados es
   // vender aire.
-  const asignacion = asignarUnidades(cart, typesAvail);
-  if (!asignacion.ok) return { ok: false, error: "no-disponible" };
-  const unidades = asignacion.unidades.map((u) => u.name);
+  const preAsignacion = asignarUnidades(cart, typesAvail);
+  if (!preAsignacion.ok) return { ok: false, error: "no-disponible" };
+  // Pre-chequeo barato. La asignación de verdad la hace el candado, más abajo,
+  // con las CANDIDATAS: Camila tarda minutos en cerrar una conversación y el
+  // motor web puede vender el mismo cuarto en ese rato.
+  const candidatas = candidatasPorTipo(cart, typesAvail);
   const stayTotal = calcCartSubtotal(rooms, cart, input.checkin, input.checkout, rules.nightOpts);
   const deposit = calcDepositAmount(stayTotal, nights, {
     pct: rules.anticipoPct,
@@ -246,7 +250,19 @@ export async function crearLinkReservaAgente(
   // apartados del bot de los del motor web (`web_`). Lo libera el webhook al
   // confirmar/expirar; si el huésped no paga, expira solo.
   const sessionId = `bot_${crypto.randomUUID()}`;
-  await createTemporaryHold(hotel.id, unidades, input.checkin, input.checkout, sessionId, HOLD_MIN);
+  const apartado = await apartarUnidades(hotel.id, candidatas, input.checkin, input.checkout, sessionId, {
+    minutos: HOLD_MIN,
+    // El bot ya tiene su tope por hotel (MAX_HOLDS_BOT, arriba) y nunca pide más
+    // de MAX_UNIDADES por conversación, así que el tope por sesión del RPC no
+    // aporta nada aquí: se deja en 0 para no rechazar dos veces por lo mismo.
+    maxUnidades: 0,
+  });
+  if (!apartado.ok) {
+    if (apartado.motivo === "no-disponible") return { ok: false, error: "no-disponible" };
+    console.error("[agent-booking] no se pudo apartar:", apartado.detalle);
+    return { ok: false, error: "servicio-no-disponible", detalle: "apartado-fallido" };
+  }
+  const unidades = apartado.unidades;
 
   // Metadata: contrato EXACTO que lee el webhook (una entrada "unidad:huéspedes"
   // por unidad apartada). origen:"bot" marca la reserva como cerrada por Camila.
