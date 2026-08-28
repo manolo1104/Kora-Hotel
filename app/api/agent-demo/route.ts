@@ -43,7 +43,22 @@ async function getDemoPrompt(): Promise<string | null> {
   const hotel = await resolveHotel(DEMO_SLUG);
   if (!hotel) return null;
   const knowledge = buildHotelKnowledge(hotel);
-  const base = buildBotSystemPrompt(knowledge, { modoPrueba: true });
+  // El hotel de la demo es un hotel REAL de cliente, y esto es la landing
+  // PÚBLICA de Kora: cualquiera que entre puede escribirle. Se le quitan al
+  // cerebro las dos cosas que no tienen por qué salir de ahí (K-176):
+  //
+  //  - `pago`: son sus datos bancarios. El prompt arma con ellos un bloque
+  //    "TRANSFERENCIA / DEPÓSITO a la cuenta del hotel" con la CLABE dentro, y
+  //    Camila lo dicta a quien se lo pida. En el bot de verdad eso es correcto
+  //    —le habla a un huésped que va a pagar—; en un escaparate público, no.
+  //  - `instrucciones`: es texto que el dueño del hotel escribe en SU panel para
+  //    SUS huéspedes. Ejecutarlo en la web de Kora significa que la demo
+  //    comercial de la plataforma hace lo que diga un cliente.
+  const paraDemo = {
+    ...knowledge,
+    bot: { ...(knowledge.bot ?? {}), pago: {}, instrucciones: undefined },
+  };
+  const base = buildBotSystemPrompt(paraDemo, { modoPrueba: true });
   const prompt = `${base}
 
 DEMOSTRACIÓN EN LA WEB DE KORA

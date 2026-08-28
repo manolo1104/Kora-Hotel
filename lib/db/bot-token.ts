@@ -47,13 +47,48 @@ export async function setBotToken(hotelId: string, token: string): Promise<void>
  * El token del hotel; si no tiene, se le genera y guarda uno.
  * LANZA si no se pudo persistir: sin token guardado el bot no puede hablar con
  * /api/agent, y devolver uno que no está en la base sería peor que fallar.
+ *
+ * ATÓMICA (K-293). Antes era leer-y-luego-escribir, y hay DOS caminos que la
+ * llaman a la vez sin saberlo: la pasada del fleet (cada 5 min, para todos los
+ * hoteles elegibles) y el dueño pulsando "Ver token" en el panel. Con la carrera
+ * abierta, los dos generaban un token distinto, el `upsert` dejaba ganar al
+ * último, y el primero se iba con un token que ya no existía: el panel enseñaba
+ * uno muerto, o el runtime arrancaba con uno que `/api/agent` rechazaba.
+ *
+ * Ahora decide la BASE, no el proceso: `hotel_id` es la clave primaria, así que
+ * el INSERT del segundo choca y se ignora (`ignoreDuplicates`), y acto seguido
+ * se relee lo que quedó guardado — que es el token del ganador, sea quien sea.
+ *
+ * Me aparté del plan, que proponía una función `hotel_agent_token(...)` en
+ * Postgres: la escribió cuando el token todavía vivía en `hoteles.config`, y
+ * desde el 25 de agosto vive en `hotel_bot_tokens`, cuya clave primaria ya da
+ * exactamente la misma garantía. Un SQL nuevo aquí sería un paso manual más
+ * para Manolo a cambio de nada.
  */
 export async function asegurarBotToken(hotelId: string): Promise<string> {
   const actual = await getBotToken(hotelId);
   if (actual) return actual;
-  const token = nuevoBotToken();
-  await setBotToken(hotelId, token);
-  return token;
+
+  await escribir(
+    "bot_token.generarSiNoHay",
+    createAdminClient()
+      .from("hotel_bot_tokens")
+      .upsert(
+        { hotel_id: hotelId, token: nuevoBotToken(), updated_at: new Date().toISOString() },
+        { onConflict: "hotel_id", ignoreDuplicates: true },
+      ),
+  );
+
+  // Se relee SIEMPRE, también cuando el insert fue nuestro: es la única forma
+  // de devolver el token que de verdad quedó en la base.
+  const guardado = await getBotToken(hotelId);
+  if (!guardado) {
+    throw new Error(
+      `[bot_token] el hotel ${hotelId} sigue sin token después de generarlo. ` +
+        `Sin token persistido, Camila no puede hablar con /api/agent.`,
+    );
+  }
+  return guardado;
 }
 
 /**

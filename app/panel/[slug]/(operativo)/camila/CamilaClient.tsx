@@ -373,12 +373,18 @@ export default function CamilaClient({
         body: JSON.stringify({ mensajes: nuevos }),
       });
       const d = await res.json().catch(() => ({}));
+      // Los dos motivos nuevos merecen su propio mensaje: un "no pude responder"
+      // genérico manda al hotelero a reintentar algo que nunca va a funcionar.
       const reply =
         res.ok && d.reply
           ? d.reply
-          : d.error === "sin-ia" || res.status === 503
-            ? "(Falta configurar la IA para la prueba.)"
-            : "(No pude responder ahora, inténtalo de nuevo.)";
+          : d.error === "motor-pausado"
+            ? "(Tu plan no está activo, así que Camila está en pausa —también con tus huéspedes. Reactívalo desde Suscripción y vuelve a probar.)"
+            : d.error === "demasiadas-pruebas"
+              ? "(Llevas muchas pruebas seguidas. Espera un rato y sigue: es para que el chat de prueba no se dispare.)"
+              : d.error === "sin-ia" || res.status === 503
+                ? "(Falta configurar la IA para la prueba.)"
+                : "(No pude responder ahora, inténtalo de nuevo.)";
       setMensajes((m) => [...m, { role: "assistant", content: reply }]);
       if (res.ok && d.reply) registrarPrueba();
     } catch {
