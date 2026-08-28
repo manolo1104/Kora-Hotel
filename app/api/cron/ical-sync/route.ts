@@ -20,7 +20,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { updateOTASyncResult } from "@/lib/db/admin";
-import { updateOTABlocks } from "@/lib/db/availability";
+import { updateOTABlocks, limpiarHoldsVencidos } from "@/lib/db/availability";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -88,6 +88,14 @@ export async function GET(req: NextRequest) {
   if (!process.env.CRON_SECRET || auth !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  // Barrido de apartados vencidos (K-265). La función existe en la base desde
+  // la fase 1 y no la llamaba NADIE, así que los apartados muertos se
+  // acumulaban para siempre. Va aquí y no en un cron propio a propósito: Vercel
+  // Hobby sólo permite un puñado de crons y ya están todos ocupados. No corta
+  // la corrida si falla — limpiar es higiene, sincronizar es el trabajo.
+  const holdsBorrados = await limpiarHoldsVencidos();
+  if (holdsBorrados) console.log(`[cron/ical-sync] apartados vencidos borrados: ${holdsBorrados}`);
 
   const supabase = createAdminClient();
   const { data, error } = await supabase
