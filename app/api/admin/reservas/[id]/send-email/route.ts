@@ -1,7 +1,7 @@
 import { negar } from "@/lib/panel/permisos";
 import { NextRequest, NextResponse } from 'next/server';
 import { getActiveHotel } from '@/lib/panel/active-hotel';
-import { getAllBookings, logAgentActivity } from '@/lib/db/admin';
+import { getBookingByConfirmacion, logAgentActivity } from '@/lib/db/admin';
 import { parseNotas } from '@/lib/notas';
 import { buildBrandedBookingEmailHtml, bookingBrandFromHotel, bookingFromHotel } from '@/lib/email/booking-branded';
 import { enviarEmailOFallar } from '@/lib/email/resend';
@@ -24,8 +24,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
   if (no) return no;
 
   const { id } = await params; // confirmación (folio)
-  const bookings = await getAllBookings(ctx.hotelId);
-  const b = bookings.find(x => x.confirmacion === id);
+  const b = await getBookingByConfirmacion(ctx.hotelId, id);
   if (!b) return NextResponse.json({ error: 'Reserva no encontrada' }, { status: 404 });
   if (!b.email || b.email === 'N/A') return NextResponse.json({ error: 'Sin email registrado' }, { status: 400 });
 

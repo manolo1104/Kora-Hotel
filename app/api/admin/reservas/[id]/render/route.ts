@@ -6,7 +6,7 @@ import { negar } from "@/lib/panel/permisos";
 
 import { NextRequest, NextResponse } from "next/server";
 import { getActiveHotel } from "@/lib/panel/active-hotel";
-import { getAllBookings } from "@/lib/db/admin";
+import { getBookingByConfirmacion } from "@/lib/db/admin";
 import { assembleReserva } from "@/lib/docs/assemble";
 import { buildReservaDoc } from "@/lib/docs/documento-branded";
 
@@ -19,8 +19,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   if (no) return no;
 
   const { id } = await params; // confirmación (folio)
-  const bookings = await getAllBookings(ctx.hotelId);
-  const b = bookings.find((x) => x.confirmacion === id);
+  const b = await getBookingByConfirmacion(ctx.hotelId, id);
   if (!b) return NextResponse.json({ error: "Reserva no encontrada" }, { status: 404 });
 
   const { brand, data } = assembleReserva(ctx.hotel, b);

@@ -30,6 +30,7 @@ import { NOTIFY_EMAIL } from "@/lib/email/resend";
 import { deriveConnectState, upsertConnectState } from "@/lib/stripe/connect";
 import { verificarFirma, pareceDeStripe, diagnosticoFirma } from "@/lib/stripe/firma";
 import { leer, escribir } from "@/lib/db/result";
+import { registrarCorreo } from "@/lib/email/bitacora";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -372,12 +373,21 @@ async function confirmarReserva(
       },
       (hotel?.config?.email_from as string) || null,
     );
+    // Constancia en `email_log`: la alerta le llega a Manolo, pero la que hace
+    // que el correo se REINTENTE mañana desde el digest es esta fila.
+    await registrarCorreo({
+      hotelId,
+      confirmacion,
+      tipo: "confirmacion_reserva",
+      destino: email || "",
+      resultado: correoConfirmacionOk,
+    });
     if (!correoConfirmacionOk.ok) {
       await alertar(
         "confirmación de reserva NO enviada",
         `Reserva ${confirmacion} (hotel ${hotelId}, huésped ${email || "sin email"}). ` +
           `Motivo: ${correoConfirmacionOk.error}. La reserva SÍ se creó; lo que falló fue el ` +
-          `correo. Reenviarlo desde el panel.`,
+          `correo. Queda anotado en email_log y el digest de mañana lo reintenta.`,
       );
     }
 

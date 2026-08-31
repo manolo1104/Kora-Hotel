@@ -3,7 +3,7 @@ import { z } from "zod";
 import { rutaSegura } from "@/lib/api/responder";
 import { NextRequest, NextResponse } from 'next/server';
 import { getActiveHotel } from '@/lib/panel/active-hotel';
-import { getAllBookings, updateBooking, cancelBooking, splitRooms } from '@/lib/db/admin';
+import { getBookingByConfirmacion, updateBooking, cancelBooking, splitRooms } from '@/lib/db/admin';
 import { getOccupiedRoomNames } from '@/lib/db/availability';
 import { liberarExperienciaVentas } from '@/lib/db/experiencias';
 import { resolveHotelAvisoEmail, sendAvisoCancelacionHotel, sendCancelacionHuesped, sendModificacionHuesped } from '@/lib/email/reserva';
@@ -59,8 +59,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const { habitacion, ...resto } = parseado.data;
   const raw = { ...resto, habitaciones: resto.habitaciones ?? habitacion };
 
-  const bookings = await getAllBookings(ctx.hotelId);
-  const booking = bookings.find(b => b.confirmacion === id);
+  const booking = await getBookingByConfirmacion(ctx.hotelId, id);
   if (!booking) return NextResponse.json({ error: 'No encontrada' }, { status: 404 });
 
   // Validación de fechas: si se editan, la salida debe ser posterior a la llegada.
@@ -249,8 +248,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
   const { id } = await params;
 
-  const bookings = await getAllBookings(ctx.hotelId);
-  const booking = bookings.find(b => b.confirmacion === id);
+  const booking = await getBookingByConfirmacion(ctx.hotelId, id);
   if (!booking) return NextResponse.json({ error: 'No encontrada' }, { status: 404 });
 
   // cancelBooking marca CANCELADA y borra los blocks ligados (libera disponibilidad).

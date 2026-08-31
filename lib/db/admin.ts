@@ -358,6 +358,33 @@ export async function getAllBookings(hotelId: string): Promise<AdminBooking[]> {
 }
 
 /**
+ * UNA reserva por su folio.
+ *
+ * Cuatro rutas se bajaban el histórico ENTERO del hotel con `getAllBookings` y
+ * buscaban en memoria con `.find()` para responder por un solo folio: mandar un
+ * correo, pintar el comprobante, editarla, cancelarla. Con veinte reservas no se
+ * nota; con dos años de historia son cientos de filas por cada clic del panel, y
+ * el coste crece justo con los hoteles que más lo usan.
+ */
+export async function getBookingByConfirmacion(
+  hotelId: string,
+  confirmacion: string,
+): Promise<AdminBooking | null> {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("bookings")
+    .select("*")
+    .eq("hotel_id", hotelId)
+    .eq("confirmacion", confirmacion)
+    .maybeSingle();
+  if (error) {
+    console.error("getBookingByConfirmacion error:", error.message);
+    return null;
+  }
+  return data ? mapBooking(data as BookingRow) : null;
+}
+
+/**
  * Las reservas cuyo CHECK-OUT cae de `desde` en adelante.
  *
  * Para el cron de secuencias: sólo mira ventanas de hasta 45 días atrás, pero

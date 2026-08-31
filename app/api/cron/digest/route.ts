@@ -4,6 +4,15 @@ import { createAdminClient, adminEnvReady } from "@/lib/supabase/admin";
 import { enviarEmail, NOTIFY_EMAIL } from "@/lib/email/resend";
 import { emailDigest } from "@/lib/email/templates";
 import { PLANES } from "@/lib/oferta";
+import { leer } from "@/lib/db/result";
+import { correosFallidos, anotarReintento, MAX_INTENTOS } from "@/lib/email/bitacora";
+import { sendConfirmacionReserva } from "@/lib/email/reserva";
+import { bookingBrandFromHotel } from "@/lib/email/booking-branded";
+import { reservaCuenta } from "@/lib/booking/estado-reserva";
+// El mismo `esc` que los correos: aquí había otra copia, y también sin comillas.
+import { esc } from "@/lib/email/design";
+
+const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -11,9 +20,6 @@ export const dynamic = "force-dynamic";
 // Digest diario para el fundador (cron de Vercel, ver vercel.json).
 // Junta lo que requiere su atención: leads nuevos, seguimientos vencidos,
 // pagos con problema y chats escalados. Si no hay nada, no manda correo.
-
-const esc = (s: string) =>
-  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
 function autorizado(req: Request): boolean {
   const secreto = process.env.CRON_SECRET ?? "";
@@ -159,6 +165,14 @@ export async function GET(req: Request) {
     });
   }
 
+  // ── Correos que no salieron: se reintentan y se reportan ──────────────────
+  // Va colgado del digest y NO de un cron nuevo: Vercel Hobby ya tiene los 7
+  // que permite el plan, y éste es el primero que corre cada día (14:00 UTC).
+  const reintento = await reintentarConfirmaciones(admin);
+  if (reintento.lineas.length > 0) {
+    secciones.push({ encabezado: "📮 Correos que no salieron", lineas: reintento.lineas });
+  }
+
   if (secciones.length === 0) {
     return NextResponse.json({ ok: true, enviado: false, motivo: "Nada que reportar." });
   }
@@ -177,5 +191,104 @@ export async function GET(req: Request) {
     enviado: envio.ok,
     error: envio.ok ? undefined : envio.error,
     secciones: secciones.length,
+    correosReintentados: reintento.reintentados,
+    correosRecuperados: reintento.recuperados,
   });
+}
+
+/**
+ * Reintenta las confirmaciones de reserva que quedaron marcadas como fallidas.
+ *
+ * El HTML no se guarda en ningún sitio, así que el correo se vuelve a ARMAR
+ * desde la reserva —igual que el botón de reenviar del portal—. Eso también
+ * significa que si la reserva se canceló mientras tanto, el reintento se salta:
+ * mandarle su confirmación a alguien al que ya se le devolvió el dinero es
+ * decirle que su reserva sigue en pie.
+ */
+async function reintentarConfirmaciones(
+  admin: ReturnType<typeof createAdminClient>,
+): Promise<{ reintentados: number; recuperados: number; lineas: string[] }> {
+  const fallidos = await correosFallidos();
+  if (fallidos.length === 0) return { reintentados: 0, recuperados: 0, lineas: [] };
+
+  const lineas: string[] = [];
+  let reintentados = 0;
+  let recuperados = 0;
+
+  for (const fila of fallidos) {
+    if (fila.email_type !== "confirmacion_reserva" || !fila.confirmacion) continue;
+
+    const reserva = await leer<BookingParaCorreo>(
+      "digest.reservaDelCorreoFallido",
+      admin
+        .from("bookings")
+        .select("confirmacion, cliente, email, habitaciones, checkin, checkout, total, anticipo, estado, rate_plan, hoteles(nombre, config, extras, whatsapp, ubicacion)")
+        .eq("hotel_id", fila.hotel_id)
+        .eq("confirmacion", fila.confirmacion)
+        .maybeSingle(),
+    );
+    if (!reserva) continue;
+    if (!reservaCuenta(reserva.estado)) {
+      // Ya no cuenta: se cierra la fila para que no se reintente para siempre.
+      await anotarReintento(fila, { ok: true, id: null });
+      continue;
+    }
+
+    const destino = reserva.email || fila.email_destino || "";
+    if (!destino.includes("@")) continue;
+
+    reintentados++;
+    const hotelRow = reserva.hoteles;
+    const resultado = await sendConfirmacionReserva(
+      destino,
+      {
+        hotelNombre: hotelRow?.nombre ?? "el hotel",
+        confirmacion: reserva.confirmacion,
+        habitaciones: (reserva.habitaciones ?? "").split(",").map((x) => x.trim()).filter(Boolean),
+        checkin: reserva.checkin,
+        checkout: reserva.checkout,
+        anticipo: Number(reserva.anticipo) || 0,
+        pendiente: Math.max(0, (Number(reserva.total) || 0) - (Number(reserva.anticipo) || 0)),
+        cliente: reserva.cliente,
+        ratePlan: reserva.rate_plan,
+        portalUrl: `${SITE}/reserva/consultar`,
+        brand: hotelRow ? bookingBrandFromHotel(hotelRow) : undefined,
+      },
+      (hotelRow?.config?.email_from as string) || null,
+    );
+    await anotarReintento(fila, resultado);
+
+    if (resultado.ok) {
+      recuperados++;
+      lineas.push(`✅ <strong>${esc(reserva.confirmacion)}</strong> — reenviada a ${esc(destino)}`);
+    } else {
+      const n = fila.intentos + 1;
+      lineas.push(
+        `❌ <strong>${esc(reserva.confirmacion)}</strong> — intento ${n}/${MAX_INTENTOS}: ${esc(resultado.error)}` +
+          (n >= MAX_INTENTOS ? " · <strong>se deja de reintentar</strong>" : ""),
+      );
+    }
+  }
+
+  return { reintentados, recuperados, lineas };
+}
+
+interface BookingParaCorreo {
+  confirmacion: string;
+  cliente: string | null;
+  email: string | null;
+  habitaciones: string | null;
+  checkin: string;
+  checkout: string;
+  total: number | null;
+  anticipo: number | null;
+  estado: string;
+  rate_plan: string | null;
+  hoteles: {
+    nombre: string;
+    config?: Record<string, unknown> | null;
+    extras?: Record<string, unknown> | null;
+    whatsapp?: string | null;
+    ubicacion?: string | null;
+  } | null;
 }
