@@ -64,7 +64,7 @@ const PREGUNTAS: Pregunta[] = [
       texto:
         "Sin una página donde reservar directo, dependes de que las OTAs te manden huéspedes — y les pagas comisión por cada uno. Una reserva directa es 100% tuya.",
       ctaLabel: "Ver cómo tener reservas directas",
-      href: "/#contacto?utm_source=diagnostico",
+      href: "/?utm_source=diagnostico#contacto",
     },
   },
   {
@@ -82,7 +82,7 @@ const PREGUNTAS: Pregunta[] = [
       texto:
         "El huésped que no recibe respuesta rápido reserva en otro lado. Un agente de IA que conteste tu WhatsApp 24/7 captura justo esas reservas que hoy pierdes.",
       ctaLabel: "Ver el agente de IA de Kora",
-      href: "/#contacto?utm_source=diagnostico",
+      href: "/?utm_source=diagnostico#contacto",
     },
   },
   {
@@ -134,7 +134,7 @@ const PREGUNTAS: Pregunta[] = [
       texto:
         "Llevar todo en cuaderno, Excel o en cada OTA por separado es la receta del overbooking y los errores. Un solo sistema junta reservas, disponibilidad y huéspedes.",
       ctaLabel: "Ver el sistema todo-en-uno",
-      href: "/#contacto?utm_source=diagnostico",
+      href: "/?utm_source=diagnostico#contacto",
     },
   },
 ];

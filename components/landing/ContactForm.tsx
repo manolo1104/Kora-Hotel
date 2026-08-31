@@ -24,8 +24,13 @@ export function ContactForm() {
   // Mensaje personalizado según el resultado que traiga el usuario desde una
   // herramienta (ej. /?perdida=144000#contacto).
   const [personalizado, setPersonalizado] = useState<string | null>(null);
+  // De qué herramienta llegó. Se captura al montar porque el `?utm_source` sólo
+  // está en la URL de entrada: si el visitante navega por la landing antes de
+  // bajar al formulario, para entonces ya se perdió.
+  const [utmSource, setUtmSource] = useState("");
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
+    setUtmSource((p.get("utm_source") || "").replace(/[^a-z0-9-]/gi, "").slice(0, 40));
     const perdida = Number(p.get("perdida"));
     const puntaje = p.get("puntaje");
     const revpar = Number(p.get("revpar"));
@@ -43,6 +48,21 @@ export function ContactForm() {
       );
     }
   }, []);
+
+  // ⚠️ EL ANCLA `#contacto` NO LLEVA AL FORMULARIO, y no tiene arreglo desde
+  // aquí. Se intentó (31 ago 2026) y se quitó: la landing anima cada sección al
+  // entrar en pantalla, así que bajar hace CRECER lo que queda arriba y el
+  // formulario se aleja más rápido de lo que uno se acerca — a 14.000 px después
+  // de ocho segundos reintentando. Es una carrera perdida mientras el contenido
+  // siga midiendo distinto según lo que se haya visto.
+  //
+  // Lo que sí quedó arreglado es la ATRIBUCIÓN: el `?utm_source` de los 14
+  // botones de las herramientas viaja ahora antes del `#`, se captura arriba y
+  // llega al CRM. El visitante aterriza arriba de la landing, como antes.
+  //
+  // La salida buena es de producto, no de código: que esos botones lleven a una
+  // página de contacto propia en vez de a un ancla dentro de una landing de
+  // 16.000 px. Decisión de Manolo.
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -159,6 +179,8 @@ export function ContactForm() {
                       aria-hidden="true"
                       className="hidden"
                     />
+                    {/* De dónde vino: viaja al CRM como el origen del lead. */}
+                    <input type="hidden" name="utm_source" value={utmSource} readOnly />
 
                     <div>
                       <label

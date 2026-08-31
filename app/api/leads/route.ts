@@ -24,6 +24,7 @@ const CAMPOS_BASE = new Set([
   "email",
   "hotel",
   "herramienta",
+  "utm_source",
   "rooms",
   "location",
   "_gotcha",
@@ -63,6 +64,11 @@ export async function POST(req: Request) {
   const emailLead = str(body.email, 160).toLowerCase();
   const hotel = str(body.hotel, 160);
   const herramienta = str(body.herramienta, 80);
+  // De dónde venía el visitante cuando llenó el formulario de la landing. Los
+  // botones "Hablar con Kora" de las 14 herramientas gratis mandan aquí con
+  // `?utm_source=…`, y sin esto TODOS esos leads caían como "web-contacto": el
+  // CRM no distinguía cuál herramienta trae clientes y cuál sólo tráfico.
+  const utm = str(body.utm_source, 80).replace(/[^a-z0-9-]/gi, "").slice(0, 40);
   const rooms = str(body.rooms, 20);
   const location = str(body.location, 160);
 
@@ -73,7 +79,15 @@ export async function POST(req: Request) {
     );
   }
 
-  const origen = herramienta ? `herramienta:${herramienta}` : "web-contacto";
+  // Tres orígenes distintos, no dos: llenó el formulario DENTRO de la
+  // herramienta, vino DESDE una herramienta al formulario de la landing, o entró
+  // directo. Los dos primeros se atribuyen a la herramienta; el segundo se marca
+  // aparte porque su intención es distinta (leyó la landing entera antes).
+  const origen = herramienta
+    ? `herramienta:${herramienta}`
+    : utm
+      ? `desde:${utm}`
+      : "web-contacto";
 
   // Campos extra (resultados calculados, etc.) → notas legibles.
   const extras = Object.entries(body)
@@ -162,7 +176,13 @@ export async function POST(req: Request) {
     admin.from("crm_actividades").insert({
       lead_id: lead.id,
       tipo: "nota",
-      nota: `Lead entró solo desde ${herramienta ? `la herramienta "${herramienta}"` : "el formulario de contacto"}.`,
+      nota: `Lead entró solo desde ${
+        herramienta
+          ? `la herramienta "${herramienta}"`
+          : utm
+            ? `el formulario de contacto, llegando desde "${utm}"`
+            : "el formulario de contacto"
+      }.`,
     }),
   );
 

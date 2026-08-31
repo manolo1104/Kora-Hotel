@@ -45,7 +45,11 @@ const garantias = [
   {
     icon: Lock,
     titulo: "Tus datos son tuyos",
-    texto: "Los puedes exportar cuando quieras, sin candados.",
+    // NO dice "los exportas tú": el panel no tiene ningún botón de exportar
+    // (31 ago 2026). Lo que sí es cierto y sostiene el mismo argumento contra el
+    // encierro de las OTAs es que se entregan a quien los pida. Si algún día hay
+    // botón, esta frase vuelve a "los exportas cuando quieras".
+    texto: "Te los entregamos completos cuando los pidas, sin candados.",
   },
 ];
 
@@ -55,7 +59,11 @@ const arranque = [
   { titulo: "Arranque Llave en Mano (48h)", detalle: "Cargamos cuartos, fotos, tarifas y tu motor", valor: 8000 },
   { titulo: "Tu página de reservas lista", detalle: "Motor embebido en una página con tu marca", valor: 6000 },
   { titulo: "Camila entrenada con tu hotel", detalle: "Tus precios, políticas y respuestas", valor: 4000 },
-  { titulo: "Migración + sync Booking/Airbnb", detalle: "Sin overbooking, sin líos", valor: 2500 },
+  // Airbnb NO: el panel sólo conecta Booking.com y Expedia
+  // (canales/CanalesClient.tsx → `type Platform`). Y "sin overbooking" prometía
+  // más de lo que da una sincronía DIARIA por iCal: entre pasada y pasada caben
+  // horas, que es justo cuando se produce una sobreventa.
+  { titulo: "Migración + sync Booking/Expedia", detalle: "Calendarios al día, sin líos", valor: 2500 },
   { titulo: "2 meses de acompañamiento 1-a-1", detalle: "Con el equipo fundador", valor: 3000 },
 ];
 const arranqueTotal = arranque.reduce((s, b) => s + b.valor, 0);

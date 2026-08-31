@@ -275,7 +275,7 @@ export function TarifaNeta() {
             así ganar más, porque no pagas comisión.
           </p>
           <a
-            href="/#contacto?utm_source=tarifa-neta"
+            href="/?utm_source=tarifa-neta#contacto"
             className="btn-press btn-arrow btn-fill mt-6 inline-flex items-center gap-2 px-7 py-4 rounded-full bg-kora-accent text-kora-primary font-bold text-sm hover:bg-kora-accent-dark transition-colors"
           >
             Ver cómo funciona Kora

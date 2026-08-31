@@ -89,7 +89,9 @@ function buildLlms(hoteles: HotelListado[]): string {
     `- Plan único: $${PRECIO_DESDE.toLocaleString("es-MX")} MXN/mes, todo incluido, con habitaciones ilimitadas. Mes a mes, sin permanencia.`
   );
   L.push(
-    '- Arranque "Reservas Directas" llave en mano, gratis: montamos tu hotel completo (cuartos, fotos, tarifas, motor, Camila, migración y sync con Booking/Airbnb) en 48 horas.'
+    // Este archivo se lo damos a ChatGPT y Perplexity: lo que diga aquí lo
+    // repiten como hecho. Airbnb no es un canal que Kora sincronice.
+    '- Arranque "Reservas Directas" llave en mano, gratis: montamos tu hotel completo (cuartos, fotos, tarifas, motor, Camila, migración y sync con Booking.com/Expedia) en 48 horas.'
   );
   L.push("- Prueba 30 días gratis, sin tarjeta.");
   L.push(

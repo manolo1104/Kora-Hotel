@@ -56,8 +56,8 @@ export function PruebaVencida({ hotelNombre }: { hotelNombre: string }) {
           <p className="text-xs text-kora-muted leading-relaxed">
             <span className="font-semibold text-kora-text">Tus datos están a salvo:</span>{" "}
             reservas, huéspedes, fotos y configuración se conservan íntegros — no
-            borramos nada. Y siguen siendo tuyos: al activar puedes exportarlos
-            cuando quieras.
+            borramos nada. Y siguen siendo tuyos: pídenoslos cuando quieras y te
+            los entregamos completos.
           </p>
         </div>
         <Link

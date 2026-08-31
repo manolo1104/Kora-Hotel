@@ -40,7 +40,7 @@ const steps = [
     icon: <Settings size={22} />,
     title: "Nosotros configuramos todo",
     description:
-      "Tu equipo no toca nada. Nosotros creamos tu cuenta, configuramos los módulos, conectamos tus canales (Booking, Airbnb, Google Calendar) y ajustamos el sistema a tu hotel.",
+      "Tu equipo no toca nada. Nosotros creamos tu cuenta, configuramos los módulos, conectamos tus canales (Booking.com y Expedia) y ajustamos el sistema a tu hotel.",
     duration: "Días 1-2",
     detail: "Solo necesitamos tus accesos y la información de tu hotel.",
   },
