@@ -42,12 +42,15 @@ export async function POST(req: NextRequest) {
   // pudimos avisar al hotel" en vez de un ✓ que no distingue las dos cosas.
   let avisoHotel = true;
   let comprobanteHuesped = true;
+  // Se reutiliza como `replyTo` del comprobante del huésped: ese correo le dice
+  // "responde este correo y te ayudamos", y sale del dominio de Kora.
+  let avisoTo = "";
 
   // Aviso inmediato al hotel: sin esto solo se enteraría revisando el panel.
   try {
     const h = booking.row.hoteles;
     if (h) {
-      const avisoTo = await resolveHotelAvisoEmail({
+      avisoTo = await resolveHotelAvisoEmail({
         id: booking.row.hotel_id,
         extras: h.extras,
         config: h.config,
@@ -96,6 +99,7 @@ export async function POST(req: NextRequest) {
           // Llegó aquí porque la política lo permitía: cancelación sin cargo.
           reembolsable: booking.row.rate_plan !== "nrf",
           brand: bookingBrandFromHotel(hotelParaMarca),
+          hotelEmail: avisoTo || undefined,
         },
         bookingFromHotel({ config: h.config } as HotelRow),
       );

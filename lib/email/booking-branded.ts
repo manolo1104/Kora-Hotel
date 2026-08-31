@@ -278,6 +278,13 @@ export interface BrandedRecoveryParams {
   total?: number; // total estimado del carrito
 }
 
+// El apartado del motor dura 35 MINUTOS (sql/kora-e3-apartado-atomico.sql,
+// `p_minutos int default 35`), y este correo lo manda un cron diario que sólo
+// mira carritos de entre 2 y 48 horas de antigüedad
+// (app/api/cron/abandono/route.ts). O sea: cuando el huésped lo abre, su
+// apartado lleva al menos hora y media muerto. Prometerle que "guardamos tu
+// selección por 24 horas" —lo que decía hasta hoy— no era una imprecisión: le
+// decía que no corriera prisa justo cuando su cuarto ya estaba a la venta.
 export function buildBrandedRecoveryEmailHtml(brand: BookingBrand, p: BrandedRecoveryParams): string {
   const en = p.lang === "en";
   const tieneFechas = Boolean(p.checkin && p.checkout);
@@ -290,7 +297,7 @@ export function buildBrandedRecoveryEmailHtml(brand: BookingBrand, p: BrandedRec
         intro: "You started booking but didn't confirm. Don't worry — we saved your selection just as you left it. Only one step to go.",
         sinConfirmar: "● Not confirmed", huesp: (n: number) => (n === 1 ? "guest" : "guests"),
         noche: (n: number) => (n === 1 ? "night" : "nights"), entrada: "Check-in", salida: "Check-out",
-        totalEst: "Estimated total", nota: (h: string) => `⏳ We're holding your selection for <strong>${h}</strong>. After that, availability and pricing may change.`,
+        totalEst: "Estimated total", nota: `⏳ Your selection is still here, but <strong>it is not being held</strong> — availability and pricing are confirmed when you complete the booking.`,
         cta: "Finish my booking →", ayuda: "Prefer some help?", waTexto: "Message us on WhatsApp",
         habitacion: "Your room",
       }
@@ -299,11 +306,10 @@ export function buildBrandedRecoveryEmailHtml(brand: BookingBrand, p: BrandedRec
         intro: "Empezaste a reservar pero no llegaste a confirmar. No te preocupes — guardamos tu selección tal como la dejaste. Solo falta un paso.",
         sinConfirmar: "● Sin confirmar", huesp: (n: number) => (n === 1 ? "huésped" : "huéspedes"),
         noche: (n: number) => (n === 1 ? "noche" : "noches"), entrada: "Entrada", salida: "Salida",
-        totalEst: "Total estimado", nota: (h: string) => `⏳ Guardamos tu selección por <strong>${h}</strong>. Después, la disponibilidad y la tarifa pueden cambiar.`,
+        totalEst: "Total estimado", nota: `⏳ Tu selección sigue aquí, pero <strong>no está apartada</strong> — la disponibilidad y la tarifa se confirman al terminar la reserva.`,
         cta: "Terminar mi reserva →", ayuda: "¿Prefieres que te ayudemos?", waTexto: "Escríbenos por WhatsApp",
         habitacion: "Tu habitación",
       };
-  const horas = en ? "24 hours" : "24 horas";
   const saludo = p.nombre ? `${T.hola}, ${esc(p.nombre)} 👋` : `${T.hola} 👋`;
   const sub = [
     p.huespedes && p.huespedes > 0 ? `${p.huespedes} ${T.huesp(p.huespedes)}` : "",
@@ -365,7 +371,7 @@ export function buildBrandedRecoveryEmailHtml(brand: BookingBrand, p: BrandedRec
     </td></tr>
     <tr><td style="padding:18px 40px 0;">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#e4f3ea;border-radius:12px;">
-        <tr><td style="padding:14px 18px;font-family:${FONT};font-weight:500;font-size:13px;color:${VERDE};line-height:1.5;">${T.nota(horas)}</td></tr>
+        <tr><td style="padding:14px 18px;font-family:${FONT};font-weight:500;font-size:13px;color:${VERDE};line-height:1.5;">${T.nota}</td></tr>
       </table>
     </td></tr>
     <tr><td style="padding:26px 40px 6px;text-align:center;">

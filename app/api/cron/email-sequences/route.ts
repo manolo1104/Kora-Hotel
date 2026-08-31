@@ -239,7 +239,12 @@ export async function GET(req: Request) {
       }
 
       try {
-        const res = await enviarEmail({ from, to: b.email, subject, html });
+        // Estos cinco correos van al huésped a nombre de su hotel, pero el
+        // `from` real es el dominio de Kora salvo que el hotel tenga
+        // `config.email_from` (que no tiene pantalla donde ponerse). Sin
+        // `replyTo`, un huésped que contesta cualquiera de ellos le escribe a
+        // Kora creyendo que le escribe a su hotel.
+        const res = await enviarEmail({ from, replyTo: brand.email, to: b.email, subject, html });
         if (!res.ok) throw new Error(res.error);
         // 3) Guardar el resend_id en la marca.
         await escribirMejorEsfuerzo(

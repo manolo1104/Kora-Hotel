@@ -93,6 +93,11 @@ async function manejarPagoSinCuarto(
   }
 
   const hotel = md.slug ? await resolveHotel(md.slug).catch(() => null) : null;
+  // Se resuelve ANTES de escribirle al huésped, no sólo para avisar al hotel:
+  // es también el `replyTo` de su correo. Este es el correo al que un huésped
+  // SÍ va a responder —le acaban de cobrar por un cuarto que ya no había— y esa
+  // respuesta tiene que llegarle a su hotel, no al buzón de Kora.
+  const avisoTo = hotel ? await resolveHotelAvisoEmail(hotel).catch(() => "") : "";
   const args: PagoSinCuartoArgs = {
     hotelNombre: hotel?.nombre ?? md.slug ?? "el hotel",
     cliente: md.customerName || null,
@@ -104,6 +109,7 @@ async function manejarPagoSinCuarto(
     monto,
     reembolsado,
     lang: md.lang === "en" ? "en" : "es",
+    hotelEmail: avisoTo || undefined,
   };
 
   if (args.email) {
@@ -113,9 +119,8 @@ async function manejarPagoSinCuarto(
       (hotel?.config?.email_from as string) || null,
     ).catch((e) => console.error("[h/webhooks/stripe] ignorado:", e));
   }
-  if (hotel) {
-    const avisoTo = await resolveHotelAvisoEmail(hotel).catch(() => "");
-    if (avisoTo) await sendPagoSinCuartoHotel(avisoTo, args).catch((e) => console.error("[h/webhooks/stripe] ignorado:", e));
+  if (avisoTo) {
+    await sendPagoSinCuartoHotel(avisoTo, args).catch((e) => console.error("[h/webhooks/stripe] ignorado:", e));
   }
   if (NOTIFY_EMAIL) await sendPagoSinCuartoHotel(NOTIFY_EMAIL, args).catch((e) => console.error("[h/webhooks/stripe] ignorado:", e));
 }

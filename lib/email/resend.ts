@@ -36,6 +36,15 @@ export interface EmailArgs {
   /** Remitente. Por defecto Kora; pásalo para enviar con la marca del hotel. */
   from?: string;
   /**
+   * A dónde va la respuesta del destinatario. Importa en todo correo que salga
+   * a nombre de un hotel: el `from` real casi siempre es el dominio de Kora
+   * (`config.email_from` no tiene pantalla donde configurarse, así que ningún
+   * hotel lo tiene puesto), y varios correos al huésped le dicen "responde este
+   * correo y te ayudamos". Sin esto esa respuesta se la come Kora en vez de
+   * llegarle a su hotel.
+   */
+  replyTo?: string;
+  /**
    * Cabeceras extra. Se usa para `List-Unsubscribe` en los correos de la lista
    * de marketing (lib/suscriptores.ts): sin ellas Gmail no pinta su botón de
    * "cancelar suscripción" y la gente marca spam en su lugar — y el castigo cae
@@ -49,7 +58,7 @@ export interface EmailArgs {
 }
 
 /** Envía y NUNCA lanza. Devuelve el motivo cuando falla. */
-export async function enviarEmail({ to, subject, html, from, headers }: EmailArgs): Promise<ResultadoEmail> {
+export async function enviarEmail({ to, subject, html, from, replyTo, headers }: EmailArgs): Promise<ResultadoEmail> {
   if (!API_KEY) {
     console.log(`[email omitido] ${subject} → ${to || "(sin destinatario)"}`);
     return { ok: false, error: "RESEND_API_KEY no configurada" };
@@ -62,6 +71,7 @@ export async function enviarEmail({ to, subject, html, from, headers }: EmailArg
       to,
       subject,
       html,
+      ...(replyTo && replyTo.includes("@") ? { replyTo } : {}),
       ...(headers ? { headers } : {}),
     });
     if (error) {

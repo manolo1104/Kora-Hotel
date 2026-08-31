@@ -98,6 +98,7 @@ async function sendMotorEmail(
   subject: string,
   html: string,
   fromOverride?: string | null,
+  replyTo?: string | null,
 ): Promise<ResultadoEmail> {
   if (!to.includes("@")) return { ok: false, error: `destinatario inválido: ${to || "(vacío)"}` };
   return enviarEmail({
@@ -105,6 +106,7 @@ async function sendMotorEmail(
     subject,
     html,
     from: fromOverride || process.env.RESEND_FROM || "reservas@kora-hotel.com",
+    replyTo: replyTo || undefined,
   });
 }
 
@@ -121,6 +123,7 @@ export async function sendConfirmacionReserva(
       : `Tu reserva está confirmada — ${args.confirmacion}`,
     buildConfirmacionEmailHtml(args),
     fromOverride,
+    args.brand?.email,
   );
 }
 
@@ -331,6 +334,8 @@ export interface PagoSinCuartoArgs {
   monto: number;
   reembolsado: boolean; // true = el reembolso automático se creó en Stripe
   lang?: "es" | "en";
+  /** Correo del hotel, para que la respuesta del huésped le llegue a él. */
+  hotelEmail?: string;
 }
 
 export function buildPagoSinCuartoHuespedHtml(a: PagoSinCuartoArgs): string {
@@ -426,6 +431,7 @@ export async function sendPagoSinCuartoHuesped(
       : `Sobre tu pago — ${args.hotelNombre}`,
     buildPagoSinCuartoHuespedHtml(args),
     fromOverride,
+    args.hotelEmail,
   );
 }
 
@@ -489,6 +495,7 @@ export async function sendRecordatorioAbandono(
       : `Tu reserva en ${args.hotelNombre} quedó a un paso`,
     buildAbandonoEmailHtml(args),
     fromOverride,
+    args.brand?.email,
   );
 }
 
@@ -508,6 +515,12 @@ export interface CancelacionHuespedArgs {
   reembolsable: boolean; // canceló dentro del plazo de cancelación gratis
   lang?: "es" | "en";
   brand?: BookingBrand;
+  /**
+   * Correo del hotel para la respuesta del huésped. Este correo le dice
+   * "responde este correo y te ayudamos", así que tiene que llegar al hotel.
+   * Mejor que `brand.email` cuando el llamador ya resolvió el real.
+   */
+  hotelEmail?: string;
 }
 
 export function buildCancelacionHuespedHtml(a: CancelacionHuespedArgs): string {
@@ -577,6 +590,7 @@ export async function sendCancelacionHuesped(
       : `Tu reserva quedó cancelada — ${args.confirmacion}`,
     buildCancelacionHuespedHtml(args),
     fromOverride,
+    args.hotelEmail || args.brand?.email,
   );
 }
 
@@ -599,6 +613,12 @@ export interface ModificacionHuespedArgs {
   portalUrl?: string;
   lang?: "es" | "en";
   brand?: BookingBrand;
+  /**
+   * Correo del hotel para la respuesta del huésped. Este correo le dice
+   * "responde este correo y te ayudamos", así que tiene que llegar al hotel.
+   * Mejor que `brand.email` cuando el llamador ya resolvió el real.
+   */
+  hotelEmail?: string;
 }
 
 export function buildModificacionHuespedHtml(a: ModificacionHuespedArgs): string {
@@ -686,5 +706,6 @@ export async function sendModificacionHuesped(
       : `Actualizamos tu reserva — ${args.confirmacion}`,
     buildModificacionHuespedHtml(args),
     fromOverride,
+    args.hotelEmail || args.brand?.email,
   );
 }

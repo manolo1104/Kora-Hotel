@@ -113,7 +113,16 @@ export async function POST(req: Request) {
     customerName: nombre,
     paragraphs: draft.paragraphs,
   });
-  const envio = await enviarEmail({ to: email, subject: draft.subject, html, from: fromForHotel(hotel) });
+  // La oferta la firma el hotelero: si el huésped contesta, tiene que llegarle
+  // a él y no al buzón de Kora (el `from` es el dominio de Kora salvo que el
+  // hotel tenga `config.email_from`).
+  const envio = await enviarEmail({
+    to: email,
+    subject: draft.subject,
+    html,
+    from: fromForHotel(hotel),
+    replyTo: brand.email,
+  });
   if (!envio.ok) {
     console.error("[send-offer] no salió el correo:", envio.error);
     return NextResponse.json(

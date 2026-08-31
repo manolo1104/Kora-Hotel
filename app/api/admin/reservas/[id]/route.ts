@@ -136,9 +136,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   // hace Kora y la incumple el hotel — y a los doce días el huésped abre una
   // disputa que se cobra en la cuenta Connect DEL HOTEL, con penalización.
   // Sólo cuando hubo anticipo: sin dinero de por medio no hay nada que devolver.
+  // Se resuelve una vez y se reutiliza abajo como `replyTo` del correo al
+  // huésped: los de cancelación y modificación le dicen "responde este correo",
+  // y salen del dominio de Kora.
+  let avisoTo = "";
   if (cancelaAhora && booking.anticipo > 0) {
     try {
-      const avisoTo = await resolveHotelAvisoEmail({
+      avisoTo = await resolveHotelAvisoEmail({
         id: ctx.hotelId,
         extras: ctx.hotel.extras,
         config: ctx.hotel.config,
@@ -168,6 +172,15 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (correoValido(booking.email)) {
     const brand = bookingBrandFromHotel(ctx.hotel);
     const from = bookingFromHotel(ctx.hotel);
+    // Si el bloque de arriba no corrió (no cancelaba, o no había anticipo) hay
+    // que resolverlo aquí. `resolveHotelAvisoEmail` nunca lanza.
+    if (!avisoTo) {
+      avisoTo = await resolveHotelAvisoEmail({
+        id: ctx.hotelId,
+        extras: ctx.hotel.extras,
+        config: ctx.hotel.config,
+      }).catch(() => "");
+    }
     const nuevasHabs = String(raw.habitaciones ?? booking.habitaciones ?? '');
     try {
       if (cancelaAhora) {
@@ -185,6 +198,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
             reembolsable: true,
             lang: booking.lang,
             brand,
+            hotelEmail: avisoTo || undefined,
           },
           from,
         );
@@ -212,6 +226,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
             portalUrl: `${new URL(req.url).origin}/reserva/consultar`,
             lang: booking.lang,
             brand,
+            hotelEmail: avisoTo || undefined,
           },
           from,
         );
@@ -249,9 +264,11 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   // hace Kora y la incumple el hotel — y a los doce días el huésped abre una
   // disputa que se cobra en la cuenta Connect DEL HOTEL, con penalización.
   // Sólo cuando hubo anticipo: sin dinero de por medio no hay nada que devolver.
+  // Igual que arriba: se reutiliza como `replyTo` del comprobante del huésped.
+  let avisoTo = "";
   if (booking.anticipo > 0) {
     try {
-      const avisoTo = await resolveHotelAvisoEmail({
+      avisoTo = await resolveHotelAvisoEmail({
         id: ctx.hotelId,
         extras: ctx.hotel.extras,
         config: ctx.hotel.config,
@@ -278,6 +295,13 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   // Comprobante de cancelación al huésped (best-effort).
   if (correoValido(booking.email)) {
     try {
+      if (!avisoTo) {
+        avisoTo = await resolveHotelAvisoEmail({
+          id: ctx.hotelId,
+          extras: ctx.hotel.extras,
+          config: ctx.hotel.config,
+        }).catch(() => "");
+      }
       await sendCancelacionHuesped(
         booking.email,
         {
@@ -291,6 +315,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
           reembolsable: true, // la canceló el hotel
           lang: booking.lang,
           brand: bookingBrandFromHotel(ctx.hotel),
+          hotelEmail: avisoTo || undefined,
         },
         bookingFromHotel(ctx.hotel),
       );
