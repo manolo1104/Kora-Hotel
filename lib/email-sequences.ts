@@ -367,15 +367,12 @@ export function buildReturnOfferEmailHtml(data: {
   const en = data.lang === "en";
   const b = brandDefaults(data.hotel);
   const first = primerNombre(data.customerName, en);
+  // `promoCode` sólo llega si el hotelero encendió la promo en su panel y el
+  // motor la va a aplicar de verdad: el correo y el checkout leen la misma
+  // `extras.reglas.promos`. Si la apaga, este correo deja de ofrecer descuento
+  // en vez de prometer uno que el motor cobraría entero.
   const hasPromo = Boolean(b.promoCode);
-  // El motor NO aplica códigos: `validatePromo()` existe en lib/booking/engine.ts
-  // pero no lo llama nadie, nada lee el query param `?promo=`, y no hay pantalla
-  // en el panel donde definir promos. El código sólo lo puede aplicar una
-  // persona, así que el correo manda a ver disponibilidad y dice que el
-  // descuento se pide por WhatsApp o por teléfono. Mandarlo al motor con un
-  // `?promo=` inerte y un botón que promete el descuento era peor que no
-  // ofrecerlo: el huésped llegaba, veía el precio de siempre y se iba.
-  const bookingUrl = `${b.baseUrl}/reservar`;
+  const bookingUrl = `${b.baseUrl}/reservar${hasPromo ? `?promo=${encodeURIComponent(b.promoCode)}` : ""}`;
 
   const t = en
     ? {
@@ -385,8 +382,9 @@ export function buildReturnOfferEmailHtml(data: {
         introSimple: `A month has passed since you left, and we still remember you at ${b.nombre}. Whenever you feel like coming back, your room is here.`,
         codigo: "Your exclusive code",
         validez: (d: string) => `${esc(b.promoDiscount)} off · valid until ${esc(d)}`,
+        btnPromo: `Book with ${esc(b.promoDiscount)} off`,
         btnSimple: "See availability",
-        nota: `Applies to any available room. Mention the code when you book on WhatsApp or by phone and we'll apply it for you.`,
+        nota: `Applies to any available room. The code is already in the link — or type it at checkout. You can also mention it if you book on WhatsApp.`,
       }
     : {
         eyebrow: "Una invitación para ti",
@@ -395,8 +393,9 @@ export function buildReturnOfferEmailHtml(data: {
         introSimple: `Ha pasado un mes desde que te fuiste y en ${b.nombre} todavía te recordamos. Cuando tengas ganas de volver, tu habitación está aquí.`,
         codigo: "Tu código exclusivo",
         validez: (d: string) => `${esc(b.promoDiscount)} de descuento · válido hasta el ${esc(d)}`,
+        btnPromo: `Reservar con ${esc(b.promoDiscount)} de descuento`,
         btnSimple: "Ver disponibilidad",
-        nota: `Aplica en cualquier habitación disponible. Menciona el código al reservar por WhatsApp o por teléfono y te lo aplicamos.`,
+        nota: `Aplica en cualquier habitación disponible. El código ya va en el enlace — o puedes teclearlo al reservar. También vale si reservas por WhatsApp.`,
       };
 
   const cajaPromo = hasPromo
@@ -416,7 +415,7 @@ export function buildReturnOfferEmailHtml(data: {
     titulo(t.h) +
     saludo(HOLA(en), first, hasPromo ? t.introPromo : t.introSimple) +
     cajaPromo +
-    boton(bookingUrl, t.btnSimple) +
+    boton(bookingUrl, hasPromo ? t.btnPromo : t.btnSimple) +
     (hasPromo ? parrafo(`<span style="font-size:12.5px;color:${T.tenue};">${esc(t.nota)}</span>`) : "") +
     cierre(b);
 

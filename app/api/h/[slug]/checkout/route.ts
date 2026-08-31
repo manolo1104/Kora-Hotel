@@ -17,6 +17,8 @@ import {
   calcExperienciasBundleDiscount,
   type ExperienciasBundleRule,
   calcNrfDiscount,
+  calcPromoDiscount,
+  validatePromo,
   type CartItem,
   type AddonRule,
   type ExperienciaRule,
@@ -103,6 +105,10 @@ const CheckoutBody = z.object({
   adults: z.coerce.number().int().min(1).max(40).default(1),
   children: z.coerce.number().int().min(0).max(40).default(0),
   ratePlan: z.enum(["flex", "nrf"]).default("flex"),
+  // Código de descuento tecleado por el huésped (o traído en `?promo=` desde el
+  // correo de +30 días). Sólo viaja el CÓDIGO: el descuento lo calcula el
+  // servidor contra las promos del hotel, igual que el resto del precio.
+  promoCode: z.string().trim().max(40).optional(),
   payMode: z.enum(["online", "hotel"]).default("online"),
   aceptaPolitica: z.literal(true), // el huésped debe aceptar la política de cancelación
   lang: z.enum(["es", "en"]).default("es"),
@@ -155,7 +161,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   if (!parsed.success) {
     return NextResponse.json({ error: "Datos de reserva inválidos" }, { status: 400 });
   }
-  const { cart, addons, experiencias, checkin, checkout, customerName, customerEmail, customerPhone, adults, children, ratePlan, payMode, lang, prevSession } =
+  const { cart, addons, experiencias, checkin, checkout, customerName, customerEmail, customerPhone, adults, children, ratePlan, payMode, lang, prevSession, promoCode } =
     parsed.data;
 
   const rooms = hotelRooms(hotel);
@@ -232,6 +238,18 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   // huésped PREPAGA (sin prepago no hay descuento). El % sale de SUS reglas.
   const esNrf = ratePlan === "nrf" && rules.nrfActiva && payMode === "online";
   const nrfDiscount = esNrf ? calcNrfDiscount(subtotal, rules.nrfPct) : 0;
+
+  // Código de descuento. Se valida y se calcula AQUÍ contra las promos del
+  // hotel: del cliente sólo llega el texto del código, nunca un monto. Un
+  // código que no existe simplemente no descuenta — no se rechaza el checkout,
+  // porque tumbar una reserva ya pagada-en-intención por un cupón mal tecleado
+  // pierde la venta. El motor le avisa antes de llegar aquí.
+  const promoRule = promoCode
+    ? validatePromo(rules.promos, promoCode, nights, cleanCart.length).rule
+    : undefined;
+  const promoDiscount = promoRule
+    ? calcPromoDiscount(rooms, promoRule, cleanCart, checkin, checkout, nights, opts)
+    : 0;
 
   // Extras vendibles: se recalculan SIEMPRE desde la lista del hotel (no se
   // confía en montos del cliente; solo en los índices seleccionados).
@@ -335,7 +353,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     bundleRule,
   );
 
-  const stayTotal = Math.max(0, subtotal - nrfDiscount + addonsTotal + experienciasTotal - bundleDiscount);
+  const stayTotal = Math.max(
+    0,
+    subtotal - nrfDiscount - promoDiscount + addonsTotal + experienciasTotal - bundleDiscount,
+  );
   const esPagoHotel = payMode === "hotel";
   // "Pagar en el hotel": hoy no se cobra nada; la tarjeta queda como garantía.
   const deposit = esPagoHotel
@@ -476,6 +497,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     experiencias_data: experienciasData,
     bundleDiscount: String(bundleDiscount),
     nrfDiscount: String(nrfDiscount),
+    // Queda el código aplicado, no sólo el monto: cuando el hotelero pregunte
+    // por qué esa reserva entró más barata, la respuesta está en la reserva.
+    promoDiscount: String(promoDiscount),
+    promoCode: promoRule?.code ?? "",
     // Deja escrito EN LA SESIÓN de Stripe en qué cuenta entró el dinero. Sin
     // esto, un cobro caído en la cuenta de Kora es indistinguible de uno normal:
     // la reserva se crea igual, el panel de Pagos del hotelero sólo consulta su

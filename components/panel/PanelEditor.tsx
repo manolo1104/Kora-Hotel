@@ -319,6 +319,14 @@ export function PanelEditor({
   const [nrfPct, setNrfPct] = useState(10);
   const [cancelacionDias, setCancelacionDias] = useState(2);
   const [pagoEnHotel, setPagoEnHotel] = useState(false);
+  // Código de descuento del hotel (extras.reglas.promos). Se guarda como lista
+  // porque así lo lee el motor, pero aquí se edita UNO: un hotel de 8 cuartos
+  // no necesita una tabla de cupones, necesita poder ofrecer el suyo.
+  const [promoActiva, setPromoActiva] = useState(false);
+  const [promoCodigo, setPromoCodigo] = useState("");
+  const [promoTipo, setPromoTipo] = useState<"porcentaje" | "monto">("porcentaje");
+  const [promoValor, setPromoValor] = useState(10);
+  const [promoMinNoches, setPromoMinNoches] = useState(0);
   // Impuestos para el desglose del motor (extras.impuestos)
   const [ishPct, setIshPct] = useState(0);
   // Medición propia del hotel en su motor (extras.medicion)
@@ -574,6 +582,17 @@ export function PanelEditor({
         setNrfPct(typeof rg.nrfPct === "number" ? rg.nrfPct : 10);
         setCancelacionDias(typeof rg.cancelacionDias === "number" ? rg.cancelacionDias : 2);
         setPagoEnHotel(rg.pagoEnHotel === true);
+        const pr = Array.isArray(rg.promos) ? rg.promos[0] : null;
+        if (pr) {
+          // `activa !== false` y no `=== true`: las promos guardadas antes de que
+          // existiera el interruptor no traen el campo, y apagarlas en silencio
+          // dejaría al huésped con un código que dejó de funcionar sin aviso.
+          setPromoActiva(pr.activa !== false);
+          setPromoCodigo(typeof pr.code === "string" ? pr.code : "");
+          setPromoTipo(pr.tipo === "monto" ? "monto" : "porcentaje");
+          setPromoValor(Number(pr.valor) || 10);
+          setPromoMinNoches(Number(pr.minNoches) || 0);
+        }
         setIshPct(typeof ex.impuestos?.ishPct === "number" ? ex.impuestos.ishPct : 0);
         setMedGa4(ex.medicion?.ga4Id ?? "");
         setMedPixel(ex.medicion?.metaPixelId ?? "");
@@ -1176,6 +1195,19 @@ export function PanelEditor({
         nrfPct,
         cancelacionDias,
         pagoEnHotel,
+        // Sin código no se guarda regla: una promo sin code es un cupón que
+        // nadie puede teclear, y el motor la descartaría igual.
+        promos: promoCodigo.trim()
+          ? [
+              {
+                activa: promoActiva,
+                code: promoCodigo.trim().toUpperCase(),
+                tipo: promoTipo,
+                valor: promoValor,
+                ...(promoMinNoches > 0 ? { minNoches: promoMinNoches } : {}),
+              },
+            ]
+          : [],
       },
       impuestos: { ishPct },
       medicion: {
@@ -2834,6 +2866,99 @@ export function PanelEditor({
                 <p className="mt-1.5 text-xs text-kora-muted">
                   El huésped paga menos a cambio de no poder cancelar. Llena más
                   noches con anticipación.
+                </p>
+              </div>
+              <div className="sm:col-span-2">
+                <label className="flex items-center gap-2.5 text-sm font-semibold text-kora-text mb-1.5">
+                  <input
+                    type="checkbox"
+                    checked={promoActiva}
+                    onChange={(e) => setPromoActiva(e.target.checked)}
+                    className="h-4 w-4 accent-kora-primary"
+                  />
+                  Aceptar un código de descuento en mi motor de reservas
+                </label>
+                {promoActiva && (
+                  <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-kora-text mb-1">
+                        Código
+                      </label>
+                      <input
+                        className={`${inputCls} uppercase tracking-wide`}
+                        value={promoCodigo}
+                        onChange={(e) => setPromoCodigo(e.target.value.toUpperCase().slice(0, 40))}
+                        placeholder="VUELVE10"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-kora-text mb-1">
+                        Tipo de descuento
+                      </label>
+                      <select
+                        className={inputCls}
+                        value={promoTipo}
+                        onChange={(e) => {
+                          const v = e.target.value === "monto" ? "monto" : "porcentaje";
+                          setPromoTipo(v);
+                          // El valor por defecto de cada tipo es muy distinto:
+                          // un 10 que era "10%" pasaría a ser "$10 de descuento".
+                          setPromoValor(v === "monto" ? 200 : 10);
+                        }}
+                      >
+                        <option value="porcentaje">Porcentaje (%)</option>
+                        <option value="monto">Monto fijo ($)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-kora-text mb-1">
+                        {promoTipo === "monto" ? "Pesos de descuento" : "% de descuento"}
+                      </label>
+                      <input
+                        type="number"
+                        min={1}
+                        max={promoTipo === "monto" ? 100000 : 100}
+                        value={promoValor}
+                        onChange={(e) =>
+                          setPromoValor(
+                            Math.max(
+                              1,
+                              Math.min(
+                                promoTipo === "monto" ? 100000 : 100,
+                                Number(e.target.value) || 1,
+                              ),
+                            ),
+                          )
+                        }
+                        className={inputCls}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-kora-text mb-1">
+                        Mínimo de noches (0 = sin mínimo)
+                      </label>
+                      <input
+                        type="number"
+                        min={0}
+                        max={30}
+                        value={promoMinNoches}
+                        onChange={(e) =>
+                          setPromoMinNoches(Math.max(0, Math.min(30, Number(e.target.value) || 0)))
+                        }
+                        className={inputCls}
+                      />
+                    </div>
+                  </div>
+                )}
+                <p className="mt-1.5 text-xs text-kora-muted">
+                  Con esto encendido, el motor le muestra al huésped un campo
+                  para teclear tu código y le descuenta{" "}
+                  {promoTipo === "monto" ? "los pesos" : "el porcentaje"}{" "}
+                  sobre el precio de las habitaciones (no sobre los extras). Es el
+                  mismo código que Kora manda en el correo de &ldquo;vuelve
+                  pronto&rdquo; un mes después de que se van: si lo apagas, ese
+                  correo deja de ofrecer descuento en lugar de prometer uno que
+                  tu motor no aplicaría.
                 </p>
               </div>
               <div>

@@ -34,10 +34,13 @@ import {
   calcAddonsTotal,
   calcExperienciasTotal,
   calcNrfDiscount,
+  calcPromoDiscount,
+  validatePromo,
   calcTaxBreakdown,
   formatMXN,
   type Temporada,
   type RecargoFinDeSemana,
+  type PromoRule,
   validarCapacidadCarrito,
 } from "@/lib/booking";
 import { t, localeOf, normalizeLang, LANG_KEY, type Lang } from "@/lib/booking/i18n";
@@ -84,6 +87,8 @@ interface Props {
     weekdayDiscountUntil?: string;
     temporadas: Temporada[];
     recargoFinDeSemana: RecargoFinDeSemana | null;
+    /** Códigos que este hotel acepta. Vacío = no se muestra el campo. */
+    promos: PromoRule[];
   };
 }
 
@@ -467,6 +472,14 @@ export default function ReservarClient({
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [ratePlan, setRatePlan] = useState<RatePlan>("flex");
+  // Código de descuento. `promoInput` es lo que teclea; `promoAplicado` sólo se
+  // llena cuando el código validó. El descuento se recalcula igual en el
+  // servidor: aquí sólo se muestra, para que el huésped vea el precio real
+  // antes de pagar en vez de llevarse la sorpresa en Stripe.
+  const [promoInput, setPromoInput] = useState("");
+  const [promoAplicado, setPromoAplicado] = useState("");
+  const [promoErrorKey, setPromoErrorKey] = useState("");
+  const [promoErrorN, setPromoErrorN] = useState(0);
   const [payMode, setPayMode] = useState<"online" | "hotel">("online");
   const [acepta, setAcepta] = useState(false);
   const [paying, setPaying] = useState(false);
@@ -599,6 +612,61 @@ export default function ReservarClient({
     setCart((prev) => prev.filter((c) => c.roomId !== roomId));
   }
 
+  // ── Código de descuento ─────────────────────────────────
+  function aplicarPromo() {
+    const code = promoInput.trim().toUpperCase();
+    setPromoErrorN(0);
+    if (!code) return;
+    const v = validatePromo(reglas.promos, code, nights, cart.length);
+    if (v.valid && v.rule) {
+      setPromoAplicado(v.rule.code);
+      setPromoErrorKey("");
+      return;
+    }
+    setPromoAplicado("");
+    // `validatePromo` devuelve el error ya redactado en español. Aquí sólo se
+    // traduce el MOTIVO a una clave i18n para que el inglés no salga a medias.
+    if (cart.length === 0) return setPromoErrorKey("promoSinCuartos");
+    const rule = reglas.promos.find((r) => r.code.toUpperCase() === code);
+    if (rule?.minNoches && nights < rule.minNoches) {
+      setPromoErrorN(rule.minNoches);
+      return setPromoErrorKey("promoMinNoches");
+    }
+    if (rule?.noches && nights !== rule.noches) {
+      setPromoErrorN(rule.noches);
+      return setPromoErrorKey("promoNoches");
+    }
+    setPromoErrorKey("promoInvalido");
+  }
+
+  function quitarPromo() {
+    setPromoAplicado("");
+    setPromoInput("");
+    setPromoErrorKey("");
+  }
+
+  // El correo de +30 días manda `?promo=CODIGO`. Se prellena el campo pero NO se
+  // aplica solo: el huésped todavía no eligió habitación, así que aplicarlo aquí
+  // fallaría por carrito vacío y le enseñaría un error nada más entrar.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const code = new URLSearchParams(window.location.search).get("promo");
+    if (code) setPromoInput(code.trim().toUpperCase().slice(0, 40));
+  }, []);
+
+  // En cuanto hay habitación en el carrito, el código que venía en la URL se
+  // aplica solo: es el que Kora le prometió en su correo, y pedirle que lo
+  // teclee otra vez es perder el descuento que ya se le ofreció.
+  useEffect(() => {
+    if (promoAplicado || !promoInput || cart.length === 0) return;
+    const v = validatePromo(reglas.promos, promoInput, nights, cart.length);
+    if (v.valid && v.rule) {
+      setPromoAplicado(v.rule.code);
+      setPromoErrorKey("");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cart.length, nights, promoInput, promoAplicado]);
+
   // Si llegó con una habitación pre-seleccionada (?habitacion=) y fechas válidas,
   // buscamos disponibilidad automáticamente una sola vez.
   useEffect(() => {
@@ -686,7 +754,24 @@ export default function ReservarClient({
   // La tarifa No Reembolsable exige prepago: no aplica con "pagar en hotel".
   const esNrf = ratePlan === "nrf" && reglas.nrfActiva && payMode === "online";
   const nrfDiscount = esNrf ? calcNrfDiscount(subtotal, reglas.nrfPct) : 0;
-  const total = Math.max(0, subtotal - nrfDiscount + addonsTotal + experienciasTotal - bundleDiscount);
+  // El código aplicado se revalida en cada render: si el huésped cambia fechas
+  // o vacía el carrito después de aplicarlo, el descuento se cae solo en vez de
+  // quedarse pegado mostrando un precio que el servidor no va a respetar.
+  const promoRule = useMemo(() => {
+    if (!promoAplicado) return null;
+    return validatePromo(reglas.promos, promoAplicado, nights, cart.length).rule ?? null;
+  }, [promoAplicado, reglas.promos, nights, cart.length]);
+  const promoDiscount = useMemo(
+    () =>
+      promoRule
+        ? calcPromoDiscount(rooms, promoRule, cart, checkin, checkout, nights, priceOpts)
+        : 0,
+    [promoRule, rooms, cart, checkin, checkout, nights, priceOpts],
+  );
+  const total = Math.max(
+    0,
+    subtotal - nrfDiscount - promoDiscount + addonsTotal + experienciasTotal - bundleDiscount,
+  );
   // Total de la estadía sin el descuento NRF (los pasos 1 y 2 lo muestran así).
   const totalConExtras = subtotal + addonsTotal + experienciasTotal - bundleDiscount;
   const deposit = useMemo(
@@ -829,6 +914,10 @@ export default function ReservarClient({
           payMode,
           aceptaPolitica: true,
           lang,
+          // Sólo el código: el descuento lo recalcula el servidor contra las
+          // promos del hotel. Si aquí viajara un monto, cualquiera podría
+          // editarlo antes de enviarlo.
+          ...(promoRule ? { promoCode: promoRule.code } : {}),
           // El apartado anterior de ESTA pestaña, si lo hay: el servidor lo
           // suelta dentro del mismo candado con que toma el nuevo. Sin esto, un
           // huésped que llega a Stripe y vuelve con el botón "atrás" se
@@ -2032,6 +2121,51 @@ export default function ReservarClient({
               </fieldset>
             )}
 
+            {/* Código de descuento. Sólo si el hotel configuró alguno: un campo
+                de cupón vacío en un hotel sin promos invita a abandonar el
+                carrito a buscar un código que no existe. */}
+            {reglas.promos.length > 0 && (
+              <div className="mt-5 rounded-xl border border-gray-100 bg-white p-4">
+                <p className="text-sm font-bold">{t(lang, "promoTitulo")}</p>
+                <div className="mt-2 flex gap-2">
+                  <input
+                    className="min-w-0 flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm uppercase tracking-wide outline-none focus:border-gray-400 disabled:bg-gray-50 disabled:text-kora-muted"
+                    value={promoInput}
+                    onChange={(e) => {
+                      setPromoInput(e.target.value.toUpperCase().slice(0, 40));
+                      if (promoErrorKey) setPromoErrorKey("");
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        aplicarPromo();
+                      }
+                    }}
+                    placeholder={t(lang, "promoPlaceholder")}
+                    aria-label={t(lang, "promoTitulo")}
+                    disabled={Boolean(promoAplicado)}
+                  />
+                  <button
+                    type="button"
+                    onClick={promoAplicado ? quitarPromo : aplicarPromo}
+                    className="btn-press shrink-0 rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold hover:border-gray-400"
+                  >
+                    {t(lang, promoAplicado ? "promoQuitar" : "promoAplicar")}
+                  </button>
+                </div>
+                {promoAplicado && (
+                  <p className="mt-2 text-xs font-semibold text-emerald-700">
+                    ✓ {t(lang, "promoAplicado", { code: promoAplicado })}
+                  </p>
+                )}
+                {promoErrorKey && (
+                  <p className="mt-2 text-xs text-red-600" role="alert">
+                    {t(lang, promoErrorKey as "promoInvalido", { n: String(promoErrorN) })}
+                  </p>
+                )}
+              </div>
+            )}
+
             {/* Desglose SIEMPRE visible */}
             <div className="mt-5 rounded-xl border border-gray-100 bg-kora-bg p-4">
               <p className="text-sm font-bold">{t(lang, "desgloseTitulo")}</p>
@@ -2044,6 +2178,12 @@ export default function ReservarClient({
                   <div className="flex justify-between text-emerald-700">
                     <span>{t(lang, "descuentoNrf")}</span>
                     <span className="tabular-nums">−{formatMXN(nrfDiscount)}</span>
+                  </div>
+                )}
+                {promoDiscount > 0 && promoRule && (
+                  <div className="flex justify-between text-emerald-700">
+                    <span>{t(lang, "promoLinea", { code: promoRule.code })}</span>
+                    <span className="tabular-nums">−{formatMXN(promoDiscount)}</span>
                   </div>
                 )}
                 {addonsTotal > 0 && (

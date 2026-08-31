@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { createAdminClient, adminEnvReady } from "@/lib/supabase/admin";
 import { enviarEmail } from "@/lib/email/resend";
 import { escribirMejorEsfuerzo } from "@/lib/db/result";
+import { promosDe } from "@/lib/booking/rooms";
 import { getAllBookings, logAgentActivity, type AdminBooking } from "@/lib/db/admin";
 import {
   buildSurveyEmailHtml,
@@ -111,10 +112,25 @@ function brandFromHotel(h: HotelRow): HotelBrand {
     email: str(config.email_from) || str(config.email),
     reviewUrl: str(extras.reviewUrl) || str(config.review_url),
     mapsUrl: str(extras.mapsUrl) || str(config.maps_url),
-    // Sin promo configurada quedan undefined a propósito: el correo de +30 días
-    // NO debe inventar un descuento que el motor de reservas no reconoce.
-    promoCode: str(extras.promoCode) || str(config.promo_code),
-    promoDiscount: str(extras.promoDiscount) || str(config.promo_discount),
+    // La promo sale de la MISMA fuente que usa el motor (`extras.reglas.promos`,
+    // vía promosDe). Antes venía de `extras.promoCode`, un campo suelto sin
+    // pantalla donde llenarse y que el motor no leía: el correo repartía un
+    // código y el checkout cobraba el precio entero. Ahora, si el hotelero apaga
+    // la promo en su panel, el correo deja de ofrecerla el mismo día.
+    ...promoDelHotel(h),
+  };
+}
+
+/** El código y el descuento que el motor de verdad va a aplicar, o nada. */
+function promoDelHotel(h: HotelRow): { promoCode?: string; promoDiscount?: string } {
+  const promo = promosDe(h as Parameters<typeof promosDe>[0])[0];
+  if (!promo) return {};
+  return {
+    promoCode: promo.code,
+    promoDiscount:
+      promo.tipo === "porcentaje"
+        ? `${promo.valor}%`
+        : `$${Math.round(promo.valor).toLocaleString("es-MX")} MXN`,
   };
 }
 

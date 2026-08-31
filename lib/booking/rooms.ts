@@ -9,6 +9,7 @@ import type {
   Temporada,
   RecargoFinDeSemana,
   SeasonAdjustment,
+  PromoRule,
 } from "@/lib/booking/engine";
 
 interface HabitacionRaw {
@@ -275,7 +276,47 @@ export interface BookingRules {
   cancelacionDias: number; // días antes del check-in con cancelación gratis (0..30)
   pagoEnHotel: boolean; // ¿permite reservar con tarjeta como garantía y pagar al llegar?
   ishPct: number; // % de ISH del estado para el desglose (0..10)
+  /**
+   * Códigos de descuento que el hotel decidió ofrecer. Vacío = el motor no
+   * acepta ningún código, que era el estado de TODOS los hoteles hasta el
+   * 31 ago 2026: `calcPromoDiscount` y `validatePromo` llevaban meses escritos
+   * en engine.ts sin que nadie los llamara, mientras el correo de +30 días
+   * repartía códigos que el motor no reconocía.
+   */
+  promos: PromoRule[];
   nightOpts: NightPriceOpts;
+}
+
+/**
+ * Las promos del hotel, saneadas. Se descarta lo que no sirva —sin código, sin
+ * valor, apagada— para que el motor nunca vea una regla a medias: una promo rota
+ * que el huésped teclea y "no funciona" es peor que no ofrecer ninguna.
+ */
+export function promosDe(hotel: HotelLike): PromoRule[] {
+  const reglas = ((hotel.extras ?? {}) as Record<string, unknown>).reglas ?? {};
+  const crudas = (reglas as Record<string, unknown>).promos;
+  if (!Array.isArray(crudas)) return [];
+  const out: PromoRule[] = [];
+  for (const raw of crudas) {
+    if (!raw || typeof raw !== "object") continue;
+    const r = raw as Record<string, unknown>;
+    if (r.activa === false) continue; // el interruptor del hotelero
+    const code = typeof r.code === "string" ? r.code.trim().toUpperCase() : "";
+    const tipo = r.tipo === "monto" || r.tipo === "noche_gratis" ? r.tipo : "porcentaje";
+    const valor = Number(r.valor) || 0;
+    if (!code || valor <= 0) continue;
+    // Un 150% de descuento dejaría el cuarto en negativo; un monto absurdo lo
+    // acota `calcPromoDiscount` contra el subtotal, pero el % hay que cerrarlo.
+    if (tipo === "porcentaje" && valor > 100) continue;
+    out.push({
+      code,
+      tipo,
+      valor,
+      ...(Number(r.minNoches) > 0 ? { minNoches: Math.floor(Number(r.minNoches)) } : {}),
+      ...(Number(r.noches) > 0 ? { noches: Math.floor(Number(r.noches)) } : {}),
+    });
+  }
+  return out;
 }
 
 function clampNum(v: unknown, def: number, min: number, max: number): number {
@@ -319,6 +360,7 @@ export function bookingRules(hotel: HotelLike): BookingRules {
     pagoEnHotel: PAGO_EN_HOTEL_DISPONIBLE && reglas.pagoEnHotel === true,
     // ISH admite decimales (hay estados con 2.5%): no usar toNum (solo enteros).
     ishPct: Math.max(0, Math.min(10, Number(impuestos.ishPct) || 0)),
+    promos: promosDe(hotel),
     nightOpts: nightOpts(hotel),
   };
 }

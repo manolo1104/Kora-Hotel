@@ -1,4 +1,5 @@
 import { negar } from "@/lib/panel/permisos";
+import { promosDe } from "@/lib/booking/rooms";
 import { NextResponse } from "next/server";
 import { getActiveHotel } from "@/lib/panel/active-hotel";
 import { enviarEmail, resendEnvReady } from "@/lib/email/resend";
@@ -31,8 +32,21 @@ function brandFromHotel(h: HotelRow): HotelBrand {
     email: str(config.email_from) || str(config.email),
     reviewUrl: str(extras.reviewUrl) || str(config.review_url),
     mapsUrl: str(extras.mapsUrl) || str(config.maps_url),
-    promoCode: str(config.promo_code),
-    promoDiscount: str(config.promo_discount),
+    // Misma fuente que el motor y que el correo de +30 días: si el hotelero no
+    // encendió su promo en el panel, esta oferta no reparte un código muerto.
+    ...promoParaCorreo(h),
+  };
+}
+
+function promoParaCorreo(h: HotelRow): { promoCode?: string; promoDiscount?: string } {
+  const promo = promosDe(h as Parameters<typeof promosDe>[0])[0];
+  if (!promo) return {};
+  return {
+    promoCode: promo.code,
+    promoDiscount:
+      promo.tipo === "porcentaje"
+        ? `${promo.valor}%`
+        : `$${Math.round(promo.valor).toLocaleString("es-MX")} MXN`,
   };
 }
 
