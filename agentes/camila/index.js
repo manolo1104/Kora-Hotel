@@ -49,6 +49,11 @@ const clientes = new Map();
 // prueba) y apagar los que caen (prueba vencida sin pago, bot apagado).
 const FLEET_POLL_MS = Number(process.env.FLEET_POLL_MS || 5 * 60 * 1000); // 5 min
 
+// Cuántas veces se vuelve a intentar levantar un hotel cuyo arranque falló.
+// Con el poll de 5 min son ~25 minutos de reintentos: cubre de sobra un fallo
+// pasajero de recursos, y evita quemar CPU con un hotel roto de verdad.
+const MAX_REINTENTOS_ARRANQUE = 5;
+
 // Turnos EN CURSO por chat: `${slug}::${chatId}` -> Promise.
 //
 // Sin candado (K-336), dos mensajes separados por más de MESSAGE_DEBOUNCE_MS se
@@ -251,6 +256,7 @@ function arrancarHotel(hotel) {
     if (st) {
       st.status = "error";
       st.err = String(e && e.message);
+      st.errAt = new Date().toISOString();
     }
   });
 
@@ -396,11 +402,19 @@ function servidorEstado() {
       const url = new URL(req.url, "http://localhost");
       const slug = url.searchParams.get("slug");
       // El QR (dataURL) solo se expone cuando de verdad hay uno que escanear.
+      // `err` viaja SÓLO cuando el arranque falló. Sin esto, un hotel cuyo
+      // `client.initialize()` reventaba se quedaba en `status:"error"` y el
+      // motivo moría en los logs de Railway: el panel decía "estamos preparando
+      // tu conexión" y nadie —ni el hotelero ni Kora— sabía qué había pasado.
+      // Pasó con un alta real el 31 ago 2026 y costó media hora de logs
+      // averiguarlo. Este endpoint ya exige el secreto de flota, así que el
+      // detalle no queda expuesto a nadie más.
       const publico = (h) => ({
         slug: h.slug,
         nombre: h.nombre,
         status: h.status,
         qr: h.status === "qr" ? h.qr : null,
+        ...(h.status === "error" && h.err ? { err: String(h.err).slice(0, 300) } : {}),
       });
       res.writeHead(200, { "content-type": "application/json" });
       if (slug) {
@@ -478,6 +492,39 @@ async function sincronizarFleet() {
     const enFleet = new Map(hotels.map((h) => [h.slug, h]));
     // Arrancar los que están en el fleet y aún no corren.
     for (const hotel of hotels) {
+      const st = estado.get(hotel.slug);
+
+      // UN ARRANQUE FALLIDO NO PUEDE SER DEFINITIVO.
+      //
+      // `client.initialize()` puede reventar por cosas pasajeras —Chromium sin
+      // memoria porque otro hotel estaba arrancando a la vez, la red, un lock
+      // suelto—. Cuando pasaba, el slug se quedaba en `clientes`, así que la
+      // pasada siguiente caía en el `else` de abajo y sólo le refrescaba el
+      // token: NADIE volvía a intentar levantarlo. El hotel quedaba muerto hasta
+      // que alguien reiniciara el servicio entero, y su dueño veía «estamos
+      // preparando tu conexión» indefinidamente. Le pasó a un alta real el 31 de
+      // agosto de 2026.
+      if (st && st.status === "error" && clientes.has(hotel.slug)) {
+        const intentos = (st.intentos || 0) + 1;
+        if (intentos <= MAX_REINTENTOS_ARRANQUE) {
+          console.warn(
+            `[camila] ↻ reintentando ${hotel.slug} (intento ${intentos}/${MAX_REINTENTOS_ARRANQUE}): ${st.err || "sin motivo"}`,
+          );
+          await pararHotel(hotel.slug);
+          clientes.set(hotel.slug, arrancarHotel(hotel));
+          const nuevo = estado.get(hotel.slug);
+          if (nuevo) nuevo.intentos = intentos;
+        } else if (!st.avisado) {
+          // Se deja de reintentar, pero NO en silencio: a partir de aquí hace
+          // falta una persona, y el panel ya se lo dice al hotelero.
+          st.avisado = true;
+          console.error(
+            `[camila] ✖ ${hotel.slug} lleva ${intentos - 1} arranques fallidos; se deja de reintentar. Último error: ${st.err}`,
+          );
+        }
+        continue;
+      }
+
       if (!clientes.has(hotel.slug)) {
         console.log(`[camila] + arrancando ${hotel.slug}`);
         clientes.set(hotel.slug, arrancarHotel(hotel));

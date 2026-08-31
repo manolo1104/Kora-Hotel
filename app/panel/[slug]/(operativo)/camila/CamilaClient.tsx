@@ -170,6 +170,9 @@ export default function CamilaClient({
   // Estado/QR del bot (viene del runtime en Railway vía /api/admin/bot-qr)
   const [qrStatus, setQrStatus] = useState<string | null>(null);
   const [qrImg, setQrImg] = useState<string | null>(null);
+  // Lo que le falta a ESTE hotel para que Camila arranque. Viene de la misma
+  // lista que aplica el fleet, así que si está vacío es que sí es elegible.
+  const [motivos, setMotivos] = useState<{ clave: string; titulo: string; detalle: string }[]>([]);
 
   // Chat de prueba
   const [mensajes, setMensajes] = useState<Msg[]>([]);
@@ -236,6 +239,7 @@ export default function CamilaClient({
         }
         setQrStatus(typeof d.status === "string" ? d.status : "sin-servicio");
         setQrImg(typeof d.qr === "string" ? d.qr : null);
+        setMotivos(Array.isArray(d.motivos) ? d.motivos : []);
       } catch {
         if (activo) setQrStatus("sin-servicio");
       }
@@ -1083,11 +1087,51 @@ export default function CamilaClient({
                   que solo el dueño puede verlo. Pídele que entre a esta misma pantalla.
                 </p>
               </div>
+            ) : qrStatus === "requisitos" ? (
+              // El hotel NO es elegible todavía. Antes esto caía en «Estamos
+              // preparando tu conexión» y el hotelero esperaba indefinidamente
+              // por algo que dependía de él y que nadie le pedía.
+              <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                <p className="font-semibold">
+                  Falta {motivos.length === 1 ? "un paso" : `${motivos.length} pasos`} para que aparezca tu código QR
+                </p>
+                <ul className="mt-2 space-y-2">
+                  {motivos.map((m) => (
+                    <li key={m.clave}>
+                      <span className="font-semibold">{m.titulo}.</span>{" "}
+                      <span className="text-amber-800">{m.detalle}</span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-2 text-xs text-amber-700">
+                  En cuanto lo resuelvas, el código aparece solo aquí — esta pantalla se
+                  actualiza sola cada 15 segundos.
+                </p>
+              </div>
+            ) : qrStatus === "error" ? (
+              // El runtime SÍ intentó levantar este hotel y su arranque falló.
+              // Antes caía en el genérico «estamos preparando tu conexión», que
+              // le pedía esperar por algo que no iba a pasar solo.
+              <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">
+                <p className="font-semibold">Tu conexión de WhatsApp no pudo arrancar</p>
+                <p className="mt-1 text-red-800">
+                  Tu hotel está bien configurado — el problema es de nuestro lado y ya
+                  quedó registrado. Escríbenos y lo levantamos hoy mismo.
+                </p>
+                <a
+                  href="https://wa.me/524891251458?text=Hola%2C%20mi%20Camila%20no%20pudo%20arrancar%20y%20no%20me%20sale%20el%20c%C3%B3digo%20QR"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-2 inline-block font-semibold text-red-900 underline"
+                >
+                  Avisar por WhatsApp
+                </a>
+              </div>
             ) : qrStatus === "sin-servicio" || qrStatus === "desconocido" ? (
               <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
                 <p className="font-semibold">Estamos preparando tu conexión.</p>
                 <p>
-                  El equipo de Kora deja tu número conectado y en línea 24/7. En cuanto tu bot esté arriba, aquí aparecerá el código QR para escanear.
+                  Tu hotel ya cumple todo lo necesario; el bot está arrancando. En cuanto esté arriba, aquí aparecerá el código QR para escanear.
                 </p>
               </div>
             ) : (
@@ -1186,7 +1230,8 @@ function BadgeEstado({ status, nombreBot }: { status: string | null; nombreBot: 
     starting: { dot: "bg-panel-faint", txt: "Preparando la conexión…" },
     disconnected: { dot: "bg-red-500", txt: "Desconectada — reconectando…" },
     auth_failure: { dot: "bg-red-500", txt: "Falló la vinculación — escanea de nuevo" },
-    error: { dot: "bg-red-500", txt: "Servicio no disponible" },
+    error: { dot: "bg-red-500", txt: "No pudo arrancar" },
+    requisitos: { dot: "bg-amber-500", txt: "Falta un paso tuyo" },
     "sin-servicio": { dot: "bg-panel-faint", txt: "Preparando tu conexión" },
     desconocido: { dot: "bg-panel-faint", txt: "Preparando tu conexión" },
     "sin-permiso": { dot: "bg-panel-faint", txt: "Solo el dueño puede vincular" },

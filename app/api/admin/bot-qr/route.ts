@@ -7,6 +7,8 @@ import { negar } from "@/lib/panel/permisos";
 
 import { NextResponse } from "next/server";
 import { getActiveHotel } from "@/lib/panel/active-hotel";
+import { accesoDelHotel } from "@/lib/suscripcion";
+import { motivosSinBot, QUE_HACER } from "@/lib/bot/elegibilidad";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -23,6 +25,23 @@ export async function GET() {
   const noPuede = negar(ctx, "bot:vincular");
   if (noPuede) return noPuede;
   console.warn(`[bot-qr] QR de vinculación solicitado por ${ctx.userId} en ${ctx.hotel.slug}`);
+
+  // ANTES DE PREGUNTARLE AL RUNTIME: ¿este hotel es siquiera elegible?
+  //
+  // Si no lo es, el runtime nunca va a levantar su Camila y el panel se quedaba
+  // diciendo «Estamos preparando tu conexión» para siempre — pidiéndole esperar
+  // por algo que dependía de él. Los motivos salen de la MISMA lista que aplica
+  // /api/bots/fleet, así que el panel no puede contradecir al fleet.
+  const acceso = await accesoDelHotel(ctx.hotel);
+  const motivos = motivosSinBot(ctx.hotel, acceso.activo);
+  if (motivos.length > 0) {
+    return NextResponse.json({
+      ok: true,
+      status: "requisitos",
+      qr: null,
+      motivos: motivos.map((m) => ({ clave: m, ...QUE_HACER[m] })),
+    });
+  }
 
   const base = process.env.CAMILA_RUNTIME_URL;
   const secret = process.env.BOT_FLEET_SECRET;
@@ -41,11 +60,14 @@ export async function GET() {
     if (!res.ok) {
       return NextResponse.json({ ok: true, status: "sin-servicio", qr: null });
     }
-    const d = (await res.json()) as { status?: string; qr?: string | null };
+    const d = (await res.json()) as { status?: string; qr?: string | null; err?: string };
     return NextResponse.json({
       ok: true,
       status: typeof d.status === "string" ? d.status : "desconocido",
       qr: typeof d.qr === "string" ? d.qr : null,
+      // El motivo técnico del fallo, para el aviso interno. No se le enseña al
+      // hotelero: a él se le dice qué hacer, no qué excepción lanzó Chromium.
+      err: typeof d.err === "string" ? d.err : undefined,
     });
   } catch {
     // Timeout / runtime caído / red: no es un error del panel, solo no hay servicio.

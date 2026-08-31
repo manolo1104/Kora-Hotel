@@ -15,6 +15,7 @@ import { NextResponse } from "next/server";
 import { createAdminClient, adminEnvReady } from "@/lib/supabase/admin";
 import { accesoDelHotel } from "@/lib/suscripcion";
 import { asegurarBotToken } from "@/lib/db/bot-token";
+import { motivosSinBot } from "@/lib/bot/elegibilidad";
 import { alertar } from "@/lib/alertas";
 import type { HotelRow } from "@/lib/tenant";
 
@@ -53,16 +54,15 @@ export async function GET(req: Request) {
 
   for (const h of rows) {
     const cfg = (h.config ?? {}) as Record<string, unknown>;
-    const extras = (h.extras ?? {}) as Record<string, unknown>;
 
-    // Filtros: hotel publicado, no demo, y el dueño no lo apagó.
-    if (!h.publicado) continue;
-    if (extras.demo === true) continue;
-    if (cfg.bot_enabled === false) continue;
-
-    // Sin acceso (plan vencido y prueba terminada) → no gastamos WhatsApp+IA.
+    // Los requisitos viven en lib/bot/elegibilidad.ts, compartidos con el panel:
+    // así la pantalla de Camila puede decirle al hotelero EXACTAMENTE qué le
+    // falta en vez de dejarlo esperando un QR que nunca iba a llegar.
+    // (El de WhatsApp no bloquea el fleet: un hotel puede tener Camila lista y
+    // poner el número después; sólo se le avisa en el panel.)
     const acceso = await accesoDelHotel(h);
-    if (!acceso.activo) continue;
+    const motivos = motivosSinBot(h, acceso.activo).filter((m) => m !== "sin-whatsapp");
+    if (motivos.length > 0) continue;
 
     // FIX de acceso: antes el token solo se generaba si el dueño abría "Ver
     // token (avanzado)" en el panel — un hotel en prueba gratis que nunca
