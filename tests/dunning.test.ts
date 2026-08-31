@@ -16,14 +16,25 @@ let columnaExiste = true;
 const correos: Array<{ to: string }> = [];
 const escrituras: Array<{ id: string; patch: Record<string, unknown> }> = [];
 
+// Simula lo justo de PostgREST: un UPDATE con `.eq(...)` sólo toca la fila si
+// TODAS las condiciones casan con el estado real, y con `.select()` devuelve las
+// que tocó. Eso es lo que hace atómico el reclamo del aviso, así que el fake
+// tiene que respetarlo o el test aprobaría un cron que manda correos de más.
+// `estadoAlReleer` es "lo que hay en la BD ahora mismo", que puede haber cambiado
+// desde que el cron leyó su lista.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function tabla(): any {
   const ctx: Record<string, unknown> = {};
+  let devuelveFilas = false;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const b: any = {
-    select(cols: string) { ctx.op = "select"; ctx.cols = cols; return b; },
+    select(cols: string) {
+      if (ctx.op === "update") devuelveFilas = true;
+      else { ctx.op = "select"; ctx.cols = cols; }
+      return b;
+    },
     update(patch: Record<string, unknown>) { ctx.op = "update"; ctx.patch = patch; return b; },
-    eq(col: string, val: string) { ctx[col] = val; return b; },
+    eq(col: string, val: unknown) { ctx[col] = val; return b; },
     lt() { return b; },
     async maybeSingle() {
       return { data: estadoAlReleer[String(ctx.id)] ?? null, error: null };
@@ -31,8 +42,22 @@ function tabla(): any {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     then(res: (v: unknown) => any) {
       if (ctx.op === "update") {
-        escrituras.push({ id: String(ctx.id), patch: ctx.patch as Record<string, unknown> });
-        return res({ data: null, error: null });
+        const real = estadoAlReleer[String(ctx.id)];
+        // Las condiciones del WHERE, comparadas contra el estado real.
+        const casa =
+          Boolean(real) &&
+          (!("estado" in ctx) || real.estado === ctx.estado) &&
+          (!("avisos_dunning" in ctx) || real.avisos_dunning === ctx.avisos_dunning);
+        if (casa) {
+          escrituras.push({ id: String(ctx.id), patch: ctx.patch as Record<string, unknown> });
+          // El UPDATE que gana deja el estado como lo escribió: así una segunda
+          // pasada dentro del mismo test ya no encuentra la fila.
+          const patch = ctx.patch as Record<string, unknown>;
+          if (typeof patch.avisos_dunning === "number") {
+            estadoAlReleer[String(ctx.id)] = { ...real, avisos_dunning: patch.avisos_dunning };
+          }
+        }
+        return res({ data: devuelveFilas ? (casa ? [{ id: ctx.id }] : []) : null, error: null });
       }
       if (!columnaExiste && String(ctx.cols).includes("ultimo_aviso_dunning")) {
         return res({ data: null, error: { code: "42703", message: "column does not exist" } });
@@ -78,6 +103,13 @@ beforeEach(() => {
   estadoAlReleer = { s1: { estado: "pago_vencido", avisos_dunning: 0 } };
 });
 
+/** Pone la BD de acuerdo con la lista que el cron va a leer. */
+function bdCoincideConLaLista() {
+  estadoAlReleer = Object.fromEntries(
+    filas.map((f) => [f.id, { estado: "pago_vencido", avisos_dunning: f.avisos_dunning }]),
+  );
+}
+
 describe("K-193 · no se le escribe dos veces el mismo día", () => {
   it("la primera pasada del día sí manda", async () => {
     const r = await (await correr()).json();
@@ -101,6 +133,7 @@ describe("K-193 · no se le escribe dos veces el mismo día", () => {
 
   it("al día siguiente sí vuelve a mandar", async () => {
     filas = [{ id: "s1", user_id: "u1", avisos_dunning: 1, ultimo_aviso_dunning: "2026-08-25" }];
+    bdCoincideConLaLista();
     expect((await (await correr()).json()).enviados).toBe(1);
   });
 
@@ -128,11 +161,27 @@ describe("K-194 · si ya pagó, no se le manda el correo", () => {
     expect((await (await correr()).json()).yaPagaron).toBe(1);
   });
 
-  // El número de intento sale de lo RELEÍDO, no de la lista vieja.
-  it("el intento se cuenta con el dato fresco", async () => {
+  // Si el contador cambió desde que se leyó la lista, el UPDATE condicionado no
+  // casa y NO se manda nada: el cron de mañana lo hará con el dato bueno. Antes
+  // el cron releía y mandaba igual, y dos pasadas simultáneas leían el mismo
+  // número y mandaban el mismo aviso dos veces.
+  it("si otra pasada ya subió el contador, no se manda y se reintenta mañana", async () => {
     estadoAlReleer = { s1: { estado: "pago_vencido", avisos_dunning: 2 } };
-    await correr();
-    expect(escrituras[0].patch).toMatchObject({ avisos_dunning: 3 });
+    const r = await (await correr()).json();
+    expect(r.enviados).toBe(0);
+    expect(r.yaPagaron).toBe(1);
+    expect(correos).toHaveLength(0);
+    expect(escrituras).toHaveLength(0);
+  });
+
+  // LA REGRESIÓN QUE IMPORTA de este paso: dos pasadas a la vez leen la misma
+  // lista y sólo UNA gana la fila. Antes las dos mandaban el mismo aviso.
+  it("dos pasadas simultáneas mandan UN solo correo", async () => {
+    bdCoincideConLaLista();
+    const [a, b] = await Promise.all([correr(), correr()]);
+    const [ra, rb] = [await a.json(), await b.json()];
+    expect(ra.enviados + rb.enviados).toBe(1);
+    expect(correos).toHaveLength(1);
   });
 });
 

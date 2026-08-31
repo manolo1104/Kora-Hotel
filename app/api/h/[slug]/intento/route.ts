@@ -38,6 +38,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
 
   try {
     const supabase = createAdminClient();
+    // NO se tocan `convertido` ni `recordatorio_enviado_at`. Este upsert los
+    // ponía a `false`/`null` en cada captura de correo, así que un huésped que
+    // YA había reservado —el webhook le pone `convertido: true`— y volvía a
+    // entrar al motor a mirar fechas se marcaba otra vez como carrito
+    // abandonado: al día siguiente el cron le mandaba "termina tu reserva" a
+    // alguien que ya había pagado y tenía su folio. Los dos campos son de quien
+    // los escribe (el webhook y el propio cron), no de esta ruta.
     await escribirMejorEsfuerzo("booking_intents.capturar", supabase.from("booking_intents").upsert(
       {
         hotel_id: hotel.id,
@@ -45,8 +52,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
         nombre: nombre || null,
         lang,
         payload,
-        convertido: false,
-        recordatorio_enviado_at: null,
         updated_at: new Date().toISOString(),
       },
       { onConflict: "hotel_id,email" },

@@ -2,7 +2,8 @@ import { leer } from "@/lib/db/result";
 import { rutaSegura } from "@/lib/api/responder";
 import { NextResponse } from "next/server";
 import { createAdminClient, adminEnvReady } from "@/lib/supabase/admin";
-import { pruebaDelHotel, tienePlanActivo, type Suscripcion } from "@/lib/suscripcion";
+import { pruebaDelHotel, tienePlanActivo, bloqueoDelHotel, type Suscripcion } from "@/lib/suscripcion";
+import { escribirMejorEsfuerzo } from "@/lib/db/result";
 import { iniciosPruebaDeDuenos } from "@/lib/db/prueba-dueno";
 import { resolveHotelAvisoEmail } from "@/lib/email/reserva";
 import { sendRecordatorioPrueba, sendPruebaPausada } from "@/lib/email/prueba";
@@ -15,8 +16,11 @@ export const dynamic = "force-dynamic";
 // queden a su prueba (derivada de created_at, ver lib/suscripcion):
 //   - día 10 / 3 / 1 restantes → recordatorio con CTA de activar el plan
 //   - recién vencida (primeras 24 h) → aviso de motor pausado
-// Como corre una vez al día, cada umbral dispara exactamente un correo — no
-// hace falta tabla de deduplicación.
+// El umbral ya avisado se PERSISTE en `extras.prueba.avisos`. "Corre una vez al
+// día" describe el cron de Vercel, no lo que le puede pasar a la ruta: un `curl`
+// suelto, un redespliegue o un reintento la ejecutan otra vez el mismo día, y sin
+// marca el hotelero recibía el mismo "te quedan 3 días" dos veces. No hace falta
+// tabla nueva: la marca vive en el propio hotel.
 
 const DIAS_RECORDATORIO = new Set([10, 3, 1]);
 
@@ -71,6 +75,10 @@ export async function GET(req: Request) {
     publicado: boolean;
   }>) {
     if (conPlan.has(hotel.owner_id)) continue;
+    // Una cuenta que Kora bloqueó a mano no recibe upsell: "activa tu plan" a
+    // quien tenemos apagado a propósito es, según por qué se bloqueó, desde
+    // ridículo hasta ofensivo.
+    if (bloqueoDelHotel(hotel.extras)) continue;
     const prueba = pruebaDelHotel(hotel, inicios.get(hotel.owner_id) ?? null);
     if (!prueba) continue; // demo
 
@@ -79,19 +87,48 @@ export async function GET(req: Request) {
     const recienVencida = prueba.vencida && msVencida < 86_400_000;
     if (!esRecordatorio && !recienVencida) continue;
 
+    // Marca de "este aviso ya salió". Los recordatorios se marcan por su umbral
+    // ("10", "3", "1") y el de vencida por su nombre, para que los cuatro sean
+    // independientes entre sí.
+    const marca = esRecordatorio ? String(prueba.diasRestantes) : "vencida";
+    const extrasPrueba = ((hotel.extras ?? {}).prueba ?? {}) as { avisos?: unknown };
+    const avisos = Array.isArray(extrasPrueba.avisos) ? extrasPrueba.avisos.map(String) : [];
+    if (avisos.includes(marca)) continue;
+
     const to = await resolveHotelAvisoEmail(hotel);
     if (!to) continue;
 
-    if (esRecordatorio) {
-      const ok = await sendRecordatorioPrueba(to, {
-        hotelNombre: hotel.nombre,
-        diasRestantes: prueba.diasRestantes,
-      });
-      if (ok.ok) recordatorios++;
-    } else {
-      const ok = await sendPruebaPausada(to, hotel.nombre);
-      if (ok.ok) pausados++;
-    }
+    const enviado = esRecordatorio
+      ? await sendRecordatorioPrueba(to, {
+          hotelNombre: hotel.nombre,
+          diasRestantes: prueba.diasRestantes,
+        })
+      : await sendPruebaPausada(to, hotel.nombre);
+
+    if (!enviado.ok) continue; // sin marca: mañana se reintenta
+
+    if (esRecordatorio) recordatorios++;
+    else pausados++;
+
+    // Se relee `extras` antes de escribir: entre la lectura del principio del
+    // cron y este punto el hotelero pudo haber guardado su editor, y escribir el
+    // objeto viejo le borraría lo que acaba de cambiar.
+    const fresco = await leer<{ extras: Record<string, unknown> | null }>(
+      "cron.prueba.extrasFrescos",
+      admin.from("hoteles").select("extras").eq("id", hotel.id).maybeSingle(),
+    );
+    const base = (fresco?.extras ?? hotel.extras ?? {}) as Record<string, unknown>;
+    const pruebaBase = (base.prueba ?? {}) as Record<string, unknown>;
+    const avisosBase = Array.isArray(pruebaBase.avisos) ? pruebaBase.avisos.map(String) : [];
+    await escribirMejorEsfuerzo(
+      "hoteles.pruebaAvisos",
+      admin
+        .from("hoteles")
+        .update({
+          extras: { ...base, prueba: { ...pruebaBase, avisos: [...new Set([...avisosBase, marca])] } },
+        })
+        .eq("id", hotel.id),
+    );
   }
 
   return NextResponse.json({ ok: true, recordatorios, pausados });

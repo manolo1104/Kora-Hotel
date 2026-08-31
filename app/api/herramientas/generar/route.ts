@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { rateLimited } from "@/lib/api/rate-limit";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
@@ -8,19 +9,6 @@ export const dynamic = "force-dynamic";
 const MODEL = "claude-haiku-4-5";
 const MAX_TOKENS = 700;
 const MAX_INPUT_CHARS = 2500; // tope de entrada para acotar costo/abuso
-
-// Rate limit best-effort por IP (en memoria; se reinicia con cada instancia).
-const VENTANA_MS = 60_000;
-const MAX_POR_VENTANA = 8;
-const hits = new Map<string, number[]>();
-
-function rateLimited(ip: string): boolean {
-  const ahora = Date.now();
-  const previos = (hits.get(ip) || []).filter((t) => ahora - t < VENTANA_MS);
-  previos.push(ahora);
-  hits.set(ip, previos);
-  return previos.length > MAX_POR_VENTANA;
-}
 
 type Tipo = "resena" | "whatsapp" | "descripcion" | "huesped";
 
@@ -71,7 +59,7 @@ export async function POST(req: Request) {
     req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
     req.headers.get("x-real-ip") ||
     "anon";
-  if (rateLimited(ip)) {
+  if (rateLimited("herramientas.generar", ip, { max: 8, ventanaMs: 60_000 })) {
     return NextResponse.json(
       { error: "Vas muy rápido. Espera un minuto e inténtalo de nuevo." },
       { status: 429 }

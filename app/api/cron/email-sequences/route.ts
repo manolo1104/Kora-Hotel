@@ -4,7 +4,8 @@ import { createAdminClient, adminEnvReady } from "@/lib/supabase/admin";
 import { enviarEmail } from "@/lib/email/resend";
 import { escribirMejorEsfuerzo } from "@/lib/db/result";
 import { promosDe } from "@/lib/booking/rooms";
-import { getAllBookings, logAgentActivity, type AdminBooking } from "@/lib/db/admin";
+import { accesoDelHotel } from "@/lib/suscripcion";
+import { getBookingsDesde, logAgentActivity, type AdminBooking } from "@/lib/db/admin";
 import {
   buildSurveyEmailHtml,
   buildReviewEmailHtml,
@@ -16,6 +17,9 @@ import {
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+// Diez hoteles × sus reservas × cinco ventanas, y ahora una comprobación de
+// acceso por hotel: el default de 10 s se queda corto en cuanto entren más.
+export const maxDuration = 60;
 
 // ── CRON GLOBAL multi-tenant de las 5 secuencias de email ────────────────────
 // Itera TODOS los hoteles; por cada uno trae sus reservas y, para cada reserva,
@@ -158,28 +162,47 @@ export async function GET(req: Request) {
   const puedeEnviar = Boolean(process.env.RESEND_API_KEY);
 
   // ── Todos los hoteles ──
+  // `owner_id`, `created_at` y `publicado` hacen falta para saber si el hotel
+  // sigue teniendo acceso; antes ni se traían.
   const { data: hotelesRaw, error: hotelesErr } = await admin
     .from("hoteles")
-    .select("id, nombre, slug, whatsapp, ubicacion, config, guia, extras");
+    .select("id, nombre, slug, whatsapp, ubicacion, config, guia, extras, owner_id, created_at, publicado");
   if (hotelesErr) {
     console.error("[cron/email-sequences] error leyendo hoteles:", hotelesErr.message);
     return NextResponse.json({ ok: false, error: hotelesErr.message }, { status: 500 });
   }
   const hoteles = (hotelesRaw ?? []) as HotelRow[];
 
-  const totals = { hoteles: hoteles.length, sent: 0, skipped: 0, errors: 0 };
+  const totals = { hoteles: hoteles.length, sent: 0, skipped: 0, errors: 0, sinAcceso: 0 };
   const perHotel: { hotel: string; sent: number; skipped: number; errors: number }[] = [];
 
   for (const hotel of hoteles) {
+    // UN HOTEL QUE YA NO TIENE ACCESO NO LE ESCRIBE A NADIE. Este cron recorría
+    // TODOS los hoteles de la tabla, sin mirar si el dueño sigue pagando, si la
+    // prueba venció o si Kora bloqueó la cuenta: sus huéspedes seguían
+    // recibiendo la guía de bienvenida y la petición de reseña de un hotel al
+    // que ya se le apagó el motor. `accesoDelHotel` es el punto único por el que
+    // pasan panel, motor, checkout y bot; este cron era de los pocos que no.
+    const acceso = await accesoDelHotel({
+      owner_id: (hotel as { owner_id?: string }).owner_id ?? "",
+      created_at: (hotel as { created_at?: string | null }).created_at ?? null,
+      extras: hotel.extras,
+      publicado: (hotel as { publicado?: boolean | null }).publicado,
+    });
+    if (!acceso.activo || acceso.bloqueado) {
+      totals.sinAcceso++;
+      continue;
+    }
+
     const brand = brandFromHotel(hotel);
     const from = fromForHotel(hotel);
     const hres = { sent: 0, skipped: 0, errors: 0 };
 
     let bookings: AdminBooking[] = [];
     try {
-      bookings = await getAllBookings(hotel.id);
+      bookings = await getBookingsDesde(hotel.id, maxPastDate);
     } catch (e) {
-      console.error(`[cron/email-sequences] getAllBookings(${hotel.id}) falló:`, e);
+      console.error(`[cron/email-sequences] getBookingsDesde(${hotel.id}) falló:`, e);
       perHotel.push({ hotel: hotel.nombre ?? hotel.id, ...hres });
       continue;
     }

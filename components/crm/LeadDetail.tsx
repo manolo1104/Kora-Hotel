@@ -60,6 +60,24 @@ export function LeadDetail({ initialLead, initialActs }: { initialLead: Lead; in
     }
   }
 
+  // Sacar a un lead de la secuencia automática. Antes no se podía: la columna
+  // existía y el cron la leía, pero nada la escribía. Optimista, con vuelta
+  // atrás si el PATCH falla — es un interruptor, no vale la pena un spinner.
+  async function alternarSecuencia() {
+    const prev = lead;
+    const pausada = !lead.secuencia_pausada;
+    setLead({ ...lead, secuencia_pausada: pausada });
+    try {
+      await api(`/api/crm/leads/${lead.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ secuencia_pausada: pausada }),
+      });
+    } catch {
+      setLead(prev);
+      alert("No se pudo cambiar la secuencia de correos.");
+    }
+  }
+
   async function eliminarLead() {
     if (!confirm(`¿Eliminar el lead "${lead.hotel_nombre}"? Esto borra también su historial.`)) return;
     try {
@@ -174,6 +192,27 @@ export function LeadDetail({ initialLead, initialActs }: { initialLead: Lead; in
             ) : null}
           </Field>
         </div>
+        {/* Correos automáticos. Sólo tiene sentido si hay correo: la secuencia
+            no le escribe a quien sólo dejó WhatsApp. */}
+        {lead.email && (
+          <div className="mt-4 flex items-start gap-2.5 border-t border-gray-100 pt-4">
+            <input
+              id="secuencia-pausada"
+              type="checkbox"
+              checked={Boolean(lead.secuencia_pausada)}
+              onChange={alternarSecuencia}
+              className="mt-0.5 h-4 w-4 accent-kora-primary"
+            />
+            <label htmlFor="secuencia-pausada" className="text-sm text-kora-text">
+              Pausar los correos automáticos
+              <span className="block text-xs text-kora-muted">
+                Enciéndelo cuando ya hablaste con él: deja de recibir los correos
+                de seguimiento del día 3 y del día 7.
+              </span>
+            </label>
+          </div>
+        )}
+
         {lead.notas && (
           <div className="mt-4 border-t border-gray-100 pt-4">
             <div className="text-xs text-kora-muted mb-1">Notas</div>

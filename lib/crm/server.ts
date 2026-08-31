@@ -41,6 +41,15 @@ export function sanitizeLead(
     }
   }
 
+  // El interruptor de la secuencia automática. `crm_leads.secuencia_pausada` la
+  // LEÍA el cron (app/api/cron/leads/route.ts) y NADIE la escribía: no había
+  // forma de sacar a un lead de la secuencia. Un hotelero al que Manolo ya llamó
+  // por teléfono seguía recibiendo los correos de venta del día 3 y del día 7,
+  // que es como se quema un lead que ya estaba caliente.
+  if ("secuencia_pausada" in body) {
+    out.secuencia_pausada = body.secuencia_pausada === true;
+  }
+
   if ("proximo_seguimiento" in body) {
     const d = str(body.proximo_seguimiento);
     out.proximo_seguimiento = d && /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : null;

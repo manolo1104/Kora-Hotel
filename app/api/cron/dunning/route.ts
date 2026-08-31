@@ -1,5 +1,5 @@
 import { alertar } from "@/lib/alertas";
-import { leer, escribir, DbError } from "@/lib/db/result";
+import { escribir, DbError } from "@/lib/db/result";
 import { rutaSegura } from "@/lib/api/responder";
 import { NextResponse } from "next/server";
 import { createAdminClient, adminEnvReady } from "@/lib/supabase/admin";
@@ -109,33 +109,55 @@ export async function GET(req: Request) {
       continue;
     }
 
-    // RELEER JUSTO ANTES DE MANDAR (K-194). La lista se leyó al empezar y los
-    // correos salen en serie; si el pago entra a mitad del bucle —Stripe reintenta
-    // por su lado y `invoice.paid` pone la fila en `activa`—, al cliente le llegaba
-    // "no pudimos cobrarte" DESPUÉS de haber pagado. Es el peor correo posible.
-    const actual = await leer<{ estado: string; avisos_dunning: number }>(
-      "cron.dunning.releer",
-      admin.from("suscripciones").select("estado, avisos_dunning").eq("id", s.id).maybeSingle(),
-    );
-    if (!actual || actual.estado !== "pago_vencido" || actual.avisos_dunning >= MAX_AVISOS) {
+    // RECLAMAR EL AVISO ANTES DE MANDARLO (K-194), el mismo patrón que ya usan
+    // bien `cron/abandono`, `cron/email-sequences` y `cron/leads`.
+    //
+    // Antes esto era leer → decidir → enviar → escribir, y entre el leer y el
+    // enviar cabía todo: si el pago entraba ahí en medio —Stripe reintenta por su
+    // lado y `invoice.paid` pone la fila en `activa`— al cliente le llegaba "no
+    // pudimos cobrarte" DESPUÉS de haber pagado, que es el peor correo que puede
+    // mandar un SaaS. Y dos invocaciones simultáneas leían el mismo
+    // `avisos_dunning` y mandaban el mismo aviso dos veces.
+    //
+    // Con el UPDATE condicionado por `estado` Y por el `avisos_dunning` que se
+    // leyó, sólo una petición gana la fila. Si vuelve vacía, o ya pagó, o otra
+    // pasada se le adelantó: en los dos casos no le toca correo.
+    const intento = s.avisos_dunning + 1;
+    const { data: reclamada, error: reclamoErr } = await admin
+      .from("suscripciones")
+      .update({
+        avisos_dunning: intento,
+        ...(conGuarda ? { ultimo_aviso_dunning: hoy } : {}),
+      })
+      .eq("id", s.id)
+      .eq("estado", "pago_vencido")
+      .eq("avisos_dunning", s.avisos_dunning)
+      .select("id");
+    if (reclamoErr) {
+      console.error("cron.dunning.reclamar:", reclamoErr.message);
+      continue;
+    }
+    if (!reclamada || reclamada.length === 0) {
       yaPagaron++;
       continue;
     }
 
-    const intento = actual.avisos_dunning + 1;
     const envio = await enviarEmail({ to: email, ...emailPagoVencido({ intento }) });
     if (envio.ok) {
+      enviados++;
+    } else {
+      // El aviso quedó contado pero no salió. Se devuelve la fila a como estaba
+      // para que el cron de mañana lo reintente: si no, el cliente pierde uno de
+      // los tres avisos que tiene antes de perder el acceso, y en silencio.
       await escribir(
-        "suscripciones.avisosDunning",
+        "suscripciones.dunningDevolver",
         admin
           .from("suscripciones")
-          .update({
-            avisos_dunning: intento,
-            ...(conGuarda ? { ultimo_aviso_dunning: hoy } : {}),
-          })
-          .eq("id", s.id),
+          .update({ avisos_dunning: s.avisos_dunning })
+          .eq("id", s.id)
+          .eq("avisos_dunning", intento),
       );
-      enviados++;
+      console.error(`cron.dunning: no salió el aviso ${intento} de ${s.id}: ${envio.error}`);
     }
   }
 

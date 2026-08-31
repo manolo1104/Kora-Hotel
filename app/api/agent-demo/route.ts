@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { rateLimited } from "@/lib/api/rate-limit";
 import { NextResponse } from "next/server";
 import { resolveHotel } from "@/lib/tenant";
 import { buildHotelKnowledge } from "@/lib/bot/knowledge";
@@ -21,18 +22,6 @@ const MAX_TURNOS = 12;
 // resolveHotel devuelve null y la demo contesta "no está disponible" a
 // todos, en silencio: no rompe el build ni deja error visible.
 const DEMO_SLUG = "hotel-magico";
-
-const VENTANA_MS = 60_000;
-const MAX_POR_VENTANA = 10;
-const hits = new Map<string, number[]>();
-
-function rateLimited(ip: string): boolean {
-  const ahora = Date.now();
-  const previos = (hits.get(ip) || []).filter((t) => ahora - t < VENTANA_MS);
-  previos.push(ahora);
-  hits.set(ip, previos);
-  return previos.length > MAX_POR_VENTANA;
-}
 
 // El system prompt del demo casi no cambia: lo cacheamos en memoria del proceso.
 let cache: { prompt: string; exp: number } | null = null;
@@ -86,7 +75,7 @@ export async function POST(req: Request) {
     req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
     req.headers.get("x-real-ip") ||
     "anon";
-  if (rateLimited(ip)) {
+  if (rateLimited("agent-demo", ip, { max: 10, ventanaMs: 60_000 })) {
     return NextResponse.json(
       { error: "Vas muy rápido. Espera un momento e inténtalo de nuevo." },
       { status: 429 }

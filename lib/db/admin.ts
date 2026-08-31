@@ -357,6 +357,31 @@ export async function getAllBookings(hotelId: string): Promise<AdminBooking[]> {
   return ((data ?? []) as BookingRow[]).map(mapBooking);
 }
 
+/**
+ * Las reservas cuyo CHECK-OUT cae de `desde` en adelante.
+ *
+ * Para el cron de secuencias: sólo mira ventanas de hasta 45 días atrás, pero
+ * usaba `getAllBookings`, que se baja el histórico ENTERO de cada hotel con
+ * `select("*")` y sin límite. Con diez hoteles pasa desapercibido; con cien, o
+ * con un hotel de dos años de reservas, es lo que hace que el cron se pase del
+ * tiempo y no le escriba a nadie ese día — en silencio, porque un cron que no
+ * termina no deja error, deja nada.
+ */
+export async function getBookingsDesde(hotelId: string, desde: string): Promise<AdminBooking[]> {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("bookings")
+    .select("*")
+    .eq("hotel_id", hotelId)
+    .gte("checkout", desde)
+    .order("created_at", { ascending: false });
+  if (error) {
+    console.error("getBookingsDesde error:", error.message);
+    return [];
+  }
+  return ((data ?? []) as BookingRow[]).map(mapBooking);
+}
+
 /** El insert de `createManualBooking`, aparte para poder reintentarlo con folio nuevo. */
 async function insertarReservaManual(
   supabase: ReturnType<typeof createAdminClient>,

@@ -32,6 +32,12 @@ export interface Lead {
   valor_estimado: number | null;
   proximo_seguimiento: string | null; // YYYY-MM-DD
   notas: string | null;
+  /**
+   * `true` = a este lead NO le salen los correos automáticos del día 3 y del
+   * día 7. Se enciende desde la ficha del lead en el CRM. Lo lee
+   * app/api/cron/leads/route.ts.
+   */
+  secuencia_pausada: boolean | null;
   created_at: string;
   updated_at: string;
 }
@@ -71,7 +77,14 @@ export const TIPO_LABEL: Record<TipoActividad, string> = Object.fromEntries(
   TIPOS_ACTIVIDAD.map((t) => [t.id, t.label])
 ) as Record<TipoActividad, string>;
 
-// Campos editables de un lead (para validar en el servidor).
+/**
+ * Campos editables de un lead.
+ *
+ * ⚠️ NO es la lista que valida el servidor, aunque lo pareciera: la viva es la
+ * de `sanitizeLead` en lib/crm/server.ts, y hoy nadie importa esta constante.
+ * Se conserva como referencia de los campos, pero si añades uno, el que hay que
+ * tocar es `sanitizeLead`.
+ */
 export const LEAD_FIELDS = [
   "hotel_nombre",
   "tomador_nombre",
@@ -84,4 +97,5 @@ export const LEAD_FIELDS = [
   "valor_estimado",
   "proximo_seguimiento",
   "notas",
+  "secuencia_pausada",
 ] as const;

@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { rateLimited } from "@/lib/api/rate-limit";
 import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { createAdminClient, adminEnvReady } from "@/lib/supabase/admin";
@@ -19,18 +20,6 @@ const MAX_TOKENS = 500;
 const MAX_INPUT_CHARS = 1500;
 const MAX_TURNOS = 12; // turnos de historial que aceptamos del cliente
 
-const VENTANA_MS = 60_000;
-const MAX_POR_VENTANA = 8;
-const hits = new Map<string, number[]>();
-
-function rateLimited(ip: string): boolean {
-  const ahora = Date.now();
-  const previos = (hits.get(ip) || []).filter((t) => ahora - t < VENTANA_MS);
-  previos.push(ahora);
-  hits.set(ip, previos);
-  return previos.length > MAX_POR_VENTANA;
-}
-
 interface Turno {
   rol: "user" | "assistant";
   texto: string;
@@ -48,7 +37,7 @@ export async function POST(req: Request) {
     req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
     req.headers.get("x-real-ip") ||
     "anon";
-  if (rateLimited(ip)) {
+  if (rateLimited("soporte", ip, { max: 8, ventanaMs: 60_000 })) {
     return NextResponse.json(
       { error: "Vas muy rápido. Espera un minuto e inténtalo de nuevo." },
       { status: 429 }

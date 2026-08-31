@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { rateLimited, ipDe } from "@/lib/api/rate-limit";
 import { z } from "zod";
 import { findGuestBooking, cancelGuestBooking, serializeGuestBooking } from "@/lib/db/portal";
 import {
@@ -21,6 +22,12 @@ const Body = z.object({
 // permite (tarifa flexible, dentro del plazo). El reembolso del anticipo lo
 // coordina el hotel (la automatización con Stripe llega en la fase de pagos).
 export async function POST(req: NextRequest) {
+  // Cancelar es irreversible y manda dos correos. El límite es la segunda red,
+// después del UPDATE condicionado de `cancelGuestBooking`.
+  if (rateLimited("reserva.cancelar", ipDe(req), { max: 3, ventanaMs: 600000 })) {
+    return NextResponse.json({ error: "demasiados-intentos" }, { status: 429 });
+  }
+
   const parsed = Body.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "datos-invalidos" }, { status: 400 });
 
@@ -34,8 +41,14 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const ok = await cancelGuestBooking(booking);
-  if (!ok) return NextResponse.json({ error: "error-interno" }, { status: 500 });
+  const res = await cancelGuestBooking(booking);
+  // 409, no 500: la reserva SÍ está cancelada, sólo que la canceló la petición
+  // anterior. El portal ya sabe pintar el 409 como "esta reserva ya no se puede
+  // cancelar", y salir por aquí es lo que evita el segundo par de correos.
+  if (res.yaCancelada) {
+    return NextResponse.json({ error: "no-cancelable", motivo: "estado" }, { status: 409 });
+  }
+  if (!res.ok) return NextResponse.json({ error: "error-interno" }, { status: 500 });
 
   // Los dos avisos son mejor-esfuerzo (la cancelación ya quedó hecha), pero su
   // resultado viaja en la respuesta: el portal puede decir "cancelada, pero no

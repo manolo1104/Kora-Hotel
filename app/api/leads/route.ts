@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { rateLimited } from "@/lib/api/rate-limit";
 import { escribir, escribirMejorEsfuerzo } from "@/lib/db/result";
 import { createAdminClient, adminEnvReady } from "@/lib/supabase/admin";
 import { enviarEmail, NOTIFY_EMAIL } from "@/lib/email/resend";
@@ -10,18 +11,6 @@ export const dynamic = "force-dynamic";
 // Endpoint PÚBLICO de captura de leads: los formularios del sitio (contacto y
 // herramientas) insertan aquí directo al CRM y avisan al fundador al instante.
 // Defensas: honeypot (_gotcha), rate limit por IP y validación mínima.
-
-const VENTANA_MS = 60_000;
-const MAX_POR_VENTANA = 5;
-const hits = new Map<string, number[]>();
-
-function rateLimited(ip: string): boolean {
-  const ahora = Date.now();
-  const previos = (hits.get(ip) || []).filter((t) => ahora - t < VENTANA_MS);
-  previos.push(ahora);
-  hits.set(ip, previos);
-  return previos.length > MAX_POR_VENTANA;
-}
 
 const FORMSPREE_URL = process.env.NEXT_PUBLIC_FORMSPREE_URL ?? "";
 
@@ -52,7 +41,7 @@ export async function POST(req: Request) {
     req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
     req.headers.get("x-real-ip") ||
     "anon";
-  if (rateLimited(ip)) {
+  if (rateLimited("leads", ip, { max: 5, ventanaMs: 60_000 })) {
     return NextResponse.json(
       { error: "Vas muy rápido. Espera un minuto e inténtalo de nuevo." },
       { status: 429 }

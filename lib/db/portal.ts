@@ -124,18 +124,34 @@ export function serializeGuestBooking(b: GuestBooking) {
   };
 }
 
-/** Cancela la reserva y libera sus bloqueos de ocupación. */
-export async function cancelGuestBooking(b: GuestBooking): Promise<boolean> {
+/**
+ * Cancela la reserva y libera sus bloqueos de ocupación.
+ *
+ * Devuelve `false` también cuando la reserva YA estaba cancelada: el UPDATE
+ * lleva `.neq("estado","CANCELADA")` y sólo gana la primera petición. Sin eso,
+ * un doble clic en «Cancelar» —o el reintento de un móvil con mala señal— la
+ * cancelaba dos veces y mandaba DOS correos al huésped y DOS al hotel, que es
+ * como un hotelero acaba llamando a preguntar si canceló una o dos reservas.
+ * El llamador distingue este caso del error real por `yaCancelada`.
+ */
+export async function cancelGuestBooking(
+  b: GuestBooking,
+): Promise<{ ok: boolean; yaCancelada?: boolean }> {
   const supabase = createAdminClient();
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("bookings")
     .update({ estado: "CANCELADA" })
     .eq("hotel_id", b.row.hotel_id)
-    .eq("id", b.row.id);
+    .eq("id", b.row.id)
+    .neq("estado", "CANCELADA")
+    .select("id");
   if (error) {
     console.error("cancelGuestBooking error:", error);
-    return false;
+    return { ok: false };
   }
+  // Cero filas = otra petición llegó primero. No es un error, pero tampoco
+  // puede seguir: lo que va debajo manda los correos.
+  if (!data || data.length === 0) return { ok: false, yaCancelada: true };
   const { error: blockErr } = await supabase
     .from("blocks")
     .delete()
@@ -144,5 +160,5 @@ export async function cancelGuestBooking(b: GuestBooking): Promise<boolean> {
   if (blockErr) console.error("cancelGuestBooking blocks error:", blockErr);
   // Cupo de experiencias: los lugares de la reserva quedan libres (fail-safe).
   await liberarExperienciaVentas(b.row.hotel_id, b.row.confirmacion);
-  return true;
+  return { ok: true };
 }
