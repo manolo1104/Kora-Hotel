@@ -350,7 +350,7 @@ export function buildPagoSinCuartoHuespedHtml(a: PagoSinCuartoArgs): string {
         cuartos: "Room(s)",
         monto: "Amount",
         reembolsado: `We already issued a full refund of <strong>${money(a.monto)}</strong>. It will show up in your account within a few business days.`,
-        pendiente: `We are processing a full refund of <strong>${money(a.monto)}</strong>. If you don't see it within 5 business days, just reply to this email.`,
+        pendiente: `The hotel will issue your full refund of <strong>${money(a.monto)}</strong> to the same payment method you used — we have already alerted them. If you don't see it within 5 business days, reply to this email and it reaches them directly.`,
         nota: "The hotel has been notified and may reach out with alternative dates.",
       }
     : {
@@ -362,7 +362,7 @@ export function buildPagoSinCuartoHuespedHtml(a: PagoSinCuartoArgs): string {
         cuartos: "Cuarto(s)",
         monto: "Monto",
         reembolsado: `Ya emitimos el reembolso completo de <strong>${money(a.monto)}</strong>. Lo verás reflejado en unos días hábiles.`,
-        pendiente: `Estamos procesando tu reembolso completo de <strong>${money(a.monto)}</strong>. Si no lo ves en 5 días hábiles, responde a este correo.`,
+        pendiente: `El hotel va a devolverte los <strong>${money(a.monto)}</strong> completos por el mismo medio con el que pagaste — ya se lo avisamos. Si no lo ves en 5 días hábiles, responde a este correo y le llega directo a él.`,
         nota: "El hotel ya fue notificado y puede contactarte con fechas alternativas.",
       };
 
@@ -375,6 +375,13 @@ export function buildPagoSinCuartoHuespedHtml(a: PagoSinCuartoArgs): string {
       { k: t.cuartos, v: esc(a.habitaciones.join(", ")) || "—" },
       { k: t.monto, v: money(a.monto) },
     ]) +
+    // `reembolsado:false` significa que el `refunds.create` del webhook FALLÓ y
+    // sólo quedó un console.error: no hay nada procesándose en segundo plano.
+    // El correo decía "estamos procesando tu reembolso", que era falso y además
+    // dejaba al huésped esperando a nadie. Como los reembolsos los emite el
+    // hotel (decisión de Manolo, reconfirmada el 31 ago 2026), el texto ahora
+    // nombra a quien de verdad va a mover el dinero — y con el `replyTo` que
+    // lleva este correo, responderlo le llega a él.
     caja(a.reembolsado ? t.reembolsado : t.pendiente, a.reembolsado ? "exito" : "alerta") +
     parrafo(`<span style="font-size:13px;color:${TOK.tenue};">${esc(t.nota)}</span>`) +
     respiro +
