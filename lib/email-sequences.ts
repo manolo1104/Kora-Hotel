@@ -60,7 +60,13 @@ export interface HotelBrand {
 function brandDefaults(hotel: HotelBrand) {
   const nombre = hotel.nombre || "el hotel";
   return {
+    // `nombre` CRUDO: sólo para las piezas que escapan ellas mismas (cabecera,
+    // pieHotel, doc) o para lo que va por encodeURIComponent (gcalUrl, waLink).
     nombre,
+    // `nombreEsc` para interpolarlo dentro de HTML a mano. Lo teclea el hotelero
+    // en su onboarding y sale en el correo que recibe el huésped: en un
+    // multi-tenant es entrada no confiable, aunque venga "de casa".
+    nombreEsc: esc(nombre),
     ubicacion: hotel.ubicacion || "",
     telefono: hotel.telefono || "",
     whatsapp: hotel.whatsapp || hotel.telefono || "",
@@ -154,6 +160,7 @@ export function buildRestaurantEmailHtml(data: {
     `${b.nombre} — ${t.eyebrow}`,
     en ? `3 days to go — ${b.nombre}` : `Faltan 3 días — ${b.nombre}`,
     inner,
+    en ? "en" : "es",
   );
 }
 
@@ -232,6 +239,7 @@ export function buildWelcomeGuideEmailHtml(data: {
     `${b.nombre} — ${t.eyebrow}`,
     en ? `See you today at ${b.nombre}` : `Hoy te esperamos en ${b.nombre}`,
     inner,
+    en ? "en" : "es",
   );
 }
 
@@ -260,7 +268,7 @@ export function buildSurveyEmailHtml(data: {
         h: "How was your escape?",
         intro: `Your stay from <strong>${fechaLarga(data.checkin, true)}</strong> to <strong>${fechaLarga(data.checkout, true)}</strong> ended yesterday. How did it go?`,
         pick: "Tap a star to rate us",
-        cita: `"Every opinion helps us make ${b.nombre} better for whoever comes next."`,
+        cita: `"Every opinion helps us make ${b.nombreEsc} better for whoever comes next."`,
         reply: "You can also just reply to this email. 🌿",
         cta: "Rate my stay ★",
       }
@@ -269,7 +277,7 @@ export function buildSurveyEmailHtml(data: {
         h: "¿Cómo estuvo tu escapada?",
         intro: `Tu estancia del <strong>${fechaLarga(data.checkin)}</strong> al <strong>${fechaLarga(data.checkout)}</strong> terminó ayer. ¿Cómo te fue?`,
         pick: "Toca una estrella para calificarnos",
-        cita: `"Cada opinión nos ayuda a hacer de ${b.nombre} un lugar mejor para quienes vienen después."`,
+        cita: `"Cada opinión nos ayuda a hacer de ${b.nombreEsc} un lugar mejor para quienes vienen después."`,
         reply: "También puedes responder directo a este correo. 🌿",
         cta: "Calificar mi estancia ★",
       };
@@ -303,6 +311,7 @@ export function buildSurveyEmailHtml(data: {
     `${b.nombre} — ${t.h}`,
     en ? `${first}, how was your stay?` : `${first}, ¿cómo estuvo tu estancia?`,
     inner,
+    en ? "en" : "es",
   );
 }
 
@@ -327,14 +336,14 @@ export function buildReviewEmailHtml(data: {
     ? {
         eyebrow: "One week later",
         h: "Your words travel further than you think",
-        intro: `A week ago you said goodbye to ${b.nombre}. A short review helps other travelers find their next place — and it only takes two minutes. 🙏`,
+        intro: `A week ago you said goodbye to ${b.nombreEsc}. A short review helps other travelers find their next place — and it only takes two minutes. 🙏`,
         btn: "Leave my review ★",
         cita: `"Every review is a story that reaches people who haven't found us yet."`,
       }
     : {
         eyebrow: "Una semana después",
         h: "Tu opinión llega más lejos de lo que crees",
-        intro: `Hace una semana te despediste de ${b.nombre}. Una reseña corta ayuda a que otros viajeros encuentren su próximo destino — y solo toma dos minutos. 🙏`,
+        intro: `Hace una semana te despediste de ${b.nombreEsc}. Una reseña corta ayuda a que otros viajeros encuentren su próximo destino — y solo toma dos minutos. 🙏`,
         btn: "Dejar mi reseña ★",
         cita: `"Cada reseña es una historia que llega a quienes todavía no nos descubren."`,
       };
@@ -351,6 +360,7 @@ export function buildReviewEmailHtml(data: {
     `${b.nombre} — ${t.eyebrow}`,
     en ? `${first}, would you leave us a review?` : `${first}, ¿nos dejas una reseña?`,
     inner,
+    en ? "en" : "es",
   );
 }
 
@@ -378,8 +388,8 @@ export function buildReturnOfferEmailHtml(data: {
     ? {
         eyebrow: "An invitation for you",
         h: "Come back whenever you like",
-        introPromo: `A month has passed since you left, and we still remember you at ${b.nombre}. As a thank-you for trusting us, here's <strong>${esc(b.promoDiscount)} off</strong> your next stay.`,
-        introSimple: `A month has passed since you left, and we still remember you at ${b.nombre}. Whenever you feel like coming back, your room is here.`,
+        introPromo: `A month has passed since you left, and we still remember you at ${b.nombreEsc}. As a thank-you for trusting us, here's <strong>${esc(b.promoDiscount)} off</strong> your next stay.`,
+        introSimple: `A month has passed since you left, and we still remember you at ${b.nombreEsc}. Whenever you feel like coming back, your room is here.`,
         codigo: "Your exclusive code",
         validez: (d: string) => `${esc(b.promoDiscount)} off · valid until ${esc(d)}`,
         btnPromo: `Book with ${esc(b.promoDiscount)} off`,
@@ -389,8 +399,8 @@ export function buildReturnOfferEmailHtml(data: {
     : {
         eyebrow: "Una invitación para ti",
         h: "Vuelve cuando quieras",
-        introPromo: `Ha pasado un mes desde que te fuiste y en ${b.nombre} todavía te recordamos. Como agradecimiento por confiar en nosotros, te dejamos <strong>${esc(b.promoDiscount)} de descuento</strong> en tu próxima estancia.`,
-        introSimple: `Ha pasado un mes desde que te fuiste y en ${b.nombre} todavía te recordamos. Cuando tengas ganas de volver, tu habitación está aquí.`,
+        introPromo: `Ha pasado un mes desde que te fuiste y en ${b.nombreEsc} todavía te recordamos. Como agradecimiento por confiar en nosotros, te dejamos <strong>${esc(b.promoDiscount)} de descuento</strong> en tu próxima estancia.`,
+        introSimple: `Ha pasado un mes desde que te fuiste y en ${b.nombreEsc} todavía te recordamos. Cuando tengas ganas de volver, tu habitación está aquí.`,
         codigo: "Tu código exclusivo",
         validez: (d: string) => `${esc(b.promoDiscount)} de descuento · válido hasta el ${esc(d)}`,
         btnPromo: `Reservar con ${esc(b.promoDiscount)} de descuento`,
@@ -429,6 +439,7 @@ export function buildReturnOfferEmailHtml(data: {
         ? `Your room at ${b.nombre} is waiting`
         : `Tu habitación en ${b.nombre} te espera`,
     inner,
+    en ? "en" : "es",
   );
 }
 
@@ -453,8 +464,8 @@ export function buildPersonalOfferEmailHtml(data: {
   const bookingUrl = `${b.baseUrl}/reservar${hasPromo ? `?promo=${encodeURIComponent(b.promoCode)}` : ""}`;
 
   const t = en
-    ? { eyebrow: "A note for you", h: "We have something for you", codigo: "Your exclusive code", btn: `Book at ${b.nombre}` }
-    : { eyebrow: "Una nota para ti", h: "Te tenemos algo especial", codigo: "Tu código exclusivo", btn: `Reservar en ${b.nombre}` };
+    ? { eyebrow: "A note for you", h: "We have something for you", codigo: "Your exclusive code", btn: `Book at ${b.nombreEsc}` }
+    : { eyebrow: "Una nota para ti", h: "Te tenemos algo especial", codigo: "Tu código exclusivo", btn: `Reservar en ${b.nombreEsc}` };
 
   const cuerpo = data.paragraphs
     .map(
@@ -486,5 +497,5 @@ export function buildPersonalOfferEmailHtml(data: {
     boton(bookingUrl, data.ctaText || t.btn) +
     cierre(b);
 
-  return doc(`${b.nombre} — ${t.eyebrow}`, `${first}, ${t.h.toLowerCase()}`, inner);
+  return doc(`${b.nombre} — ${t.eyebrow}`, `${first}, ${t.h.toLowerCase()}`, inner, en ? "en" : "es");
 }

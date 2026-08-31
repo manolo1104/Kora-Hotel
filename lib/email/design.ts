@@ -53,10 +53,63 @@ export const FONT =
 const FONT_LINK =
   '<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">';
 
+// ── QUIÉN ESCAPA QUÉ ─────────────────────────────────────────────────────────
+//
+// Este archivo mezcla dos clases de función y confundirlas es como se cuela una
+// inyección o un «J&amp;J» visible. La regla, explícita:
+//
+//   ESCAPAN su argumento (pásales TEXTO PLANO, nunca HTML, y NO les hagas esc()
+//   antes — sería doble escapado):
+//     · cabecera({ nombre, eyebrow })
+//     · saludo(hola, nombre, …)   ← sólo `hola` y `nombre`
+//     · tablaDatos([{ k, … }])    ← sólo la clave `k`
+//     · lista(titulo, …)          ← sólo el título
+//     · pieHotel({ nombre, ubicacion })
+//     · doc(titulo, preheader, …) ← los dos primeros
+//
+//   ESPERAN HTML ya montado (si metes texto de un usuario, escápalo TÚ):
+//     · parrafo(html), caja(html), pieKora(nota)
+//     · titulo(texto, sub)
+//     · saludo(…, intro)          ← el TERCER argumento va crudo
+//     · tablaDatos([{ v }])       ← el VALOR va crudo
+//     · lista(…, items)
+//
+// El nombre no basta para adivinarlo, por eso está escrito. Si añades una pieza
+// nueva, apúntala aquí.
+
 // ── Utilidades ───────────────────────────────────────────────────────────────
 
+/**
+ * Escapa texto para meterlo en HTML. Incluye las COMILLAS a propósito: `esc()`
+ * se usa dentro de atributos (`href="mailto:${esc(email)}"`, el `mapsUrl` del
+ * hotel), y ahí una comilla doble suelta cierra el atributo y deja al que
+ * escribió ese texto poner los suyos. En un multi-tenant eso importa: el nombre
+ * del hotel, su correo y sus URLs los teclea el hotelero en su onboarding, y
+ * salen en el correo que recibe el huésped de OTRO.
+ */
 export const esc = (s: unknown) =>
-  String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  String(s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+
+/**
+ * ¿Este color de marca es oscuro? Sólo entonces sirve para pintar una cabecera
+ * con texto blanco encima sin romper el contraste. Un hotel con el color en
+ * amarillo pastel se quedaría con su cabecera ilegible, así que ante la duda se
+ * conserva el verde de Kora. Misma fórmula que usan los documentos imprimibles
+ * (lib/docs/documento-branded.ts), de donde salió: era la única copia y hacía
+ * que el PDF y el correo del mismo hotel no se parecieran.
+ */
+export function esColorOscuro(hex: string | undefined): boolean {
+  const m = /^#?([0-9a-fA-F]{6})$/.exec((hex ?? "").trim());
+  if (!m) return false;
+  const n = parseInt(m[1], 16);
+  const L = (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
+  return L < 0.5;
+}
 
 export const money = (n: number) => `$${Math.round(n || 0).toLocaleString("es-MX")} MXN`;
 
@@ -111,9 +164,13 @@ export function gcalUrl(titulo: string, checkin: string, checkout: string): stri
  * preheader oculto (el texto gris que Gmail enseña junto al asunto) y la
  * tarjeta de 600 px. `inner` son <tr> de la tabla de la tarjeta.
  */
-export function doc(titulo: string, preheader: string, inner: string): string {
+export function doc(titulo: string, preheader: string, inner: string, lang: "es" | "en" = "es"): string {
+  // El `lang` del <html> no es cosmético: es lo que hace que Gmail no ofrezca
+  // "traducir este correo" sobre un correo que YA está en el idioma del lector,
+  // y lo que usa un lector de pantalla para elegir pronunciación. Estaba fijo en
+  // "es" incluso en los correos que salen en inglés.
   return `<!DOCTYPE html>
-<html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<html lang="${lang}"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${esc(titulo)}</title>${FONT_LINK}</head>
 <body style="margin:0;padding:0;background:${T.fondo};-webkit-font-smoothing:antialiased;">
 <span style="display:none;max-height:0;overflow:hidden;opacity:0;">${esc(preheader)}</span>

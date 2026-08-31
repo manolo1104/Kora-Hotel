@@ -3,14 +3,12 @@
 // objetos), justo como describen las plantillas. Sin dependencias. Escapa HTML
 // en todos los valores (los datos incluyen nombres de cliente → nunca confiar).
 
-export type TemplateData = Record<string, unknown>;
+// El MISMO `esc` que los correos. Eran dos copias y las dos se quedaron sin
+// escapar comillas; tener una sola evita que la próxima corrección arregle la
+// mitad de los sitios.
+import { esc } from "@/lib/email/design";
 
-function esc(v: unknown): string {
-  return String(v ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-}
+export type TemplateData = Record<string, unknown>;
 
 /** Reemplaza {{#seccion}}…{{/seccion}} (repetible) y luego {{ var }}. */
 export function renderMustacheLite(tpl: string, data: TemplateData): string {

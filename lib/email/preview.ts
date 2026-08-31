@@ -102,6 +102,41 @@ const MARCA: BookingBrand = {
   mapsUrl: "https://maps.google.com/?q=Xilitla",
 };
 
+/**
+ * El juego SUCIO: todo lo que un hotelero puede teclear en su onboarding y que
+ * acaba dentro del correo de un huésped de OTRO hotel. Comillas (rompen los
+ * atributos `href`), `&` (delata el doble escapado) y una etiqueta HTML (delata
+ * lo que se interpola crudo). Si algo de esto se renderiza como marcado en vez
+ * de leerse como texto, es una inyección; si sale un `&amp;` VISIBLE, es doble
+ * escapado. Ver el contrato de quién escapa qué en lib/email/design.ts.
+ */
+const MARCA_SUCIA: BookingBrand = {
+  nombre: 'Hotel "Río" & Sol <b>MALO</b>',
+  color: "#1B4332",
+  ubicacion: 'Xilitla "centro" & alrededores',
+  whatsapp: "5215500000000",
+  email: 'a"b@ejemplo.test',
+  telefono: "481 000 0000",
+  mapsUrl: 'https://maps.google.com/?q="Xilitla"&z=12',
+};
+
+const CLIENTE_SUCIO = 'J&J <b>Pérez</b> "el bueno"';
+
+/** El hotel de ejemplo CON logo y color propios, para ver la cabecera branded. */
+const MARCA_CON_LOGO: BookingBrand = {
+  nombre: "Hotel de Ejemplo",
+  color: "#2D1B44", // morado oscuro: pasa `esColorOscuro`, así que sí se aplica
+  logoUrl: "https://kora-hotel.com/opengraph-image",
+  ubicacion: "Xilitla, San Luis Potosí",
+  whatsapp: "5215500000000",
+  email: "hola@ejemplo.test",
+  telefono: "481 000 0000",
+  mapsUrl: "https://maps.google.com/?q=Xilitla",
+};
+
+/** Y con un color CLARO: la cabecera debe conservar el verde de Kora. */
+const MARCA_COLOR_CLARO: BookingBrand = { ...MARCA_CON_LOGO, color: "#FFE27A", logoUrl: undefined };
+
 const HOTEL_SEQ = {
   nombre: MARCA.nombre,
   baseUrl: "http://localhost:3000/h/hotel-de-ejemplo",
@@ -220,6 +255,77 @@ export const GRUPOS: GrupoPreview[] = [
             huespedes: 2,
             portalUrl: PORTAL,
             lang,
+          }),
+        }),
+      },
+      {
+        id: "confirmacion-sucia",
+        nombre: "Confirmación — con datos SUCIOS (escapado)",
+        quien: "Huésped",
+        cuando: "El mismo correo con comillas, `&` y una etiqueta HTML en el nombre del hotel y del huésped. No es un caso real: es la prueba del escapado.",
+        origen: "lib/email/design.ts",
+        bilingue: true,
+        render: (lang) => ({
+          html: buildConfirmacionEmailHtml({
+            hotelNombre: MARCA_SUCIA.nombre,
+            confirmacion: CONFIRMACION,
+            habitaciones: ['Suite "Jungla" & Río'],
+            checkin: CHECKIN,
+            checkout: CHECKOUT,
+            anticipo: 2500,
+            pendiente: 6300,
+            cliente: CLIENTE_SUCIO,
+            huespedes: 2,
+            portalUrl: PORTAL,
+            lang,
+            brand: MARCA_SUCIA,
+          }),
+        }),
+      },
+      {
+        id: "confirmacion-logo",
+        nombre: "Confirmación — hotel CON logo y color propios",
+        quien: "Huésped",
+        cuando: "El hotel puso logo y un color oscuro en su editor: la cabecera los usa, igual que el documento imprimible del mismo folio.",
+        origen: "lib/email/booking-branded.ts",
+        bilingue: true,
+        render: (lang) => ({
+          html: buildConfirmacionEmailHtml({
+            hotelNombre: MARCA_CON_LOGO.nombre,
+            confirmacion: CONFIRMACION,
+            habitaciones: HABS,
+            checkin: CHECKIN,
+            checkout: CHECKOUT,
+            anticipo: 2500,
+            pendiente: 6300,
+            cliente: CLIENTE,
+            huespedes: 2,
+            portalUrl: PORTAL,
+            lang,
+            brand: MARCA_CON_LOGO,
+          }),
+        }),
+      },
+      {
+        id: "confirmacion-color-claro",
+        nombre: "Confirmación — hotel con color CLARO (se ignora)",
+        quien: "Huésped",
+        cuando: "Un color pastel encima del texto blanco sería ilegible, así que la cabecera conserva el verde de Kora. Ese es el caso a mirar.",
+        origen: "lib/email/design.ts",
+        render: (lang) => ({
+          html: buildConfirmacionEmailHtml({
+            hotelNombre: MARCA_COLOR_CLARO.nombre,
+            confirmacion: CONFIRMACION,
+            habitaciones: HABS,
+            checkin: CHECKIN,
+            checkout: CHECKOUT,
+            anticipo: 2500,
+            pendiente: 6300,
+            cliente: CLIENTE,
+            huespedes: 2,
+            portalUrl: PORTAL,
+            lang,
+            brand: MARCA_COLOR_CLARO,
           }),
         }),
       },

@@ -5,6 +5,7 @@
 // vista previa en vivo del editor.
 
 import type { BookingBrand } from "@/lib/email/booking-branded";
+import { esColorOscuro } from "@/lib/email/design";
 import { COLOR_DEFAULT } from "@/lib/mini";
 import { COTIZACION_TPL, RESERVA_TPL } from "./templates";
 import { KORA_ICON_DATA_URI } from "./icon";
@@ -65,18 +66,6 @@ export interface ReservaDocData {
 
 const TEMPLATE_GREEN = "#1B4332"; // color base de las plantillas
 
-// ¿El color de marca es oscuro? Solo entonces sirve como sustituto del verde
-// oscuro sin romper el contraste del texto blanco encima.
-function isDarkColor(hex: string): boolean {
-  const m = /^#?([0-9a-fA-F]{6})$/.exec(hex.trim());
-  if (!m) return false;
-  const n = parseInt(m[1], 16);
-  const r = (n >> 16) & 255;
-  const g = (n >> 8) & 255;
-  const b = n & 255;
-  const L = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  return L < 0.5;
-}
 
 function brandVars(brand: BookingBrand): TemplateData {
   return {
@@ -94,7 +83,7 @@ function finalize(rendered: string, brand: BookingBrand, forPrint?: boolean): st
   // 2) Tema por color del hotel: solo si definió un color propio y oscuro; si no,
   //    se conserva el verde de la plantilla (evita romper contraste).
   const color = brand.color || COLOR_DEFAULT;
-  if (color.toLowerCase() !== TEMPLATE_GREEN.toLowerCase() && isDarkColor(color)) {
+  if (color.toLowerCase() !== TEMPLATE_GREEN.toLowerCase() && esColorOscuro(color)) {
     html = html.split(TEMPLATE_GREEN).join(color);
   }
   // 3) Auto-imprimir (para "Descargar PDF"): abre el diálogo de impresión.

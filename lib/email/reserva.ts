@@ -369,7 +369,7 @@ export function buildPagoSinCuartoHuespedHtml(a: PagoSinCuartoArgs): string {
   const inner =
     cabecera({ nombre: a.hotelNombre, eyebrow: t.eyebrow }) +
     titulo(t.h) +
-    saludo(t.hola, esc((a.cliente || "").trim().split(/\s+/)[0] || (en ? "there" : "")), t.intro) +
+    saludo(t.hola, (a.cliente || "").trim().split(/\s+/)[0] || (en ? "there" : ""), t.intro) +
     tablaDatos([
       { k: t.fechas, v: `${esc(a.checkin)} → ${esc(a.checkout)}` },
       { k: t.cuartos, v: esc(a.habitaciones.join(", ")) || "—" },
@@ -387,7 +387,7 @@ export function buildPagoSinCuartoHuespedHtml(a: PagoSinCuartoArgs): string {
     respiro +
     pieHotel({ nombre: a.hotelNombre });
 
-  return doc(`${a.hotelNombre} — ${t.eyebrow}`, t.h, inner);
+  return doc(`${a.hotelNombre} — ${t.eyebrow}`, t.h, inner, en ? "en" : "es");
 }
 
 export function buildPagoSinCuartoHotelHtml(a: PagoSinCuartoArgs): string {
@@ -568,7 +568,7 @@ export function buildCancelacionHuespedHtml(a: CancelacionHuespedArgs): string {
   const inner =
     cabecera({ nombre: a.brand?.nombre || a.hotelNombre, eyebrow: t.eyebrow }) +
     titulo(t.h, `${t.folio} <strong style="color:${TOK.cuerpo};letter-spacing:1px;">${esc(a.confirmacion)}</strong>`) +
-    saludo(t.hola, esc(first), t.intro) +
+    saludo(t.hola, first, t.intro) +
     tablaDatos([
       { k: t.hab, v: esc(a.habitaciones) || "—" },
       { k: t.fechas, v: `${esc(a.checkin)} → ${esc(a.checkout)}` },
@@ -581,7 +581,7 @@ export function buildCancelacionHuespedHtml(a: CancelacionHuespedArgs): string {
     respiro +
     pieHotel({ nombre: a.brand?.nombre || a.hotelNombre, ubicacion: a.brand?.ubicacion });
 
-  return doc(`${a.hotelNombre} — ${t.eyebrow}`, `${t.h} — ${a.confirmacion}`, inner);
+  return doc(`${a.hotelNombre} — ${t.eyebrow}`, `${t.h} — ${a.confirmacion}`, inner, en ? "en" : "es");
 }
 
 /** Comprobante de cancelación al huésped. Best-effort, nunca lanza. */
@@ -681,7 +681,7 @@ export function buildModificacionHuespedHtml(a: ModificacionHuespedArgs): string
   const inner =
     cabecera({ nombre: a.brand?.nombre || a.hotelNombre, eyebrow: t.eyebrow }) +
     titulo(t.h, `${t.folio} <strong style="color:${TOK.cuerpo};letter-spacing:1px;">${esc(a.confirmacion)}</strong>`) +
-    saludo(t.hola, esc(first), t.intro) +
+    saludo(t.hola, first, t.intro) +
     tablaDatos([
       { k: t.hab, v: esc(a.habitaciones) || "—" },
       { k: t.fechas, v: `${esc(a.checkin)} → ${esc(a.checkout)}` },
@@ -697,7 +697,7 @@ export function buildModificacionHuespedHtml(a: ModificacionHuespedArgs): string
     respiro +
     pieHotel({ nombre: a.brand?.nombre || a.hotelNombre, ubicacion: a.brand?.ubicacion });
 
-  return doc(`${a.hotelNombre} — ${t.eyebrow}`, `${t.h} — ${a.confirmacion}`, inner);
+  return doc(`${a.hotelNombre} — ${t.eyebrow}`, `${t.h} — ${a.confirmacion}`, inner, en ? "en" : "es");
 }
 
 /** Aviso de reserva modificada al huésped. Best-effort, nunca lanza. */

@@ -2,7 +2,9 @@
 // abandonado). Diseño premium provisto por Manolo (fuente Plus Jakarta Sans,
 // paleta verde Kora #1B4332/#52B788 + crema), tablas + inline-styles para
 // compatibilidad con clientes de correo. El NOMBRE del hotel y los datos son
-// dinámicos; la paleta del diseño se conserva tal cual. Bilingüe es/en.
+// dinámicos, y desde el 31 ago 2026 también el LOGO y el COLOR de la cabecera
+// (si el color es oscuro; ver `cabeceraMarca`). El resto de la paleta se
+// conserva tal cual. Bilingüe es/en.
 // SOLO servidor. Los usan: send-email del panel, el webhook (confirmación) y el
 // cron de abandono (recordatorio) — vía lib/email/reserva.ts.
 
@@ -13,6 +15,7 @@ import type { HotelRow } from "@/lib/tenant";
 // reescribir el marcado, que ya seguía este mismo estilo.
 import {
   T as TOK,
+  esColorOscuro,
   FONT as FONT_KORA,
   doc as docKora,
   esc as escKora,
@@ -90,6 +93,34 @@ function pieHotel(brand: BookingBrand): string {
   return pieHotelKora({ nombre: brand.nombre, ubicacion: brand.ubicacion });
 }
 
+/**
+ * La cabecera de marca del hotel. `BookingBrand` declaraba `logoUrl` y `color`,
+ * `bookingBrandFromHotel` los llenaba desde `extras.diseno` y **ninguno de los
+ * dos se pintaba jamás**: la cabecera usaba el verde fijo de Kora. Mientras
+ * tanto el documento imprimible del MISMO folio sí aplicaba el color, así que el
+ * PDF y el correo del mismo hotel no se parecían — y tres comentarios del repo
+ * prometían un "correo PREMIUM con logo + color del hotel" que no existía.
+ *
+ * El color sólo se usa si es oscuro (`esColorOscuro`): encima va texto blanco.
+ *
+ * El logo lleva SIEMPRE su `alt` con el nombre del hotel, y el nombre en texto
+ * sigue debajo: Gmail y Outlook bloquean las imágenes remotas por defecto, así
+ * que una cabecera que fuera sólo logo llegaría vacía a la mayoría de la gente
+ * la primera vez que abre un correo de ese remitente.
+ */
+function cabeceraMarca(brand: BookingBrand, eyebrow: string, check: boolean): string {
+  const fondo = esColorOscuro(brand.color) ? brand.color : VERDE;
+  const logo = brand.logoUrl
+    ? `<img src="${esc(brand.logoUrl)}" alt="${esc(brand.nombre)}" width="120" style="display:block;max-width:120px;height:auto;margin:0 auto 14px;border:0;outline:none;text-decoration:none;">`
+    : "";
+  return `<tr><td style="background:${fondo};padding:${check ? "34px 40px 30px" : "32px 40px"};text-align:center;">
+    ${check ? `<div style="width:62px;height:62px;border-radius:50%;background:${VERDE_CLARO};color:#0f2e21;font-family:${FONT};font-size:32px;font-weight:700;line-height:62px;margin:0 auto 16px;">✓</div>` : ""}
+    ${logo}
+    <div style="font-family:${FONT};font-weight:800;font-size:23px;color:#fff;letter-spacing:-.5px;">${esc(brand.nombre)}<span style="color:${VERDE_CLARO};">.</span></div>
+    <div style="font-family:${FONT};font-weight:600;font-size:10.5px;letter-spacing:3.5px;text-transform:uppercase;color:rgba(255,255,255,.62);margin-top:9px;">${esc(eyebrow)}</div>
+  </td></tr>`;
+}
+
 // ── Confirmación / cotización (Correo 02) ────────────────────────────────────
 
 export interface BrandedBookingParams {
@@ -162,11 +193,7 @@ export function buildBrandedBookingEmailHtml(brand: BookingBrand, p: BrandedBook
     `${en ? "Hi" : "Hola"}, ${en ? "about my" : "sobre mi"} ${esReserva ? (en ? "booking" : "reserva") : en ? "quote" : "cotización"} ${p.confirmacion} — ${brand.nombre}`,
   );
 
-  const header = `<tr><td style="background:${VERDE};padding:${esReserva ? "34px 40px 30px" : "32px 40px"};text-align:center;">
-    ${esReserva ? `<div style="width:62px;height:62px;border-radius:50%;background:${VERDE_CLARO};color:#0f2e21;font-family:${FONT};font-size:32px;font-weight:700;line-height:62px;margin:0 auto 16px;">✓</div>` : ""}
-    <div style="font-family:${FONT};font-weight:800;font-size:23px;color:#fff;letter-spacing:-.5px;">${esc(brand.nombre)}<span style="color:${VERDE_CLARO};">.</span></div>
-    <div style="font-family:${FONT};font-weight:600;font-size:10.5px;letter-spacing:3.5px;text-transform:uppercase;color:rgba(255,255,255,.62);margin-top:9px;">${T.eyebrow}</div>
-  </td></tr>`;
+  const header = cabeceraMarca(brand, T.eyebrow, esReserva);
 
   const subLine = [p.huespedes > 0 ? `${p.huespedes} ${T.huesp(p.huespedes)}` : "", p.nrf ? T.nrf : ""]
     .filter(Boolean)
@@ -261,7 +288,7 @@ export function buildBrandedBookingEmailHtml(brand: BookingBrand, p: BrandedBook
     <tr><td style="padding:20px 0 0;"></td></tr>
     ${pieHotel(brand)}`;
 
-  return doc(`${brand.nombre} — ${T.eyebrow}`, `${T.eyebrow} ${p.confirmacion} — ${brand.nombre}`, inner);
+  return doc(`${brand.nombre} — ${T.eyebrow}`, `${T.eyebrow} ${p.confirmacion} — ${brand.nombre}`, inner, en ? "en" : "es");
 }
 
 // ── Recordatorio / carrito abandonado (Correo 01) ────────────────────────────
@@ -320,10 +347,7 @@ export function buildBrandedRecoveryEmailHtml(brand: BookingBrand, p: BrandedRec
   const wa = waLink(brand, `${en ? "Hi" : "Hola"}, ${en ? "I want to finish my booking at" : "quiero terminar mi reserva en"} ${brand.nombre}`);
 
   const inner = `
-    <tr><td style="background:${VERDE};padding:32px 40px;text-align:center;">
-      <div style="font-family:${FONT};font-weight:800;font-size:23px;color:#fff;letter-spacing:-.5px;">${esc(brand.nombre)}<span style="color:${VERDE_CLARO};">.</span></div>
-      <div style="font-family:${FONT};font-weight:600;font-size:10.5px;letter-spacing:3.5px;text-transform:uppercase;color:rgba(255,255,255,.6);margin-top:9px;">${T.eyebrow}</div>
-    </td></tr>
+    ${cabeceraMarca(brand, T.eyebrow, false)}
     <tr><td style="padding:34px 40px 0;">
       <h2 style="font-family:${FONT};font-size:28px;font-weight:800;letter-spacing:-1px;color:#2a2218;line-height:1.15;margin:0 0 14px;">${T.titulo}</h2>
       <p style="font-family:${FONT};font-weight:500;font-size:16px;color:#2a2218;margin:0 0 6px;">${saludo}</p>
@@ -385,5 +409,5 @@ export function buildBrandedRecoveryEmailHtml(brand: BookingBrand, p: BrandedRec
     <tr><td style="padding:18px 0 0;"></td></tr>
     ${pieHotel(brand)}`;
 
-  return doc(`${brand.nombre} — ${T.eyebrow}`, `${T.titulo} — ${brand.nombre}`, inner);
+  return doc(`${brand.nombre} — ${T.eyebrow}`, `${T.titulo} — ${brand.nombre}`, inner, en ? "en" : "es");
 }
