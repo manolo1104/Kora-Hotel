@@ -12,18 +12,20 @@ import { PopupGuia } from "@/components/shared/PopupGuia";
 // Marco del sitio: aplica el chrome correcto según la sección.
 // - Páginas públicas del hotel (/h, /g): sin chrome de Kora (son del hotelero).
 // - CRM interno (/crm): sin chrome de marketing (trae su propio header).
+// - Herramientas de desarrollo (/dev): sin chrome; sólo existen en localhost.
 // - Área de cuenta (/entrar, /panel): barra mínima con el logo.
 // - Resto (landing + herramientas): chrome de marketing completo.
 export function SiteFrame({ children }: { children: React.ReactNode }) {
   const path = usePathname() ?? "";
   const esPaginaHotel = path.startsWith("/h/") || path.startsWith("/g/");
   const esCrm = path.startsWith("/crm");
+  const esDev = path.startsWith("/dev");
   const esApp = path === "/entrar" || path.startsWith("/panel");
   // En /panel el sidebar pinta su hamburguesa fija (40px en top-left): el logo
   // se corre a la derecha en móvil para no encimarse.
   const esPanel = path.startsWith("/panel");
 
-  if (esPaginaHotel || esCrm) {
+  if (esPaginaHotel || esCrm || esDev) {
     return <>{children}</>;
   }
 
