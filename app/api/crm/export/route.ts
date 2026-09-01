@@ -2,14 +2,10 @@ import { requireCrmAuth } from "@/lib/crm/auth";
 import { NextResponse } from "next/server";
 import { createAdminClient, adminEnvReady } from "@/lib/supabase/admin";
 import { ETAPA_LABEL, type Lead } from "@/lib/crm/types";
+import { armarCsv } from "@/lib/csv";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-const cell = (v: unknown): string => {
-  const s = v === null || v === undefined ? "" : String(v);
-  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-};
 
 // GET /api/crm/export → descarga CSV de todos los leads
 export async function GET() {
@@ -42,13 +38,15 @@ export async function GET() {
     ["notas", "Notas"],
     ["created_at", "Creado"],
   ];
-  const header = cols.map(([, l]) => cell(l)).join(",");
-  const rows = (data as Lead[]).map((lead) =>
-    cols
-      .map(([k]) => cell(k === "etapa" ? ETAPA_LABEL[lead.etapa] : lead[k]))
-      .join(",")
+  // `armarCsv` neutraliza las fórmulas. El nombre del hotel y las notas los
+  // escribe cualquiera que rellene el formulario público de la landing, así que
+  // una celda que empiece por `=` la ejecutaría Excel al abrir el archivo.
+  const csv = armarCsv(
+    cols.map(([, l]) => l),
+    (data as Lead[]).map((lead) =>
+      cols.map(([k]) => (k === "etapa" ? ETAPA_LABEL[lead.etapa] : lead[k])),
+    ),
   );
-  const csv = "﻿" + [header, ...rows].join("\n");
 
   return new NextResponse(csv, {
     headers: {

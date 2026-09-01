@@ -165,7 +165,10 @@ cero "A18.1 todo JSON-LD escapa <"                 bash -c 'grep -rnI --exclude=
 cero "A18.2 sin HTML crudo del agente de IA"       bash -c 'grep -rnI --exclude=verificar-arreglos.sh --include="*.tsx" "dangerouslySetInnerHTML" app components | grep -v "JSON.stringify" | grep -v "sanitiz"'
 cero "A18.3 URLs de usuario con lista blanca"      bash -c 'grep -qI "HOSTS_PERMITIDOS\|hostPermitido" lib/maps.ts || echo "lib/maps.ts sin lista blanca"'
 cero "A18.4 esc() escapa comillas"                 bash -c 'grep -qI "&quot;" lib/email/design.ts || echo "esc() no escapa comillas"'
-cero "A18.5 el CSV del CRM neutraliza fórmulas"    bash -c 'grep -qI "csvSeguro\|neutralizarFormula" app/api/crm/export/route.ts || echo "el CSV no neutraliza fórmulas"'
+# Comprueba que la ruta USE el ayudante, no que lo llame de una forma concreta:
+# antes buscaba el nombre `csvSeguro` y daba rojo porque la ruta llama a
+# `armarCsv`, que es quien lo aplica por dentro a cada celda.
+cero "A18.5 el CSV del CRM neutraliza fórmulas"    bash -c 'grep -qI "from \"@/lib/csv\"" app/api/crm/export/route.ts && grep -qI "ARRANQUE_PELIGROSO" lib/csv.ts || echo "el CSV no neutraliza fórmulas"'
 cero "A18.6 open-redirect en un solo helper"       bash -c 'grep -rlI "startsWith(\"/\")" app/auth app/entrar 2>/dev/null | tail -n +2'
 cero "A18.7 el fetch de mapas no sigue redirects"  bash -c 'grep -qI "redirect: *\"manual\"" app/api/panel/resolver-mapa/route.ts || echo "resolver-mapa sigue redirecciones"'
 
