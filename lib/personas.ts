@@ -1,5 +1,6 @@
 // Páginas por tipo de hotel (pSEO Personas). Aterrizaje ICP para backlinks de directorios.
 import type { FAQ } from "@/lib/glosario";
+import { FORECAST_DIAS } from "@/lib/oferta";
 
 export interface Persona {
   slug: string;
@@ -181,8 +182,10 @@ export const personas: Persona[] = [
         a: "Sí. Maneja unidades ilimitadas en un solo plan, con su propio calendario y disponibilidad sincronizada con tus OTAs.",
       },
       {
+        // Ver la nota en lib/faqs.ts: el "modo offline" que prometía esta
+        // respuesta no existe en el código. 1 sep 2026.
         q: "¿Funciona en zonas de poca señal?",
-        a: "El motor y Camila operan en línea, pero Kora tiene modo offline para operaciones básicas (check-in/out) que se sincronizan cuando vuelve la conexión.",
+        a: "Kora vive en la nube, no en el hotel: aunque a ti se te caiga la señal, tus huéspedes siguen reservando en tu página y Camila sigue contestando por WhatsApp. El panel de tu equipo sí necesita conexión, y abre desde el celular con datos móviles.",
       },
     ],
   },
@@ -336,7 +339,7 @@ export const personas: Persona[] = [
       {
         titulo: "La operación completa en una pantalla",
         texto:
-          "Mapa de habitaciones, check-in y check-out, housekeeping, ocupación, ADR, RevPAR y forecast de 30 días.",
+          `Mapa de habitaciones, check-in y check-out, housekeeping, ocupación, ADR, RevPAR y forecast de ${FORECAST_DIAS} días.`,
       },
     ],
     faqs: [

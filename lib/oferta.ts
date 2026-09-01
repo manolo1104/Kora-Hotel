@@ -11,6 +11,25 @@ export const PRECIO_DESDE = 550;
 // visibles en la misma visita. Manolo fijó el número el 31 ago 2026.
 export const IMPLEMENTACION_HORAS = 24;
 
+// Días que el forecast de ocupación del panel mira hacia adelante.
+//
+// 🔴 ESTE NÚMERO ES UNA PROMESA PÚBLICA. Hasta el 1 sep 2026 el sitio prometía
+// 30 días de forecast en DIEZ superficies (portada, precios, características,
+// FAQ de ciudades, dos entradas del glosario, personas, llms.txt y dos
+// componentes de la landing) mientras el panel calculaba SIETE
+// (`lib/admin/insights.ts`). Nadie lo notó porque el 30 estaba escrito a mano en
+// cada sitio y el 7 vivía en un `Array.from({ length: 7 })`.
+//
+// Decisión de Manolo (1 sep 2026): el texto dice la verdad HOY (7 días) y los 30
+// se construyen después. Cuando se construyan, este número pasa a 30 y las diez
+// superficies se actualizan solas — que es justo el punto de tenerlo aquí.
+//
+// Quien lo cambie tiene que cambiar también la gráfica del panel: `ForecastBars`
+// dibuja una barra por día en un SVG de 480 px y con 30 barras las etiquetas ya
+// no caben en móvil. `tests/caso-paraiso-congruente.test.ts` vigila que ningún
+// texto vuelva a escribirlo a mano.
+export const FORECAST_DIAS = 7;
+
 // ─── La garantía ──────────────────────────────────────────────────────────────
 //
 // 🔴 EL ANUNCIO Y EL CONTRATO TIENEN QUE DECIR LO MISMO. Hasta el 31 ago 2026 no

@@ -3,6 +3,7 @@
 // duplicada) para tener valor real de SEO. Fuente única para /hoteles-en, /hoteles-en/[ciudad],
 // el sitemap y los llms.txt.
 import type { FAQ } from "@/lib/glosario";
+import { FORECAST_DIAS } from "@/lib/oferta";
 
 export interface FilaCiudad {
   aspecto: string;
@@ -520,7 +521,7 @@ export const ciudades: Ciudad[] = [
       },
       {
         q: "¿Puedo bajar tarifas sólo en temporada baja?",
-        a: "Sí, con tarifas por temporada. Y el panel te muestra el forecast de 30 días para decidir con anticipación.",
+        a: `Sí, con tarifas por temporada. Y el panel te muestra el forecast de ${FORECAST_DIAS} días para decidir con anticipación.`,
       },
     ],
   },

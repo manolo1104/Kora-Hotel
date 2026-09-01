@@ -9,6 +9,7 @@ import {
   PMSMockup,
   DashboardMockup,
 } from "@/components/caracteristicas/Mockups";
+import { FORECAST_DIAS } from "@/lib/oferta";
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 
@@ -34,7 +35,7 @@ const tabs = [
     label: "Panel",
     Icon: BarChart2,
     title: "Las métricas que de verdad importan",
-    desc: "Ocupación, RevPAR y forecast a 30 días, más el CRM con el historial de cada huésped. Todo en una pantalla.",
+    desc: `Ocupación, RevPAR y forecast a ${FORECAST_DIAS} días, más el CRM con el historial de cada huésped. Todo en una pantalla.`,
     Mockup: DashboardMockup,
   },
 ];

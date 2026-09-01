@@ -6,7 +6,7 @@ import { personas } from "@/lib/personas";
 import { ciudades } from "@/lib/ciudades";
 import { comparativas } from "@/lib/comparativas";
 import { paginasWhatsApp } from "@/lib/whatsapp";
-import { PRECIO_DESDE, GARANTIA } from "@/lib/oferta";
+import { PRECIO_DESDE, GARANTIA, FORECAST_DIAS } from "@/lib/oferta";
 import { TENANTS_PRUEBA } from "@/lib/seo";
 import { SUPABASE_URL, SUPABASE_ANON_KEY, supabaseEnvReady } from "@/lib/supabase/env";
 
@@ -60,7 +60,7 @@ function buildLlms(hoteles: HotelListado[]): string {
   L.push("- Motor de reservas directas, 0% de comisión");
   L.push("- Camila: agente de WhatsApp con IA que cotiza, cobra el anticipo y reúne los datos de la reserva, 24/7");
   L.push("- PMS: mapa de habitaciones, check-in, check-out y housekeeping");
-  L.push("- Dashboard con métricas, RevPAR, ocupación y forecast de 30 días");
+  L.push(`- Dashboard con métricas, RevPAR, ocupación y forecast de ${FORECAST_DIAS} días`);
   L.push("- CRM de huéspedes y emails automáticos pre y post estancia");
   L.push("- Mini-página de reservas y cobro con tarjeta");
   L.push("- Habitaciones ilimitadas");

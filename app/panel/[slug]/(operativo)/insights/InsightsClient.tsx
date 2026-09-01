@@ -8,6 +8,7 @@ import {
   LogIn, LogOut, RefreshCw, ChevronRight, Trash2, Bot,
 } from 'lucide-react';
 import type { InsightsData, DayForecast, OriginBreakdown } from '@/lib/admin/insights';
+import { FORECAST_DIAS } from '@/lib/oferta';
 import styles from './insights.module.css';
 
 const fmt = (n: number) => `$${n.toLocaleString('es-MX')}`;
@@ -154,7 +155,7 @@ export default function InsightsClient() {
     );
   }
 
-  const { hoy, mes, forecast7dias, origen, ahorroOTAs, agentes, totalSuites } = data;
+  const { hoy, mes, forecastDias, origen, ahorroOTAs, agentes, totalSuites } = data;
   const checkins = hoy.movimientos.filter(m => m.tipo === 'checkin');
   const checkouts = hoy.movimientos.filter(m => m.tipo === 'checkout');
 
@@ -269,8 +270,8 @@ export default function InsightsClient() {
       {/* ── FORECAST + ORIGEN ─────────────────────────────────── */}
       <div className={styles.chartRow}>
         <section className={styles.section}>
-          <h2 className={styles.sectionTitle}>Ocupación próximos 7 días</h2>
-          <ForecastBars data={forecast7dias} total={totalSuites} />
+          <h2 className={styles.sectionTitle}>Ocupación próximos {FORECAST_DIAS} días</h2>
+          <ForecastBars data={forecastDias} total={totalSuites} />
           <div className={styles.chartLegend}>
             <span><span className={styles.dot} style={{ background: '#2d7a34' }} /> +80%</span>
             <span><span className={styles.dot} style={{ background: 'var(--sage-text)' }} /> 50-79%</span>
@@ -408,8 +409,13 @@ export default function InsightsClient() {
 
 // ── Charts (SVG inline, reemplazan recharts) ──────────────────────────────────
 
-// Barras de ocupación próximos 7 días. La altura usa el % (ya calculado con el
-// total real del hotel en el server); `total` es solo para el tooltip "N/total".
+// Barras de ocupación de los próximos FORECAST_DIAS días (lib/oferta.ts). La
+// altura usa el % (ya calculado con el total real del hotel en el server);
+// `total` es solo para el tooltip "N/total".
+//
+// ⚠️ El SVG mide 480 px y dibuja UNA BARRA POR DÍA con su etiqueta debajo. Si
+// FORECAST_DIAS sube a 30, las etiquetas se enciman: hay que pasar a etiquetar
+// una de cada N, o cambiar de gráfica, antes de subir el número.
 function ForecastBars({ data, total }: { data: DayForecast[]; total: number }) {
   const W = 480, H = 200;
   const padT = 14, padB = 28, padX = 8;
@@ -421,7 +427,7 @@ function ForecastBars({ data, total }: { data: DayForecast[]; total: number }) {
   const colorFor = (p: number) => (p >= 80 ? '#2d7a34' : p >= 50 ? '#52b788' : 'var(--line)');
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} role="img" aria-label="Ocupación próximos 7 días">
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} role="img" aria-label={`Ocupación próximos ${data.length} días`}>
       {data.map((d, i) => {
         const h = (d.porcentaje / 100) * plotH;
         const x = padX + slot * i + (slot - barW) / 2;

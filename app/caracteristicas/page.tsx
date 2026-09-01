@@ -19,6 +19,7 @@ import {
   DashboardMockup,
 } from "@/components/caracteristicas/Mockups";
 import { VsBooking } from "@/components/caracteristicas/VsBooking";
+import { FORECAST_DIAS } from "@/lib/oferta";
 
 export const metadata: Metadata = {
   title: "Características de Kora: PMS, IA y reservas directas",
@@ -251,7 +252,7 @@ export default function CaracteristicasPage() {
         description="El centro de operación de tu hotel: calendario con todas tus reservas, alta y edición en segundos, CRM con el historial de cada huésped y las métricas que importan. Todo en una pantalla, sin hojas de Excel."
         bullets={[
           "Calendario y alta de reservas en segundos",
-          "Ocupación, RevPAR y forecast a 30 días",
+          `Ocupación, RevPAR y forecast a ${FORECAST_DIAS} días`,
           "CRM con el historial de cada huésped",
           "Desglose de reservas por canal (directo vs OTA)",
         ]}

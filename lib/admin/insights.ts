@@ -1,4 +1,5 @@
 import { reservaCuenta } from "@/lib/booking/estado-reserva";
+import { FORECAST_DIAS } from "@/lib/oferta";
 import type { AdminBooking } from './sheets-admin';
 
 const TOTAL_SUITES = 13;
@@ -81,7 +82,7 @@ export interface InsightsData {
     adr: number;
     ocupacion: number;
   };
-  forecast7dias: DayForecast[];
+  forecastDias: DayForecast[];
   origen: OriginBreakdown[];
   ahorroOTAs: number;
   agentes: AgentSummary;
@@ -154,9 +155,11 @@ export function calcInsights(
   const adrMes = nochesMes > 0 ? Math.round(ingresosMes / nochesMes) : 0;
   const revparMes = Math.round((adrMes * ocupacionMes) / 100);
 
-  // ── FORECAST 7 DÍAS ──────────────────────────────────────────────────
+  // ── FORECAST (los días los fija lib/oferta.ts, que es lo que el sitio promete) ──
+  // El nombre NO lleva el número a propósito: se llamaba `forecast7dias` y el día
+  // que el número cambie, un nombre con "7" dentro empieza a mentir.
   const DIAS_ES = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-  const forecast7dias: DayForecast[] = Array.from({ length: 7 }, (_, i) => {
+  const forecastDias: DayForecast[] = Array.from({ length: FORECAST_DIAS }, (_, i) => {
     const d = addDays(today, i);
     const ocupadas = bookings
       .filter(b => bookingCoversDate(b, d))
@@ -239,7 +242,7 @@ export function calcInsights(
       adr: adrMes,
       ocupacion: ocupacionMes,
     },
-    forecast7dias,
+    forecastDias,
     origen,
     ahorroOTAs,
     agentes: {

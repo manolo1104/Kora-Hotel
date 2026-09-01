@@ -293,7 +293,12 @@ async function onMensaje(client, slug, kora, msg) {
           : "🔕 Camila apagada. No responderé a tus huéspedes hasta que la enciendas (escribe *encender*)."
         : "No pude cambiar el estado ahora, inténtalo de nuevo.";
       botEnvioAt.set(key, Date.now());
-      await client.sendMessage(chatId, resp).catch(() => {});
+      // Si el acuse no sale, el dueño no sabe si su "apagar" surtió efecto (el
+      // estado SÍ cambió arriba). Tragarse el fallo dejaba al dueño creyendo
+      // que Camila sigue encendida, o al revés.
+      await client
+        .sendMessage(chatId, resp)
+        .catch((e) => console.error(`[${slug}] no pude confirmarle el comando al dueño:`, e && e.message));
       console.log(`[${slug}] comando admin de ${chatId}: ${cmd} (${ok ? "ok" : "falló"})`);
       return;
     }
@@ -321,12 +326,18 @@ async function onMensaje(client, slug, kora, msg) {
   pendientes.set(key, p);
 }
 
+// Silencio DECLARADO, no error tragado: el fallo del turno anterior ya se
+// reporta en su propio `await turno` (más abajo). Encadenamos aquí sólo para que
+// un turno que revienta no rompa la cola del siguiente huésped. Tiene nombre
+// para que se distinga de un `.catch(() => {})` de los que sí esconden fallos.
+function yaSeReportoEnSuTurno() {}
+
 async function procesar(client, slug, kora, chatId, userText) {
   const key = `${slug}::${chatId}`;
   // Un turno por chat a la vez. Si ya hay uno vivo, éste espera a que termine en
   // vez de correr en paralelo y pisarle el historial.
   const anterior = enCurso.get(key);
-  const turno = (anterior ? anterior.catch(() => {}) : Promise.resolve()).then(() =>
+  const turno = (anterior ? anterior.catch(yaSeReportoEnSuTurno) : Promise.resolve()).then(() =>
     procesarTurno(client, slug, kora, chatId, userText),
   );
   enCurso.set(key, turno);
@@ -345,7 +356,10 @@ async function procesarTurno(client, slug, kora, chatId, userText) {
   const hotel = { slug, nombre: kora.nombre, whatsapp: kora.whatsapp };
 
   const chat = await client.getChatById(chatId).catch(() => null);
-  if (chat) chat.sendStateTyping().catch(() => {});
+  // Los dos `.catch` del indicador de "escribiendo…" son cosméticos: si fallan,
+  // el huésped ve la respuesta igual. Se registran en warn (no error) para que
+  // un fallo masivo se note en Railway, pero no ensucian el log normal.
+  if (chat) chat.sendStateTyping().catch((e) => console.warn(`[${slug}] sendStateTyping:`, e && e.message));
 
   const history = historiales.get(key) || [];
   const conv = chatId.split("@")[0]; // teléfono → métrica sin doble conteo
@@ -353,7 +367,7 @@ async function procesarTurno(client, slug, kora, chatId, userText) {
   const { reply, history: nuevo } = await handleTurn({ hotel, kora, history, userText, conv });
   historiales.set(key, nuevo);
 
-  if (chat) chat.clearState().catch(() => {});
+  if (chat) chat.clearState().catch((e) => console.warn(`[${slug}] clearState:`, e && e.message));
 
   const salida = (reply || "").trim();
   if (!salida) return;
@@ -362,6 +376,9 @@ async function procesarTurno(client, slug, kora, chatId, userText) {
 
   // Guarda el turno (mensaje del huésped + respuesta) para analizarlo después.
   // Fire-and-forget: no esperamos ni dejamos que un fallo afecte la conversación.
+  // Pero "no esperar" NO es "no enterarse": callaba el fallo, y la pantalla de
+  // conversaciones del hotelero se habría quedado vacía sin que nadie supiera
+  // por qué.
   kora
     .logConversacion({
       conv,
@@ -370,7 +387,7 @@ async function procesarTurno(client, slug, kora, chatId, userText) {
         { rol: "assistant", texto: salida },
       ],
     })
-    .catch(() => {});
+    .catch((e) => console.error(`[${slug}] no se guardó la conversación de ${conv}:`, e && e.message));
 }
 
 // ── Servidor de estado/QR + health (Railway hace healthcheck a /health) ──

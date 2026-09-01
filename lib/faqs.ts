@@ -47,9 +47,15 @@ export const faqs: Faq[] = [
       "24 horas. Tú nos das acceso y nosotros configuramos todo. Tu equipo recibe capacitación antes de arrancar.",
   },
   {
+    // 🔴 Hasta el 1 sep 2026 esta respuesta decía que Kora tiene "modo offline
+    // para check-in y check-out que se sincroniza al volver la conexión". NO
+    // EXISTE: no hay service worker, ni manifest, ni almacenamiento local en
+    // todo el repo. Y es la objeción real de un hotel de la Huasteca, así que
+    // borrar la pregunta era peor que contestarla. Lo que sí es cierto —y es
+    // mejor argumento— es que Kora no vive en el hotel: vive en la nube.
     question: "¿Funciona sin internet estable?",
     answer:
-      "Sí. Kora tiene modo offline para operaciones básicas (check-in, check-out) que se sincronizan cuando regresa la conexión.",
+      "Kora no vive en la computadora del hotel, vive en la nube: si a ti se te cae la señal, tu página de reservas sigue recibiendo huéspedes y Camila sigue contestando por WhatsApp. Lo que necesita conexión es el panel de tu equipo, y abre igual desde el celular con datos móviles.",
   },
   {
     question: "¿Puedo exportar todos mis datos si cancelo?",
@@ -62,9 +68,11 @@ export const faqs: Faq[] = [
       "Camila funciona como tu recepcionista 24/7: contesta al instante, consulta disponibilidad, informa precios y reúne los datos del huésped. La confirmación de la reserva y la verificación del pago las haces tú o tu equipo, para que mantengas el control. Así no pierdes al huésped que escribe de madrugada.",
   },
   {
+    // 🔴 Hasta el 1 sep 2026 decía "Kora tiene API REST documentada". No existe
+    // ninguna página de documentación de API en el repo. Pendiente construirla.
     question: "¿Tienen API para conectar otros sistemas que ya uso?",
     answer:
-      "Sí. Kora tiene API REST documentada para integrarse con tu channel manager o cualquier herramienta externa. Si lo necesitas, te ayudamos con la integración.",
+      "Todavía no publicamos una API abierta. Si necesitas conectar Kora con un channel manager o con otra herramienta que ya usas, escríbenos: lo vemos contigo y armamos la conexión caso por caso.",
   },
   {
     question: "¿Qué pasa si necesito ayuda a las 11 de la noche?",

@@ -1,3 +1,5 @@
+import { FORECAST_DIAS } from "@/lib/oferta";
+
 // Catálogo del glosario hotelero (estrategia pSEO "qué es X" + AI-SEO).
 // Fuente única para /glosario, /glosario/[termino] y el sitemap.
 // Cada término abre con una "definicion" de 40-60 palabras (bloque citable por IA).
@@ -450,7 +452,7 @@ export const glosario: TerminoGlosario[] = [
     cuerpo: [
       "Es la métrica que todo hotelero conoce de memoria y también la que más se malinterpreta. Una ocupación alta sostenida con descuentos agresivos puede dejar menos utilidad que una ocupación media con tarifa firme.",
       "El otro error es medirla sólo en el mes fuerte. La foto útil es la del año completo, porque ahí aparecen los meses en los que hay que trabajar la demanda.",
-      "En el panel de Kora la ocupación se ve junto al ADR y al RevPAR, y con un forecast de 30 días para actuar antes de que la fecha llegue vacía.",
+      `En el panel de Kora la ocupación se ve junto al ADR y al RevPAR, y con un forecast de ${FORECAST_DIAS} días para actuar antes de que la fecha llegue vacía.`,
     ],
     faqs: [
       {
@@ -593,8 +595,8 @@ export const glosario: TerminoGlosario[] = [
       "El forecast hotelero es la proyección de ocupación e ingresos de los próximos días o semanas, con base en las reservas que ya tienes. Su utilidad no es adivinar: es ver con anticipación qué fechas vienen flojas, cuando todavía hay tiempo de hacer algo al respecto.",
     cuerpo: [
       "Sin forecast, el hotelero se entera de que el fin de semana viene vacío el mismo viernes. En ese momento la única palanca que queda es bajar el precio.",
-      "Con dos o tres semanas de anticipación las opciones son otras: activar una promoción a tu lista de huéspedes, mover presupuesto de publicidad, empujar en redes o abrir disponibilidad en un canal.",
-      "En el panel de Kora el forecast de 30 días vive junto a la ocupación, el ADR y el RevPAR, para que la decisión se tome viendo las cuatro cosas.",
+      "Con una semana de anticipación las opciones ya son otras: activar una promoción a tu lista de huéspedes, mover presupuesto de publicidad, empujar en redes o abrir disponibilidad en un canal.",
+      `En el panel de Kora el forecast de ${FORECAST_DIAS} días vive junto a la ocupación, el ADR y el RevPAR, para que la decisión se tome viendo las cuatro cosas.`,
     ],
     faqs: [
       {

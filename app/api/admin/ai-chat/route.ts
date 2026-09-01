@@ -1,4 +1,5 @@
 import { reservaCuenta } from "@/lib/booking/estado-reserva";
+import { FORECAST_DIAS } from "@/lib/oferta";
 import { negar } from "@/lib/panel/permisos";
 import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
@@ -202,8 +203,8 @@ MES ACTUAL (${now.toLocaleDateString("es-MX", { month: "long", year: "numeric" }
 - ADR (tarifa promedio por noche): $${insights.mes.adr.toLocaleString("es-MX")} MXN
 - RevPAR: $${insights.mes.revpar.toLocaleString("es-MX")} MXN
 
-PRÓXIMOS 7 DÍAS:
-${insights.forecast7dias.map((d) => `- ${d.label} (${d.fecha}): ${d.ocupadas}/${totalCuartos} suites (${d.porcentaje}%)`).join("\n")}
+PRÓXIMOS ${FORECAST_DIAS} DÍAS:
+${insights.forecastDias.map((d) => `- ${d.label} (${d.fecha}): ${d.ocupadas}/${totalCuartos} suites (${d.porcentaje}%)`).join("\n")}
 
 ORIGEN DE RESERVAS (mes actual):
 ${insights.origen.length ? insights.origen.map((o) => `- ${o.label}: ${o.count} reservas ($${o.ingresos.toLocaleString("es-MX")} MXN)`).join("\n") : "- (sin reservas este mes aún)"}

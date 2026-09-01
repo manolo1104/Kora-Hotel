@@ -47,7 +47,12 @@ cero "A1.3 sin await admin/supabase.from suelto"   bash -c 'grep -rnIE --include
 cero "A1.4 ningún error de Postgres al navegador"  bash -c 'grep -rnI --exclude=verificar-arreglos.sh --include="*.ts" "error.message" app/api | grep "NextResponse.json"'
 
 sec "A2 · Cero errores tragados y cero promesas flotantes"
-cero "A2.1 sin .catch(() => {})"                   bash -c 'grep -rnI --exclude=verificar-arreglos.sh --include="*.ts" --include="*.tsx" -e ".catch(() => {})" -e ".catch(()=>{})" app lib components agentes'
+# 🔴 --exclude-dir=node_modules NO ES OPCIONAL: `agentes/camila` tiene su propio
+# node_modules y el SDK de Anthropic trae 17 `.catch(() => {})` en su código
+# fuente .ts. Esta comprobación marcó 17 rojos durante días sin que ninguno
+# fuera de Kora. Y el runtime de Camila es .js, así que sin --include="*.js"
+# tampoco miraba el único sitio donde el defecto sí estaba.
+cero "A2.1 sin .catch(() => {})"                   bash -c 'grep -rnI --exclude=verificar-arreglos.sh --exclude-dir=node_modules --include="*.ts" --include="*.tsx" --include="*.js" -e ".catch(() => {})" -e ".catch(()=>{})" app lib components agentes | grep -vE "^[^:]+:[0-9]+:[[:space:]]*(//|\*)"'
 # `void` sólo pierde trabajo en el SERVIDOR (Vercel congela la función al
 # responder). En un componente de navegador es la forma idiomática de decir
 # "esta promesa va sin await a propósito", así que ahí no es un hallazgo.
@@ -62,7 +67,19 @@ cero "A3.3 check-inventario en verde"              bash -c 'node scripts/check-i
 sec "A4 · Las cifras públicas viven sólo en lib/cifras.ts"
 cero "A4.0 existe lib/cifras.ts"                   bash -c '[ -f lib/cifras.ts ] || echo "falta lib/cifras.ts"'
 cero "A4.1 sin 550/6600 fuera de cifras.ts"        bash -c 'grep -rnIE --include="*.ts" --include="*.tsx" "\\$?(550|6,?600)" app lib components | grep -v "lib/cifras.ts" | grep -v "lib/oferta.ts"'
-cero "A4.2 sin promesas inexistentes"              bash -c 'grep -rniIE --include="*.ts" --include="*.tsx" "offline|CSV y PDF|API REST|forecast (de|a) 30|100% del pago" app lib components'
+# Promesas que el producto NO cumple. Cada patrón está aquí porque se publicó:
+#   • "offline"  → la FAQ prometía modo offline con sincronización. No hay
+#                  service worker, ni manifest, ni almacenamiento local.
+#   • "API REST" → la FAQ prometía API documentada. No existe la página.
+#   • "forecast (de|a) N" → el número se escribe SOLO en lib/oferta.ts
+#     (FORECAST_DIAS). Escrito a mano se desincronizó del panel: el sitio decía
+#     30 días en diez superficies y el panel calculaba 7.
+# ⚠️ "100% del pago" SE QUEDA FUERA A PROPÓSITO. Decisión de Manolo (1 sep
+# 2026): Kora no cobra comisión (no hay application_fee en ningún cargo,
+# verificado) y la frase compara contra el 15-18% de las OTAs, que es la
+# comparación que importa. Stripe sí cobra su procesamiento; si algún día se
+# quiere matizar, el texto vive en TrustStrip, SolutionSection y /caracteristicas.
+cero "A4.2 sin promesas inexistentes"              G -iE --include="*.ts" --include="*.tsx" "offline|CSV y PDF|API REST|forecast (de|a) [0-9]" app lib components
 cero "A4.3 sin las cifras del caso de estudio"     bash -c 'grep -rnI --exclude=verificar-arreglos.sh --include="*.ts" --include="*.tsx" "35,880\|64,920\|72 horas\|23,500\|1,900" app lib components'
 cero "A4.4 verificar-cifras.mjs en verde"          bash -c 'node scripts/verificar-cifras.mjs >/dev/null 2>&1 || echo "scripts/verificar-cifras.mjs falló"'
 

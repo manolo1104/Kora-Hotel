@@ -18,6 +18,7 @@ import { FAQSection } from "@/components/landing/FAQSection";
 import { FundadorSection } from "@/components/landing/FundadorSection";
 import { ContactForm } from "@/components/landing/ContactForm";
 import { JsonLd } from "@/components/shared/JsonLd";
+import { FORECAST_DIAS } from "@/lib/oferta";
 
 export const metadata: Metadata = {
   title: "Kora — Sistema hotelero con IA para hoteles en México",
@@ -66,7 +67,7 @@ const jsonLd = {
         "Agente de WhatsApp con IA 24/7",
         "PMS: habitaciones, check-in/out y housekeeping",
         "Habitaciones ilimitadas",
-        "Dashboard con métricas, RevPAR y forecast de 30 días",
+        `Dashboard con métricas, RevPAR y forecast de ${FORECAST_DIAS} días`,
         "CRM de huéspedes y emails automáticos",
       ],
       offers: {

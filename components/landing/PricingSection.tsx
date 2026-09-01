@@ -4,7 +4,7 @@ import { Reveal } from "@/components/shared/Reveal";
 import { CountUp } from "@/components/shared/CountUp";
 import { GlowCard } from "@/components/shared/GlowCard";
 import { CtaLink } from "@/components/shared/CtaLink";
-import { PLANES, GARANTIA } from "@/lib/oferta";
+import { PLANES, GARANTIA, FORECAST_DIAS } from "@/lib/oferta";
 
 // Lo que incluye el sitio web profesional que construimos (el gancho gratis).
 const incluyeWeb = [
@@ -22,7 +22,7 @@ const featuresKora = [
   "Habitaciones ilimitadas",
   "PMS completo: check-in/out y housekeeping",
   "Camila: agente de WhatsApp con IA, 24/7",
-  "Dashboard con métricas y forecast de 30 días",
+  `Dashboard con métricas y forecast de ${FORECAST_DIAS} días`,
   "CRM de huéspedes y emails automáticos",
   "Mini-página de reservas y cobro con tarjeta",
   "Soporte directo con el equipo fundador",
