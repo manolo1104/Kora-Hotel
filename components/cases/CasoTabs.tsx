@@ -2,7 +2,26 @@
 
 import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { PRECIO_DESDE } from "@/lib/oferta";
+import {
+  CASO,
+  OTA_ANTES,
+  OTA_DESPUES,
+  DIRECTO_ANTES,
+  DIRECTO_DESPUES,
+  MESES,
+  COMISION_OTA,
+  AHORRO_MENSUAL,
+  AHORRO_ANUAL,
+  AHORRO_NETO_ANUAL,
+  COSTO_KORA_ANUAL,
+  VECES_SE_PAGA,
+  CRECIMIENTO_DIRECTAS,
+  RESPUESTA_ANTES,
+  RESPUESTA_DESPUES,
+  IMPLEMENTACION_HORAS,
+  mxn,
+  mxnLargo,
+} from "@/lib/caso-paraiso";
 
 const EASE = [0.23, 1, 0.32, 1] as const;
 
@@ -22,29 +41,35 @@ function TabProblema() {
           Antes de Kora: operar a ciegas
         </h3>
         <p className="text-kora-muted leading-relaxed">
-          Hotel Paraíso Encantado es un hotel boutique de naturaleza en Xilitla,
-          San Luis Potosí, en el corazón de la Huasteca Potosina. Con 15
-          habitaciones y una propuesta única en un destino de alta demanda,
-          Manolo Covarrubias enfrentaba el problema que tiene la mayoría de los
-          hoteles boutique en México: demasiada dependencia de las OTAs y
-          demasiado poco control de su propio negocio.
+          El Paraíso Encantado son {CASO.habitaciones} habitaciones en Xilitla,
+          en el corazón de la Huasteca Potosina. Destino con demanda de sobra y
+          un hotel del que estoy orgulloso. Y aun así, cada mes firmaba el mismo
+          trato sin haberlo negociado: {OTA_ANTES} de cada 100 reservas entraban
+          por Booking o Airbnb, y de cada una de esas se iba el{" "}
+          {COMISION_OTA}% antes de que el huésped cruzara la puerta.
+        </p>
+        <p className="text-kora-muted leading-relaxed mt-4">
+          Lo que más me pesaba no era la comisión. Era no saber. No tenía forma
+          de contestar, un martes cualquiera, cuánto llevaba pagado de comisión
+          ese mes ni cuántos mensajes de WhatsApp se habían quedado sin
+          respuesta la noche anterior.
         </p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
           {
-            metric: "40%",
+            metric: `${OTA_ANTES}%`,
             label: "de reservas venían de Booking o Airbnb",
             bad: true,
           },
           {
-            metric: "18%",
+            metric: `${COMISION_OTA}%`,
             label: "de comisión promedio por cada reserva OTA",
             bad: true,
           },
           {
-            metric: "4+ hrs",
+            metric: RESPUESTA_ANTES,
             label: "tiempo promedio de respuesta en WhatsApp",
             bad: true,
           },
@@ -68,16 +93,16 @@ function TabProblema() {
         <ul className="space-y-4">
           {[
             {
-              title: "Sin sistema de reservas propio",
-              desc: "Las reservas llegaban por Booking, por WhatsApp manual y por llamada telefónica. No había un lugar centralizado donde ver la ocupación real. Las dobles reservas eran un riesgo constante.",
+              title: "Sin un lugar donde estuviera todo",
+              desc: "Las reservas llegaban por Booking, por WhatsApp y por teléfono, y vivían en tres sitios distintos. Para saber si el fin de semana estaba lleno había que cruzar la extranet, la libreta y un Excel. Dos personas vendiendo el mismo cuarto era cuestión de tiempo.",
             },
             {
-              title: "WhatsApp sin respuesta automática",
-              desc: "Las consultas llegaban de noche, los fines de semana, en días festivos. Sin nadie contestando, los huéspedes potenciales se iban a la siguiente opción en Booking. Cada mensaje sin respuesta era una reserva perdida.",
+              title: "El WhatsApp se apagaba a las diez de la noche",
+              desc: "Las consultas llegan cuando la gente planea su viaje: de noche, en domingo, en puente. Contestar a la mañana siguiente casi nunca sirve — para entonces ya reservaron en la siguiente opción de Booking. Cada mensaje dormido era una reserva regalada a la competencia.",
             },
             {
-              title: "Sin visibilidad financiera",
-              desc: "No había forma rápida de saber cuánto se estaba pagando en comisiones al mes, qué habitaciones eran más rentables o cuál era la ocupación real de la semana. Las decisiones se tomaban por intuición, no por datos.",
+              title: "Decidir el precio a ojo",
+              desc: "Sin saber qué habitación deja más, qué canal cuesta más ni cómo va la ocupación de la semana, subir o bajar la tarifa es una corazonada. Y una corazonada equivocada en temporada alta no se recupera: esa noche ya no vuelve.",
             },
           ].map((item) => (
             <li key={item.title} className="flex gap-4">
@@ -113,43 +138,43 @@ function TabProblema() {
 function TabImplementacion() {
   const timeline = [
     {
-      day: "Día 0",
-      title: "Primera conversación",
-      desc: "Manolo nos describió los tres problemas principales: dependencia de OTAs, WhatsApp sin respuesta y falta de visibilidad. En 15 minutos definimos el scope de implementación.",
+      day: "Hora 0",
+      title: "La lista de lo que dolía",
+      desc: "Tres problemas, escritos en una hoja: dependencia de las OTAs, WhatsApp sin contestar y no saber los números. Todo lo que no estuviera en esa hoja quedó fuera del arranque — es la única forma de que un arranque dure horas y no meses.",
     },
     {
-      day: "Día 1",
-      title: "Configuración del sistema",
-      desc: "Kora fue configurado desde cero para el hotel: habitaciones, tipos, tarifas por temporada, políticas de cancelación, respuestas del agente de WhatsApp y conexión con Booking y Airbnb.",
+      day: "Hora 6",
+      title: "El hotel, cargado",
+      desc: "Las 15 habitaciones con sus tipos, las fotos, las tarifas por temporada, las políticas de cancelación y lo que Camila tiene que saber contestar. Yo no toqué nada técnico: mandé fotos y precios por WhatsApp.",
     },
     {
-      day: "Día 2",
-      title: "Migración de reservas",
-      desc: "Todas las reservas existentes en Booking, WhatsApp y el Excel del hotel fueron importadas al nuevo PMS. Ninguna reserva se perdió en el proceso. El historial de huéspedes quedó disponible desde el primer día.",
+      day: "Hora 16",
+      title: "Las reservas que ya existían",
+      desc: "Lo que estaba en Booking, en el Excel y en la libreta se pasó al sistema. Ninguna se perdió, y el historial de huéspedes quedó adentro desde el primer día — eso es lo que después deja que un huésped repita sin pasar por una OTA.",
     },
     {
-      day: "Día 3",
-      title: "Capacitación del equipo",
-      desc: "Video llamada de 40 minutos con Manolo y su recepcionista. Recorrido completo: cómo ver el mapa de habitaciones, cómo hacer check-in, cómo ver las reservas entrantes y cómo manejar casos especiales.",
+      day: `Hora ${IMPLEMENTACION_HORAS}`,
+      title: "Operando, y el equipo capacitado",
+      desc: "Videollamada de 40 minutos con mi recepcionista: mapa de habitaciones, check-in, reservas entrantes y qué hacer con los casos raros. Al colgar, el motor ya estaba cobrando y Camila ya estaba contestando.",
     },
     {
       day: "Semana 1",
-      title: "Primera reserva directa por Kora",
-      desc: "A los 4 días de lanzar el motor de reservas, llegó la primera reserva directa sin intermediario. El agente de WhatsApp cerró la segunda reserva directa a las 11:30 de la noche del viernes.",
+      title: "La primera reserva sin comisión",
+      desc: "A los cuatro días entró la primera reserva directa, sin intermediario. La segunda la cerró Camila sola, a las 11:30 de la noche de un viernes — la hora exacta a la que antes se me escapaban.",
     },
     {
       day: "Mes 1",
-      title: "Revisión de resultados",
-      desc: "Revisamos los números juntos: reservas por canal, tiempo de respuesta, comisiones pagadas vs. mes anterior. Los primeros resultados fueron mejores de lo esperado.",
+      title: "Los números, por fin",
+      desc: "Reservas por canal, tiempo de respuesta y comisión pagada contra el mes anterior, en una pantalla. Es la primera vez que pude contestar «¿cómo vamos?» sin abrir tres sitios.",
     },
   ];
 
   return (
     <div className="space-y-8">
       <p className="text-kora-muted leading-relaxed">
-        La implementación de Kora en Hotel Paraíso Encantado tomó 72 horas
-        desde la primera conversación hasta el sistema operando en producción.
-        Así fue el proceso, paso a paso.
+        De la primera conversación al sistema cobrando pasaron{" "}
+        {IMPLEMENTACION_HORAS} horas. No es una cifra de folleto: es el mismo
+        arranque que hacemos hoy en cada hotel, y así fue paso a paso.
       </p>
 
       <ol className="relative space-y-0">
@@ -180,12 +205,13 @@ function TabImplementacion() {
 
       <div className="bg-kora-bg rounded-2xl p-6 border border-gray-100">
         <p className="text-sm font-bold text-kora-text mb-1">
-          Lo que el equipo necesitaba saber antes de arrancar
+          Lo que mi recepcionista tuvo que aprender: tres cosas
         </p>
         <p className="text-sm text-kora-muted leading-relaxed">
-          Cómo hacer check-in digital, cómo ver el mapa de habitaciones y cómo
-          identificar una reserva directa vs. una de OTA. Todo lo demás lo hace
-          el sistema automáticamente.
+          Hacer check-in, leer el mapa de habitaciones y distinguir una reserva
+          directa de una de OTA. Nada más. Si un sistema para un hotel de{" "}
+          {CASO.habitaciones} cuartos necesita un manual, el sistema está mal
+          hecho.
         </p>
       </div>
     </div>
@@ -196,24 +222,25 @@ function TabResultados() {
   return (
     <div className="space-y-8">
       <p className="text-kora-muted leading-relaxed">
-        A los tres meses de implementar Kora, Hotel Paraíso Encantado operaba
-        con números que no había tenido antes. Estos son los resultados reales.
+        A los {MESES} meses tenía, por primera vez, números que mirar. No son
+        proyecciones ni un caso de otro hotel: son los míos, y son los que
+        aparecen en todo lo demás que dice este sitio.
       </p>
 
       {/* Key metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
           {
-            metric: "+40%",
-            label: "Reservas directas vs. el mismo período del año anterior",
+            metric: `${OTA_ANTES}% → ${OTA_DESPUES}%`,
+            label: `Dependencia de las OTAs, en ${MESES} meses`,
           },
           {
-            metric: "$8,400",
-            label: "MXN/mes ahorrados en comisiones OTA (promedio)",
+            metric: mxn(AHORRO_MENSUAL),
+            label: "MXN al mes que dejé de pagar en comisiones",
           },
           {
             metric: "<30 seg",
-            label: "Tiempo de respuesta en WhatsApp (antes: 4+ horas)",
+            label: `Respuesta en WhatsApp (antes: ${RESPUESTA_ANTES})`,
           },
         ].map((item) => (
           <div
@@ -242,13 +269,13 @@ function TabResultados() {
               <div>
                 <div className="flex justify-between text-xs text-kora-muted mb-1">
                   <span>Booking / Airbnb</span>
-                  <span className="font-bold text-red-600">40%</span>
+                  <span className="font-bold text-red-600">{OTA_ANTES}%</span>
                 </div>
                 <div className="h-2 bg-red-100 rounded-full overflow-hidden">
                   <motion.div
                     className="h-full bg-red-400 rounded-full"
                     initial={{ width: 0 }}
-                    whileInView={{ width: "40%" }}
+                    whileInView={{ width: `${OTA_ANTES}%` }}
                     transition={{ duration: 0.8, ease: EASE, delay: 0.1 }}
                     viewport={{ once: true }}
                   />
@@ -257,13 +284,13 @@ function TabResultados() {
               <div>
                 <div className="flex justify-between text-xs text-kora-muted mb-1">
                   <span>Reserva directa</span>
-                  <span className="font-bold">60%</span>
+                  <span className="font-bold">{DIRECTO_ANTES}%</span>
                 </div>
                 <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                   <motion.div
                     className="h-full bg-gray-300 rounded-full"
                     initial={{ width: 0 }}
-                    whileInView={{ width: "60%" }}
+                    whileInView={{ width: `${DIRECTO_ANTES}%` }}
                     transition={{ duration: 0.7, ease: EASE, delay: 0.2 }}
                     viewport={{ once: true }}
                   />
@@ -273,19 +300,19 @@ function TabResultados() {
           </div>
           <div className="bg-kora-accent/5 border border-kora-accent/20 rounded-2xl p-5">
             <p className="text-xs font-bold text-kora-primary uppercase tracking-widest mb-3">
-              Con Kora (mes 3)
+              Con Kora (mes {MESES})
             </p>
             <div className="space-y-2.5">
               <div>
                 <div className="flex justify-between text-xs text-kora-muted mb-1">
                   <span>Booking / Airbnb</span>
-                  <span className="font-bold text-kora-muted">25%</span>
+                  <span className="font-bold text-kora-muted">{OTA_DESPUES}%</span>
                 </div>
                 <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                   <motion.div
                     className="h-full bg-kora-muted/40 rounded-full"
                     initial={{ width: 0 }}
-                    whileInView={{ width: "25%" }}
+                    whileInView={{ width: `${OTA_DESPUES}%` }}
                     transition={{ duration: 0.8, ease: EASE, delay: 0.1 }}
                     viewport={{ once: true }}
                   />
@@ -294,13 +321,13 @@ function TabResultados() {
               <div>
                 <div className="flex justify-between text-xs text-kora-muted mb-1">
                   <span>Reserva directa</span>
-                  <span className="font-bold text-kora-primary">75%</span>
+                  <span className="font-bold text-kora-primary">{DIRECTO_DESPUES}%</span>
                 </div>
                 <div className="h-2 bg-kora-accent/20 rounded-full overflow-hidden">
                   <motion.div
                     className="h-full bg-kora-accent rounded-full"
                     initial={{ width: 0 }}
-                    whileInView={{ width: "75%" }}
+                    whileInView={{ width: `${DIRECTO_DESPUES}%` }}
                     transition={{ duration: 0.9, ease: EASE, delay: 0.2 }}
                     viewport={{ once: true }}
                   />
@@ -313,28 +340,36 @@ function TabResultados() {
 
       {/* Financial impact */}
       <div className="bg-kora-bg rounded-2xl p-6 border border-gray-100">
-        <h4 className="font-bold text-kora-text mb-4">Impacto financiero anual</h4>
+        <h4 className="font-bold text-kora-text mb-1">
+          La cuenta, completa
+        </h4>
+        <p className="text-xs text-kora-muted mb-4 leading-relaxed">
+          Es la comisión que ya no pago porque esas reservas entran directas —
+          por el motor, por WhatsApp o por teléfono— calculada al{" "}
+          {COMISION_OTA}% que me cobraban en promedio las OTAs.
+        </p>
         <div className="space-y-3 text-sm">
           {/*
-            El costo de Kora y el ahorro neto se CALCULAN desde lib/oferta.ts, la
-            fuente única del precio. Estaban escritos a mano y decían $35,880 al
-            año — 5.4 veces el precio real ($550 × 12 = $6,600) — así que el caso
-            de estudio publicaba un ahorro neto casi $30,000 menor del que la
-            propia página de precios sostiene (K-38). Un caso de éxito que se
-            equivoca EN CONTRA es igual de malo que uno que exagera: quien haga
-            la cuenta deja de creer el resto.
+            TODA esta tabla se calcula desde lib/caso-paraiso.ts, que a su vez
+            saca el precio de lib/oferta.ts. Ninguna cifra se escribe a mano.
+            Historia de por qué: primero el ahorro neto estaba escrito a mano y
+            decía $35,880 al año — 5.4 veces el precio real (K-38), o sea el caso
+            se equivocaba EN CONTRA. Después la landing publicaba "≈$30,000" para
+            el mismo ahorro que aquí valía $8,400 al mes. Un caso de éxito que no
+            cuadra consigo mismo destruye el resto de la página: quien saca la
+            cuenta deja de creer todo lo demás.
           */}
           {[
-            { label: "Ahorro en comisiones OTA (mensual)", value: "$8,400 MXN", positive: true },
-            { label: "Ahorro en comisiones OTA (anual)", value: "$100,800 MXN", positive: true },
+            { label: "Comisión de OTA que dejé de pagar (mensual)", value: mxnLargo(AHORRO_MENSUAL), positive: true },
+            { label: "Lo mismo, al año", value: mxnLargo(AHORRO_ANUAL), positive: true },
             {
-              label: "Costo de Kora (anual)",
-              value: `$${(PRECIO_DESDE * 12).toLocaleString("es-MX")} MXN`,
+              label: "Lo que cuesta Kora al año",
+              value: `− ${mxnLargo(COSTO_KORA_ANUAL)}`,
               positive: false,
             },
             {
-              label: "Ahorro neto anual",
-              value: `$${(100_800 - PRECIO_DESDE * 12).toLocaleString("es-MX")} MXN`,
+              label: "Lo que se queda en el hotel",
+              value: mxnLargo(AHORRO_NETO_ANUAL),
               positive: true,
               bold: true,
             },
@@ -352,6 +387,26 @@ function TabResultados() {
         </div>
       </div>
 
+      {/* Lo que la tabla no dice: el volumen también creció. Va aquí y no
+          arriba como métrica suelta porque "+40%" pegado al "40%" de
+          dependencia OTA se leía como la misma cifra dos veces. */}
+      <div>
+        <h4 className="font-bold text-kora-text mb-3">
+          Y no fue repartir el mismo pastel
+        </h4>
+        <p className="text-kora-muted leading-relaxed text-sm">
+          Bajar del {OTA_ANTES}% al {OTA_DESPUES}% de dependencia podría
+          significar simplemente vender menos por Booking. No fue el caso: contra
+          el mismo periodo del año anterior, las reservas directas crecieron un{" "}
+          <span className="font-semibold text-kora-text">
+            {CRECIMIENTO_DIRECTAS}% en volumen
+          </span>
+          . La mayor parte de ese crecimiento entró por la puerta que antes
+          estaba cerrada de noche: WhatsApp contestado en{" "}
+          {RESPUESTA_DESPUES} en vez de {RESPUESTA_ANTES}.
+        </p>
+      </div>
+
       <blockquote className="border-l-4 border-kora-accent pl-5">
         <p className="text-kora-text leading-relaxed italic">
           &ldquo;Lo que más me sorprendió fue ver reservas llegando de noche por
@@ -359,9 +414,21 @@ function TabResultados() {
           al hotel: es que ahora podemos atenderlo.&rdquo;
         </p>
         <footer className="mt-3 text-sm font-semibold text-kora-primary">
-          Manolo Covarrubias, Hotel Paraíso Encantado
+          {CASO.duenoNombre}, {CASO.hotel}
         </footer>
       </blockquote>
+
+      {/* El remate del caso: la comparación que el hotelero puede hacer solo. */}
+      <div className="rounded-2xl bg-kora-primary p-6 text-white">
+        <p className="text-sm text-white/80 leading-relaxed">
+          Puesto de otra forma: lo que este hotel deja de dar en comisiones al
+          año paga Kora{" "}
+          <span className="font-bold text-kora-accent">
+            {VECES_SE_PAGA} veces
+          </span>
+          . El resto se queda en el hotel.
+        </p>
+      </div>
     </div>
   );
 }

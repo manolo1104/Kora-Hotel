@@ -3,6 +3,14 @@
 // Mensualidad del plan (el "desde" que se comunica).
 export const PRECIO_DESDE = 550;
 
+// Horas que tardamos en dejar el hotel operando, llave en mano.
+//
+// Estaba escrito a mano en ~30 lugares y no todos decían lo mismo: la landing y
+// las FAQ prometían 48 h, el formulario de contacto "48 a 72 horas" y el caso de
+// estudio contaba 72 h — tres promesas distintas para el mismo servicio, todas
+// visibles en la misma visita. Manolo fijó el número el 31 ago 2026.
+export const IMPLEMENTACION_HORAS = 24;
+
 // ─── Plan de suscripción (fuente única) ───────────────────────────────────────
 // Los price IDs de Stripe viven en variables de entorno porque cambian entre
 // modo prueba y modo live (se generan con: node scripts/stripe-setup.mjs).

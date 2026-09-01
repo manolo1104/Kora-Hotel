@@ -5,11 +5,20 @@ import { CasoTabs } from "@/components/cases/CasoTabs";
 import { BarraCTA } from "@/components/shared/BarraCTA";
 import { Reveal } from "@/components/shared/Reveal";
 import { CountUp } from "@/components/shared/CountUp";
+import {
+  CASO,
+  OTA_ANTES,
+  OTA_DESPUES,
+  MESES,
+  AHORRO_MENSUAL,
+  AHORRO_ANUAL,
+  IMPLEMENTACION_HORAS,
+  mxn,
+} from "@/lib/caso-paraiso";
 
 export const metadata: Metadata = {
   title: "Caso de estudio: Hotel Paraíso Encantado — Kora",
-  description:
-    "Cómo Hotel Paraíso Encantado en Xilitla, SLP aumentó sus reservas directas 40% y ahorra $8,400 MXN/mes en comisiones usando Kora.",
+  description: `Hotel Paraíso Encantado, en Xilitla SLP, bajó su dependencia de las OTAs del ${OTA_ANTES}% al ${OTA_DESPUES}% en ${MESES} meses y dejó de pagar ${mxn(AHORRO_MENSUAL)} MXN al mes en comisiones. Es el hotel del fundador de Kora.`,
   alternates: {
     canonical: "/casos/paraiso-encantado",
   },
@@ -51,8 +60,10 @@ export default function CasoParaisoEncantadoPage() {
               Xilitla, San Luis Potosí · Hotel boutique de naturaleza
             </p>
             <p className="mt-6 text-white/80 text-base leading-relaxed max-w-2xl">
-              El primer hotel en adoptar Kora. Cómo pasamos del 40% de dependencia
-              en OTAs a generar el 75% de reservas directas en tres meses.
+              Kora no se construyó para vendérselo a alguien: se construyó para
+              este hotel, porque es el mío. En {MESES} meses la parte de mis
+              reservas que llegaba por Booking pasó del {OTA_ANTES}% al{" "}
+              {OTA_DESPUES}%. Esto es lo que pasó, con los números a la vista.
             </p>
           </Reveal>
 
@@ -60,9 +71,25 @@ export default function CasoParaisoEncantadoPage() {
           <Reveal delay={0.15}>
             <div className="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-2xl">
               {[
-                { to: 40, prefix: "+", suffix: "%", label: "Reservas directas" },
-                { to: 8400, prefix: "$", suffix: "", label: "MXN/mes ahorrados" },
-                { to: 72, prefix: "", suffix: " hrs", label: "Para implementar" },
+                {
+                  from: OTA_ANTES,
+                  to: OTA_DESPUES,
+                  prefix: `${OTA_ANTES}% → `,
+                  suffix: "%",
+                  label: `Dependencia de OTAs en ${MESES} meses`,
+                },
+                {
+                  to: AHORRO_MENSUAL,
+                  prefix: "$",
+                  suffix: "",
+                  label: "MXN/mes que dejé de pagar en comisiones",
+                },
+                {
+                  to: IMPLEMENTACION_HORAS,
+                  prefix: "",
+                  suffix: " hrs",
+                  label: "Para dejarlo operando",
+                },
               ].map((m) => (
                 <div
                   key={m.label}
@@ -70,6 +97,7 @@ export default function CasoParaisoEncantadoPage() {
                 >
                   <CountUp
                     to={m.to}
+                    from={m.from}
                     prefix={m.prefix}
                     suffix={m.suffix}
                     className="block text-2xl font-bold text-kora-accent tabular-nums"
@@ -88,10 +116,13 @@ export default function CasoParaisoEncantadoPage() {
           <div className="flex flex-wrap gap-6 text-sm text-kora-muted">
             {[
               { label: "Hotel", value: "Paraíso Encantado" },
-              { label: "Ubicación", value: "Xilitla, San Luis Potosí" },
+              { label: "Ubicación", value: CASO.ciudad },
               { label: "Tipo", value: "Boutique de naturaleza" },
-              { label: "Habitaciones", value: "15" },
-              { label: "Tiempo de implementación", value: "48 horas" },
+              { label: "Habitaciones", value: String(CASO.habitaciones) },
+              {
+                label: "Tiempo de implementación",
+                value: `${IMPLEMENTACION_HORAS} horas`,
+              },
             ].map((item) => (
               <div key={item.label}>
                 <span className="font-semibold text-kora-text">
@@ -163,11 +194,16 @@ export default function CasoParaisoEncantadoPage() {
       <section className="py-14 bg-white border-t border-gray-100">
         <Reveal className="max-w-xl mx-auto px-4 text-center">
           <h2 className="text-2xl font-bold text-kora-text mb-3">
-            ¿Tu hotel tiene los mismos problemas?
+            ¿Cuánto le vas a dar a Booking este año?
           </h2>
           <p className="text-kora-muted text-sm mb-7">
-            Escríbenos y en 20 minutos te mostramos cómo quedaría Kora
-            configurado en tu hotel específico.
+            Es una cuenta de diez segundos: lo que pagaste de comisión el mes
+            pasado, por doce. En mi hotel eran{" "}
+            <span className="font-semibold text-kora-text">
+              {mxn(AHORRO_ANUAL)} MXN al año
+            </span>
+            . Escríbeme y en 20 minutos te enseño cómo se vería Kora con tus
+            cuartos y tus tarifas cargados.
           </p>
           <a
             href={WA_URL}

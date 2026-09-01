@@ -11,7 +11,7 @@ const WA_FALLBACK_URL = `https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER
 
 const benefits = [
   "Plan mes a mes de $550 MXN/mes, habitaciones ilimitadas — sin permanencia",
-  "Te montamos todo y capacitamos a tu equipo en 48 a 72 horas",
+  "Te montamos todo y capacitamos a tu equipo en 24 horas",
   "Opcional: tu sitio web profesional con motor de reservas (servicio aparte)",
   "Soporte directo con el equipo fundador",
 ];

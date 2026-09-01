@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Reveal } from "@/components/shared/Reveal";
 import { SuscripcionForm } from "@/components/shared/SuscripcionForm";
+import { OTA_ANTES, OTA_DESPUES } from "@/lib/caso-paraiso";
 
 // Actualiza estas URLs cuando crees las cuentas sociales
 const LINKEDIN_URL = ""; // e.g. "https://linkedin.com/company/kora-hotel"
@@ -49,7 +50,8 @@ export function Footer() {
                   Guía gratis
                 </p>
                 <p className="mt-2 text-lg font-bold leading-snug tracking-tight text-white sm:text-xl">
-                  Del 40% al 25% de dependencia de Booking en 90 días
+                  Del {OTA_ANTES}% al {OTA_DESPUES}% de dependencia de Booking
+                  en 90 días
                 </p>
                 <p className="mt-2 text-sm leading-relaxed text-white/50">
                   El plan que seguí en mi hotel de Xilitla, semana por semana.

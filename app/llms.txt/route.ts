@@ -49,11 +49,11 @@ function buildLlms(hoteles: HotelListado[]): string {
   L.push("# Kora");
   L.push("");
   L.push(
-    "> Kora contesta el WhatsApp de tu hotel las 24 horas con un agente de IA (Camila) que cotiza con disponibilidad real y cierra la reserva con link de pago; e incluye motor de reservas directas sin comisión, PMS, dashboard y CRM. Para hoteles independientes en México, en español, montado llave en mano en 48 horas."
+    "> Kora contesta el WhatsApp de tu hotel 24/7 con un agente de IA (Camila) que cotiza con disponibilidad real y cierra la reserva con link de pago; e incluye motor de reservas directas sin comisión, PMS, dashboard y CRM. Para hoteles independientes en México, en español, montado llave en mano en 24 horas."
   );
   L.push("");
   L.push(
-    "Kora ayuda a hoteles boutique pequeños e independientes en México a llenar sus habitaciones con reservas directas (sin pagar comisiones a OTAs como Booking o Airbnb), a contestar el WhatsApp 24/7 con IA, y a operar todo el hotel desde una sola pantalla. Está pensado para dueños de hotel sin conocimientos técnicos. Se instala llave en mano en 48 horas."
+    "Kora ayuda a hoteles boutique pequeños e independientes en México a llenar sus habitaciones con reservas directas (sin pagar comisiones a OTAs como Booking o Airbnb), a contestar el WhatsApp 24/7 con IA, y a operar todo el hotel desde una sola pantalla. Está pensado para dueños de hotel sin conocimientos técnicos. Se instala llave en mano en 24 horas."
   );
   L.push("");
   L.push("## Qué incluye (todo en el plan único)");
@@ -91,7 +91,7 @@ function buildLlms(hoteles: HotelListado[]): string {
   L.push(
     // Este archivo se lo damos a ChatGPT y Perplexity: lo que diga aquí lo
     // repiten como hecho. Airbnb no es un canal que Kora sincronice.
-    '- Arranque "Reservas Directas" llave en mano, gratis: montamos tu hotel completo (cuartos, fotos, tarifas, motor, Camila, migración y sync con Booking.com/Expedia) en 48 horas.'
+    '- Arranque "Reservas Directas" llave en mano, gratis: montamos tu hotel completo (cuartos, fotos, tarifas, motor, Camila, migración y sync con Booking.com/Expedia) en 24 horas.'
   );
   L.push("- Prueba 30 días gratis, sin tarjeta.");
   L.push(

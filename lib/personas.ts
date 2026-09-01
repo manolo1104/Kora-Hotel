@@ -51,7 +51,7 @@ export const personas: Persona[] = [
     faqs: [
       {
         q: "¿Kora sirve para un hotel boutique pequeño?",
-        a: "Sí. Está diseñado precisamente para hoteles boutique e independientes en México, operados por su dueño. Lo instalamos y capacitamos nosotros en 48 horas.",
+        a: "Sí. Está diseñado precisamente para hoteles boutique e independientes en México, operados por su dueño. Lo instalamos y capacitamos nosotros en 24 horas.",
       },
       {
         q: "¿Pierdo mis reservas de Booking o Airbnb?",
@@ -86,7 +86,7 @@ export const personas: Persona[] = [
       {
         titulo: "Instalado y con soporte en español",
         texto:
-          "Lo configuramos por ti en 48 horas y te damos soporte por WhatsApp. Cero fricción técnica.",
+          "Lo configuramos por ti en 24 horas y te damos soporte por WhatsApp. Cero fricción técnica.",
       },
     ],
     faqs: [
@@ -141,7 +141,7 @@ export const personas: Persona[] = [
       },
       {
         q: "¿Sirve para un hotel de playa en Tulum, Sayulita o Puerto Escondido?",
-        a: "Sí. Kora sirve para hoteles boutique de playa en cualquier destino de México. Convive con Booking, Airbnb y Expedia mientras haces crecer tu canal directo sin comisión, y lo montamos llave en mano en 48 horas.",
+        a: "Sí. Kora sirve para hoteles boutique de playa en cualquier destino de México. Convive con Booking, Airbnb y Expedia mientras haces crecer tu canal directo sin comisión, y lo montamos llave en mano en 24 horas.",
       },
     ],
   },
@@ -219,7 +219,7 @@ export const personas: Persona[] = [
     faqs: [
       {
         q: "¿Kora sirve para un hotel boutique pequeño en un Pueblo Mágico?",
-        a: "Sí. Está diseñado para hoteles independientes operados por su dueño. Lo instalamos y capacitamos en 48 horas; convive con tus OTAs.",
+        a: "Sí. Está diseñado para hoteles independientes operados por su dueño. Lo instalamos y capacitamos en 24 horas; convive con tus OTAs.",
       },
       {
         q: "¿Me ayuda a fidelizar al huésped?",

@@ -56,7 +56,7 @@ const garantias = [
 // Arranque "llave en mano": los bonos que van GRATIS con el plan (valor en pesos
 // justificable). Cada uno mata una objeción real del hotelero.
 const arranque = [
-  { titulo: "Arranque Llave en Mano (48h)", detalle: "Cargamos cuartos, fotos, tarifas y tu motor", valor: 8000 },
+  { titulo: "Arranque Llave en Mano (24 h)", detalle: "Cargamos cuartos, fotos, tarifas y tu motor", valor: 8000 },
   { titulo: "Tu página de reservas lista", detalle: "Motor embebido en una página con tu marca", valor: 6000 },
   { titulo: "Camila entrenada con tu hotel", detalle: "Tus precios, políticas y respuestas", valor: 4000 },
   // Airbnb NO: el panel sólo conecta Booking.com y Expedia

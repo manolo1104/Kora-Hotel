@@ -1,22 +1,45 @@
 import { Reveal } from "@/components/shared/Reveal";
 import { TiltCard } from "@/components/shared/TiltCard";
+import {
+  CASO,
+  OTA_ANTES,
+  OTA_DESPUES,
+  MESES,
+  AHORRO_TRIMESTRE,
+  DIRECTO_MOTOR_TRIMESTRE,
+  mxn,
+} from "@/lib/caso-paraiso";
 
 // Video demo (embed). YouTube: Compartir → Insertar → copia la URL del src.
 const VIDEO_EMBED_URL = "https://www.youtube.com/embed/IE5NTgS74rY";
 
 // Caso real verificable: el hotel del fundador operando con Kora (no estimaciones).
 // El costo de apps separadas ($5,300) vive en la comparativa pegada al pricing.
+// 🔴 LAS CIFRAS SALEN DE lib/caso-paraiso.ts, NO SE ESCRIBEN AQUÍ.
+// Esta sección publicaba "~25% menos en comisiones (≈$30,000 que se queda en el
+// hotel)" mientras /casos/paraiso-encantado publicaba "$8,400 MXN/mes" para el
+// MISMO ahorro. Son $30,000 contra $25,200: la misma afirmación con dos números,
+// a un scroll de distancia. Además el "~25%" era la dependencia de OTAs que
+// QUEDÓ, no la reducción — se leía como si la comisión hubiera bajado un cuarto.
 const caso = {
-  hotel: "Hotel Paraíso Encantado",
-  contexto: "El hotel del fundador, operando con Kora desde hace 3 meses.",
+  hotel: CASO.hotel,
+  contexto: `El hotel del fundador, operando con Kora desde hace ${MESES} meses.`,
   metricas: [
-    { value: "$120,000", label: "en reservas directas en sus primeros 3 meses" },
-    { value: "~25%", label: "menos en comisiones de OTAs (≈$30,000 que se queda en el hotel)" },
-    { value: "24/7", label: "Camila contesta al instante y reúne lo necesario para cerrar la reserva" },
+    {
+      value: mxn(DIRECTO_MOTOR_TRIMESTRE),
+      label: `en reservas directas cobradas por el motor en sus primeros ${MESES} meses`,
+    },
+    {
+      value: `${OTA_ANTES}% → ${OTA_DESPUES}%`,
+      label: `de dependencia de las OTAs (${mxn(AHORRO_TRIMESTRE)} en comisiones que no se pagaron)`,
+    },
+    {
+      value: "24/7",
+      label: "Camila contesta al instante y reúne lo necesario para cerrar la reserva",
+    },
   ],
-  quote:
-    "En 3 meses, Kora nos trajo $120,000 en reservas directas. Camila contesta al instante y nos deja todo listo para cerrar — ya no perdemos al huésped que escribe de noche.",
-  autor: "Manolo Covarrubias · dueño del Hotel Paraíso Encantado",
+  quote: `En ${MESES} meses, Kora nos trajo ${mxn(DIRECTO_MOTOR_TRIMESTRE)} en reservas directas. Camila contesta al instante y nos deja todo listo para cerrar — ya no perdemos al huésped que escribe de noche.`,
+  autor: `${CASO.duenoNombre} · dueño del ${CASO.hotel}`,
 };
 
 // Negocios reales en línea con Kora: hoteles operando con el motor/sitio
@@ -117,7 +140,9 @@ export function SocialProofSection() {
               ))}
             </div>
             <blockquote className="mt-6 border-l-2 border-kora-accent pl-4">
-              <p className="text-sm text-kora-text italic leading-relaxed">"{caso.quote}"</p>
+              <p className="text-sm text-kora-text italic leading-relaxed">
+                &ldquo;{caso.quote}&rdquo;
+              </p>
               <footer className="mt-2 text-xs text-kora-muted not-italic">— {caso.autor}</footer>
             </blockquote>
             {/* Autoridad honesta: admitir una limitación aumenta la confianza + framing miembro fundador */}

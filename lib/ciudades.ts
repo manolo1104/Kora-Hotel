@@ -34,7 +34,7 @@ export const TABLA_OTA_DIRECTO: FilaCiudad[] = [
   { aspecto: "Datos del huésped (correo/teléfono)", ota: "Limitados", kora: "Tuyos" },
   { aspecto: "Atención fuera de horario", ota: "Reglas de la OTA", kora: "WhatsApp con IA 24/7" },
   { aspecto: "Cobro", ota: "Según la plataforma", kora: "Anticipo con tarjeta, directo" },
-  { aspecto: "Puesta en marcha", ota: "—", kora: "Llave en mano en 48 horas" },
+  { aspecto: "Puesta en marcha", ota: "—", kora: "Llave en mano en 24 horas" },
 ];
 
 export const ciudades: Ciudad[] = [
@@ -51,7 +51,7 @@ export const ciudades: Ciudad[] = [
     cuerpo: [
       "El turismo de Xilitla es de fin de semana y puentes: viajeros que llegan por el jardín surrealista de Las Pozas, el café de altura y la selva. Muchos descubren tu hotel en una OTA y reservan ahí, dejándote una comisión del 15% al 20% en cada noche — justo cuando la ocupación se concentra en pocas fechas y cada reserva cuenta el doble.",
       "La mayoría de los hospedajes en Xilitla son pequeños y operados por su dueño: cabañas, posadas y hoteles boutique donde el mismo dueño contesta el WhatsApp. El problema es que las consultas llegan a cualquier hora —de noche, entre semana— y si nadie responde a tiempo, el huésped termina reservando por Booking de todos modos.",
-      "Con Kora pones un motor de reservas en tu propia página o en tu Instagram para captar directo, y Camila —tu recepcionista de IA— contesta 24/7, cotiza y reúne los datos de la reserva mientras tú atiendes el hotel. Nosotros te lo montamos llave en mano en 48 horas; tú solo empiezas a recibir reservas que no pagan comisión.",
+      "Con Kora pones un motor de reservas en tu propia página o en tu Instagram para captar directo, y Camila —tu recepcionista de IA— contesta 24/7, cotiza y reúne los datos de la reserva mientras tú atiendes el hotel. Nosotros te lo montamos llave en mano en 24 horas; tú solo empiezas a recibir reservas que no pagan comisión.",
     ],
     faqs: [
       {
@@ -81,7 +81,7 @@ export const ciudades: Ciudad[] = [
     cuerpo: [
       "Al ser la ciudad más grande de la región, Valles concentra desde hoteles de paso sobre la carretera hasta hospedajes turísticos para quienes salen a los ríos y cascadas. Ese volumen también significa que las OTAs se llevan una tajada considerable cada mes: en un hotel con buena ocupación, la comisión de Booking y Expedia puede sumar decenas de miles de pesos al año.",
       "El huésped de aventura planea con anticipación y compara precios; muchas veces te escribe por WhatsApp para preguntar disponibilidad y tours antes de reservar. Si no le contestas rápido y no puede reservar y pagar directo, la venta se enfría o se va a una OTA. Ese momento es donde más reservas directas se pierden.",
-      "Kora te da un motor de reservas con cobro de anticipo por tarjeta para cerrar esas consultas en el momento, y Camila contesta al instante 24/7 en español. Además operas todo el hotel —calendario, huéspedes, tarifas por temporada— desde una sola pantalla. Lo dejamos listo en 48 horas, sin que toques nada técnico.",
+      "Kora te da un motor de reservas con cobro de anticipo por tarjeta para cerrar esas consultas en el momento, y Camila contesta al instante 24/7 en español. Además operas todo el hotel —calendario, huéspedes, tarifas por temporada— desde una sola pantalla. Lo dejamos listo en 24 horas, sin que toques nada técnico.",
     ],
     faqs: [
       {
@@ -111,7 +111,7 @@ export const ciudades: Ciudad[] = [
     cuerpo: [
       "El turismo de Aquismón es de naturaleza y aventura: viajeros que van a Tamul en lancha, al Sótano de las Golondrinas de madrugada o a nadar al Puente de Dios. Muchos hospedajes son cabañas y ecolodges en zonas de baja señal, operados por familias, que reciben la mayoría de sus reservas por Airbnb y Booking pagando comisión.",
       "Ese perfil de huésped pregunta mucho antes de reservar: cómo llegar, qué tours hay, si hay que madrugar. Esas consultas caen por WhatsApp a toda hora y, si no se contestan, se pierde la reserva. Para un ecolodge pequeño, cada reserva directa que se convierte vale mucho más que su comisión.",
-      "Con Kora montas un motor de reservas propio y Camila contesta esas dudas 24/7, cotiza y reúne los datos para cerrar la reserva directa. Sincroniza con tus OTAs para no tener overbooking y te deja operar todo desde el celular. Lo instalamos llave en mano en 48 horas, incluso si eres una cabaña familiar sin experiencia técnica.",
+      "Con Kora montas un motor de reservas propio y Camila contesta esas dudas 24/7, cotiza y reúne los datos para cerrar la reserva directa. Sincroniza con tus OTAs para no tener overbooking y te deja operar todo desde el celular. Lo instalamos llave en mano en 24 horas, incluso si eres una cabaña familiar sin experiencia técnica.",
     ],
     faqs: [
       {
@@ -141,7 +141,7 @@ export const ciudades: Ciudad[] = [
     cuerpo: [
       "El turismo de Tamasopo se dispara en puentes, Semana Santa y verano, cuando las familias llegan a las cascadas y balnearios. Esa estacionalidad hace que la comisión de las OTAs pese aún más: si la mayor parte de tu ingreso anual entra en pocas semanas, cada 18% que se lleva Booking en esas fechas es dinero que ya no recuperas.",
       "Muchos hospedajes en Tamasopo son cabañas y hoteles familiares que además manejan tarifas distintas según la temporada. Llevar eso a mano en un cuaderno o en varias apps es un lío, y contestar el WhatsApp en plena temporada alta —mientras atiendes a los huéspedes— es casi imposible.",
-      "Kora te da un motor de reservas con tarifas por temporada, para que cobres el precio correcto en cada fecha automáticamente, y Camila contesta 24/7 para no perder reservas en tus semanas fuertes. Todo en una sola pantalla, montado llave en mano en 48 horas.",
+      "Kora te da un motor de reservas con tarifas por temporada, para que cobres el precio correcto en cada fecha automáticamente, y Camila contesta 24/7 para no perder reservas en tus semanas fuertes. Todo en una sola pantalla, montado llave en mano en 24 horas.",
     ],
     faqs: [
       {
@@ -171,7 +171,7 @@ export const ciudades: Ciudad[] = [
     cuerpo: [
       "Por su ubicación sobre una carretera de mucho tránsito, los hoteles de Tamazunchale combinan huésped de paso, viajeros de negocios y turistas que exploran la Huasteca. Ese flujo constante hace fácil depender de las OTAs y de las llamadas, y perder de vista cuánto se va en comisiones cada mes.",
       "El huésped de paso muchas veces busca en Google o en Booking a última hora y reserva desde el celular. Si tu hotel no aparece con una opción de reservar directo —o nadie contesta el WhatsApp— la reserva se va a la OTA y pagas su comisión por un huésped que ya te había encontrado.",
-      "Kora te da un motor de reservas directas para captar esas reservas de último minuto sin comisión, y Camila contesta 24/7 para cerrar las consultas por WhatsApp. Operas el hotel completo —calendario, huéspedes, cobros— desde una pantalla, y lo dejamos listo en 48 horas.",
+      "Kora te da un motor de reservas directas para captar esas reservas de último minuto sin comisión, y Camila contesta 24/7 para cerrar las consultas por WhatsApp. Operas el hotel completo —calendario, huéspedes, cobros— desde una pantalla, y lo dejamos listo en 24 horas.",
     ],
     faqs: [
       {
@@ -184,7 +184,7 @@ export const ciudades: Ciudad[] = [
       },
       {
         q: "¿Qué tan rápido queda funcionando?",
-        a: "Lo montamos llave en mano en 48 horas: cargamos tus cuartos, fotos y tarifas, y te capacitamos. Tú no tocas nada técnico.",
+        a: "Lo montamos llave en mano en 24 horas: cargamos tus cuartos, fotos y tarifas, y te capacitamos. Tú no tocas nada técnico.",
       },
     ],
   },
@@ -201,7 +201,7 @@ export const ciudades: Ciudad[] = [
     cuerpo: [
       "El turismo de El Naranjo gira alrededor de sus cascadas y ríos, con visitantes que llegan en puentes y vacaciones a acampar o quedarse en cabañas. Muchos hospedajes son pequeños, en entornos naturales, y reciben la mayoría de sus reservas por Airbnb y Booking pagando comisión sobre cada noche.",
       "Como en el resto de la Huasteca, el huésped pregunta primero por WhatsApp: disponibilidad, cómo llegar, qué cascadas visitar. Si esas consultas no se contestan a tiempo —o no hay forma de reservar y pagar directo— la reserva se enfría o termina en una OTA con su comisión.",
-      "Kora te da un motor de reservas propio con cobro de anticipo y Camila contestando 24/7, para convertir esas consultas en reservas directas. Sincroniza con tus OTAs para evitar overbooking y te deja operar desde el celular. Lo montamos llave en mano en 48 horas.",
+      "Kora te da un motor de reservas propio con cobro de anticipo y Camila contestando 24/7, para convertir esas consultas en reservas directas. Sincroniza con tus OTAs para evitar overbooking y te deja operar desde el celular. Lo montamos llave en mano en 24 horas.",
     ],
     faqs: [
       {
@@ -231,7 +231,7 @@ export const ciudades: Ciudad[] = [
     cuerpo: [
       "El turismo de la Huasteca es estacional y de aventura: cascadas, ríos, grutas y pueblos mágicos que se llenan en Semana Santa, puentes y verano. Esa concentración hace que cada reserva de temporada alta valga mucho, y que la comisión del 15% al 20% de Booking, Airbnb o Expedia sea un costo enorme en las semanas que sostienen todo el año.",
       "La mayoría de los hospedajes de la región son independientes y operados por su dueño —hoteles boutique, cabañas, ecolodges— donde el mismo dueño contesta el WhatsApp mientras atiende a los huéspedes. El resultado son consultas que se pierden fuera de horario, tarifas por temporada llevadas a mano y una dependencia cara de las plataformas.",
-      "Kora reúne en un solo sistema, en español y montado llave en mano en 48 horas, todo lo que un hospedaje de la Huasteca necesita: motor de reservas directas sin comisión, Camila (WhatsApp con IA 24/7), tarifas por temporada, sincronía con las OTAs para evitar overbooking y un dashboard para ver tu ocupación y tus ingresos. Es el mismo sistema que ya opera al Hotel Paraíso Encantado en Xilitla.",
+      "Kora reúne en un solo sistema, en español y montado llave en mano en 24 horas, todo lo que un hospedaje de la Huasteca necesita: motor de reservas directas sin comisión, Camila (WhatsApp con IA 24/7), tarifas por temporada, sincronía con las OTAs para evitar overbooking y un dashboard para ver tu ocupación y tus ingresos. Es el mismo sistema que ya opera al Hotel Paraíso Encantado en Xilitla.",
     ],
     faqs: [
       {
@@ -312,7 +312,7 @@ export const ciudades: Ciudad[] = [
       },
       {
         q: "¿Cuánto tarda el arranque?",
-        a: "Montamos tu hotel completo —unidades, fotos, tarifas, motor y WhatsApp— en 48 horas, sin costo de instalación.",
+        a: "Montamos tu hotel completo —unidades, fotos, tarifas, motor y WhatsApp— en 24 horas, sin costo de instalación.",
       },
     ],
   },

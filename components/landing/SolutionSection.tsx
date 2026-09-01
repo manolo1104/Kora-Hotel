@@ -24,7 +24,7 @@ export function SolutionSection() {
         <Reveal delay={0.1}>
           <ol className="mb-14 grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5" aria-label="Cómo empezar en 3 pasos">
             {[
-              { n: "1", t: "Te montamos tu hotel en 48h", d: "Cargamos tus cuartos, fotos y tarifas. Tú no tocas nada técnico." },
+              { n: "1", t: "Te montamos tu hotel en 24 h", d: "Cargamos tus cuartos, fotos y tarifas. Tú no tocas nada técnico." },
               { n: "2", t: "Tu motor y Camila, listos 24/7", d: "El motor en tu web o redes y Camila contestando tu WhatsApp." },
               { n: "3", t: "Recibes reservas directas", d: "Te quedas con el 100% del pago, sin comisión de OTAs." },
             ].map((p) => (

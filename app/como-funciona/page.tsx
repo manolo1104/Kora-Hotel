@@ -14,9 +14,9 @@ import { DrawLine } from "@/components/shared/DrawLine";
 import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 
 export const metadata: Metadata = {
-  title: "Cómo funciona Kora — Onboarding en 48 horas",
+  title: "Cómo funciona Kora — Onboarding en 24 horas",
   description:
-    "De WhatsApp a tu primer mes operando con Kora: 5 pasos, 48 horas de setup, sin conocimientos técnicos. Así se implementa el sistema en tu hotel.",
+    "De WhatsApp a tu primer mes operando con Kora: 5 pasos, 24 horas de setup, sin conocimientos técnicos. Así se implementa el sistema en tu hotel.",
   alternates: {
     canonical: "/como-funciona",
   },
@@ -91,7 +91,7 @@ export default function ComoFuncionaPage() {
             <h1 className="text-4xl sm:text-5xl font-bold tracking-tight leading-tight">
               De WhatsApp a operar
               <br />
-              en 48 horas
+              en 24 horas
             </h1>
           </Reveal>
           <Reveal delay={0.22}>
@@ -165,7 +165,7 @@ export default function ComoFuncionaPage() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
             {[
               {
-                title: "Setup en 48 horas",
+                title: "Setup en 24 horas",
                 desc: "O te devolvemos el primer mes sin preguntas.",
               },
               {

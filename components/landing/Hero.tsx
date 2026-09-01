@@ -116,7 +116,7 @@ export function Hero() {
                 Camila contesta en segundos a cualquier hora: consulta tu
                 disponibilidad real, da el precio exacto y manda el link de pago.
                 Con motor de reservas 0% comisión, PMS y CRM incluidos, montado
-                en 48 horas.
+                en 24 horas.
               </motion.p>
 
               <motion.div {...item(0.2)} className="flex flex-col sm:flex-row gap-3">
