@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { rateLimited } from "@/lib/api/rate-limit";
+import { limitado } from "@/lib/api/rate-limit";
 import { escribir, escribirMejorEsfuerzo } from "@/lib/db/result";
 import { createAdminClient, adminEnvReady } from "@/lib/supabase/admin";
 import { enviarEmail, NOTIFY_EMAIL } from "@/lib/email/resend";
@@ -42,7 +42,7 @@ export async function POST(req: Request) {
     req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
     req.headers.get("x-real-ip") ||
     "anon";
-  if (rateLimited("leads", ip, { max: 5, ventanaMs: 60_000 })) {
+  if (await limitado("leads", ip, { max: 5, ventanaMs: 60_000 })) {
     return NextResponse.json(
       { error: "Vas muy rápido. Espera un minuto e inténtalo de nuevo." },
       { status: 429 }

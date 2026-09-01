@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { rateLimited } from "@/lib/api/rate-limit";
+import { limitado } from "@/lib/api/rate-limit";
 import { passwordOk, setCrmCookie } from "@/lib/crm/auth";
 
 export const runtime = "nodejs";
@@ -10,7 +10,7 @@ export async function POST(req: Request) {
     req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
     req.headers.get("x-real-ip") ||
     "local";
-  if (rateLimited("crm.login", ip, { max: 10, ventanaMs: 5 * 60_000 })) {
+  if (await limitado("crm.login", ip, { max: 10, ventanaMs: 5 * 60_000 })) {
     return NextResponse.json(
       { error: "Demasiados intentos. Espera unos minutos." },
       { status: 429 }

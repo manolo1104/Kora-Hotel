@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { rateLimited, ipDe } from "@/lib/api/rate-limit";
+import { limitado, ipDe } from "@/lib/api/rate-limit";
 import { z } from "zod";
 import { findGuestBooking, cancelGuestBooking, serializeGuestBooking } from "@/lib/db/portal";
 import {
@@ -24,7 +24,7 @@ const Body = z.object({
 export async function POST(req: NextRequest) {
   // Cancelar es irreversible y manda dos correos. El límite es la segunda red,
 // después del UPDATE condicionado de `cancelGuestBooking`.
-  if (rateLimited("reserva.cancelar", ipDe(req), { max: 3, ventanaMs: 600000 })) {
+  if (await limitado("reserva.cancelar", ipDe(req), { max: 3, ventanaMs: 600000 })) {
     return NextResponse.json({ error: "demasiados-intentos" }, { status: 429 });
   }
 

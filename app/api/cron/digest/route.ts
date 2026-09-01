@@ -11,6 +11,7 @@ import { bookingBrandFromHotel } from "@/lib/email/booking-branded";
 import { reservaCuenta } from "@/lib/booking/estado-reserva";
 // El mismo `esc` que los correos: aquí había otra copia, y también sin comillas.
 import { esc } from "@/lib/email/design";
+import { limpiarLimitador } from "@/lib/api/rate-limit";
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
 
@@ -173,8 +174,20 @@ export async function GET(req: Request) {
     secciones.push({ encabezado: "📮 Correos que no salieron", lineas: reintento.lineas });
   }
 
+  // Poda del limitador por IP. Va enganchada aquí y no en su propio cron porque
+  // Vercel Hobby sólo admite crons de una vez al día y ya hay ocho; añadir el
+  // noveno para un `delete` de una línea no lo vale. Su resultado NO entra en el
+  // resumen: al hotelero no le dice nada, y este correo compite por su atención
+  // con todo lo demás que sí tiene que leer.
+  const podadas = await limpiarLimitador();
+
   if (secciones.length === 0) {
-    return NextResponse.json({ ok: true, enviado: false, motivo: "Nada que reportar." });
+    return NextResponse.json({
+      ok: true,
+      enviado: false,
+      motivo: "Nada que reportar.",
+      limitadorPodado: podadas,
+    });
   }
   if (rotas.length === 5) {
     // Las cinco consultas rotas no es "un resumen con avisos": es la base caída.
@@ -193,6 +206,7 @@ export async function GET(req: Request) {
     secciones: secciones.length,
     correosReintentados: reintento.reintentados,
     correosRecuperados: reintento.recuperados,
+    limitadorPodado: podadas,
   });
 }
 

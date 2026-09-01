@@ -1,6 +1,6 @@
 import { reservaCuenta } from "@/lib/booking/estado-reserva";
 import { NextRequest, NextResponse } from "next/server";
-import { rateLimited, ipDe } from "@/lib/api/rate-limit";
+import { limitado, ipDe } from "@/lib/api/rate-limit";
 import { z } from "zod";
 import { findGuestBooking } from "@/lib/db/portal";
 import { sendConfirmacionReserva } from "@/lib/email/reserva";
@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
   // Reenviar es un disparador de correo gratuito: sin límite, cualquiera con un
 // folio y un correo válidos puede inundar la bandeja de ese huésped y quemar la
 // reputación del dominio desde el que salen TODAS las confirmaciones de Kora.
-  if (rateLimited("reserva.reenviar", ipDe(req), { max: 3, ventanaMs: 600000 })) {
+  if (await limitado("reserva.reenviar", ipDe(req), { max: 3, ventanaMs: 600000 })) {
     return NextResponse.json({ error: "demasiados-intentos" }, { status: 429 });
   }
 

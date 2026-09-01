@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { rateLimited, ipDe } from "@/lib/api/rate-limit";
+import { limitado, ipDe } from "@/lib/api/rate-limit";
 import { z } from "zod";
 import { findGuestBooking, serializeGuestBooking } from "@/lib/db/portal";
 
@@ -15,7 +15,7 @@ const Body = z.object({
 export async function POST(req: NextRequest) {
   // Consultar no manda correo, pero es el único sitio donde se prueba la pareja
 // folio+correo: sin límite es un oráculo para adivinar folios a fuerza bruta.
-  if (rateLimited("reserva.consultar", ipDe(req), { max: 10, ventanaMs: 600000 })) {
+  if (await limitado("reserva.consultar", ipDe(req), { max: 10, ventanaMs: 600000 })) {
     return NextResponse.json({ error: "demasiados-intentos" }, { status: 429 });
   }
 
