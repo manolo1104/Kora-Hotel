@@ -175,7 +175,15 @@ sec "A18 · Escapado, URLs y entradas peligrosas"
 # que serializa con `serializarJsonLd`. Cualquier página que lo escriba a mano
 # vuelve a salir aquí.
 cero "A18.1 todo JSON-LD escapa <"                 bash -c 'grep -rlI "application/ld+json" --include="*.tsx" app components | grep -v "^components/shared/JsonLd.tsx$"'
-cero "A18.2 sin HTML crudo del agente de IA"       bash -c 'grep -rnI --exclude=verificar-arreglos.sh --include="*.tsx" "dangerouslySetInnerHTML" app components | grep -v "JSON.stringify" | grep -v "sanitiz"'
+# Comprueba el ORIGEN del HTML, no que la línea tenga cierta palabra: todo
+# `dangerouslySetInnerHTML` tiene que estar en un archivo que produzca su HTML
+# con uno de los tres constructores seguros —`sanitizarHtmlArticulo` (limpia lo
+# que escribe la IA), `serializarJsonLd` (escapa el `<`) o `renderPostHtml` (arma
+# el HTML desde piezas ya escapadas, con lista blanca de dominios para las
+# imágenes)— o estar exento con su razón.
+#   · app/panel/layout.tsx sirve una constante del propio código (el script que
+#     evita el parpadeo del tema al cargar). No hay dato de nadie dentro.
+cero "A18.2 sin HTML crudo del agente de IA"       bash -c 'for f in $(grep -rlI --exclude=verificar-arreglos.sh --include="*.tsx" "dangerouslySetInnerHTML" app components); do case "$f" in app/panel/layout.tsx) continue;; esac; grep -q "sanitizarHtmlArticulo\|serializarJsonLd\|renderPostHtml" "$f" || echo "HTML SIN SANEAR: $f"; done'
 cero "A18.3 URLs de usuario con lista blanca"      bash -c 'grep -qI "HOSTS_PERMITIDOS\|hostPermitido" lib/maps.ts || echo "lib/maps.ts sin lista blanca"'
 cero "A18.4 esc() escapa comillas"                 bash -c 'grep -qI "&quot;" lib/email/design.ts || echo "esc() no escapa comillas"'
 # Comprueba que la ruta USE el ayudante, no que lo llame de una forma concreta:

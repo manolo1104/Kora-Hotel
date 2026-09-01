@@ -8,6 +8,7 @@ import { FUNDADOR } from "@/lib/fundador";
 import { ShareButtons } from "@/components/blog/ShareButtons";
 import { CoverImage } from "@/components/blog/CoverImage";
 import { JsonLd } from "@/components/shared/JsonLd";
+import { sanitizarHtmlArticulo } from "@/lib/sanitizar-html";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -75,8 +76,13 @@ export default async function BlogArticlePage({ params }: Props) {
   const article = await getArticleBySlug(slug);
   if (!article) notFound();
 
-  const headings = extractHeadings(article.content);
-  const [cuerpoA, cuerpoB] = partirEnDos(article.content);
+  // El cuerpo del artículo lo escribe el agente de blogs con un modelo que
+  // además busca en la web, y de ahí sale a esta página con
+  // `dangerouslySetInnerHTML`. Se limpia ANTES de partirlo, para que la limpieza
+  // vea el HTML entero y no dos mitades con etiquetas abiertas.
+  const contenido = sanitizarHtmlArticulo(article.content);
+  const headings = extractHeadings(contenido);
+  const [cuerpoA, cuerpoB] = partirEnDos(contenido);
   const todos = await getAllArticles();
   const related = todos.filter((a) => a.slug !== slug).slice(0, 2);
 
