@@ -1,11 +1,26 @@
+// 🔴 El optimizador de imágenes de Next es un proxy: `/_next/image?url=…` va a
+// buscar la imagen y la sirve DESDE kora-hotel.com. Con `*.supabase.co` como
+// comodín, cualquiera podía pasarle la URL de CUALQUIER proyecto de Supabase del
+// mundo y hacer que el dominio de Kora sirviera esa imagen — quemando de paso la
+// cuota de transformaciones del plan Hobby (~5.000/mes), que es justo lo que el
+// resto de esta configuración se esfuerza en cuidar.
+//
+// Se acota al proyecto real. Sale de la variable para que no se quede vieja si
+// el proyecto cambia; el literal es sólo el respaldo de cuando no hay entorno
+// (no es un secreto: NEXT_PUBLIC_SUPABASE_URL la ve el navegador).
+const HOST_SUPABASE = (() => {
+  try {
+    return new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname;
+  } catch {
+    return "dvequxrrvevmancnqmyu.supabase.co";
+  }
+})();
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Optimización de imágenes remotas (mini-páginas de hoteles en Supabase Storage) → mejor CWV/LCP.
   images: {
-    remotePatterns: [
-      { protocol: "https", hostname: "*.supabase.co" },
-      { protocol: "https", hostname: "*.supabase.in" },
-    ],
+    remotePatterns: [{ protocol: "https", hostname: HOST_SUPABASE }],
     // Servir WebP/AVIF. Cache larga (31 días) para NO regenerar la misma foto una
     // y otra vez, y un juego ACOTADO de tamaños para limitar el nº de
     // transformaciones (protege la cuota de Vercel Hobby ~5k/mes).
@@ -69,6 +84,14 @@ const nextConfig = {
         // nada, para que quede escrito que es una decisión y no un olvido.
         source: "/h/:path*",
         headers: [{ key: "Content-Security-Policy", value: "frame-ancestors *" }],
+      },
+      {
+        // Venía de `vercel.json`, que era el ÚLTIMO bloque de cabeceras que
+        // quedaba fuera de aquí. No es de seguridad —es caché del sitemap— pero
+        // dejarlo allí mantenía vivo el problema que la etapa 9.4 cerró: dos
+        // sitios donde mirar, y uno de los dos invisible en `npm run dev`.
+        source: "/sitemap.xml",
+        headers: [{ key: "Cache-Control", value: "public, max-age=86400" }],
       },
     ];
   },

@@ -41,6 +41,9 @@ function aplica(source: string, ruta: string): boolean {
   if (source === "/:path*") return true;
   if (source === "/h/:path*") return ruta.startsWith("/h/");
   if (source === "/((?!h/).*)") return !ruta.startsWith("/h/");
+  // Caché del sitemap. No es de seguridad, pero vive aquí desde que salió de
+  // `vercel.json`, que era el último bloque de cabeceras fuera de este archivo.
+  if (source === "/sitemap.xml") return ruta === "/sitemap.xml";
   throw new Error(`source no contemplado en la prueba: ${source}`);
 }
 

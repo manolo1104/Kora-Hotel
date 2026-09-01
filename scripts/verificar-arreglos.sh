@@ -226,7 +226,7 @@ cero "A18.1 todo JSON-LD escapa <"                 bash -c 'grep -rlI "applicati
 #   · app/panel/layout.tsx sirve una constante del propio código (el script que
 #     evita el parpadeo del tema al cargar). No hay dato de nadie dentro.
 cero "A18.2 sin HTML crudo del agente de IA"       bash -c 'for f in $(grep -rlI --exclude=verificar-arreglos.sh --include="*.tsx" "dangerouslySetInnerHTML" app components); do case "$f" in app/panel/layout.tsx) continue;; esac; grep -q "sanitizarHtmlArticulo\|serializarJsonLd\|renderPostHtml" "$f" || echo "HTML SIN SANEAR: $f"; done'
-cero "A18.3 URLs de usuario con lista blanca"      bash -c 'grep -qI "HOSTS_PERMITIDOS\|hostPermitido" lib/maps.ts || echo "lib/maps.ts sin lista blanca"'
+cero "A18.3 URLs de usuario con lista blanca"      bash -c 'grep -qI "HOSTS_MAPAS\|HOSTS_PERMITIDOS\|hostPermitido" lib/maps.ts || echo "lib/maps.ts sin lista blanca"'
 cero "A18.4 esc() escapa comillas"                 bash -c 'grep -qI "&quot;" lib/email/design.ts || echo "esc() no escapa comillas"'
 # Comprueba que la ruta USE el ayudante, no que lo llame de una forma concreta:
 # antes buscaba el nombre `csvSeguro` y daba rojo porque la ruta llama a
@@ -238,7 +238,10 @@ cero "A18.7 el fetch de mapas no sigue redirects"  bash -c 'grep -qI "redirect: 
 sec "A19 · Rutas, caché y activos"
 cero "A19.1 sin force-dynamic en el layout público" bash -c 'grep -nI "force-dynamic" "app/h/[slug]/layout.tsx" 2>/dev/null'
 cero "A19.2 el sitemap no repite mini-pagina"      bash -c 'n=$(grep -cI "herramientas/mini-pagina" app/sitemap.ts); [ "$n" -le 1 ] || echo "aparece $n veces"'
-cero "A19.3 next/image acotado al proyecto real"   bash -c 'grep -nI "\*.supabase.co" next.config.mjs'
+# `sinComentarios` no sirve aquí (es un solo archivo, así que grep no imprime el
+# prefijo `archivo:línea:` que ese filtro necesita). Se filtra a mano: la línea
+# tiene que ser CÓDIGO, no el comentario que explica por qué el comodín se fue.
+cero "A19.3 next/image acotado al proyecto real"   bash -c 'grep -nE "^[[:space:]]*[^/*[:space:]].*\*\.supabase\.co" next.config.mjs'
 cero "A19.4 ningún PNG del portfolio >120 KB"      bash -c 'find public -name "*.png" -size +120k 2>/dev/null'
 cero "A19.5 maxDuration <= 60 (Vercel Hobby)"      bash -c 'grep -rnI --exclude=verificar-arreglos.sh "maxDuration = " app | awk -F"= " "{if (\$2+0 > 60) print}"'
 # 8 desde la captación por correo (`/api/cron/suscriptores`, 27 ago). Hobby

@@ -39,16 +39,5 @@
       "path": "/api/cron/suscriptores",
       "schedule": "30 17 * * *"
     }
-  ],
-  "headers": [
-    {
-      "source": "/sitemap.xml",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=86400"
-        }
-      ]
-    }
   ]
 }

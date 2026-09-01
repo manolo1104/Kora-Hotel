@@ -19,6 +19,40 @@ function esUrl(s: string): boolean {
   return /^https?:\/\//i.test(s.trim());
 }
 
+// 🔴 LISTA BLANCA. `construirMapa` devolvía como `embedUrl` la URL que pegara el
+// hotelero, TAL CUAL, y esa URL acaba en el `src` de un <iframe> de una página
+// pública que vive en kora-hotel.com. Pegar `https://sitio-malo.com/maps/embed`
+// —o cualquier cosa, porque el último `return` le añadía `?output=embed` y la
+// usaba igual— metía contenido ajeno dentro del dominio de Kora. No es sólo
+// problema del hotel que lo pega: es una página de phishing servida desde el
+// dominio de Kora, y le pega a la reputación de todos los hoteles.
+//
+// Los mismos hosts que ya acepta `app/api/panel/resolver-mapa/route.ts` para
+// expandir links cortos, para que no haya dos criterios distintos.
+const HOSTS_MAPAS = [
+  "google.com",
+  "www.google.com",
+  "maps.google.com",
+  "maps.app.goo.gl",
+  "goo.gl",
+  "g.co",
+];
+
+/** ¿La URL apunta de verdad a Google Maps? Sólo esas se usan sin transformar. */
+export function esUrlDeMapas(url: string): boolean {
+  try {
+    const u = new URL(url);
+    if (u.protocol !== "https:" && u.protocol !== "http:") return false;
+    const h = u.hostname.toLowerCase();
+    // `endsWith(".google.com")` cubre los dominios por país (google.com.mx,
+    // google.es…) NO, a propósito: ésos no terminan en .google.com. Se listan
+    // los hosts exactos y sus subdominios, nada más.
+    return HOSTS_MAPAS.some((p) => h === p || h.endsWith(`.${p}`));
+  } catch {
+    return false;
+  }
+}
+
 // ¿Es un link CORTO de Google que hay que expandir en el servidor?
 export function esLinkCorto(s: string): boolean {
   const t = s.trim().toLowerCase();
@@ -86,7 +120,15 @@ export function construirMapa(input: string): ResultadoMapa {
   }
 
   if (esUrl(s)) {
-    // Ya es una URL de "insertar mapa" → úsala tal cual.
+    // Una URL que NO es de Google Maps no se usa ni de `src` del iframe ni de
+    // destino del botón: se trata como texto libre, que es lo que casi siempre
+    // es cuando alguien se equivoca de link. Así el mapa sigue apareciendo (con
+    // una búsqueda) en vez de quedarse en blanco.
+    if (!esUrlDeMapas(s)) {
+      return { embedUrl: embedDeTexto(s), mapsUrl: mapsSearchDeTexto(s), needsResolve: false };
+    }
+
+    // Ya es una URL de "insertar mapa" de Google → úsala tal cual.
     if (s.includes("/maps/embed")) {
       return { embedUrl: s, mapsUrl: s, needsResolve: false };
     }
