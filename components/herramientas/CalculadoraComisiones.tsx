@@ -297,7 +297,7 @@ export function CalculadoraComisiones() {
             instalado por nosotros.
           </p>
           <a
-            href={`/?perdida=${Math.round(comisionAnual)}&utm_source=calculadora-comisiones#contacto`}
+            href={`/contacto?perdida=${Math.round(comisionAnual)}&utm_source=calculadora-comisiones`}
             className="btn-press btn-arrow btn-fill mt-6 inline-flex items-center gap-2 px-7 py-4 rounded-full bg-kora-accent text-kora-primary font-bold text-sm hover:bg-kora-accent-dark transition-colors"
           >
             Ver cómo funciona Kora

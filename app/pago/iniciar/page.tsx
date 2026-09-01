@@ -87,7 +87,7 @@ function Iniciar() {
             También puedes escribirnos y te ayudamos a activar tu prueba.
           </p>
           <Link
-            href="/#contacto"
+            href="/contacto"
             className="btn-press mt-5 inline-flex items-center justify-center px-6 py-3 rounded-full bg-kora-accent text-kora-primary font-bold text-sm hover:bg-kora-accent-dark transition-colors"
           >
             Contactar a Kora

@@ -340,7 +340,7 @@ export function CalculadoraTarifa() {
             tocas nada.
           </p>
           <a
-            href={`/?revpar=${Math.round(revpar)}&utm_source=calculadora-tarifa#contacto`}
+            href={`/contacto?revpar=${Math.round(revpar)}&utm_source=calculadora-tarifa`}
             className="btn-press btn-arrow btn-fill mt-6 inline-flex items-center gap-2 px-7 py-4 rounded-full bg-kora-accent text-kora-primary font-bold text-sm hover:bg-kora-accent-dark transition-colors"
           >
             Ver cómo funciona Kora

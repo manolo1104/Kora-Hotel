@@ -288,7 +288,7 @@ export function AuditoriaFicha() {
             100% tuyo.
           </p>
           <a
-            href="/?utm_source=auditoria-ficha#contacto"
+            href="/contacto?utm_source=auditoria-ficha"
             className="btn-press btn-arrow btn-fill mt-6 inline-flex items-center gap-2 px-7 py-4 rounded-full bg-kora-accent text-kora-primary font-bold text-sm hover:bg-kora-accent-dark transition-colors"
           >
             Ver cómo funciona Kora

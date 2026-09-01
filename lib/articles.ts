@@ -156,7 +156,7 @@ export const articles: Article[] = [
 <div class="callout-cta">
   <strong style="color: white; font-size: 1.1rem;">¿Quieres aplicarlo en tu hotel?</strong>
   <p>Te mostramos cómo quedaría configurado Kora en tu hotel específico, con tus números reales, en 20 minutos.</p>
-  <a href="/#contacto">Solicitar demo gratuito →</a>
+  <a href="/contacto">Solicitar demo gratuito →</a>
 </div>
     `,
   },
@@ -310,7 +310,7 @@ export const articles: Article[] = [
 <div class="callout-cta">
   <strong style="color: white; font-size: 1.1rem;">¿Quieres subir tu RevPAR sin depender de Booking?</strong>
   <p>Kora reúne tu motor de reservas directas, PMS, WhatsApp con IA y métricas en una sola pantalla. Te mostramos cómo funciona.</p>
-  <a href="/#contacto">Ver demo del sistema →</a>
+  <a href="/contacto">Ver demo del sistema →</a>
 </div>
     `,
   },
@@ -442,7 +442,7 @@ export const articles: Article[] = [
 <div class="callout-cta">
   <strong style="color: white; font-size: 1.1rem;">Mira el agente en acción</strong>
   <p>Escríbenos por WhatsApp y experimentas de primera mano cómo funciona el agente de Kora. La ironía es intencional.</p>
-  <a href="/#contacto">Ver demo del agente de WhatsApp →</a>
+  <a href="/contacto">Ver demo del agente de WhatsApp →</a>
 </div>
     `,
   },
@@ -506,7 +506,7 @@ export const articles: Article[] = [
 <div class="callout-cta">
   <strong>¿Cuánto le pagas tú a Booking al año?</strong>
   <p>Montamos tu motor de reservas directas y tu recepcionista de IA en 24 horas. Pruébalo 30 días gratis, sin tarjeta.</p>
-  <a href="/#contacto">Quiero recuperar mis comisiones →</a>
+  <a href="/contacto">Quiero recuperar mis comisiones →</a>
 </div>
 `,
   },
@@ -560,7 +560,7 @@ export const articles: Article[] = [
 <div class="callout-cta">
   <strong>Llena tu temporada baja sin regalar tu tarifa.</strong>
   <p>Motor de reservas directas, WhatsApp con IA y CRM para reactivar huéspedes. Pruébalo 30 días gratis, sin tarjeta.</p>
-  <a href="/#contacto">Quiero más reservas directas →</a>
+  <a href="/contacto">Quiero más reservas directas →</a>
 </div>
 `,
   },

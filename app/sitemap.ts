@@ -230,6 +230,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.8,
     },
     {
+      // Destino de los 14 botones de las herramientas y de los CTA del blog.
+      // Antes eran un ancla dentro de la landing, así que no tenía URL propia
+      // que indexar ni a la que medirle conversión.
+      url: `${BASE_URL}/contacto`,
+      lastModified: SITE_UPDATED,
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
+    {
       url: `${BASE_URL}/blog`,
       lastModified: SITE_UPDATED,
       changeFrequency: "weekly",

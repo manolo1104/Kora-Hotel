@@ -592,7 +592,7 @@ export function DocumentosLegales() {
             todo en orden y con cara profesional.
           </p>
           <a
-            href="/?utm_source=documentos#contacto"
+            href="/contacto?utm_source=documentos"
             className="btn-press btn-arrow btn-fill mt-6 inline-flex items-center gap-2 px-7 py-4 rounded-full bg-kora-accent text-kora-primary font-bold text-sm hover:bg-kora-accent-dark transition-colors"
           >
             Ver cómo funciona Kora

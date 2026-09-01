@@ -22,7 +22,7 @@ export function ContactForm() {
   const [error, setError] = useState(false);
 
   // Mensaje personalizado según el resultado que traiga el usuario desde una
-  // herramienta (ej. /?perdida=144000#contacto).
+  // herramienta (ej. /contacto?perdida=144000).
   const [personalizado, setPersonalizado] = useState<string | null>(null);
   // De qué herramienta llegó. Se captura al montar porque el `?utm_source` sólo
   // está en la URL de entrada: si el visitante navega por la landing antes de
@@ -49,20 +49,21 @@ export function ContactForm() {
     }
   }, []);
 
-  // ⚠️ EL ANCLA `#contacto` NO LLEVA AL FORMULARIO, y no tiene arreglo desde
-  // aquí. Se intentó (31 ago 2026) y se quitó: la landing anima cada sección al
-  // entrar en pantalla, así que bajar hace CRECER lo que queda arriba y el
-  // formulario se aleja más rápido de lo que uno se acerca — a 14.000 px después
-  // de ocho segundos reintentando. Es una carrera perdida mientras el contenido
-  // siga midiendo distinto según lo que se haya visto.
+  // 🟢 RESUELTO. Este componente vive en DOS sitios: al final de la landing
+  // (con su `id="contacto"`, para quien baja leyendo) y solo, en `/contacto`.
   //
-  // Lo que sí quedó arreglado es la ATRIBUCIÓN: el `?utm_source` de los 14
-  // botones de las herramientas viaja ahora antes del `#`, se captura arriba y
-  // llega al CRM. El visitante aterriza arriba de la landing, como antes.
+  // El ancla `#contacto` NO LLEVABA AQUÍ y no tenía arreglo desde el navegador:
+  // la landing anima cada sección al entrar en pantalla, así que bajar hace
+  // CRECER lo que queda arriba y el formulario se aleja más rápido de lo que uno
+  // se acerca (medido el 31 ago 2026: 14.000 px después de ocho segundos
+  // reintentando). Mientras el contenido mida distinto según lo que se haya
+  // visto, es una carrera perdida.
   //
-  // La salida buena es de producto, no de código: que esos botones lleven a una
-  // página de contacto propia en vez de a un ancla dentro de una landing de
-  // 16.000 px. Decisión de Manolo.
+  // La salida fue de producto: los 30 enlaces que apuntaban al ancla —los 14
+  // botones de las herramientas, los CTA del blog, el panel y el motor— ahora
+  // van a `/contacto`, donde el formulario es lo primero que se ve. El
+  // `?utm_source` viaja en la query de esa URL y se captura arriba, así que el
+  // lead sigue llegando al CRM con su remite.
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();

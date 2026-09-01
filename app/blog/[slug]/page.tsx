@@ -291,7 +291,7 @@ export default async function BlogArticlePage({ params }: Props) {
                   Te mostramos el sistema completo en 20 minutos, con tus números reales y configurado para tu tipo de hotel.
                 </p>
                 <Link
-                  href="/#contacto"
+                  href="/contacto"
                   className="btn-press btn-arrow btn-fill inline-flex items-center gap-2 px-7 py-3.5 rounded-full bg-kora-accent text-kora-primary font-bold text-sm hover:bg-kora-accent-dark transition-colors"
                 >
                   Solicitar mi lugar →
@@ -369,7 +369,7 @@ export default async function BlogArticlePage({ params }: Props) {
                     Demo de 20 min, sin costo, con tus números reales.
                   </p>
                   <Link
-                    href="/#contacto"
+                    href="/contacto"
                     className="btn-press btn-fill inline-flex items-center justify-center w-full px-4 py-2.5 rounded-xl bg-kora-accent text-kora-primary font-bold text-xs hover:bg-kora-accent-dark transition-colors"
                   >
                     Solicitar demo →

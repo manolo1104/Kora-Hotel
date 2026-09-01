@@ -4061,7 +4061,7 @@ export function PanelEditor({
 
             <div className="mt-6 flex flex-wrap gap-3">
               <a
-                href="/#contacto"
+                href="/contacto"
                 className="btn-press btn-arrow inline-flex items-center gap-1.5 px-5 py-3 rounded-full bg-kora-accent text-kora-primary font-bold text-sm hover:bg-kora-accent-dark transition-colors"
               >
                 Quiero subir a Kora <ArrowRight size={15} aria-hidden="true" />

@@ -1,9 +1,16 @@
 import { Check, ShieldCheck, Lock } from "lucide-react";
+import { AHORRO_MENSUAL, CASO, mxn } from "@/lib/caso-paraiso";
 
 // Franja de confianza con datos 100% reales (nada inventado).
+//
+// Decía "Ahorra hasta $12,000 MXN/mes", que era justo el único dato de la
+// franja que NO era real: una proyección, en una lista que presume de no
+// tenerlas, y encima por encima de lo que Kora puede demostrar. El caso publica
+// $8,400 en un hotel de verdad. Citar el dato medido es más fuerte que citar un
+// techo: un "hasta" cualquiera lo descarta, un hotel con nombre no.
 const items = [
   "Hecho por un hotelero, no por una software house",
-  "Ahorra hasta $12,000 MXN/mes en comisiones de OTAs",
+  `${mxn(AHORRO_MENSUAL)} MXN/mes menos en comisiones — medido en el ${CASO.hotel}`,
   "Respuesta en segundos por WhatsApp",
   "Te quedas con el 100% del pago",
   "Todo en español",

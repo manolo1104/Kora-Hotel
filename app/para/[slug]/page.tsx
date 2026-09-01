@@ -84,7 +84,7 @@ export default async function PersonaPage({ params }: Props) {
             </Reveal>
             <Reveal delay={0.25}>
               <Link
-                href="/#contacto"
+                href="/contacto"
                 className="btn-press btn-arrow btn-fill mt-8 inline-flex items-center gap-2 px-8 py-4 rounded-full bg-kora-accent text-kora-primary font-bold text-sm hover:bg-kora-accent-dark transition-colors"
               >
                 Solicitar una demo
