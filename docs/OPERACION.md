@@ -10,7 +10,7 @@ qué hacer en cada caso y los pocos comandos que existen.
 | 🔔 Lead nuevo | Al instante, cuando alguien deja sus datos en el sitio | Tocar el botón "Escribirle por WhatsApp" (mensaje ya redactado). Idealmente en los primeros 5 minutos. |
 | 💳 Nueva suscripción | Cuando alguien paga un plan | Nada. El cliente ya recibió su bienvenida y su recibo. Saludarlo es buen detalle. |
 | ⚠️ Suscripción cancelada | Cuando un cliente cancela (o Stripe agota reintentos) | Escribirle para entender por qué (está en el CRM/Stripe). |
-| ☀️ Resumen de Kora | Diario 8:00 AM (solo si hay algo) | Revisar: leads sin contactar, seguimientos vencidos, pagos con problema, chats escalados, MRR. |
+| ☀️ Resumen de Kora | Diario 8:00 AM CDMX (`0 14 * * *` UTC), y **sólo si hay algo** que contar | Revisar: leads sin contactar, seguimientos vencidos, pagos con problema, **chats escalados** y MRR. Es el ÚNICO sitio donde aparecen los chats escalados. |
 
 El cliente con pago vencido recibe solo hasta 3 recordatorios automáticos para
 actualizar su tarjeta (cron de dunning); Stripe reintenta el cobro por su lado.
@@ -19,7 +19,12 @@ actualizar su tarjeta (cron de dunning); Stripe reintenta el cobro por su lado.
 
 - **Responder leads** (botón del correo o desde /crm).
 - **Llamadas de venta** con leads calientes.
-- **Chats escalados**: el bot de /ayuda escala a tu WhatsApp lo que no puede resolver.
+- **Chats escalados**: cuando el bot de /ayuda no puede resolver algo, le enseña
+  al visitante un botón de «Hablar con Manolo por WhatsApp».
+  ⚠️ **A ti no te llega nada en ese momento.** Si el visitante no toca el botón,
+  la conversación se queda marcada `escalado = true` y tú te enteras en el
+  **resumen de la mañana siguiente** — hasta 24 h después. Si te interesa
+  atenderlos en caliente, hay que añadir un aviso al escalar; hoy no existe.
 - **Facturas CFDI**: si un cliente la pide, emitirla (por ahora manual).
 
 ## Cómo hacer cosas puntuales
@@ -57,3 +62,15 @@ existentes conservan su precio anterior.
 `STRIPE_SECRET_KEY` (live), `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_KORA`,
 `RESEND_API_KEY`, `RESEND_FROM`,
 `NOTIFY_EMAIL`, `CRON_SECRET`, más las que ya existían (Supabase, Anthropic, GA…).
+
+## Lo que hoy NO funciona y conviene saber
+
+- **Nadie puede escribirte por correo.** `kora-hotel.com` manda pero **no
+  recibe**: el dominio no tiene registro MX, así que todo lo que llegue a
+  `hola@kora-hotel.com` —la dirección que publican los Términos, el Aviso de
+  Privacidad y el pie del sitio— **rebota**. Y un huésped que responda a la
+  confirmación de su reserva (`reservas@`) también escribe al vacío. Se arregla
+  añadiendo un MX en el DNS de **Vercel**, que es donde vive el DNS del dominio.
+- **La facturación CFDI está escrita pero apagada:** ninguna de las cinco
+  variables `FACTURAMA_*` está puesta en Vercel producción, así que sus rutas
+  devuelven 503. Por eso las facturas siguen siendo manuales.

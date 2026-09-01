@@ -158,7 +158,12 @@ cero "A14.1 README ya no es el boilerplate"        bash -c 'grep -nI "Geist\|cre
 cero "A14.2 DEPLOY sin restos del PR viejo"        bash -c 'grep -nI "PR #1\|feat/plataforma-multitenant\|STRIPE_PRICE_\*" DEPLOY-PRODUCCION.md'
 cero "A14.3 OPERACION sin plan hotel ni escalada"  bash -c "grep -nI \"'hotel', 'cortesia'\\|escala a tu WhatsApp\" docs/OPERACION.md"
 cero "A14.4 README de Camila sin Opus 4.8"         bash -c 'grep -nI "opus-4-8\|Opus 4.8" agentes/camila/README.md agentes/camila/.env.example'
-cero "A14.5 sin Paraíso en módulos compartidos"    bash -c 'grep -rniI "paraiso\|paraíso" lib/room-slugs.ts lib/booking-html.ts lib/admin/cleaning-config.ts app/api/agent-demo/route.ts app/panel components/panel 2>/dev/null'
+# Pasa por `sinComentarios`: 8 de los 15 aciertos eran COMENTARIOS que explican
+# que la fuga de datos de Paraíso YA se quitó, y uno de ellos —el del slug
+# `hotel-magico` en agent-demo— es documentación crítica: con el slug equivocado
+# el chat de prueba del sitio queda MUERTO en producción. Borrarlos para poner
+# el chivato en verde sería tirar justo lo que evita repetir el error.
+cero "A14.5 sin Paraíso en módulos compartidos"    G -ni "paraiso\|paraíso" lib/room-slugs.ts lib/booking-html.ts lib/admin/cleaning-config.ts app/api/agent-demo/route.ts app/panel components/panel
 # Ya no basta con vigilar `korahotel.mx` (el dominio que no existe): lo que
 # falla es escribir CUALQUIER correo a mano. Estaban en 18 sitios con dos
 # dominios distintos, y sólo uno de los dos está registrado. Fuente única:

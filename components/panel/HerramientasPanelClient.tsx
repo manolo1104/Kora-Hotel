@@ -47,7 +47,7 @@ export function HerramientasPanelClient({ hotelNombre }: { hotelNombre: string }
       resultadoLabel: "Tu respuesta sugerida",
       campos: [
         { name: "resena", label: "Reseña del huésped", type: "textarea", required: true, placeholder: "Pega aquí la reseña tal como la escribió el huésped…" },
-        { name: "hotel", label: "Nombre de tu hotel", type: "text", placeholder: "Hotel Paraíso Encantado", default: hotelNombre },
+        { name: "hotel", label: "Nombre de tu hotel", type: "text", placeholder: "Ej. Hotel Casa del Río", default: hotelNombre },
         { name: "calificacion", label: "Calificación que dejó", type: "select", options: ["Excelente (5/5)", "Buena (4/5)", "Regular (3/5)", "Mala (2/5)", "Muy mala (1/5)"] },
         { name: "tono", label: "Tono de la respuesta", type: "select", default: "Amable y cercano", options: ["Amable y cercano", "Profesional", "Cálido y agradecido"] },
       ],
@@ -62,7 +62,7 @@ export function HerramientasPanelClient({ hotelNombre }: { hotelNombre: string }
       botonLabel: "Generar mensaje",
       resultadoLabel: "Tu mensaje sugerido",
       campos: [
-        { name: "hotel", label: "Nombre de tu hotel", type: "text", placeholder: "Hotel Paraíso Encantado", default: hotelNombre },
+        { name: "hotel", label: "Nombre de tu hotel", type: "text", placeholder: "Ej. Hotel Casa del Río", default: hotelNombre },
         { name: "situacion", label: "¿Qué quieres decir?", type: "text", required: true, placeholder: "Ej. confirmar una reserva / pedir anticipo / responder una duda" },
         { name: "detalle", label: "Detalles", type: "textarea", placeholder: "Fechas, habitación, precio, lo que ya sabes…" },
       ],
@@ -77,8 +77,8 @@ export function HerramientasPanelClient({ hotelNombre }: { hotelNombre: string }
       botonLabel: "Generar descripción",
       resultadoLabel: "Tu descripción",
       campos: [
-        { name: "hotel", label: "Nombre de tu hotel", type: "text", required: true, placeholder: "Hotel Paraíso Encantado", default: hotelNombre },
-        { name: "zona", label: "Zona y atractivos cercanos", type: "text", placeholder: "Xilitla, cerca de Las Pozas y cascadas" },
+        { name: "hotel", label: "Nombre de tu hotel", type: "text", required: true, placeholder: "Ej. Hotel Casa del Río", default: hotelNombre },
+        { name: "zona", label: "Zona y atractivos cercanos", type: "text", placeholder: "Tu pueblo, y qué hay cerca que valga el viaje" },
         { name: "amenidades", label: "Amenidades", type: "text", placeholder: "Alberca, desayuno, WiFi, estacionamiento…" },
         { name: "estilo", label: "Estilo del hotel", type: "text", placeholder: "Boutique, familiar, ecológico, romántico…" },
       ],
@@ -93,7 +93,7 @@ export function HerramientasPanelClient({ hotelNombre }: { hotelNombre: string }
       botonLabel: "Generar mensaje",
       resultadoLabel: "Tu mensaje sugerido",
       campos: [
-        { name: "hotel", label: "Nombre de tu hotel", type: "text", placeholder: "Hotel Paraíso Encantado", default: hotelNombre },
+        { name: "hotel", label: "Nombre de tu hotel", type: "text", placeholder: "Ej. Hotel Casa del Río", default: hotelNombre },
         { name: "etapa", label: "Etapa de la estancia", type: "select", required: true, options: ["Antes de llegar", "Bienvenida al llegar", "Durante la estancia", "Check-out", "Pedir una reseña"] },
         { name: "detalle", label: "Detalles (horarios, indicaciones…)", type: "textarea", placeholder: "Check-in 3pm, cómo llegar, contraseña del WiFi…" },
       ],

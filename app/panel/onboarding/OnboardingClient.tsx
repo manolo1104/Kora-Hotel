@@ -162,7 +162,7 @@ export function OnboardingClient() {
                   className={inputCls}
                   value={nombre}
                   onChange={(e) => setNombre(e.target.value)}
-                  placeholder="Hotel Paraíso Encantado"
+                  placeholder="Ej. Hotel Casa del Río"
                   autoFocus
                 />
                 <p className="mt-1.5 text-xs text-kora-muted">

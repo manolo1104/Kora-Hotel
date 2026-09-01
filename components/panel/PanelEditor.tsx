@@ -1496,7 +1496,7 @@ export function PanelEditor({
                     className={inputCls}
                     value={nombre}
                     onChange={(e) => setNombre(e.target.value)}
-                    placeholder="Hotel Paraíso Encantado"
+                    placeholder="Ej. Hotel Casa del Río"
                     autoFocus
                   />
                 </div>
@@ -1813,7 +1813,7 @@ export function PanelEditor({
                 className={inputCls}
                 value={nombre}
                 onChange={(e) => setNombre(e.target.value)}
-                placeholder="Hotel Paraíso Encantado"
+                placeholder="Ej. Hotel Casa del Río"
               />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
