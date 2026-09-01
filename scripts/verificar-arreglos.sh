@@ -191,7 +191,7 @@ cero "A18.4 esc() escapa comillas"                 bash -c 'grep -qI "&quot;" li
 # `armarCsv`, que es quien lo aplica por dentro a cada celda.
 cero "A18.5 el CSV del CRM neutraliza fórmulas"    bash -c 'grep -qI "from \"@/lib/csv\"" app/api/crm/export/route.ts && grep -qI "ARRANQUE_PELIGROSO" lib/csv.ts || echo "el CSV no neutraliza fórmulas"'
 cero "A18.6 open-redirect en un solo helper"       bash -c 'grep -rlI "startsWith(\"/\")" app/auth app/entrar 2>/dev/null | tail -n +2'
-cero "A18.7 el fetch de mapas no sigue redirects"  bash -c 'grep -qI "redirect: *\"manual\"" app/api/panel/resolver-mapa/route.ts || echo "resolver-mapa sigue redirecciones"'
+cero "A18.7 el fetch de mapas no sigue redirects"  bash -c 'grep -qI "redirect: *\"manual\"" app/api/panel/resolver-mapa/route.ts && grep -qI "saltoPermitido" app/api/panel/resolver-mapa/route.ts || echo "resolver-mapa sigue redirecciones sin comprobar el destino"'
 
 sec "A19 · Rutas, caché y activos"
 cero "A19.1 sin force-dynamic en el layout público" bash -c 'grep -nI "force-dynamic" "app/h/[slug]/layout.tsx" 2>/dev/null'

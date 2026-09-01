@@ -6,6 +6,7 @@ import { negar } from "@/lib/panel/permisos";
 import { NextResponse } from "next/server";
 import { getActiveHotel } from "@/lib/panel/active-hotel";
 import { construirMapa, esLinkCorto } from "@/lib/maps";
+import { saltoPermitido, MAX_SALTOS } from "@/lib/maps-redirecciones";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -45,17 +46,28 @@ export async function POST(req: Request) {
   }
 
   try {
-    // Seguir la redirección para obtener la URL final (con coordenadas / place).
+    // Seguir la redirección A MANO para obtener la URL final (con coordenadas /
+    // place), comprobando el destino de CADA salto.
     const controller = new AbortController();
     const t = setTimeout(() => controller.abort(), 6000);
-    const res = await fetch(input.startsWith("http") ? input : `https://${input}`, {
-      method: "GET",
-      redirect: "follow",
-      signal: controller.signal,
-      headers: { "User-Agent": "Mozilla/5.0 (compatible; KoraBot/1.0)" },
-    });
+    let urlActual = input.startsWith("http") ? input : `https://${input}`;
+    for (let salto = 0; salto < MAX_SALTOS; salto++) {
+      const res = await fetch(urlActual, {
+        method: "GET",
+        redirect: "manual",
+        signal: controller.signal,
+        headers: { "User-Agent": "Mozilla/5.0 (compatible; KoraBot/1.0)" },
+      });
+      if (res.status < 300 || res.status >= 400) break; // llegamos al final
+      const destino = res.headers.get("location");
+      if (!destino) break;
+      const absoluto = new URL(destino, urlActual).toString();
+      // Un salto fuera de Google no se sigue: se corta y se deja el link corto.
+      if (!saltoPermitido(absoluto)) break;
+      urlActual = absoluto;
+    }
     clearTimeout(t);
-    const urlFinal = res.url || input;
+    const urlFinal = urlActual;
     // A veces Google redirige a una página de consentimiento (consent.google.com)
     // en lugar del mapa; en ese caso no podemos armar el embed.
     const esMapa = /\/maps\b/.test(urlFinal) || /@-?\d+\.\d+,/.test(urlFinal);

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Reveal } from "@/components/shared/Reveal";
 import { AuthForm } from "@/components/panel/AuthForm";
 import { planPorClave } from "@/lib/oferta";
+import { destinoSeguro } from "@/lib/destino-seguro";
 
 export const metadata: Metadata = {
   title: "Entrar | Kora",
@@ -9,13 +10,6 @@ export const metadata: Metadata = {
   robots: { index: false },
   alternates: { canonical: "/entrar" },
 };
-
-// Solo permitimos destinos internos (evita open-redirect): debe empezar con
-// una sola "/" y no con "//" ni "/\".
-function destinoSeguro(v: string | undefined): string | null {
-  if (!v || !v.startsWith("/") || v.startsWith("//") || v.startsWith("/\\")) return null;
-  return v;
-}
 
 export default async function EntrarPage({
   searchParams,
