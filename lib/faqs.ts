@@ -24,7 +24,7 @@ export const faqs: Faq[] = [
   {
     question: "¿Hay permanencia o contrato?",
     answer:
-      "No. Kora es mes a mes, sin contratos forzosos ni permanencia. Cancelas cuando quieras desde tu panel y tus datos siempre son tuyos: los exportas (reservas, huéspedes, pagos) cuando quieras.",
+      "No. Kora es mes a mes, sin contratos forzosos ni permanencia. Cancelas cuando quieras desde tu panel y tus datos siempre son tuyos: los descargas en Excel (reservas, huéspedes y cotizaciones) cuando quieras.",
   },
   {
     question: "¿Por qué dicen que hay cupos limitados?",
@@ -54,7 +54,7 @@ export const faqs: Faq[] = [
   {
     question: "¿Puedo exportar todos mis datos si cancelo?",
     answer:
-      "Sí. Tus datos son tuyos. Antes de cancelar puedes exportar todo: reservas, huéspedes, historial de pagos e informes en formato CSV y PDF. Nunca quedarás rehén del sistema.",
+      "Sí, y no hace falta que canceles ni que nos lo pidas: en tu panel hay un botón que te baja un Excel con tus reservas (con lo cobrado y el anticipo de cada una), tu lista completa de huéspedes y tus cotizaciones, cada cosa en su hoja. Nunca quedarás rehén del sistema.",
   },
   {
     question: "¿Camila cierra las reservas sola?",

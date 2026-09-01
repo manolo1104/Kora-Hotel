@@ -44,6 +44,7 @@ export type Permiso =
   | "sitio:editar"
   | "ia:usar"
   | "equipo:gestionar"
+  | "datos:exportar"
   | "hotel:eliminar";
 
 const TODOS: RolHotel[] = ["dueno", "encargada", "recepcion", "limpieza", "cocina"];
@@ -86,6 +87,13 @@ export const PERMISOS: Record<Permiso, RolHotel[]> = {
   // puede darse a sí mismo cualquier rol. Por eso sólo el dueño, con el mismo
   // criterio que el dinero y el bot.
   "equipo:gestionar": SOLO_DUENO,
+  // Bajarse el hotel entero en un archivo: reservas, cotizaciones y la lista
+  // completa de huéspedes con su correo y su teléfono. Es la promesa de "tus
+  // datos son tuyos" —lo que permite irse de Kora sin pedir permiso— y por eso
+  // mismo es la copia más valiosa que existe del negocio. Que la saque sólo
+  // quien es dueño de ella; una recepcionista de paso no se lleva el fichero de
+  // clientes en un clic.
+  "datos:exportar": SOLO_DUENO,
   "hotel:eliminar": SOLO_DUENO,
 };
 

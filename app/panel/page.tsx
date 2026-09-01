@@ -17,6 +17,7 @@ import { LogoutButton } from "@/components/panel/LogoutButton";
 import { TemaToggle } from "@/components/panel/TemaToggle";
 import { SuscripcionCard } from "@/components/panel/SuscripcionCard";
 import { EliminarHotelButton } from "@/components/panel/EliminarHotelButton";
+import { ExportarDatosButton } from "@/components/panel/ExportarDatosButton";
 import { pantallaDe } from "@/components/panel/SinPermiso";
 import { createClient } from "@/lib/supabase/server";
 import { supabaseEnvReady } from "@/lib/supabase/env";
@@ -216,9 +217,18 @@ export default async function PanelPage() {
                       </Link>
                     </div>
 
-                    {/* Zona de peligro: eliminar hotel (solo dueño, con contraseña) */}
+                    {/* Zona del dueño: llevarse los datos, o irse del todo.
+                        Van juntas a propósito — las dos contestan "¿y si un día
+                        quiero salirme?", que es lo primero que pregunta quien ya
+                        se quemó con una OTA. */}
                     {rol === "dueno" && (
-                      <div className="mt-4 pt-4 border-t border-panel-border-soft flex justify-end">
+                      <div className="mt-4 pt-4 border-t border-panel-border-soft flex flex-wrap items-start justify-between gap-3">
+                        <div className="flex flex-col items-start gap-1">
+                          <ExportarDatosButton slug={hotel.slug} />
+                          <p className="text-[11px] text-kora-muted">
+                            Reservas, huéspedes y cotizaciones, cada uno en su hoja.
+                          </p>
+                        </div>
                         <EliminarHotelButton slug={hotel.slug} nombre={hotel.nombre} />
                       </div>
                     )}

@@ -45,11 +45,11 @@ const garantias = [
   {
     icon: Lock,
     titulo: "Tus datos son tuyos",
-    // NO dice "los exportas tú": el panel no tiene ningún botón de exportar
-    // (31 ago 2026). Lo que sí es cierto y sostiene el mismo argumento contra el
-    // encierro de las OTAs es que se entregan a quien los pida. Si algún día hay
-    // botón, esta frase vuelve a "los exportas cuando quieras".
-    texto: "Te los entregamos completos cuando los pidas, sin candados.",
+    // La frase estuvo bajada de tono ("te los entregamos cuando los pidas")
+    // desde el 31 ago 2026 porque el panel NO tenía botón de exportar y prometer
+    // lo que no hay es la peor manera de perder a un hotelero. Vuelve entera
+    // ahora que el botón existe: `/panel` → Descargar mis datos (Excel).
+    texto: "Los descargas en Excel desde tu panel, cuando quieras. Sin candados.",
   },
 ];
 
