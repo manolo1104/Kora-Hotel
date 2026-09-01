@@ -34,6 +34,15 @@ vi.mock("@/lib/bot/tools", () => ({ botAvailability: (...a: unknown[]) => botAva
 vi.mock("@/lib/bot/knowledge", () => ({ buildHotelKnowledge: () => buildHotelKnowledge() }));
 vi.mock("@/lib/bot/prompt", () => ({ buildBotSystemPrompt: () => "prompt" }));
 vi.mock("@/lib/agent-booking", () => ({ crearLinkReservaAgente: async () => ({ ok: true, habitacion: "x" }) }));
+// El tope por hotel se controla desde aquí. Sin este mock, `limitado()` intenta
+// llamar a la RPC de Postgres a través del `cadena` de arriba — y ese Proxy
+// devuelve una función para CUALQUIER propiedad, incluida `.then`, así que el
+// `await` lo toma por una promesa que nunca se resuelve y el test se cuelga.
+const limitado = vi.fn(async () => false);
+vi.mock("@/lib/api/rate-limit", () => ({
+  limitado: (...a: unknown[]) => limitado(...(a as [])),
+  ipDe: () => "1.2.3.4",
+}));
 
 const { POST } = await import("@/app/api/agent/route");
 
@@ -122,5 +131,37 @@ describe("hotel AL CORRIENTE (que es a quien no podemos romper)", () => {
 
   it("status dice encendido", async () => {
     expect(await (await pedir({ action: "status" })).json()).toMatchObject({ enabled: true });
+  });
+});
+
+describe("el tope por hotel", () => {
+  beforeEach(() => {
+    accesoDelHotel.mockResolvedValue(ACTIVO);
+    limitado.mockClear();
+    limitado.mockResolvedValue(false);
+  });
+
+  it("cuenta por HOTEL, no por IP: la flota entera sale por la misma máquina", async () => {
+    await pedir({ action: "knowledge" });
+    expect(limitado).toHaveBeenCalledWith(
+      "agent.hotel",
+      "h1", // el id del hotel, no una dirección
+      expect.objectContaining({ max: 600 }),
+    );
+  });
+
+  it("pasado el tope, responde 429", async () => {
+    limitado.mockResolvedValue(true);
+    const res = await pedir({ action: "knowledge" });
+    expect(res.status).toBe(429);
+  });
+
+  it("NO toca `status`: es el latido, y el runtime lo lee fail-open", async () => {
+    // Un 429 aquí le haría concluir "encendido" y seguir contestando: peor que
+    // no limitarlo.
+    limitado.mockResolvedValue(true);
+    const res = await pedir({ action: "status" });
+    expect(res.status).toBe(200);
+    expect(limitado).not.toHaveBeenCalled();
   });
 });

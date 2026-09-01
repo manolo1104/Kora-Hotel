@@ -13,6 +13,7 @@ import { botAvailability } from "@/lib/bot/tools";
 import { accesoDelHotel } from "@/lib/suscripcion";
 import { leerCuerpo } from "@/lib/api/cuerpo";
 import { z } from "zod";
+import { limitado } from "@/lib/api/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -27,20 +28,12 @@ const MAX_CHARS_MENSAJE = 2000;
 // gasto a quien lo genera. Sin esto, esta ruta era un grifo abierto de IA con
 // sesión — pagado por Kora, sin tope de entrada y sin mirar si el hotel paga.
 //
-// En memoria del proceso, como el de `/api/agent-demo`: en Vercel Hobby sin
-// Redis no hay nada mejor, y para un abuso desde el panel (una pestaña abierta
-// en bucle) alcanza. Un limitador compartido de verdad es el paso 9.9 del plan.
+// Contaba en la memoria del proceso «porque en Vercel Hobby sin Redis no hay
+// nada mejor». Ya lo hay: desde el paso 9.9 el contador vive en Postgres y lo
+// comparten todas las instancias. La clave y el tope son los mismos de antes —
+// por HOTEL, no por IP, para que el equipo entero comparta la cuota.
 const VENTANA_MS = 60 * 60_000; // 1 hora
 const MAX_POR_VENTANA = 30;
-const hits = new Map<string, number[]>();
-
-function pasaDelTope(hotelId: string): boolean {
-  const ahora = Date.now();
-  const previos = (hits.get(hotelId) || []).filter((t) => ahora - t < VENTANA_MS);
-  previos.push(ahora);
-  hits.set(hotelId, previos);
-  return previos.length > MAX_POR_VENTANA;
-}
 
 /**
  * Parámetros de latencia, iguales a los del bot vivo (`brain.js`), para que el
@@ -91,7 +84,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "motor-pausado" }, { status: 403 });
   }
 
-  if (pasaDelTope(ctx.hotelId)) {
+  // El chat de prueba llama a Anthropic con TODO el cerebro del hotel en el
+  // system, y vuelve a llamar por cada herramienta que pide el modelo.
+  if (await limitado("admin.botPreview", ctx.hotelId, { max: MAX_POR_VENTANA, ventanaMs: VENTANA_MS })) {
     return NextResponse.json({ ok: false, error: "demasiadas-pruebas" }, { status: 429 });
   }
 

@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { resolveHotel } from "@/lib/tenant";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { limitado, ipDe } from "@/lib/api/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +23,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   const { slug } = await params;
   const hotel = await resolveHotel(slug);
   if (!hotel) return NextResponse.json({ error: "hotel-no-encontrado" }, { status: 404 });
+
+  // Guarda el correo del huésped para escribirle si abandona. Sin tope, es una
+  // vía para meter filas —y direcciones ajenas— en la tabla de recuperación, que
+  // luego DISPARA CORREOS desde el dominio del hotel.
+  if (await limitado("h.intento", ipDe(req), { max: 20, ventanaMs: 10 * 60_000 })) {
+    return NextResponse.json(
+      { error: "Vas muy rápido. Espera un momento e inténtalo de nuevo." },
+      { status: 429 },
+    );
+  }
 
   // Hotel demo: no se capturan correos de quien juega con él.
   if ((hotel.extras as { demo?: boolean } | null)?.demo === true) {

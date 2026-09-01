@@ -90,7 +90,9 @@ cero "A8.7 secreto del fleet en tiempo constante"  bash -c 'grep -nI "secret !==
 
 sec "A9 · Limitador de peticiones compartido, no en memoria"
 cero "A9.1 sin Map de rate limit en el proceso"    bash -c 'grep -rnI --exclude=verificar-arreglos.sh "const hits = new Map" app lib'
-cero "A9.2 toda ruta pública llama a limitar()"    bash -c 'for f in app/api/leads/route.ts app/api/soporte/route.ts app/api/crm/login/route.ts app/api/agent/route.ts app/api/agent-demo/route.ts app/api/herramientas/generar/route.ts app/api/reserva/reenviar/route.ts app/api/reserva/cancelar/route.ts app/api/reserva/consultar/route.ts app/api/h/*/checkout/route.ts app/api/h/*/intento/route.ts app/api/h/*/hold/route.ts app/api/admin/bot-preview/route.ts; do [ -f "$f" ] && ! grep -q "limitar(" "$f" && echo "SIN LIMITE: $f"; done'
+# La función se llama `limitado()`, no `limitar()`: con el nombre viejo esta
+# comprobación daba rojo aunque las nueve primeras rutas ya lo tuvieran.
+cero "A9.2 toda ruta pública llama a limitado()"  bash -c 'for f in app/api/leads/route.ts app/api/soporte/route.ts app/api/crm/login/route.ts app/api/agent/route.ts app/api/agent-demo/route.ts app/api/herramientas/generar/route.ts app/api/reserva/reenviar/route.ts app/api/reserva/cancelar/route.ts app/api/reserva/consultar/route.ts app/api/h/*/checkout/route.ts app/api/h/*/intento/route.ts app/api/h/*/hold/route.ts app/api/admin/bot-preview/route.ts; do [ -f "$f" ] && ! grep -q "limitado(" "$f" && echo "SIN LIMITE: $f"; done'
 
 sec "A10 · Una sola puerta de salida de correo"
 # A10.1/A10.2 contaban sus PROPIOS comentarios: explicar por escrito que antes

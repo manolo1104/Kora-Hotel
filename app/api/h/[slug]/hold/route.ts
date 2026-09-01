@@ -4,6 +4,7 @@ import { releaseHold, sesionStripeDelApartado } from "@/lib/db/availability";
 import { liberarExperienciaApartado } from "@/lib/db/experiencias";
 import { getStripe, stripeEnvReady } from "@/lib/stripe/server";
 import { getConnectState } from "@/lib/stripe/connect";
+import { limitado, ipDe } from "@/lib/api/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +19,15 @@ export async function POST(
   const { slug } = await params;
   const hotel = await resolveHotel(slug);
   if (!hotel) return NextResponse.json({ error: "hotel-no-encontrado" }, { status: 404 });
+
+  // Liberar un apartado exige el UUID de la sesión, así que no se puede liberar
+  // el de otro; el tope es contra el barrido a ciegas.
+  if (await limitado("h.hold", ipDe(req), { max: 30, ventanaMs: 10 * 60_000 })) {
+    return NextResponse.json(
+      { error: "Vas muy rápido. Espera un momento e inténtalo de nuevo." },
+      { status: 429 },
+    );
+  }
 
   const body = (await req.json().catch(() => null)) as { session?: unknown } | null;
   const session = typeof body?.session === "string" ? body.session : "";

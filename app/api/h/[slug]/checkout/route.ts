@@ -45,6 +45,7 @@ import { accesoDelHotel } from "@/lib/suscripcion";
 import { getStripe, stripeEnvReady } from "@/lib/stripe/server";
 import { getConnectState } from "@/lib/stripe/connect";
 import { alertar } from "@/lib/alertas";
+import { limitado, ipDe } from "@/lib/api/rate-limit";
 
 /**
  * Hoteles por los que YA se avisó en esta instancia de la función. Una función
@@ -129,6 +130,18 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   const { slug } = await params;
   const hotel = await resolveHotel(slug);
   if (!hotel) return NextResponse.json({ error: "hotel-no-encontrado" }, { status: 404 });
+
+  // Cada llamada abre una sesión de Stripe Checkout y APARTA cuartos reales. Sin
+  // tope, un script llenaba el calendario del hotel de holds de 35 minutos sin
+  // pagar un peso, y de paso llenaba el panel de Stripe de sesiones muertas.
+  // Doce en diez minutos es más de lo que hace nadie reservando de verdad,
+  // incluso probando fechas.
+  if (await limitado("h.checkout", ipDe(req), { max: 12, ventanaMs: 10 * 60_000 })) {
+    return NextResponse.json(
+      { error: "Vas muy rápido. Espera un momento e inténtalo de nuevo." },
+      { status: 429 },
+    );
+  }
 
   // Hotel de demostración: el cliente simula el pago y nunca llama aquí, pero
   // el endpoint es público — nadie debe poder cobrarle o apartarle al demo.

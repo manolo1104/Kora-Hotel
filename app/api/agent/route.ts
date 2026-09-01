@@ -16,6 +16,7 @@ import { buildBotSystemPrompt } from "@/lib/bot/prompt";
 import { buildHotelKnowledge } from "@/lib/bot/knowledge";
 import { botAvailability } from "@/lib/bot/tools";
 import type { HotelRow } from "@/lib/tenant";
+import { limitado } from "@/lib/api/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -89,10 +90,10 @@ export async function POST(req: Request) {
   // LECTURA — sirve para leer el cerebro del hotel, que ya es público en su
   // propio sitio, y para nada más.
   //
-  // No es un rate limit (que es lo que proponía la auditoría): en Vercel Hobby,
-  // sin Redis ni almacenamiento compartido, un contador en memoria es decorativo
-  // porque cada petición puede caer en otra instancia. Este secreto YA existía y
-  // YA estaba en Railway, así que no añade infraestructura.
+  // Esto NO es el rate limit que pedía la auditoría; es un segundo factor, y
+  // sigue siendo lo que de verdad protege lo que hace daño. (El tope por hotel
+  // existe también, más abajo: desde el paso 9.9 el contador vive en Postgres y
+  // ya no es decorativo entre instancias, que era la objeción de antes.)
   if (ACCIONES_PROTEGIDAS.has(body.action ?? "")) {
     const secreto = process.env.BOT_FLEET_SECRET ?? "";
     if (!secreto || req.headers.get("authorization") !== `Bearer ${secreto}`) {
@@ -165,6 +166,32 @@ export async function POST(req: Request) {
   if (body.action === "log-conv") {
     await logCamilaConversacion(hotel.id, body.conv ?? "", body.turnos ?? []);
     return NextResponse.json({ ok: true });
+  }
+
+  // ─── Tope por HOTEL, no por IP ──────────────────────────────────────────
+  //
+  // Aquí NO sirve limitar por IP: a esta ruta la llama el runtime de Camila, y
+  // los hoteles de la flota entera salen por la MISMA máquina de Railway. Un
+  // tope por IP callaría a todos los hoteles porque uno se pasó. La clave es el
+  // hotel, que es quien tiene el token.
+  //
+  // El comentario de arriba decía que un rate limit aquí era decorativo «en
+  // Vercel Hobby, sin Redis». Ya no: desde el paso 9.9 el contador vive en
+  // Postgres y lo comparten todas las instancias.
+  //
+  // `status` y `set-status` quedan FUERA a propósito. `status` es el latido que
+  // el runtime consulta cada ~45 s, y `kora.status()` es FAIL-OPEN ante error:
+  // devolverle un 429 le haría concluir "encendido" y seguir contestando. Las
+  // dos ya salieron por su `return` antes de llegar aquí.
+  //
+  // 600 en diez minutos es MUY holgado a propósito: un hotel ocupado hace unas
+  // 120 (el latido más cinco llamadas por mensaje del huésped). El coste de
+  // pasarse de estricto —Camila muda para un hotel que paga— es mucho más caro
+  // que el de un tope flojo. Lo que ataja es un runtime en bucle o un token
+  // filtrado barriendo la base.
+  if (await limitado("agent.hotel", hotel.id, { max: 600, ventanaMs: 10 * 60_000 })) {
+    console.error(`[agent] tope alcanzado por el hotel ${hotel.slug}`);
+    return NextResponse.json({ error: "demasiadas-consultas" }, { status: 429 });
   }
 
   // Métricas del foso (dashboard "Agentes"): cada consulta del bot cuenta. Si
