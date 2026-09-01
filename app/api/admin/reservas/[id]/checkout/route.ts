@@ -3,6 +3,7 @@ import { rutaSegura } from "@/lib/api/responder";
 import { NextRequest, NextResponse } from "next/server";
 import { getActiveHotel } from "@/lib/panel/active-hotel";
 import { checkoutBooking, deshacerCheckout, setRoomStatus } from "@/lib/db/admin";
+import { zId } from "@/lib/api/cuerpo";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +30,9 @@ export async function POST(
     if (no) return no;
 
     const { id } = await params; // folio de confirmación
+    if (!zId.safeParse(id).success) {
+      return NextResponse.json({ error: "Identificador inválido." }, { status: 400 });
+    }
     const r = await checkoutBooking(ctx.hotelId, id);
 
     if (!r.ok) {
@@ -83,6 +87,9 @@ export async function DELETE(
     if (no) return no;
 
     const { id } = await params;
+    if (!zId.safeParse(id).success) {
+      return NextResponse.json({ error: "Identificador inválido." }, { status: 400 });
+    }
     const ok = await deshacerCheckout(ctx.hotelId, id);
     if (!ok) {
       return NextResponse.json(

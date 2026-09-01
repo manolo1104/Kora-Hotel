@@ -7,6 +7,8 @@ import { buildPersonalOfferEmailHtml } from "@/lib/email-sequences";
 import type { HotelBrand } from "@/lib/email-sequences";
 import { draftOfferEmail } from "@/lib/offers";
 import type { HotelRow } from "@/lib/tenant";
+import { leerCuerpo, zEmail, zTextoCorto, zTextoLargo } from "@/lib/api/cuerpo";
+import { z } from "zod";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -57,6 +59,19 @@ function fromForHotel(h: HotelRow): string {
   return fromCfg || process.env.RESEND_FROM || "Kora <hola@kora-hotel.com>";
 }
 
+// Esto MANDA UN CORREO desde el dominio de Kora a la dirección que venga en el
+// cuerpo. Antes se comprobaba que llevara una arroba; ahora el correo tiene que
+// serlo de verdad. Y `notas` y `suitesFavoritas` van a la IA que redacta el
+// mensaje: sin topes, un texto enorme se cobra entero.
+const OFERTA_SCHEMA = z.object({
+  email: zEmail.refine((v) => v !== "N/A", "sin correo"),
+  nombre: zTextoCorto.optional(),
+  suitesFavoritas: z.array(z.string().max(200)).max(20).default([]),
+  ultimaEstancia: z.string().trim().max(40).default(""),
+  totalReservas: z.number().int().min(0).max(10_000).default(0),
+  notas: zTextoLargo.default(""),
+});
+
 export async function POST(req: Request) {
   // 1) Tenant: identidad por sesión, hotel por cookie verificada contra members.
   const ctx = await getActiveHotel();
@@ -79,26 +94,15 @@ export async function POST(req: Request) {
   }
 
   // 3) Datos del huésped (del CRM). El email es obligatorio y válido.
-  let payload: Record<string, unknown>;
-  try {
-    payload = (await req.json()) as Record<string, unknown>;
-  } catch {
-    return NextResponse.json({ ok: false, error: "Petición inválida." }, { status: 400 });
-  }
-  const email = String(payload.email ?? "").trim();
-  const nombre = String(payload.nombre ?? "").trim() || "huésped";
-  if (!email || email === "N/A" || !email.includes("@")) {
+  const c = await leerCuerpo(req, OFERTA_SCHEMA);
+  if (!c.ok) {
     return NextResponse.json(
       { ok: false, error: "Este cliente no tiene un correo válido para enviarle la oferta." },
       { status: 400 },
     );
   }
-  const suitesFavoritas = Array.isArray(payload.suitesFavoritas)
-    ? (payload.suitesFavoritas as unknown[]).map(String).filter(Boolean)
-    : [];
-  const ultimaEstancia = String(payload.ultimaEstancia ?? "").trim();
-  const totalReservas = Number(payload.totalReservas) || 0;
-  const notas = String(payload.notas ?? "").trim();
+  const { email, suitesFavoritas, ultimaEstancia, totalReservas, notas } = c.datos;
+  const nombre = c.datos.nombre || "huésped";
 
   const hotel = ctx.hotel;
   const brand = brandFromHotel(hotel);

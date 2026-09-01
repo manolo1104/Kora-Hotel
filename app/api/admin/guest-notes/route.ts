@@ -3,6 +3,8 @@ import { rutaSegura } from "@/lib/api/responder";
 import { NextResponse } from "next/server";
 import { getActiveHotel } from "@/lib/panel/active-hotel";
 import { getGuestNotes, saveGuestNote } from "@/lib/db/admin";
+import { leerCuerpo, zEmail, zTextoLargo } from "@/lib/api/cuerpo";
+import { z } from "zod";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +20,11 @@ export async function GET() {
   });
 }
 
+const NOTA_SCHEMA = z.object({
+  email: zEmail,
+  notas: zTextoLargo.default(""),
+});
+
 // POST { email, notas } → upsert de la nota del huésped.
 export async function POST(req: Request) {
   return rutaSegura("admin.guestNotes.post", async () => {
@@ -25,11 +32,11 @@ export async function POST(req: Request) {
   if (!ctx) return NextResponse.json({ error: "no-auth" }, { status: 401 });
   const no = negar(ctx, "clientes:escribir");
   if (no) return no;
-  const { email, notas } = await req.json();
-  if (!email || typeof email !== "string") {
-    return NextResponse.json({ error: "email requerido" }, { status: 400 });
-  }
-  await saveGuestNote(ctx.hotelId, email, typeof notas === "string" ? notas : "");
+  // `notas` no tenía tope: una nota de 40 MB entraba en la base y salía luego en
+  // cada listado, en cada correo y en el Excel que se descarga el hotelero.
+  const c = await leerCuerpo(req, NOTA_SCHEMA);
+  if (!c.ok) return c.respuesta;
+  await saveGuestNote(ctx.hotelId, c.datos.email, c.datos.notas);
   return NextResponse.json({ ok: true });
   });
 }

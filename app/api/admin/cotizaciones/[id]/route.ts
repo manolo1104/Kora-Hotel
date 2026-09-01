@@ -2,9 +2,27 @@ import { negar } from "@/lib/panel/permisos";
 import { rutaSegura } from "@/lib/api/responder";
 import { NextRequest, NextResponse } from 'next/server';
 import { getActiveHotel } from '@/lib/panel/active-hotel';
-import { getQuote, updateQuote, deleteQuote, type AdminQuote } from '@/lib/db/admin';
+import { getQuote, updateQuote, deleteQuote } from '@/lib/db/admin';
+import { leerCuerpo, zTextoCorto, zTextoLargo, zEmail, zFecha } from "@/lib/api/cuerpo";
+import { z } from "zod";
 
 export const dynamic = 'force-dynamic';
+
+// `precioTotal` lo traduce `updateQuote` a `precio_total`.
+const EDITAR_SCHEMA = z
+  .object({
+    cliente: zTextoCorto,
+    telefono: z.string().trim().max(40),
+    email: z.union([zEmail, z.literal("")]),
+    suite: zTextoCorto,
+    checkin: zFecha,
+    checkout: zFecha,
+    noches: z.number().int().min(1).max(365),
+    precioTotal: z.number().min(0).max(10_000_000),
+    estado: z.enum(["BORRADOR", "ENVIADA", "ACEPTADA", "EXPIRADA"]),
+    notas: zTextoLargo,
+  })
+  .partial();
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   return rutaSegura("admin.cotizaciones.id.patch", async () => {
@@ -14,23 +32,17 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (no) return no;
 
   const { id } = await params;
-  const changes = await req.json();
+
+  // La lista blanca de antes decidía QUÉ campos pasaban, pero no su forma: un
+  // `noches: "muchas"` o un `estado: "PATATA"` entraban igual y reventaban
+  // contra el CHECK de la tabla. El esquema hace las dos cosas.
+  const c = await leerCuerpo(req, EDITAR_SCHEMA);
+  if (!c.ok) return c.respuesta;
 
   const quote = await getQuote(ctx.hotelId, id);
   if (!quote) return NextResponse.json({ error: 'No encontrada' }, { status: 404 });
 
-  // Solo pasamos los campos editables conocidos (mapeo 1:1; precioTotal lo
-  // traduce updateQuote a precio_total).
-  const allowed: (keyof AdminQuote)[] = [
-    'cliente', 'telefono', 'email', 'suite', 'checkin', 'checkout',
-    'noches', 'precioTotal', 'estado', 'notas',
-  ];
-  const patch: Record<string, unknown> = {};
-  for (const key of allowed) {
-    if (key in changes) patch[key] = changes[key];
-  }
-
-  await updateQuote(ctx.hotelId, id, patch);
+  await updateQuote(ctx.hotelId, id, c.datos);
   return NextResponse.json({ ok: true });
   });
 }

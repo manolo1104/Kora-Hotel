@@ -2,6 +2,8 @@ import { negar } from "@/lib/panel/permisos";
 import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { getActiveHotel } from "@/lib/panel/active-hotel";
+import { leerCuerpo, zTextoCorto } from "@/lib/api/cuerpo";
+import { z } from "zod";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -21,6 +23,11 @@ const CATEGORIAS: Record<string, string> = {
   otro: "una experiencia o servicio",
 };
 
+const DESC_SCHEMA = z.object({
+  nombre: zTextoCorto,
+  categoria: z.string().trim().max(40).default("otro"),
+});
+
 export async function POST(req: Request) {
   const ctx = await getActiveHotel();
   if (!ctx) return NextResponse.json({ error: "no-auth" }, { status: 401 });
@@ -30,17 +37,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "La IA no está configurada (falta ANTHROPIC_API_KEY)." }, { status: 503 });
   }
 
-  let body: { nombre?: string; categoria?: string };
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "Solicitud inválida." }, { status: 400 });
+  const c = await leerCuerpo(req, DESC_SCHEMA);
+  if (!c.ok) {
+    return NextResponse.json({ error: "Ponle primero un nombre a la experiencia." }, { status: 400 });
   }
-
-  const nombre = String(body.nombre ?? "").trim();
-  if (!nombre) return NextResponse.json({ error: "Ponle primero un nombre a la experiencia." }, { status: 400 });
-  const categoriaKey = String(body.categoria ?? "otro");
-  const categoriaDesc = CATEGORIAS[categoriaKey] ?? CATEGORIAS.otro;
+  const nombre = c.datos.nombre;
+  const categoriaDesc = CATEGORIAS[c.datos.categoria] ?? CATEGORIAS.otro;
 
   const system = `Eres copywriter de hoteles boutique en México. Escribes la descripción de UNA experiencia vendible (no del hotel ni de una habitación) que el huésped puede AGREGAR a su reserva, en español de México. Entre 30 y 55 palabras, en un solo párrafo, con un tono cálido que invite a vivirla y ayude a decidir agregarla. HONESTIDAD: usa SOLO el nombre y el tipo que te den; NO inventes precios, horarios, duración, incluidos, distancias ni lugares específicos. Sin emojis, sin comillas, sin encabezados: devuelve únicamente el texto.`;
   const user = `Hotel: ${ctx.hotel.nombre || "el hotel"}

@@ -6,6 +6,7 @@ import { parseNotas, type TourItem } from '@/lib/notas';
 import { buildBrandedBookingEmailHtml, bookingBrandFromHotel, bookingFromHotel } from '@/lib/email/booking-branded';
 import { enviarEmailOFallar } from '@/lib/email/resend';
 import { rutaSegura } from '@/lib/api/responder';
+import { zId } from "@/lib/api/cuerpo";
 
 export const dynamic = 'force-dynamic';
 
@@ -25,6 +26,9 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
   if (no) return no;
 
   const { id } = await params;
+  if (!zId.safeParse(id).success) {
+    return NextResponse.json({ error: "Identificador inválido." }, { status: 400 });
+  }
   const q = await getQuote(ctx.hotelId, id);
   if (!q) return NextResponse.json({ error: 'Cotización no encontrada' }, { status: 404 });
   if (!q.email) return NextResponse.json({ error: 'Sin email en esta cotización' }, { status: 400 });

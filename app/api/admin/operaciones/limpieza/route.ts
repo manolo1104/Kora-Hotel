@@ -6,8 +6,9 @@ import {
   getCleaningTasks,
   createCleaningTask,
   updateCleaningTask,
-  type CleaningTaskEstado,
 } from "@/lib/db/admin";
+import { leerCuerpo, zTextoCorto, zTextoLargo, zId, zFecha } from "@/lib/api/cuerpo";
+import { z } from "zod";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +36,26 @@ export async function GET(req: NextRequest) {
   });
 }
 
+// `estado` iba a la base con un `as CleaningTaskEstado`: un valor inventado
+// reventaba contra el CHECK de la tabla y el `catch` de abajo le devolvía al
+// navegador el texto crudo de Postgres. Ahora lo rechaza el esquema, y el 500
+// honesto lo pone `rutaSegura`.
+const CREAR_SCHEMA = z.object({
+  suite: zTextoCorto,
+  fecha: zFecha.optional(),
+  asignado: zTextoCorto.optional(),
+  personal: zTextoCorto.optional(), // nombre viejo del mismo campo
+  notas: zTextoLargo.optional(),
+  observaciones: zTextoLargo.optional(), // nombre viejo del mismo campo
+});
+
+const EDITAR_SCHEMA = z.object({
+  id: zId,
+  estado: z.enum(["PENDIENTE", "HECHA"]).optional(),
+  asignado: zTextoCorto.optional(),
+  notas: zTextoLargo.optional(),
+});
+
 // POST → crea una tarea de limpieza. Acepta { suite, fecha?, asignado?, notas? }.
 // Devuelve { ok, id }.
 export async function POST(req: NextRequest) {
@@ -44,21 +65,16 @@ export async function POST(req: NextRequest) {
   const no = negar(ctx, "operaciones:escribir");
   if (no) return no;
 
-  try {
-    const data = await req.json();
-    if (!data?.suite) {
-      return NextResponse.json({ error: "suite requerida" }, { status: 400 });
-    }
-    const id = await createCleaningTask(ctx.hotelId, {
-      suite: data.suite,
-      fecha: data.fecha || todayMX(),
-      asignado: data.asignado ?? data.personal ?? "",
-      notas: data.notas ?? data.observaciones ?? "",
-    });
-    return NextResponse.json({ ok: true, id });
-  } catch (e: unknown) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
-  }
+  const c = await leerCuerpo(req, CREAR_SCHEMA);
+  if (!c.ok) return c.respuesta;
+  const { suite, fecha, asignado, personal, notas, observaciones } = c.datos;
+  const id = await createCleaningTask(ctx.hotelId, {
+    suite,
+    fecha: fecha || todayMX(),
+    asignado: asignado ?? personal ?? "",
+    notas: notas ?? observaciones ?? "",
+  });
+  return NextResponse.json({ ok: true, id });
   });
 }
 
@@ -70,17 +86,14 @@ export async function PATCH(req: NextRequest) {
   const no = negar(ctx, "operaciones:escribir");
   if (no) return no;
 
-  try {
-    const { id, estado, asignado, notas } = await req.json();
-    if (!id) return NextResponse.json({ error: "id requerido" }, { status: 400 });
-    await updateCleaningTask(ctx.hotelId, id, {
-      ...(estado !== undefined ? { estado: estado as CleaningTaskEstado } : {}),
-      ...(asignado !== undefined ? { asignado } : {}),
-      ...(notas !== undefined ? { notas } : {}),
-    });
-    return NextResponse.json({ ok: true });
-  } catch (e: unknown) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
-  }
+  const c = await leerCuerpo(req, EDITAR_SCHEMA);
+  if (!c.ok) return c.respuesta;
+  const { id, estado, asignado, notas } = c.datos;
+  await updateCleaningTask(ctx.hotelId, id, {
+    ...(estado !== undefined ? { estado } : {}),
+    ...(asignado !== undefined ? { asignado } : {}),
+    ...(notas !== undefined ? { notas } : {}),
+  });
+  return NextResponse.json({ ok: true });
   });
 }

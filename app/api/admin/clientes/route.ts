@@ -3,6 +3,8 @@ import { rutaSegura } from "@/lib/api/responder";
 import { NextRequest, NextResponse } from 'next/server';
 import { getActiveHotel } from '@/lib/panel/active-hotel';
 import { buildCRM, saveGuestNote } from '@/lib/db/admin';
+import { leerCuerpo, zEmail, zTextoLargo } from "@/lib/api/cuerpo";
+import { z } from "zod";
 
 export const dynamic = 'force-dynamic';
 
@@ -20,6 +22,11 @@ export async function GET() {
   });
 }
 
+const NOTA_SCHEMA = z.object({
+  email: zEmail,
+  notas: zTextoLargo.default(""),
+});
+
 export async function PATCH(req: NextRequest) {
   return rutaSegura("admin.clientes.patch", async () => {
   const ctx = await getActiveHotel();
@@ -27,8 +34,11 @@ export async function PATCH(req: NextRequest) {
   const no = negar(ctx, "clientes:escribir");
   if (no) return no;
 
-  const { email, notas } = await req.json();
-  await saveGuestNote(ctx.hotelId, email, notas);
+  // Antes esto pasaba `email` y `notas` a la base sin mirarlos: un objeto o un
+  // array llegaba tal cual a `saveGuestNote`.
+  const c = await leerCuerpo(req, NOTA_SCHEMA);
+  if (!c.ok) return c.respuesta;
+  await saveGuestNote(ctx.hotelId, c.datos.email, c.datos.notas);
   return NextResponse.json({ ok: true });
   });
 }

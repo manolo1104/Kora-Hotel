@@ -11,6 +11,8 @@ import { buildBotSystemPrompt, BOT_TOOLS } from "@/lib/bot/prompt";
 import { buildHotelKnowledge } from "@/lib/bot/knowledge";
 import { botAvailability } from "@/lib/bot/tools";
 import { accesoDelHotel } from "@/lib/suscripcion";
+import { leerCuerpo } from "@/lib/api/cuerpo";
+import { z } from "zod";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -60,6 +62,20 @@ function opcionesDeLatencia(model: string): Record<string, unknown> {
     : { thinking: { type: "disabled" }, output_config: { effort: "low" } };
 }
 
+// Sin tope, un mensaje de 200 KB pegado en el chat de prueba se cobra entero, y
+// el historial completo viaja en CADA vuelta de herramienta del mismo turno.
+const PREVIEW_SCHEMA = z.object({
+  mensajes: z
+    .array(
+      z.object({
+        role: z.enum(["user", "assistant"]),
+        content: z.string().max(MAX_CHARS_MENSAJE),
+      }),
+    )
+    .max(60)
+    .default([]),
+});
+
 export async function POST(req: Request) {
   const ctx = await getActiveHotel();
   if (!ctx) return NextResponse.json({ error: "no-auth" }, { status: 401 });
@@ -82,29 +98,15 @@ export async function POST(req: Request) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return NextResponse.json({ ok: false, error: "sin-ia" }, { status: 503 });
 
-  let body: { mensajes?: unknown };
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "bad-request" }, { status: 400 });
-  }
+  const c = await leerCuerpo(req, PREVIEW_SCHEMA);
+  if (!c.ok) return c.respuesta;
 
-  // Historial simple {role, content} → mensajes de Anthropic (solo texto).
-  const historial = Array.isArray(body.mensajes) ? body.mensajes : [];
-  const messages: Anthropic.MessageParam[] = historial
-    .filter(
-      (m): m is { role: "user" | "assistant"; content: string } =>
-        !!m &&
-        typeof m === "object" &&
-        ((m as { role?: unknown }).role === "user" ||
-          (m as { role?: unknown }).role === "assistant") &&
-        typeof (m as { content?: unknown }).content === "string" &&
-        (m as { content: string }).content.trim().length > 0,
-    )
-    .slice(-16)
-    // Tope de entrada: sin él, un mensaje de 200 KB pegado en el chat de prueba
-    // se cobra entero.
-    .map((m) => ({ role: m.role, content: m.content.slice(0, MAX_CHARS_MENSAJE) }));
+  // Historial simple {role, content} → mensajes de Anthropic (solo texto). Los
+  // topes (16 mensajes, MAX_CHARS_MENSAJE cada uno) los pone el esquema; aquí
+  // sólo se descartan los vacíos, que Anthropic rechaza.
+  const messages: Anthropic.MessageParam[] = c.datos.mensajes
+    .filter((m) => m.content.trim().length > 0)
+    .slice(-16);
 
   if (!messages.length || messages[messages.length - 1].role !== "user") {
     return NextResponse.json({ error: "sin-mensaje" }, { status: 400 });

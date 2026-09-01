@@ -5,6 +5,9 @@ import { revalidatePath } from "next/cache";
 import { getActiveHotel } from "@/lib/panel/active-hotel";
 import { createAdminClient, adminEnvReady } from "@/lib/supabase/admin";
 import { pingIndexNow } from "@/lib/indexnow";
+import { zId } from "@/lib/api/cuerpo";
+import { z } from "zod";
+import { leerCuerpo } from "@/lib/api/cuerpo";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,6 +16,12 @@ export const dynamic = "force-dynamic";
 // directo desde el cliente con RLS (patrón del editor visual); publicar pasa
 // por aquí porque además hay que revalidar las páginas públicas (tienen
 // revalidate de 1 h) y avisarle a IndexNow que hay URL nueva.
+
+const PUBLICAR_SCHEMA = z.object({
+  postId: zId,
+  publicado: z.boolean().default(false),
+  revalidar: z.boolean().default(false),
+});
 
 export async function POST(req: Request) {
   const ctx = await getActiveHotel();
@@ -23,14 +32,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Configuración incompleta." }, { status: 503 });
   }
 
-  let body: { postId?: string; publicado?: boolean; revalidar?: boolean };
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "Solicitud inválida." }, { status: 400 });
-  }
-  const postId = String(body.postId ?? "").trim();
-  const publicado = body.publicado === true;
+  const c = await leerCuerpo(req, PUBLICAR_SCHEMA);
+  if (!c.ok) return c.respuesta;
+  const body = c.datos;
+  const postId = body.postId;
+  const publicado = body.publicado;
   if (!postId) return NextResponse.json({ error: "Falta el artículo." }, { status: 400 });
 
   const admin = createAdminClient();
@@ -38,7 +44,7 @@ export async function POST(req: Request) {
   // Modo "solo revalidar": al guardar cambios de un post YA publicado, las
   // páginas públicas (revalidate 1 h) se refrescan al momento sin tocar el
   // estado ni la fecha de publicación.
-  if (body.revalidar === true) {
+  if (body.revalidar) {
     const post = await leer<{ slug: string; publicado: boolean }>(
       "blog.postParaRevalidar",
       admin

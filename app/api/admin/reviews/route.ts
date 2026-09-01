@@ -2,6 +2,8 @@ import { negar } from "@/lib/panel/permisos";
 import { NextResponse } from "next/server";
 import { getActiveHotel } from "@/lib/panel/active-hotel";
 import { getResenasHotel, responderResena, ocultarResena } from "@/lib/db/reviews";
+import { leerCuerpo, zTextoLargo, zId } from "@/lib/api/cuerpo";
+import { z } from "zod";
 
 export const dynamic = "force-dynamic";
 
@@ -17,25 +19,28 @@ export async function GET() {
   return NextResponse.json({ resenas });
 }
 
+const RESENA_SCHEMA = z.object({
+  action: z.enum(["responder", "ocultar"]),
+  id: zId,
+  respuesta: zTextoLargo.optional(),
+  publicada: z.boolean().optional(),
+});
+
 export async function POST(req: Request) {
   const ctx = await getActiveHotel();
   if (!ctx) return NextResponse.json({ error: "no-auth" }, { status: 401 });
   const no = negar(ctx, "sitio:editar");
   if (no) return no;
 
-  const body = (await req.json().catch(() => null)) as
-    | { action?: string; id?: string; respuesta?: string; publicada?: boolean }
-    | null;
-  const id = typeof body?.id === "string" ? body.id : "";
-  if (!id) return NextResponse.json({ ok: false, error: "id-requerido" }, { status: 400 });
+  // La respuesta del hotelero a una reseña sale publicada en su página: sin tope
+  // de longitud, cabía ahí un texto de cualquier tamaño.
+  const c = await leerCuerpo(req, RESENA_SCHEMA);
+  if (!c.ok) return c.respuesta;
 
-  if (body?.action === "responder") {
-    const res = await responderResena(ctx.hotelId, id, String(body.respuesta ?? ""));
+  if (c.datos.action === "responder") {
+    const res = await responderResena(ctx.hotelId, c.datos.id, c.datos.respuesta ?? "");
     return NextResponse.json(res, { status: res.ok ? 200 : 500 });
   }
-  if (body?.action === "ocultar") {
-    const res = await ocultarResena(ctx.hotelId, id, Boolean(body.publicada));
-    return NextResponse.json(res, { status: res.ok ? 200 : 500 });
-  }
-  return NextResponse.json({ ok: false, error: "accion-invalida" }, { status: 400 });
+  const res = await ocultarResena(ctx.hotelId, c.datos.id, c.datos.publicada ?? false);
+  return NextResponse.json(res, { status: res.ok ? 200 : 500 });
 }

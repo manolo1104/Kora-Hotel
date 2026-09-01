@@ -2,6 +2,8 @@ import { negar } from "@/lib/panel/permisos";
 import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { getActiveHotel } from "@/lib/panel/active-hotel";
+import { leerCuerpo, zTextoCorto } from "@/lib/api/cuerpo";
+import { z } from "zod";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -21,6 +23,26 @@ const TONOS: Record<string, string> = {
   moderna: "moderna y fresca: ritmo ágil, tono actual y elegante",
 };
 
+// Todo esto va a un prompt que se paga por token. Los topes de antes eran por
+// CANTIDAD (20 características, 8 camas) pero no por longitud: veinte cadenas de
+// un megabyte cabían igual.
+const DESC_SCHEMA = z.object({
+  nombre: zTextoCorto,
+  capacidad: z.number().int().min(0).max(100).default(0),
+  features: z.array(z.string().trim().min(1).max(120)).max(20).default([]),
+  camas: z
+    .array(
+      z.object({
+        tipo: zTextoCorto,
+        cantidad: z.number().int().min(0).max(50).default(0),
+      }),
+    )
+    .max(8)
+    .default([]),
+  notas: z.string().trim().max(600).default(""),
+  tono: z.string().trim().max(40).default("evocadora"),
+});
+
 export async function POST(req: Request) {
   const ctx = await getActiveHotel();
   if (!ctx) return NextResponse.json({ error: "no-auth" }, { status: 401 });
@@ -30,41 +52,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "La IA no está configurada (falta ANTHROPIC_API_KEY)." }, { status: 503 });
   }
 
-  let body: {
-    nombre?: string;
-    capacidad?: string | number;
-    features?: unknown;
-    camas?: unknown;
-    notas?: string;
-    tono?: string;
-  };
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "Solicitud inválida." }, { status: 400 });
-  }
+  const c = await leerCuerpo(req, DESC_SCHEMA);
+  if (!c.ok) return c.respuesta;
 
-  const nombre = String(body.nombre ?? "").trim();
-  if (!nombre) return NextResponse.json({ error: "Ponle primero un nombre a la habitación." }, { status: 400 });
-  const capacidad = Number(body.capacidad) || 0;
-  const features = Array.isArray(body.features) ? body.features.map(String).filter(Boolean).slice(0, 20) : [];
+  const { nombre, capacidad, features, notas } = c.datos;
   // Camas: cada objeto {tipo, cantidad} → "2 Queen", "1 King"
-  const camas = Array.isArray(body.camas)
-    ? body.camas
-        .map((c) => {
-          const o = c as { tipo?: unknown; cantidad?: unknown };
-          const tipo = String(o?.tipo ?? "").trim();
-          if (!tipo) return "";
-          const cant = Number(o?.cantidad) || 0;
-          return cant > 1 ? `${cant} ${tipo}` : tipo;
-        })
-        .filter(Boolean)
-        .slice(0, 8)
-    : [];
-  // Notas: lo que el hotelero ya escribió (borrador / puntos que quiere resaltar)
-  const notas = String(body.notas ?? "").trim().slice(0, 600);
-  const tonoKey = String(body.tono ?? "evocadora");
-  const tonoDesc = TONOS[tonoKey] ?? TONOS.evocadora;
+  const camas = c.datos.camas
+    .map(({ tipo, cantidad }) => (cantidad > 1 ? `${cantidad} ${tipo}` : tipo))
+    .slice(0, 8);
+  const tonoDesc = TONOS[c.datos.tono] ?? TONOS.evocadora;
 
   const system = `Eres copywriter de hoteles boutique en México. Escribes la descripción de UNA habitación (no del hotel), en español de México. Entre 45 y 75 palabras, en un solo párrafo. HONESTIDAD: usa SOLO las características, camas y notas que te den; NO inventes amenidades, medidas, vistas ni datos. Si te dan notas del hotelero, respétalas y mejóralas (redacción, orden, tono); no las contradigas ni agregues datos que no estén ahí. Sin emojis, sin comillas, sin encabezados: devuelve únicamente el texto de la descripción.`;
   const user = `Hotel: ${ctx.hotel.nombre || "el hotel"}

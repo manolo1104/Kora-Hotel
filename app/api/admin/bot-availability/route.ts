@@ -7,11 +7,18 @@ import { negar } from "@/lib/panel/permisos";
 import { NextResponse } from "next/server";
 import { getActiveHotel } from "@/lib/panel/active-hotel";
 import { botAvailability } from "@/lib/bot/tools";
+import { zFecha } from "@/lib/api/cuerpo";
+import { z } from "zod";
+import { leerCuerpo } from "@/lib/api/cuerpo";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const ISO = /^\d{4}-\d{2}-\d{2}$/;
+
+const CONSULTA_SCHEMA = z.object({
+  checkin: zFecha,
+  checkout: zFecha,
+});
 
 export async function POST(req: Request) {
   const ctx = await getActiveHotel();
@@ -19,16 +26,11 @@ export async function POST(req: Request) {
   const no = negar(ctx, "bot:leer");
   if (no) return no;
 
-  let body: { checkin?: unknown; checkout?: unknown };
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "bad-request" }, { status: 400 });
-  }
-
-  const checkin = typeof body.checkin === "string" ? body.checkin : "";
-  const checkout = typeof body.checkout === "string" ? body.checkout : "";
-  if (!ISO.test(checkin) || !ISO.test(checkout) || checkout <= checkin) {
+  const c = await leerCuerpo(req, CONSULTA_SCHEMA);
+  if (!c.ok) return c.respuesta;
+  const { checkin, checkout } = c.datos;
+  // El formato lo comprueba `zFecha`; aquí sólo queda el orden.
+  if (checkout <= checkin) {
     return NextResponse.json({ error: "fechas-invalidas" }, { status: 400 });
   }
 

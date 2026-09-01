@@ -11,6 +11,8 @@ import {
 } from "@/lib/db/admin";
 import { calcInsights } from "@/lib/admin/insights";
 import { totalUnits } from "@/lib/booking";
+import { leerCuerpo } from "@/lib/api/cuerpo";
+import { z } from "zod";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -30,10 +32,24 @@ const RES_MAX = 250;
 const COT_MAX = 200;
 const HUESP_MAX = 250;
 
-interface ChatMsg {
-  role: "user" | "assistant";
-  content: string;
-}
+// El historial lo manda el navegador y va DIRECTO a la API de Anthropic. Antes
+// sólo se comprobaba `Array.isArray`: ni cuántos mensajes ni cuánto medía cada
+// uno. Un empleado con acceso al panel (o una pestaña con un bucle) podía mandar
+// diez mil mensajes de un megabyte y facturarlos a la cuenta de Kora.
+//
+// 60 mensajes y 8.000 caracteres cada uno da de sobra para la conversación más
+// larga que cabe en esa pantalla, y acota el gasto por petición.
+const CHAT_SCHEMA = z.object({
+  messages: z
+    .array(
+      z.object({
+        role: z.enum(["user", "assistant"]),
+        content: z.string().max(8_000),
+      }),
+    )
+    .min(1)
+    .max(60),
+});
 
 const fmtMoney = (n: number) => `$${(n || 0).toLocaleString("es-MX")} MXN`;
 
@@ -64,16 +80,9 @@ export async function POST(req: Request) {
   if (no) return no;
 
   // 2) Historial del cliente.
-  let body: { messages?: ChatMsg[] };
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "Solicitud inválida." }, { status: 400 });
-  }
-  const messages = Array.isArray(body.messages) ? body.messages : [];
-  if (messages.length === 0) {
-    return NextResponse.json({ error: "messages requerido" }, { status: 400 });
-  }
+  const c = await leerCuerpo(req, CHAT_SCHEMA);
+  if (!c.ok) return c.respuesta;
+  const messages = c.datos.messages;
 
   // 3) Gated: sin llave, responde amable (texto plano, sin truenar el cliente).
   if (!process.env.ANTHROPIC_API_KEY) {

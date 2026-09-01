@@ -6,6 +6,8 @@ import { LIMITE_IA_MENSUAL, slugificarPost } from "@/lib/hotel-blog";
 import { createAdminClient, adminEnvReady } from "@/lib/supabase/admin";
 import { AMENIDADES } from "@/lib/amenidades";
 import type { MiniExtras } from "@/lib/mini";
+import { leerCuerpo, zTextoCorto } from "@/lib/api/cuerpo";
+import { z } from "zod";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -86,6 +88,14 @@ export async function GET() {
   return NextResponse.json(cuota);
 }
 
+// Esto arranca una generación con búsqueda web: cada artículo cuesta entre
+// $0.10 y $0.30 USD. Los topes son los mismos que ya aplicaba el `.slice()`.
+const ARTICULO_SCHEMA = z.object({
+  tema: zTextoCorto,
+  notas: z.string().trim().max(1_200).default(""),
+  enfoque: z.string().trim().max(40).default(""),
+});
+
 export async function POST(req: Request) {
   const ctx = await getActiveHotel();
   if (!ctx) return NextResponse.json({ error: "no-auth" }, { status: 401 });
@@ -112,19 +122,12 @@ export async function POST(req: Request) {
     );
   }
 
-  let body: { tema?: string; notas?: string; enfoque?: string };
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "Solicitud inválida." }, { status: 400 });
-  }
-
-  const tema = String(body.tema ?? "").trim().slice(0, 200);
-  if (!tema) {
+  const c = await leerCuerpo(req, ARTICULO_SCHEMA);
+  if (!c.ok) {
     return NextResponse.json({ error: "Escribe el tema del artículo." }, { status: 400 });
   }
-  const notas = String(body.notas ?? "").trim().slice(0, 1200);
-  const enfoque = ENFOQUES[String(body.enfoque ?? "")] ?? ENFOQUES.libre;
+  const { tema, notas } = c.datos;
+  const enfoque = ENFOQUES[c.datos.enfoque] ?? ENFOQUES.libre;
 
   const hotel = ctx.hotel as unknown as {
     nombre: string;

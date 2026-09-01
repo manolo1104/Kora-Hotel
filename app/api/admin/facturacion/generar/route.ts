@@ -4,8 +4,37 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getActiveHotel } from '@/lib/panel/active-hotel';
 import { getAllBookings } from '@/lib/db/admin';
 import { buildCfdiPayload, createCfdi, facturamaConfigured, FacturamaError, RECEPTOR_PUBLICO, type CfdiReceiver } from '@/lib/admin/facturama';
+import { leerCuerpo } from "@/lib/api/cuerpo";
+import { z } from "zod";
 
 export const dynamic = 'force-dynamic';
+
+// Esto TIMBRA UN CFDI: un documento fiscal ante el SAT. El cuerpo llegaba como
+// `any`, y los datos del receptor se metían con `String(...)` sin comprobar
+// forma ni longitud — un RFC de 4.000 caracteres viajaba al PAC tal cual.
+//
+// El TOTAL sigue saliendo de la reserva real cuando hay folio; lo del cuerpo
+// sólo se usa para un alta sin reserva ligada, y por eso lleva tope.
+const FACTURA_SCHEMA = z.object({
+  confirmacion: z.string().trim().max(100).default(''),
+  total: z.number().positive().max(10_000_000).optional(),
+  descripcion: z.string().trim().max(1_000).optional(),
+  receiver: z
+    .object({
+      // RFC mexicano: 12 (moral) o 13 (física) caracteres.
+      Rfc: z.string().trim().toUpperCase().min(12).max(13),
+      Name: z.string().trim().max(300).optional(),
+      CfdiUse: z.string().trim().max(10).optional(),
+      FiscalRegime: z.string().trim().max(10).optional(),
+      TaxZipCode: z.string().trim().max(10).optional(),
+    })
+    .optional(),
+  // Catálogo del SAT: 01 efectivo, 03 transferencia, 04 tarjeta de crédito, 28
+  // débito… Son códigos de dos caracteres; cualquier otra cosa la rechaza el PAC
+  // después de habernos cobrado el intento.
+  paymentForm: z.string().trim().regex(/^\d{2}$/).optional(),
+  paymentMethod: z.enum(["PUE", "PPD"]).optional(),
+});
 
 export async function POST(req: NextRequest) {
   // Aislamiento multi-tenant: el hotel sale de la sesión + cookie, nunca del body.
@@ -22,21 +51,17 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  let body: any;
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: 'JSON inválido' }, { status: 400 });
-  }
+  const c = await leerCuerpo(req, FACTURA_SCHEMA);
+  if (!c.ok) return c.respuesta;
+  const body = c.datos;
 
   // El monto y los datos de la estancia salen de la reserva real del hotel,
   // localizada por su folio/confirmación dentro de ESTE hotel (no se confía en
   // el total que mande el cliente). Si no hay confirmación, se usa el body como
   // respaldo (alta sin reserva ligada).
-  const confirmacion = typeof body?.confirmacion === 'string' ? body.confirmacion.trim() : '';
-  let total = Number(body?.total);
-  let descripcion: string =
-    (typeof body?.descripcion === 'string' && body.descripcion.trim()) || 'Servicio de hospedaje';
+  const confirmacion = body.confirmacion;
+  let total = body.total ?? 0;
+  let descripcion: string = body.descripcion || 'Servicio de hospedaje';
 
   if (confirmacion) {
     const bookings = await getAllBookings(ctx.hotelId);
@@ -57,14 +82,14 @@ export async function POST(req: NextRequest) {
   }
 
   // Receptor: si no mandan RFC, factura a público en general.
-  const r = body?.receiver || {};
+  const r = body.receiver;
   const receiver: CfdiReceiver = r?.Rfc
     ? {
-        Rfc: String(r.Rfc),
-        Name: String(r.Name || ''),
-        CfdiUse: String(r.CfdiUse || 'G03'),
-        FiscalRegime: String(r.FiscalRegime || '601'),
-        TaxZipCode: String(r.TaxZipCode || ''),
+        Rfc: r.Rfc,
+        Name: r.Name ?? '',
+        CfdiUse: r.CfdiUse ?? 'G03',
+        FiscalRegime: r.FiscalRegime ?? '601',
+        TaxZipCode: r.TaxZipCode ?? '',
       }
     : RECEPTOR_PUBLICO;
 
@@ -78,8 +103,8 @@ export async function POST(req: NextRequest) {
     total,
     descripcion,
     receiver,
-    paymentForm: body?.paymentForm,
-    paymentMethod: body?.paymentMethod,
+    paymentForm: body.paymentForm,
+    paymentMethod: body.paymentMethod,
   });
 
   try {

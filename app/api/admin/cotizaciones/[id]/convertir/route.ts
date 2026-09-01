@@ -7,6 +7,7 @@ import { createBookingAtomic, generarConfirmacion } from "@/lib/db/bookings";
 import { bookingRules } from "@/lib/booking";
 import { calcDepositAmount } from "@/lib/booking/engine";
 import { parseNotas } from "@/lib/notas";
+import { zId } from "@/lib/api/cuerpo";
 
 export const dynamic = "force-dynamic";
 
@@ -34,6 +35,9 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   if (no) return no;
 
   const { id } = await params;
+  if (!zId.safeParse(id).success) {
+    return NextResponse.json({ error: "Identificador inválido." }, { status: 400 });
+  }
   const q = await getQuote(ctx.hotelId, id);
   if (!q) return NextResponse.json({ error: "Cotización no encontrada." }, { status: 404 });
   if (q.estado === "ACEPTADA") {

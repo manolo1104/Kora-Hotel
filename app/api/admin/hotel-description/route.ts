@@ -2,6 +2,8 @@ import { negar } from "@/lib/panel/permisos";
 import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { getActiveHotel } from "@/lib/panel/active-hotel";
+import { leerCuerpo, zTextoCorto } from "@/lib/api/cuerpo";
+import { z } from "zod";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -21,6 +23,26 @@ const TONOS: Record<string, string> = {
   moderna: "moderna y fresca: ritmo ágil, tono actual y elegante",
 };
 
+// Los topes de antes eran por CANTIDAD (20 amenidades, 12 habitaciones) pero no
+// por longitud: veinte cadenas de un megabyte cabían igual, y todo esto va a un
+// prompt que se paga por token.
+const DESC_SCHEMA = z.object({
+  nombre: zTextoCorto.optional(),
+  ubicacion: z.string().trim().max(200).default(""),
+  amenidades: z.array(z.string().trim().min(1).max(120)).max(20).default([]),
+  habitaciones: z
+    .array(
+      z.object({
+        nombre: zTextoCorto,
+        features: z.array(z.string().trim().min(1).max(120)).max(6).default([]),
+      }),
+    )
+    .max(12)
+    .default([]),
+  notas: z.string().trim().max(800).default(""),
+  tono: z.string().trim().max(40).default("evocadora"),
+});
+
 export async function POST(req: Request) {
   const ctx = await getActiveHotel();
   if (!ctx) return NextResponse.json({ error: "no-auth" }, { status: 401 });
@@ -30,44 +52,17 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "La IA no está configurada (falta ANTHROPIC_API_KEY)." }, { status: 503 });
   }
 
-  let body: {
-    nombre?: string;
-    ubicacion?: string;
-    amenidades?: unknown;
-    habitaciones?: unknown;
-    notas?: string;
-    tono?: string;
-  };
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "Solicitud inválida." }, { status: 400 });
-  }
+  const c = await leerCuerpo(req, DESC_SCHEMA);
+  if (!c.ok) return c.respuesta;
 
-  const nombre = String(body.nombre ?? ctx.hotel.nombre ?? "").trim();
+  const nombre = c.datos.nombre || ctx.hotel.nombre || "";
   if (!nombre) return NextResponse.json({ error: "Ponle primero un nombre al hotel." }, { status: 400 });
-  const ubicacion = String(body.ubicacion ?? "").trim().slice(0, 200);
-  const amenidades = Array.isArray(body.amenidades)
-    ? body.amenidades.map(String).map((s) => s.trim()).filter(Boolean).slice(0, 20)
-    : [];
+  const { ubicacion, amenidades, notas } = c.datos;
   // Resumen de habitaciones: nombre + (features)
-  const habitaciones = Array.isArray(body.habitaciones)
-    ? body.habitaciones
-        .map((h) => {
-          const o = h as { nombre?: unknown; features?: unknown };
-          const nom = String(o?.nombre ?? "").trim();
-          if (!nom) return "";
-          const feats = Array.isArray(o?.features)
-            ? o.features.map(String).filter(Boolean).slice(0, 6)
-            : [];
-          return feats.length ? `${nom} (${feats.join(", ")})` : nom;
-        })
-        .filter(Boolean)
-        .slice(0, 12)
-    : [];
-  const notas = String(body.notas ?? "").trim().slice(0, 800);
-  const tonoKey = String(body.tono ?? "evocadora");
-  const tonoDesc = TONOS[tonoKey] ?? TONOS.evocadora;
+  const habitaciones = c.datos.habitaciones.map(({ nombre: nom, features }) =>
+    features.length ? `${nom} (${features.slice(0, 6).join(", ")})` : nom,
+  );
+  const tonoDesc = TONOS[c.datos.tono] ?? TONOS.evocadora;
 
   const system = `Eres copywriter de hoteles boutique en México. Escribes la descripción de UN HOTEL (no de una habitación), en español de México, para su página de reservas. Entre 60 y 110 palabras, en uno o dos párrafos cortos. HONESTIDAD: usa SOLO la información que te den (ubicación, amenidades, habitaciones y notas del hotelero); NO inventes amenidades, servicios, estrellas, distancias ni datos. Si te dan notas del hotelero, respétalas y mejóralas (redacción, orden, tono); no las contradigas. Sin emojis, sin comillas, sin encabezados ni listas: devuelve únicamente el texto de la descripción.`;
   const user = `Hotel: ${nombre}

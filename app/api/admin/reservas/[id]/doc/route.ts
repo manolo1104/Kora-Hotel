@@ -6,8 +6,15 @@ import { negar } from "@/lib/panel/permisos";
 import { NextRequest, NextResponse } from "next/server";
 import { getActiveHotel } from "@/lib/panel/active-hotel";
 import { saveBookingDoc } from "@/lib/db/admin";
+import { leerCuerpo } from "@/lib/api/cuerpo";
+import { z } from "zod";
 
 export const dynamic = "force-dynamic";
+
+// Son overrides libres del documento («modificar antes de descargar»), así que
+// el contenido no se puede acotar campo por campo — pero sí que sea un objeto y
+// que no pase de 40 KB, que es el tope de la columna jsonb.
+const DOC_SCHEMA = z.record(z.string(), z.unknown());
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const ctx = await getActiveHotel();
@@ -16,20 +23,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (no) return no;
 
   const { id } = await params; // confirmación (folio)
-  let body: unknown;
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "bad-request" }, { status: 400 });
-  }
-  const raw =
-    body && typeof body === "object" && "doc" in body
-      ? (body as { doc: unknown }).doc
-      : body;
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
-    return NextResponse.json({ error: "bad-request" }, { status: 400 });
-  }
-  const doc = raw as Record<string, unknown>;
+  const c = await leerCuerpo(req, DOC_SCHEMA);
+  if (!c.ok) return c.respuesta;
+  // El cliente manda `{ doc: {...} }` o el objeto pelado; se aceptan los dos.
+  const doc: Record<string, unknown> =
+    (c.datos.doc as Record<string, unknown> | undefined) ?? c.datos;
   if (JSON.stringify(doc).length > 40000) {
     return NextResponse.json({ error: "too-large" }, { status: 413 });
   }

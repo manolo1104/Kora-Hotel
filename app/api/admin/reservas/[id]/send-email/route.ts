@@ -6,6 +6,7 @@ import { parseNotas } from '@/lib/notas';
 import { buildBrandedBookingEmailHtml, bookingBrandFromHotel, bookingFromHotel } from '@/lib/email/booking-branded';
 import { enviarEmailOFallar } from '@/lib/email/resend';
 import { rutaSegura } from '@/lib/api/responder';
+import { zId } from "@/lib/api/cuerpo";
 
 export const dynamic = 'force-dynamic';
 
@@ -24,6 +25,9 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
   if (no) return no;
 
   const { id } = await params; // confirmación (folio)
+  if (!zId.safeParse(id).success) {
+    return NextResponse.json({ error: "Identificador inválido." }, { status: 400 });
+  }
   const b = await getBookingByConfirmacion(ctx.hotelId, id);
   if (!b) return NextResponse.json({ error: 'Reserva no encontrada' }, { status: 404 });
   if (!b.email || b.email === 'N/A') return NextResponse.json({ error: 'Sin email registrado' }, { status: 400 });

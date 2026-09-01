@@ -6,9 +6,9 @@ import {
   getMaintenanceTasks,
   createMaintenanceTask,
   updateMaintenanceTask,
-  type MaintenanceEstado,
-  type MaintenancePrioridad,
 } from "@/lib/db/admin";
+import { leerCuerpo, zTextoCorto, zTextoLargo, zId } from "@/lib/api/cuerpo";
+import { z } from "zod";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +26,25 @@ export async function GET() {
 }
 
 // POST → crea tarea. Acepta { titulo, suite?, prioridad?, notas? }. Devuelve { ok, id }.
+// `estado` y `prioridad` iban a la base con un `as`: un valor inventado
+// reventaba contra el CHECK de la tabla, y el `catch` de la ruta le devolvía al
+// navegador el texto crudo de Postgres.
+const CREAR_SCHEMA = z.object({
+  suite: zTextoCorto.optional(),
+  titulo: zTextoCorto.optional(),
+  tarea: zTextoCorto.optional(), // nombre viejo del mismo campo
+  prioridad: z.enum(["baja", "media", "alta"]).optional(),
+  notas: zTextoLargo.optional(),
+});
+
+const EDITAR_SCHEMA = z.object({
+  id: zId,
+  estado: z.enum(["ABIERTA", "EN_PROCESO", "CERRADA"]).optional(),
+  prioridad: z.enum(["baja", "media", "alta"]).optional(),
+  titulo: zTextoCorto.optional(),
+  notas: zTextoLargo.optional(),
+});
+
 export async function POST(req: NextRequest) {
   return rutaSegura("admin.mantenimiento.post", async () => {
   const ctx = await getActiveHotel();
@@ -33,20 +52,17 @@ export async function POST(req: NextRequest) {
   const no = negar(ctx, "operaciones:escribir");
   if (no) return no;
 
-  try {
-    const data = await req.json();
-    const titulo = data?.titulo ?? data?.tarea;
-    if (!titulo) return NextResponse.json({ error: "titulo requerido" }, { status: 400 });
-    const id = await createMaintenanceTask(ctx.hotelId, {
-      suite: data.suite ?? "",
-      titulo,
-      prioridad: (data.prioridad as MaintenancePrioridad) ?? "media",
-      notas: data.notas ?? "",
-    });
-    return NextResponse.json({ ok: true, id });
-  } catch (e: unknown) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
-  }
+  const c = await leerCuerpo(req, CREAR_SCHEMA);
+  if (!c.ok) return c.respuesta;
+  const titulo = c.datos.titulo ?? c.datos.tarea;
+  if (!titulo) return NextResponse.json({ error: "titulo requerido" }, { status: 400 });
+  const id = await createMaintenanceTask(ctx.hotelId, {
+    suite: c.datos.suite ?? "",
+    titulo,
+    prioridad: c.datos.prioridad ?? "media",
+    notas: c.datos.notas ?? "",
+  });
+  return NextResponse.json({ ok: true, id });
   });
 }
 
@@ -58,18 +74,15 @@ export async function PATCH(req: NextRequest) {
   const no = negar(ctx, "operaciones:escribir");
   if (no) return no;
 
-  try {
-    const { id, estado, prioridad, titulo, notas } = await req.json();
-    if (!id) return NextResponse.json({ error: "id requerido" }, { status: 400 });
-    await updateMaintenanceTask(ctx.hotelId, id, {
-      ...(estado !== undefined ? { estado: estado as MaintenanceEstado } : {}),
-      ...(prioridad !== undefined ? { prioridad: prioridad as MaintenancePrioridad } : {}),
-      ...(titulo !== undefined ? { titulo } : {}),
-      ...(notas !== undefined ? { notas } : {}),
-    });
-    return NextResponse.json({ ok: true });
-  } catch (e: unknown) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
-  }
+  const c = await leerCuerpo(req, EDITAR_SCHEMA);
+  if (!c.ok) return c.respuesta;
+  const { id, estado, prioridad, titulo, notas } = c.datos;
+  await updateMaintenanceTask(ctx.hotelId, id, {
+    ...(estado !== undefined ? { estado } : {}),
+    ...(prioridad !== undefined ? { prioridad } : {}),
+    ...(titulo !== undefined ? { titulo } : {}),
+    ...(notas !== undefined ? { notas } : {}),
+  });
+  return NextResponse.json({ ok: true });
   });
 }
