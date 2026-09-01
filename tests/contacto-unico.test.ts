@@ -8,7 +8,7 @@
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it, expect } from "vitest";
-import { EMAIL_CONTACTO, EMAIL_PRIVACIDAD, EMAIL_RESERVAS, EMAIL_FROM, WHATSAPP, waLink } from "@/lib/contacto";
+import { EMAIL_CONTACTO, EMAIL_FROM, WHATSAPP, waLink } from "@/lib/contacto";
 
 const raiz = join(__dirname, "..");
 
@@ -40,11 +40,18 @@ describe("los datos de contacto salen de un solo sitio", () => {
     expect(/korahotel\.mx/.test(todo)).toBe(false);
   });
 
-  it("todas las direcciones viven en el dominio que Kora sí controla", () => {
-    for (const dir of [EMAIL_CONTACTO, EMAIL_PRIVACIDAD, EMAIL_RESERVAS]) {
-      expect(dir.endsWith("@kora-hotel.com"), `${dir} no está en kora-hotel.com`).toBe(true);
-    }
+  it("hay UNA sola dirección, y vive en el dominio que Kora sí controla", () => {
+    // Decisión de Manolo (1 sep 2026): una sola. Había tres y sólo `hola@`
+    // existe de verdad en Resend; publicar direcciones que nadie atiende es
+    // exactamente cómo se llegó a `korahotel.mx`.
+    expect(EMAIL_CONTACTO).toBe("hola@kora-hotel.com");
     expect(EMAIL_FROM).toContain(EMAIL_CONTACTO);
+  });
+
+  it("el módulo de contacto no declara ninguna otra dirección", () => {
+    const src = sinComentarios(readFileSync(join(raiz, "lib", "contacto.ts"), "utf8"));
+    const direcciones = new Set(src.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-z]+/g) ?? []);
+    expect([...direcciones]).toEqual([EMAIL_CONTACTO]);
   });
 });
 

@@ -19,6 +19,13 @@
 // al registro A —76.76.21.21, que es Vercel— y ahí el puerto 25 está cerrado:
 // rebota. Hasta que Manolo añada un MX en el DNS de Vercel, escribir a esta
 // dirección no le llega a nadie. Ver [[ref_kora_dominio_dns]].
+//
+// 🔴 HAY UNA SOLA DIRECCIÓN, Y ES DELIBERADO. Decisión de Manolo (1 sep 2026):
+// «sólo deja un solo correo, el que ya está». Antes había tres —`hola@`,
+// `privacidad@` (en el Aviso de Privacidad) y `reservas@` (remitente de las
+// confirmaciones al huésped)— y sólo la primera existe de verdad en Resend.
+// Publicar direcciones que nadie atiende es cómo se llegó a `korahotel.mx`.
+// Con una sola, es una sola la que hay que hacer funcionar.
 export const EMAIL_CONTACTO = "hola@kora-hotel.com";
 
 // El remitente de los correos automáticos. Se puede sobreescribir con
@@ -26,20 +33,6 @@ export const EMAIL_CONTACTO = "hola@kora-hotel.com";
 // remitente si falta la variable.
 export const EMAIL_FROM = `Kora <${EMAIL_CONTACTO}>`;
 
-// El Aviso de Privacidad usaba `privacidad@korahotel.mx`, que nunca existió.
-// Se unifica en la de contacto A PROPÓSITO: mientras haya UNA sola dirección que
-// hacer funcionar, es una sola la que puede quedarse sin buzón. Si Manolo quiere
-// recuperar una dirección dedicada de privacidad, es cambiar esta línea y dar de
-// alta el alias — pero las dos tienen que existir de verdad antes de publicarlas.
-export const EMAIL_PRIVACIDAD = EMAIL_CONTACTO;
-
-// Remitente de los correos de reserva al huésped. Lleva su propio buzón porque
-// `fromOverride` suele traer el del hotel, y este es sólo el respaldo de Kora.
-//
-// ⚠️ Le aplica lo mismo: sin MX en `kora-hotel.com`, si un huésped responde a la
-// confirmación de su reserva, la respuesta REBOTA. Y responder a la confirmación
-// es exactamente lo que hace un huésped que quiere cambiar una fecha.
-export const EMAIL_RESERVAS = "reservas@kora-hotel.com";
 
 // ─── WhatsApp ────────────────────────────────────────────────────────────────
 //
