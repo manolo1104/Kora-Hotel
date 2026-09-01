@@ -30,7 +30,7 @@ const HEADER_H = 54;
 const MONTHS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 const DAYS_VISIBLE = 49;
 
-interface Props { slug: string; bookings: AdminBooking[]; rooms: string[]; bookingRooms: BookingRoom[]; onRefresh: () => void }
+interface Props { slug: string; bookings: AdminBooking[]; rooms: string[]; bookingRooms: BookingRoom[]; onRefresh: () => void; /** ¿Ve importes? (`reservas:dinero`). */ verDinero?: boolean }
 
 function toDate(s: string) { return new Date(s + 'T00:00:00'); }
 // Hoy en HORA DE MÉXICO: con toISOString() (UTC) la línea de "hoy" del Gantt se
@@ -39,7 +39,7 @@ function isoToday() { return new Date().toLocaleDateString('en-CA', { timeZone: 
 // Web bookings store "Suite Jungla (2 personas)" — strip the parenthetical
 function extractRoom(s: string): string { return s.replace(/\s*\([^)]*\)/g, '').trim(); }
 
-export default function GanttView({ slug, bookings, rooms, bookingRooms, onRefresh }: Props) {
+export default function GanttView({ slug, bookings, rooms, bookingRooms, onRefresh, verDinero = true }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [offsetDays, setOffsetDays] = useState(-3); // start 3 days before today
   const [modal, setModal] = useState<{ booking?: AdminBooking; defaultCheckin?: string } | null>(null);
@@ -236,14 +236,21 @@ export default function GanttView({ slug, bookings, rooms, bookingRooms, onRefre
                         onClick={(e) => {
                           // On touch devices show tooltip; on desktop open modal
                           const isTouchEvent = e.nativeEvent instanceof PointerEvent && e.nativeEvent.pointerType === 'touch';
-                          if (isTouchEvent) {
+                          // Sin permiso de dinero el modal no se abre (es un
+                          // desglose de importes): se queda en el globo, que ya
+                          // viene sin el total.
+                          if (isTouchEvent || !verDinero) {
                             e.stopPropagation();
                             setTooltip(t => t?.booking.confirmacion === b.confirmacion ? null : { booking: b, x: e.clientX, y: e.clientY });
                           } else {
                             setModal({ booking: b });
                           }
                         }}
-                        title={`${b.cliente} · ${b.noches}n · $${b.total.toLocaleString('es-MX')} MXN`}
+                        title={
+                          verDinero
+                            ? `${b.cliente} · ${b.noches}n · $${b.total.toLocaleString('es-MX')} MXN`
+                            : `${b.cliente} · ${b.noches}n`
+                        }
                         style={{
                           position: 'absolute',
                           left: start * CELL_W + 2,
@@ -328,14 +335,17 @@ export default function GanttView({ slug, bookings, rooms, bookingRooms, onRefre
               {tooltip.booking.checkin} → {tooltip.booking.checkout}
             </div>
             <div style={{ color: 'rgba(255,255,255,0.7)', marginBottom: 10 }}>
-              {tooltip.booking.noches} noche{tooltip.booking.noches !== 1 ? 's' : ''} · ${tooltip.booking.total.toLocaleString('es-MX')} MXN
+              {tooltip.booking.noches} noche{tooltip.booking.noches !== 1 ? 's' : ''}
+              {verDinero && ` · $${tooltip.booking.total.toLocaleString('es-MX')} MXN`}
             </div>
-            <button
-              onClick={() => { setModal({ booking: tooltip.booking }); setTooltip(null); }}
-              style={{ width: '100%', background: 'var(--sage-text)', color: 'var(--ink)', border: 'none', borderRadius: 4, padding: '8px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
-            >
-              Ver / editar reserva
-            </button>
+            {verDinero && (
+              <button
+                onClick={() => { setModal({ booking: tooltip.booking }); setTooltip(null); }}
+                style={{ width: '100%', background: 'var(--sage-text)', color: 'var(--ink)', border: 'none', borderRadius: 4, padding: '8px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+              >
+                Ver / editar reserva
+              </button>
+            )}
           </div>
         </div>
       )}

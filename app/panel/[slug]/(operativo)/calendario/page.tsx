@@ -5,6 +5,9 @@
 
 import { getAllBookings } from "@/lib/admin/sheets-admin";
 import { requireHotelMember } from "@/lib/tenant";
+import { puedeCtx } from "@/lib/panel/permisos";
+import { motivoCierre } from "@/lib/panel/pantallas";
+import { SinPermiso, pantallaDe } from "@/components/panel/SinPermiso";
 import { hotelRooms, getRoomBasePrice } from "@/lib/booking";
 import CalendarioClient from "./CalendarioClient";
 
@@ -17,6 +20,20 @@ export default async function CalendarioPage({
 }) {
   const { slug } = await params;
   const ctx = await requireHotelMember(slug);
+
+  // Esta pantalla la ve todo el equipo por su puesto, pero el dueño puede
+  // esconderla persona por persona desde "Quién trabaja aquí".
+  const cierre = motivoCierre(ctx.rol, ctx.pantallas, "calendario");
+  if (cierre) {
+    return (
+      <SinPermiso
+        titulo="Calendario"
+        quien="recepcion"
+        motivo={cierre}
+        volverA={pantallaDe(ctx.rol, slug, ctx.pantallas)}
+      />
+    );
+  }
 
   const bookings = await getAllBookings(ctx.hotelId);
   const rooms = hotelRooms(ctx.hotel);
@@ -45,6 +62,7 @@ export default async function CalendarioPage({
       rooms={roomNames}
       roomPrices={roomPrices}
       bookingRooms={rooms}
+      verDinero={puedeCtx(ctx, "reservas:dinero")}
     />
   );
 }

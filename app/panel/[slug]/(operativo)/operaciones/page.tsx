@@ -1,4 +1,6 @@
 import { requireHotelMember } from "@/lib/tenant";
+import { motivoCierre } from "@/lib/panel/pantallas";
+import { SinPermiso, pantallaDe } from "@/components/panel/SinPermiso";
 import { getCleaningTasks, getMaintenanceTasks } from "@/lib/db/admin";
 import { unitNamesOf } from "@/lib/booking";
 import OperacionesClient from "./OperacionesClient";
@@ -21,6 +23,20 @@ export default async function OperacionesPage({
 }) {
   const { slug } = await params;
   const ctx = await requireHotelMember(slug);
+
+  // Esta pantalla la ve todo el equipo por su puesto, pero el dueño puede
+  // esconderla persona por persona desde "Quién trabaja aquí".
+  const cierre = motivoCierre(ctx.rol, ctx.pantallas, "operaciones");
+  if (cierre) {
+    return (
+      <SinPermiso
+        titulo="Operaciones"
+        quien="recepcion"
+        motivo={cierre}
+        volverA={pantallaDe(ctx.rol, slug, ctx.pantallas)}
+      />
+    );
+  }
 
   const [cleaning, maintenance] = await Promise.all([
     getCleaningTasks(ctx.hotelId),

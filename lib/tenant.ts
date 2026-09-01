@@ -12,6 +12,8 @@ import { createAdminClient, adminEnvReady } from "@/lib/supabase/admin";
 import { supabaseEnvReady } from "@/lib/supabase/env";
 import { leer, DbError } from "@/lib/db/result";
 import { leerSuscripcion } from "@/lib/suscripcion";
+import { permisosDe } from "@/lib/panel/pantallas";
+import type { Permiso } from "@/lib/panel/permisos";
 
 export type RolHotel = "dueno" | "encargada" | "recepcion" | "limpieza" | "cocina";
 
@@ -39,6 +41,22 @@ export interface TenantContext {
   hotel: HotelRow;
   rol: RolHotel;
   userId: string;
+  /**
+   * Pantallas que quien administra el hotel le marcó a esta persona, o `null` =
+   * las de su puesto (lo de siempre, y lo que tienen todas las filas anteriores
+   * a la columna). Ver lib/panel/pantallas.ts.
+   */
+  pantallas: string[] | null;
+  /**
+   * Lo que esta persona puede hacer DE VERDAD: lo de su puesto más lo que abren
+   * las pestañas que le marcaron.
+   *
+   * Se calcula UNA vez aquí y viaja en el contexto a propósito. Así `negar()` y
+   * `puedeCtx()` —que viven en lib/panel/permisos.ts— no tienen que importar
+   * lib/panel/pantallas.ts, que a su vez importa permisos.ts: sería un ciclo de
+   * módulos justo en el punto donde se decide quién ve qué.
+   */
+  permisos: ReadonlySet<Permiso>;
 }
 
 const HOTEL_COLS =
@@ -164,19 +182,73 @@ export const getHotelMember = cache(async (slug: string): Promise<TenantContext 
   // Aquí SÍ se deja lanzar: un error leyendo membresías tiene que dar 500 en el
   // panel. Devolver null expulsaba al hotelero de su propio hotel sin decirle
   // por qué, y desde fuera se ve idéntico a "te quitaron el acceso".
-  const member = await leer<{ rol: RolHotel }>(
-    "hotel_members.rol",
-    admin
-      .from("hotel_members")
-      .select("rol")
-      .eq("hotel_id", hotel.id)
-      .eq("user_id", user.id)
-      .maybeSingle(),
-  );
+  const member = await leerMembresia(admin, hotel.id, user.id);
   if (!member) return null;
 
-  return { hotelId: hotel.id, hotel, rol: member.rol, userId: user.id };
+  const pantallas = member.pantallas ?? null;
+  return {
+    hotelId: hotel.id,
+    hotel,
+    rol: member.rol,
+    userId: user.id,
+    pantallas,
+    permisos: permisosDe(member.rol, pantallas),
+  };
 });
+
+/**
+ * La fila de `hotel_members` de esta persona en este hotel.
+ *
+ * Lee `pantallas` (lo que el dueño le dejó ver) y, si la COLUMNA todavía no
+ * existe, vuelve a preguntar sin ella.
+ *
+ * POR QUÉ ESTA RED: `sql/kora-equipo-pantallas.sql` se corre a mano en Supabase.
+ * Si un despliegue llegara antes que el SQL, esta consulta fallaría y —al
+ * lanzar— tumbaría el panel ENTERO de los diez hoteles, no sólo la función
+ * nueva. La red convierte ese error en "todavía no hay pestañas configuradas",
+ * que es exactamente lo que significa. Se puede borrar en cuanto el SQL esté
+ * corrido en producción; mientras tanto, cuesta una consulta sólo el día que
+ * pasa.
+ *
+ * `42703` es `undefined_column` de Postgres. Cualquier otro error se deja
+ * lanzar: es la única forma de no volver a confundir "la base falló" con "no
+ * eres miembro".
+ */
+async function leerMembresia(
+  admin: ReturnType<typeof createAdminClient>,
+  hotelId: string,
+  userId: string,
+): Promise<{ rol: RolHotel; pantallas: string[] | null } | null> {
+  const consulta = (cols: string) =>
+    admin
+      .from("hotel_members")
+      .select(cols)
+      .eq("hotel_id", hotelId)
+      .eq("user_id", userId)
+      .maybeSingle();
+
+  try {
+    return await leer<{ rol: RolHotel; pantallas: string[] | null }>(
+      "hotel_members.rol",
+      consulta("rol, pantallas") as never,
+    );
+  } catch (e) {
+    const falta =
+      e instanceof DbError &&
+      (e.code === "42703" || /pantallas/i.test(e.detalle));
+    if (!falta) throw e;
+    console.warn(
+      "[tenant] la columna hotel_members.pantallas no existe todavía: " +
+        "corre sql/kora-equipo-pantallas.sql en Supabase. " +
+        "Mientras tanto cada quien ve todas las pestañas de su puesto.",
+    );
+    const sinPantallas = await leer<{ rol: RolHotel }>(
+      "hotel_members.rol.sinPantallas",
+      consulta("rol") as never,
+    );
+    return sinPantallas ? { rol: sinPantallas.rol, pantallas: null } : null;
+  }
+}
 
 /**
  * Igual que getHotelMember pero para PÁGINAS del panel: si no hay sesión manda

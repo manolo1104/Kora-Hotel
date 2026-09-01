@@ -7,38 +7,45 @@ import { createClient } from '@/lib/supabase/client';
 import styles from './AdminSidebar.module.css';
 import { useTema } from '@/components/panel/TemaToggle';
 import type { RolHotel } from '@/lib/tenant';
-import { puede } from '@/lib/panel/permisos';
+import { pantallasPermitidas, permisosDe, type PantallaId } from '@/lib/panel/pantallas';
 import { CANALES_OTA_DISPONIBLES } from '@/lib/panel/canales-ota';
 
-// Cada entrada lleva el permiso que abre su pantalla. Antes se pintaban las 9 a
-// todo el mundo: la camarista veía "Ingresos", "Pagos" y "Cotizaciones" y al
-// entrar se topaba con un aviso de que no le tocan. Un enlace que lleva a una
-// puerta cerrada es peor que no tener el enlace.
-const NAV = [
-  { seg: 'insights',     label: 'Inicio',         icon: LayoutDashboard, permiso: 'ingresos:ver' as const },
-  { seg: 'camila',       label: 'Camila (bot)',   icon: Bot,             permiso: 'bot:leer' as const },
-  { seg: 'calendario',   label: 'Calendario',     icon: Calendar,        permiso: 'reservas:leer' as const },
-  { seg: 'reservas',     label: 'Reservas',       icon: BookOpen,        permiso: 'reservas:leer' as const },
-  { seg: 'cotizaciones', label: 'Cotizaciones',   icon: FileText,        permiso: 'cotizaciones:leer' as const },
-  { seg: 'ingresos',     label: 'Ingresos',       icon: TrendingUp,      permiso: 'ingresos:ver' as const },
-  { seg: 'pagos',        label: 'Pagos',          icon: CreditCard,      permiso: 'pagos:ver' as const },
-  { seg: 'clientes',     label: 'Clientes',       icon: Users,           permiso: 'clientes:leer' as const },
-  { seg: 'operaciones',  label: 'Operaciones',    icon: ClipboardCheck,  permiso: 'operaciones:leer' as const },
+// Cada entrada lleva el id de su pantalla. Antes se pintaban las 9 a todo el
+// mundo: la camarista veía "Ingresos", "Pagos" y "Cotizaciones" y al entrar se
+// topaba con un aviso de que no le tocan. Un enlace que lleva a una puerta
+// cerrada es peor que no tener el enlace.
+//
+// Desde la pantalla de "Quién trabaja aquí", el dueño puede además esconderle a
+// una persona cualquiera de las de su puesto: lo que manda aquí es
+// `pantallasPermitidas(rol, pantallas)`, no el permiso suelto.
+const NAV: { seg: PantallaId; label: string; icon: typeof Calendar }[] = [
+  { seg: 'insights',     label: 'Inicio',         icon: LayoutDashboard },
+  { seg: 'camila',       label: 'Camila (bot)',   icon: Bot },
+  { seg: 'calendario',   label: 'Calendario',     icon: Calendar },
+  { seg: 'reservas',     label: 'Reservas',       icon: BookOpen },
+  { seg: 'cotizaciones', label: 'Cotizaciones',   icon: FileText },
+  { seg: 'ingresos',     label: 'Ingresos',       icon: TrendingUp },
+  { seg: 'pagos',        label: 'Pagos',          icon: CreditCard },
+  { seg: 'clientes',     label: 'Clientes',       icon: Users },
+  { seg: 'operaciones',  label: 'Operaciones',    icon: ClipboardCheck },
   // Canales OTA retirado del panel: ver CANALES_OTA_DISPONIBLES en
   // lib/panel/canales-ota.ts. Los feeds ya pegados en una extranet siguen vivos
   // a propósito — cortarlos provoca sobreventa.
-  ...(CANALES_OTA_DISPONIBLES ? [{ seg: 'canales', label: 'Canales OTA', icon: Globe2, permiso: 'canales:leer' as const }] : []),
+  ...(CANALES_OTA_DISPONIBLES ? [{ seg: 'canales' as const, label: 'Canales OTA', icon: Globe2 }] : []),
 ];
 
 export default function AdminSidebar({
   slug,
   hotelName,
   rol,
+  pantallas,
 }: {
   slug: string;
   hotelName: string;
-  /** Rol del usuario en ESTE hotel: decide qué enlaces se pintan. */
+  /** Rol del usuario en ESTE hotel: es el techo de lo que puede ver. */
   rol?: RolHotel;
+  /** Las pestañas que el dueño le dejó, o null = todas las de su puesto. */
+  pantallas?: string[] | null;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -78,6 +85,14 @@ export default function AdminSidebar({
 
   const base = `/panel/${slug}`;
 
+  // Sin rol conocido se pinta todo (comportamiento de antes): más vale un
+  // enlace de más que un panel vacío si el rol no llegó.
+  const visibles = rol ? pantallasPermitidas(rol, pantallas) : null;
+  const ve = (id: PantallaId) => !visibles || visibles.has(id);
+  // "Herramientas IA" no es una pantalla del hotel (vive en /panel), así que se
+  // decide por el permiso efectivo: el del puesto más el de las pestañas.
+  const usaIA = !rol || permisosDe(rol, pantallas).has('ia:usar');
+
   return (
     <>
       <button className={styles.mobileToggle} onClick={() => setOpen(o => !o)} aria-label="Menú">
@@ -93,9 +108,7 @@ export default function AdminSidebar({
         </div>
 
         <nav className={styles.nav}>
-          {/* Sin rol conocido se pinta todo (comportamiento de antes): más vale
-              un enlace de más que un panel vacío si el rol no llegó. */}
-          {NAV.filter(({ permiso }) => !rol || puede(rol, permiso)).map(({ seg, label, icon: Icon }) => {
+          {NAV.filter(({ seg }) => ve(seg)).map(({ seg, label, icon: Icon }) => {
             const href = `${base}/${seg}`;
             return (
               <a
@@ -114,7 +127,7 @@ export default function AdminSidebar({
           {/* Sólo el dueño puede dar de alta gente (es tocar identidad), así
               que a los demás ni se les pinta el enlace: un enlace que lleva a
               un redirect es peor que no tenerlo. */}
-          {rol === 'dueno' && (
+          {ve('equipo') && rol === 'dueno' && (
             <a
               href={`${base}/equipo`}
               className={`${styles.navItem} ${pathname === `${base}/equipo` ? styles.active : ''}`}
@@ -127,7 +140,7 @@ export default function AdminSidebar({
 
           {/* La cara pública del hotel: editar el sitio y ver el motor en vivo.
               Editarlo es de mando (cambia precios y la cara del hotel). */}
-          {(!rol || puede(rol, 'sitio:leer')) && (
+          {ve('sitio') && (
           <>
           <p className={styles.navGroupLabel}>Mi sitio</p>
           <a
@@ -156,18 +169,25 @@ export default function AdminSidebar({
             <Building2 size={18} strokeWidth={1.5} />
             <span>Mis hoteles</span>
           </a>
-          <a
-            href="/panel/herramientas"
-            className={`${styles.navItem} ${pathname === '/panel/herramientas' ? styles.active : ''}`}
-            onClick={() => setOpen(false)}
-          >
-            <Sparkles size={18} strokeWidth={1.5} />
-            <span>Herramientas IA</span>
-          </a>
+          {usaIA && (
+            <a
+              href="/panel/herramientas"
+              className={`${styles.navItem} ${pathname === '/panel/herramientas' ? styles.active : ''}`}
+              onClick={() => setOpen(false)}
+            >
+              <Sparkles size={18} strokeWidth={1.5} />
+              <span>Herramientas IA</span>
+            </a>
+          )}
         </nav>
 
         {/* Estado del bot + acceso a su página (el on/off real vive en /camila,
-            para no tener dos toggles que se desincronizan). */}
+            para no tener dos toggles que se desincronizan).
+
+            Va detrás de `ve('camila')`: sin esa condición se pintaba para TODO
+            el mundo —incluida la camarista, que no puede abrir esa pantalla—
+            y era el único enlace del panel que llevaba a una puerta cerrada. */}
+        {ve('camila') && (
         <a
           href={`${base}/camila`}
           className={styles.botToggle}
@@ -183,6 +203,7 @@ export default function AdminSidebar({
             Configurar
           </span>
         </a>
+        )}
 
         <button
           className={styles.tema}

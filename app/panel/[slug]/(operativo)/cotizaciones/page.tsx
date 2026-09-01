@@ -1,5 +1,5 @@
 import { requireHotelMember } from '@/lib/tenant';
-import { puede } from "@/lib/panel/permisos";
+import { motivoCierre } from "@/lib/panel/pantallas";
 import { SinPermiso, pantallaDe } from "@/components/panel/SinPermiso";
 import { getAllQuotes } from '@/lib/db/admin';
 import { hotelRooms } from '@/lib/booking';
@@ -14,8 +14,16 @@ export default async function CotizacionesPage({ params }: { params: Promise<{ s
   // `requireHotelMember` sólo comprueba MEMBRESÍA. Sin esto, cualquier rol
   // del hotel abría esta pantalla — y las que cargan datos en el servidor
   // (ingresos, facturación, cotizaciones, canales) se los enseñaban.
-  if (!puede(ctx.rol, "cotizaciones:leer")) {
-    return <SinPermiso titulo="Cotizaciones" quien="recepcion" volverA={pantallaDe(ctx.rol, slug)} />;
+  const cierre = motivoCierre(ctx.rol, ctx.pantallas, "cotizaciones");
+  if (cierre) {
+    return (
+      <SinPermiso
+        titulo="Cotizaciones"
+        quien="recepcion"
+        motivo={cierre}
+        volverA={pantallaDe(ctx.rol, slug, ctx.pantallas)}
+      />
+    );
   }
   const quotes = await getAllQuotes(ctx.hotelId);
   const rooms = hotelRooms(ctx.hotel);

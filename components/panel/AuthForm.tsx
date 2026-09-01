@@ -198,11 +198,45 @@ export function AuthForm({ next = "/panel" }: { next?: string }) {
   );
 }
 
+/**
+ * Traduce el error de Supabase a algo que un camarista pueda leer.
+ *
+ * Los TRES topes de "demasiados intentos" son cosas distintas y hasta hoy los
+ * tres decían lo mismo: *"Demasiados intentos. Espera un momento."* Ese texto
+ * es el que hizo que un hotelero se quedara fuera: pidió el enlace para él y
+ * para su camarista, se topó con el aviso, entendió "espera un momento" y
+ * siguió pulsando — cavando más hondo, porque el tope es de UNA HORA y es del
+ * PROYECTO ENTERO, no de su correo.
+ *
+ * Lo que cambia aquí es sólo el texto. El tope de verdad vive en la
+ * configuración de Supabase (Authentication → Emails → SMTP): mientras el
+ * proyecto use el correo que trae Supabase de fábrica son 2 correos por hora
+ * para TODOS los hoteles juntos.
+ */
 function traducir(msg: string): string {
   const m = msg.toLowerCase();
   if (m.includes("invalid login")) return "Correo o contraseña incorrectos.";
   if (m.includes("already registered")) return "Ese correo ya tiene cuenta. Inicia sesión.";
-  if (m.includes("rate limit")) return "Demasiados intentos. Espera un momento.";
+
+  // Tope de CORREOS del proyecto. Es el que deja fuera a todo el mundo a la vez.
+  if (m.includes("email rate limit") || m.includes("over_email_send_rate_limit")) {
+    return (
+      "Kora ya mandó los enlaces de acceso que puede mandar esta hora. " +
+      "No es tu correo ni tu cuenta: espera ~1 hora y vuelve a pedirlo, o entra " +
+      "con tu contraseña si ya tienes una."
+    );
+  }
+
+  // Ventana de 60 s por correo: "For security purposes, you can only request
+  // this after 47 seconds."
+  const segundos = msg.match(/after (\d+) seconds?/i)?.[1];
+  if (segundos) {
+    return `Acabas de pedir un enlace. Espera ${segundos} segundos y vuelve a intentarlo.`;
+  }
+
+  if (m.includes("rate limit")) {
+    return "Demasiados intentos seguidos desde esta conexión. Espera unos minutos y vuelve a intentarlo.";
+  }
   if (m.includes("password")) return "La contraseña debe tener al menos 6 caracteres.";
   return "No se pudo completar. Revisa tus datos e inténtalo de nuevo.";
 }

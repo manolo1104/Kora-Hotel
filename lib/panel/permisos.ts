@@ -22,6 +22,7 @@ export type Permiso =
   | "reservas:leer"
   | "reservas:escribir"
   | "reservas:cancelar"
+  | "reservas:dinero"
   | "calendario:escribir"
   | "cotizaciones:leer"
   | "cotizaciones:escribir"
@@ -56,6 +57,18 @@ export const PERMISOS: Record<Permiso, RolHotel[]> = {
   "reservas:leer": TODOS,
   "reservas:escribir": MOSTRADOR,
   "reservas:cancelar": MANDO, // limpieza YA NO cancela reservas
+  // El IMPORTE de cada reserva (la columna "Total" de la lista, el globo del
+  // calendario y el modal con su desglose). Es de MOSTRADOR y no de MANDO a
+  // propósito: recepción cobra en la caja y necesita el número.
+  //
+  // Lo pidió el hotel de Nealtican al dar de alta a su camarista: *"no me
+  // parece bien que pueda ver la parte de ganancias en reserva porque puede
+  // empezar a especular"*. Limpieza y cocina siguen viendo QUIÉN llega y a qué
+  // cuarto —que es su trabajo— sin ver por cuánto.
+  //
+  // Ojo: esto es el importe de UNA reserva. La suma del periodo y las gráficas
+  // son `ingresos:ver`, que es de mando.
+  "reservas:dinero": MOSTRADOR,
   "calendario:escribir": MOSTRADOR,
   "cotizaciones:leer": MOSTRADOR,
   "cotizaciones:escribir": MOSTRADOR,
@@ -97,8 +110,25 @@ export const PERMISOS: Record<Permiso, RolHotel[]> = {
   "hotel:eliminar": SOLO_DUENO,
 };
 
+/**
+ * La matriz PURA: qué trae cada puesto de fábrica.
+ *
+ * Ojo: desde el 1 sep 2026 esto ya NO es la última palabra. Quien administra el
+ * hotel puede marcarle pestañas extra a una persona, y esas pestañas conceden
+ * sus permisos. Para preguntar "¿esta persona puede?" usa `puedeCtx(ctx, …)` o
+ * `negar(ctx, …)`. `puede()` sigue sirviendo para lo que es una pregunta sobre
+ * el PUESTO (la plantilla de casillas, los textos de ayuda).
+ */
 export function puede(rol: RolHotel, p: Permiso): boolean {
   return PERMISOS[p].includes(rol);
+}
+
+/**
+ * ¿Esta persona, en ESTE hotel, puede? Mira su puesto Y las pestañas que le
+ * marcaron. `ctx.permisos` lo calcula `permisosDe()` al resolver el tenant.
+ */
+export function puedeCtx(ctx: TenantContext, p: Permiso): boolean {
+  return ctx.permisos.has(p);
 }
 
 /**
@@ -110,7 +140,7 @@ export function puede(rol: RolHotel, p: Permiso): boolean {
  * el empleado no entendería por qué dejó de funcionar su botón.
  */
 export function negar(ctx: TenantContext, p: Permiso): NextResponse | null {
-  if (puede(ctx.rol, p)) return null;
+  if (puedeCtx(ctx, p)) return null;
   return NextResponse.json(
     { error: `Tu rol (${ctx.rol}) no puede hacer esto.`, permiso: p },
     { status: 403 },

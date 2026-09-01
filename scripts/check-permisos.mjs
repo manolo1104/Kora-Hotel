@@ -66,3 +66,77 @@ console.log(
   `✅ permisos: las ${archivos.length - EXENTAS.size} rutas del panel comprueban el rol ` +
     `(${EXENTAS.size} exentas, con razón escrita).`,
 );
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 2) Las PANTALLAS del panel.
+//
+// La misma podredumbre, un piso más arriba. Una ruta de API sin `negar()` deja
+// escribir a quien no debe; una PÁGINA sin puerta deja VER lo que no debe — y
+// eso es más difícil de notar, porque la pantalla se pinta perfecta.
+//
+// Fue exactamente el hallazgo del hotel de Nealtican: la camarista abría
+// "Reservas" y veía el total de cada noche. `requireHotelMember` sólo comprueba
+// MEMBRESÍA; parece una puerta y no lo es.
+//
+// Toda página bajo /panel/[slug] tiene que llamar a `motivoCierre(...)` (la
+// puerta por pantalla, que además respeta las pestañas que el dueño quitó) o a
+// `puede(...)` cuando su acceso lo decide sólo el rol.
+const PAGINAS_EXENTAS = new Map([
+  [
+    "app/panel/[slug]/onboarding/page.tsx",
+    "es el alta del hotel: corre ANTES de que exista rol que comprobar",
+  ],
+  [
+    "app/panel/[slug]/page.tsx",
+    "no pinta nada: redirige con pantallaDe(), que YA mira el rol y las pestañas",
+  ],
+]);
+
+const paginas = execSync(
+  'find "app/panel/[slug]" -name "page.tsx" | sort || true',
+  { encoding: "utf8" },
+)
+  .split("\n")
+  .filter(Boolean);
+
+const sinPuerta = [];
+const exentasPagVistas = new Set();
+
+for (const f of paginas) {
+  if (PAGINAS_EXENTAS.has(f)) {
+    exentasPagVistas.add(f);
+    continue;
+  }
+  const src = readFileSync(f, "utf8");
+  if (
+    !src.includes("motivoCierre(") &&
+    !src.includes("puedeCtx(") &&
+    !src.includes("verPantalla(")
+  ) {
+    sinPuerta.push(f);
+  }
+}
+
+const exentasPagMuertas = [...PAGINAS_EXENTAS.keys()].filter((f) => !exentasPagVistas.has(f));
+if (exentasPagMuertas.length) {
+  console.log("⚠️  páginas exentas que ya no existen (bórralas del script):");
+  for (const f of exentasPagMuertas) console.log(`     ${f}`);
+}
+
+if (sinPuerta.length) {
+  console.error(`\n🔴 ${sinPuerta.length} pantalla(s) del panel sin puerta:\n`);
+  for (const f of sinPuerta) console.error(`     ${f}`);
+  console.error(
+    "\n   Añade, ANTES de cargar datos:\n" +
+      '     const cierre = motivoCierre(ctx.rol, ctx.pantallas, "<pantalla>");\n' +
+      "     if (cierre) return <SinPermiso … motivo={cierre} volverA={pantallaDe(ctx.rol, slug, ctx.pantallas)} />;\n" +
+      "   Los ids viven en lib/panel/pantallas.ts. Si de verdad no lleva puerta,\n" +
+      "   anótala en PAGINAS_EXENTAS de este script CON SU RAZÓN.\n",
+  );
+  process.exit(1);
+}
+
+console.log(
+  `✅ pantallas: las ${paginas.length - PAGINAS_EXENTAS.size} páginas de /panel/[slug] ` +
+    `tienen puerta (${PAGINAS_EXENTAS.size} exenta, con razón escrita).`,
+);

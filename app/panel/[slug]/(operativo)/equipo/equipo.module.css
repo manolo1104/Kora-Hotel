@@ -106,6 +106,10 @@
   line-height: 1.5;
   color: var(--clay);
 }
+/* El icono no se encoge; el texto sí. Sin esto, en un flex cada trozo de texto
+   suelto se vuelve una columna y a 320 px la nota se salía de la tarjeta. */
+.nota > svg { flex-shrink: 0; margin-top: 2px; }
+.nota > span { min-width: 0; }
 .nota strong { color: var(--ink); font-weight: 600; }
 
 .error {
@@ -259,4 +263,169 @@
   .copiarBtn { padding: 12px 14px; }
   .selectRol { padding: 11px 10px; }
   .acciones { display: flex; gap: 8px; justify-content: flex-end; }
+}
+
+/* ── Qué pestañas ve ──────────────────────────────────────────────────────────
+   El dueño de Nealtican pidió poder decidir esto persona por persona: su
+   camarista veía "Reservas" con el total de cada noche. Las casillas SÓLO
+   quitan — el puesto sigue siendo el techo—, así que las que no vienen con el
+   puesto se pintan apagadas y con su explicación, en vez de esconderse: así el
+   dueño ve de un golpe qué le daría cambiarle el puesto. */
+
+.pantallasBloque {
+  margin: 16px 0 0;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--parch);
+}
+
+.pantallasTitulo {
+  margin: 0 0 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.pantallasSub {
+  margin: 0 0 12px;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--clay);
+}
+
+.pantallasGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 6px;
+}
+
+.pantallaItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--cream);
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.pantallaItem:hover { border-color: var(--sage-text); }
+
+/* El dueño: se ve marcado todo y no se toca (no se le recorta nunca). */
+.pantallaItemBloqueada {
+  cursor: not-allowed;
+  opacity: 0.6;
+  background: transparent;
+}
+.pantallaItemBloqueada:hover { border-color: var(--line); }
+
+/* "extra": una pestaña que NO trae su puesto y se le dio a propósito. Se marca
+   para que se lea como decisión y no como descuido. */
+.chipExtra {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  /* Se usa el PAR de chips ya auditado en admin.module.css en vez de un verde
+     suelto: el `--sage-text` sobre un verde translúcido daba 4.17:1 en tema
+     claro, por debajo de AA para texto de 0.62rem. */
+  background: var(--chip-ok-bg);
+  color: var(--chip-ok-text);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  vertical-align: 1px;
+}
+
+/* Las pestañas con consecuencia que no se adivina desde el nombre (la cuenta de
+   banco, el WhatsApp del hotel, dar de alta gente). AVISA, no bloquea: la
+   decisión es de quien administra el hotel, pero se toma con el dato delante. */
+.pantallaAviso {
+  margin-top: 5px;
+  padding: 5px 7px;
+  border-radius: 6px;
+  background: var(--chip-aviso-bg);
+  color: var(--chip-aviso-text);
+  font-size: 0.7rem;
+  line-height: 1.4;
+}
+
+.pantallaCheck {
+  margin-top: 2px;
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  accent-color: var(--sage-text);
+  cursor: inherit;
+}
+
+.pantallaTexto { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+
+.pantallaNombre {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.pantallaQue {
+  font-size: 0.72rem;
+  line-height: 1.4;
+  color: var(--clay);
+}
+
+.pantallasFijas {
+  margin: 10px 0 0;
+  font-size: 0.74rem;
+  line-height: 1.5;
+  color: var(--clay);
+}
+
+.pantallasAcciones {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.enlaceSutil {
+  border: none;
+  background: none;
+  padding: 0;
+  font-size: 0.76rem;
+  color: var(--sage-text);
+  text-decoration: underline;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+/* Resumen por persona en la tabla + botón que abre su editor. */
+.resumenPantallas {
+  display: block;
+  margin-top: 3px;
+  font-size: 0.72rem;
+  color: var(--clay);
+}
+
+.pantallasBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--ink);
+  font-size: 0.76rem;
+  font-family: inherit;
+  cursor: pointer;
+  margin-right: 6px;
+}
+.pantallasBtn:hover { border-color: var(--sage-text); }
+
+.filaEditor td {
+  background: var(--parch);
 }

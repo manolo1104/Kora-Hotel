@@ -11,14 +11,20 @@
 // en `auth.users` y tenga su fila en `hotel_members`. Se le da de alta con su
 // correo y entra sola, sin que nadie le tenga que pasar una contraseña.
 import { createAdminClient } from "@/lib/supabase/admin";
-import { leer } from "@/lib/db/result";
+import { leer, DbError } from "@/lib/db/result";
 import type { RolHotel } from "@/lib/tenant";
+import { sanearPantallas } from "@/lib/panel/pantallas";
 
 export interface MiembroHotel {
   id: string;
   userId: string;
   email: string;
   rol: RolHotel;
+  /**
+   * Pestañas que el dueño le dejó ver, o `null` = todas las de su puesto.
+   * Sólo QUITA: nunca da una pantalla que el puesto no incluya.
+   */
+  pantallas: string[] | null;
   desde: string;
   /** Aún no ha entrado ni una vez: sirve para avisar "todavía no ha entrado". */
   nuncaEntro: boolean;
@@ -37,17 +43,59 @@ export const ROLES_VALIDOS = ROLES.map((r) => r.valor);
 
 const normalizarCorreo = (e: string) => e.trim().toLowerCase();
 
+/**
+ * ¿El fallo es "la columna `pantallas` todavía no existe"?
+ *
+ * `sql/kora-equipo-pantallas.sql` se corre a mano en Supabase. Si el despliegue
+ * llegara antes que el SQL, sin esta comprobación la pantalla de "Quién trabaja
+ * aquí" daría un 500 en blanco — justo la pantalla donde el hotelero iría a
+ * buscar qué pasó. Con ella, la pantalla sigue funcionando como antes (cada
+ * quien ve todas las pestañas de su puesto) y sólo GUARDAR pestañas avisa.
+ *
+ * `42703` es `undefined_column` de Postgres. Se puede borrar en cuanto el SQL
+ * esté corrido en producción.
+ */
+function faltaColumnaPantallas(e: unknown): boolean {
+  return (
+    e instanceof DbError && (e.code === "42703" || /pantallas/i.test(e.detalle))
+  );
+}
+
+const AVISO_SQL =
+  "[equipo] falta la columna hotel_members.pantallas: corre " +
+  "sql/kora-equipo-pantallas.sql en Supabase.";
+
 /** El equipo del hotel, con el correo de cada quien. */
 export async function getEquipo(hotelId: string): Promise<MiembroHotel[]> {
   const supabase = createAdminClient();
-  const filas = await leer<Array<{ id: string; user_id: string; rol: RolHotel; created_at: string }>>(
-    "equipo.listar",
+  type Fila = {
+    id: string;
+    user_id: string;
+    rol: RolHotel;
+    pantallas?: string[] | null;
+    created_at: string;
+  };
+  const listar = (cols: string) =>
     supabase
       .from("hotel_members")
-      .select("id, user_id, rol, created_at")
+      .select(cols)
       .eq("hotel_id", hotelId)
-      .order("created_at", { ascending: true }),
-  );
+      .order("created_at", { ascending: true });
+
+  let filas: Fila[] | null;
+  try {
+    filas = await leer<Fila[]>(
+      "equipo.listar",
+      listar("id, user_id, rol, pantallas, created_at") as never,
+    );
+  } catch (e) {
+    if (!faltaColumnaPantallas(e)) throw e;
+    console.warn(AVISO_SQL);
+    filas = await leer<Fila[]>(
+      "equipo.listar.sinPantallas",
+      listar("id, user_id, rol, created_at") as never,
+    );
+  }
   if (!filas?.length) return [];
 
   // El correo vive en auth.users, que no se puede unir con select(): se resuelve
@@ -70,6 +118,7 @@ export async function getEquipo(hotelId: string): Promise<MiembroHotel[]> {
         userId: f.user_id,
         email,
         rol: f.rol,
+        pantallas: f.pantallas ?? null,
         desde: f.created_at,
         nuncaEntro,
       };
@@ -93,7 +142,11 @@ export async function altaMiembro(
   hotelId: string,
   emailCrudo: string,
   rol: RolHotel,
+  pantallasCrudas?: readonly string[] | null,
 ): Promise<Alta> {
+  const saneadas = sanearPantallas(rol, pantallasCrudas);
+  if (!saneadas.ok) return { ok: false, error: saneadas.error };
+
   const email = normalizarCorreo(emailCrudo);
   const supabase = createAdminClient();
 
@@ -133,33 +186,104 @@ export async function altaMiembro(
 
   // `unique (hotel_id, user_id)`: si ya estaba, se actualiza su rol en vez de
   // reventar con un error de duplicado que el hotelero no entendería.
+  const fila: Record<string, unknown> = { hotel_id: hotelId, user_id: userId, rol };
+  if (saneadas.pantallas) fila.pantallas = saneadas.pantallas;
+
   const { error } = await supabase
     .from("hotel_members")
-    .upsert({ hotel_id: hotelId, user_id: userId, rol }, { onConflict: "hotel_id,user_id" });
+    .upsert(fila, { onConflict: "hotel_id,user_id" });
   if (error) {
+    // Sin la columna, el alta NO se pierde: se reintenta sin pantallas. Dar de
+    // alta a la persona es lo importante; recortarle pestañas se hace después.
+    if (error.code === "42703" && fila.pantallas) {
+      console.warn(AVISO_SQL);
+      const { error: e2 } = await supabase
+        .from("hotel_members")
+        .upsert(
+          { hotel_id: hotelId, user_id: userId, rol },
+          { onConflict: "hotel_id,user_id" },
+        );
+      if (!e2) return { ok: true, email, creado };
+      console.error("[equipo] upsert membresía falló:", e2.message);
+      return { ok: false, error: "no-se-pudo-guardar" };
+    }
     console.error("[equipo] upsert membresía falló:", error.message);
     return { ok: false, error: "no-se-pudo-guardar" };
   }
   return { ok: true, email, creado };
 }
 
-/** Cambia el rol de alguien que ya está en el hotel. */
-export async function cambiarRol(
+/**
+ * Cambia el puesto de alguien y/o las pestañas que ve.
+ *
+ * Los dos viajan JUNTOS a propósito: cambiar de puesto cambia el techo de
+ * pantallas, y una selección vieja de "Limpieza" aplicada a "Recepción" le
+ * escondería media pantalla sin que nadie lo hubiera pedido. Cuando cambia el
+ * rol y no llegan pantallas, se vuelve a `null` (= todas las de su puesto
+ * nuevo), que es lo que el dueño espera al ascender a alguien.
+ */
+export async function actualizarMiembro(
   hotelId: string,
   userId: string,
-  rol: RolHotel,
+  cambios: { rol?: RolHotel; pantallas?: readonly string[] | null },
 ): Promise<{ ok: boolean; error?: string }> {
+  const pedir = (cols: string) =>
+    createAdminClient()
+      .from("hotel_members")
+      .select(cols)
+      .eq("hotel_id", hotelId)
+      .eq("user_id", userId)
+      .maybeSingle();
+
+  let actual: { rol: RolHotel; pantallas?: string[] | null } | null;
+  let hayColumna = true;
+  try {
+    actual = await leer<{ rol: RolHotel; pantallas: string[] | null }>(
+      "equipo.miembro",
+      pedir("rol, pantallas") as never,
+    );
+  } catch (e) {
+    if (!faltaColumnaPantallas(e)) throw e;
+    console.warn(AVISO_SQL);
+    hayColumna = false;
+    actual = await leer<{ rol: RolHotel }>("equipo.miembro.sinPantallas", pedir("rol") as never);
+  }
+  if (!actual) return { ok: false, error: "no-esta-en-el-hotel" };
+
+  // Elegir pestañas sin la columna se RECHAZA con su motivo. Aceptarlo y no
+  // guardarlo sería peor: el dueño creería que su camarista dejó de ver los
+  // importes cuando los sigue viendo.
+  if (!hayColumna && cambios.pantallas !== undefined) {
+    return { ok: false, error: "falta-sql-pantallas" };
+  }
+
+  const rol = cambios.rol ?? actual.rol;
   const guarda = await protegerUltimoDueno(hotelId, userId, rol);
   if (guarda) return { ok: false, error: guarda };
 
+  // Si sólo cambia el puesto, las pantallas se reinician a "todas las del
+  // puesto nuevo". Si vienen pantallas, mandan ellas.
+  const pantallasCrudas =
+    cambios.pantallas !== undefined
+      ? cambios.pantallas
+      : cambios.rol && cambios.rol !== actual.rol
+        ? null
+        : (actual.pantallas ?? null);
+
+  const saneadas = sanearPantallas(rol, pantallasCrudas);
+  if (!saneadas.ok) return { ok: false, error: saneadas.error };
+
   const supabase = createAdminClient();
+  const cambio: Record<string, unknown> = { rol };
+  if (hayColumna) cambio.pantallas = saneadas.pantallas;
+
   const { error } = await supabase
     .from("hotel_members")
-    .update({ rol })
+    .update(cambio)
     .eq("hotel_id", hotelId)
     .eq("user_id", userId);
   if (error) {
-    console.error("[equipo] cambiarRol falló:", error.message);
+    console.error("[equipo] actualizarMiembro falló:", error.message);
     return { ok: false, error: "no-se-pudo-guardar" };
   }
   return { ok: true };

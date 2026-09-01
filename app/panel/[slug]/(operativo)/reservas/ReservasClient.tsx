@@ -82,9 +82,32 @@ interface Props {
   initialBookings: AdminBooking[];
   rooms: BookingRoom[];
   slug: string;
+  /**
+   * ¿Ve el importe de cada reserva? Lo decide el SERVIDOR (`reservas:dinero`).
+   * Con `false` desaparece la columna Total, el total de la tarjeta en móvil y
+   * el modal —que es un desglose de dinero de arriba a abajo—, y la fila deja
+   * de abrirse al pulsarla.
+   */
+  verDinero?: boolean;
+  /** ¿Ve la SUMA del periodo del encabezado? Es `ingresos:ver`, de mando. */
+  verTotalPeriodo?: boolean;
+  /**
+   * ¿Puede operar la reserva (check-out, mandar la confirmación, abrir el
+   * documento)? Es `reservas:escribir`. Sin esto, la camarista veía tres
+   * botones que su API contesta con un 403 — y un botón que lleva a una puerta
+   * cerrada se lee como que el panel se descompuso.
+   */
+  verAcciones?: boolean;
 }
 
-export default function ReservasClient({ initialBookings, rooms, slug }: Props) {
+export default function ReservasClient({
+  initialBookings,
+  rooms,
+  slug,
+  verDinero = true,
+  verTotalPeriodo = true,
+  verAcciones = true,
+}: Props) {
   // slug se usa para resolver el catálogo de tours/paquetes por hotel en el modal.
   const SUITES = useMemo(() => rooms.map(r => r.name), [rooms]);
 
@@ -207,7 +230,8 @@ export default function ReservasClient({ initialBookings, rooms, slug }: Props) 
         <div>
           <h1 className={styles.pageTitle}>Reservas</h1>
           <p className={styles.pageSub}>
-            {filtered.length} reservas · ${totalIngresos.toLocaleString('es-MX')} MXN
+            {filtered.length} reservas
+            {verTotalPeriodo && ` · $${totalIngresos.toLocaleString('es-MX')} MXN`}
             {hasActiveFilters && <span className={styles.filterBadge}>Filtros activos</span>}
           </p>
         </div>
@@ -245,9 +269,11 @@ export default function ReservasClient({ initialBookings, rooms, slug }: Props) 
           >
             Filtros {showFilters ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
           </button>
-          <button className={styles.primaryBtn} onClick={() => setModal({ mode: 'new' })}>
-            <Plus size={16} /> Nueva reserva
-          </button>
+          {verDinero && (
+            <button className={styles.primaryBtn} onClick={() => setModal({ mode: 'new' })}>
+              <Plus size={16} /> Nueva reserva
+            </button>
+          )}
         </div>
       </div>
 
@@ -343,22 +369,30 @@ export default function ReservasClient({ initialBookings, rooms, slug }: Props) 
               <div className={styles.mobileCardDates}>
                 Check-in: <strong>{b.checkin}</strong> → Check-out: <strong>{b.checkout}</strong> · {b.noches}n
               </div>
-              <div className={styles.mobileCardTotal}>${b.total.toLocaleString('es-MX')} MXN</div>
+              {verDinero && (
+                <div className={styles.mobileCardTotal}>${b.total.toLocaleString('es-MX')} MXN</div>
+              )}
               <div className={styles.mobileCardActions}>
-                <button className={`${styles.mobileCardBtn} ${styles.mobileCardBtnPrimary}`}
-                  onClick={() => setModal({ mode: 'edit', booking: b })}>
-                  Ver / Editar
-                </button>
-                <button className={`${styles.mobileCardBtn} ${styles.mobileCardBtnSecondary}`}
-                  onClick={e => sendEmail(e, b)} disabled={sendingId === b.confirmacion}>
-                  {sendingId === b.confirmacion ? <Loader2 size={12} className={styles.spin} /> : null} Email
-                </button>
-                <a href={`/panel/${slug}/reservas/${b.confirmacion}/documento`}
-                  className={`${styles.mobileCardBtn} ${styles.mobileCardBtnPdf}`}
-                  style={{ display:'inline-flex', alignItems:'center', justifyContent:'center' }}
-                  onClick={e => e.stopPropagation()}>
-                  PDF
-                </a>
+                {verDinero && (
+                  <button className={`${styles.mobileCardBtn} ${styles.mobileCardBtnPrimary}`}
+                    onClick={() => setModal({ mode: 'edit', booking: b })}>
+                    Ver / Editar
+                  </button>
+                )}
+                {verAcciones && (
+                  <button className={`${styles.mobileCardBtn} ${styles.mobileCardBtnSecondary}`}
+                    onClick={e => sendEmail(e, b)} disabled={sendingId === b.confirmacion}>
+                    {sendingId === b.confirmacion ? <Loader2 size={12} className={styles.spin} /> : null} Email
+                  </button>
+                )}
+                {verAcciones && (
+                  <a href={`/panel/${slug}/reservas/${b.confirmacion}/documento`}
+                    className={`${styles.mobileCardBtn} ${styles.mobileCardBtnPdf}`}
+                    style={{ display:'inline-flex', alignItems:'center', justifyContent:'center' }}
+                    onClick={e => e.stopPropagation()}>
+                    PDF
+                  </a>
+                )}
               </div>
             </div>
           );
@@ -379,15 +413,15 @@ export default function ReservasClient({ initialBookings, rooms, slug }: Props) 
               <th>Check-out</th>
               <th>Noches</th>
               <th>Días</th>
-              <th>Total</th>
+              {verDinero && <th>Total</th>}
               <th>Estado</th>
-              <th>Acciones</th>
+              {verAcciones && <th>Acciones</th>}
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={10} className={styles.empty}>
+                <td colSpan={8 + (verDinero ? 1 : 0) + (verAcciones ? 1 : 0)} className={styles.empty}>
                   {vistaHoy ? 'Sin actividad para hoy' : 'Sin reservas que mostrar'}
                 </td>
               </tr>
@@ -399,7 +433,8 @@ export default function ReservasClient({ initialBookings, rooms, slug }: Props) 
                 <tr
                   key={b.id}
                   className={`${styles.row} ${ops === 'CHECK_IN_HOY' ? styles.rowHighlight : ops === 'CHECK_OUT_HOY' ? styles.rowCheckout : ''}`}
-                  onClick={() => setModal({ mode: 'edit', booking: b })}
+                  onClick={verDinero ? () => setModal({ mode: 'edit', booking: b }) : undefined}
+                  style={verDinero ? undefined : { cursor: 'default' }}
                 >
                   <td className={styles.mono}>{b.confirmacion || '—'}</td>
                   <td>
@@ -411,7 +446,9 @@ export default function ReservasClient({ initialBookings, rooms, slug }: Props) 
                   <td>{b.checkout}</td>
                   <td>{b.noches}</td>
                   <td><DaysChip days={days} /></td>
-                  <td className={styles.total}>${b.total.toLocaleString('es-MX')}</td>
+                  {verDinero && (
+                    <td className={styles.total}>${b.total.toLocaleString('es-MX')}</td>
+                  )}
                   <td>
                     <span
                       className={styles.opsBadge}
@@ -420,11 +457,12 @@ export default function ReservasClient({ initialBookings, rooms, slug }: Props) 
                       {OPS_LABEL[ops]}
                     </span>
                   </td>
+                  {verAcciones && (
                   <td onClick={e => e.stopPropagation()}>
                     <div className={styles.rowActions}>
                       {/* Sólo donde tiene sentido: alguien que está (o estuvo)
                           en casa. En una reserva próxima o cancelada estorba. */}
-                      {['EN_CASA', 'CHECK_OUT_HOY', 'CHECK_IN_HOY', 'SALIO'].includes(ops) && (
+                      {verAcciones && ['EN_CASA', 'CHECK_OUT_HOY', 'CHECK_IN_HOY', 'SALIO'].includes(ops) && (
                         <button
                           className={ops === 'SALIO' ? styles.actionBtn : styles.actionBtnCheckout}
                           onClick={e => hacerCheckout(e, b)}
@@ -436,18 +474,23 @@ export default function ReservasClient({ initialBookings, rooms, slug }: Props) 
                             : ops === 'SALIO' ? <Undo2 size={13} /> : <LogOut size={13} />}
                         </button>
                       )}
+                      {verAcciones && (
                       <button className={styles.actionBtn} onClick={e => sendEmail(e, b)}
                         disabled={sendingId === b.confirmacion} title="Enviar confirmación">
                         {sendingId === b.confirmacion ? <Loader2 size={13} className={styles.spin} /> : <Send size={13} />}
                       </button>
+                      )}
+                      {verAcciones && (
                       <a href={`/panel/${slug}/reservas/${b.confirmacion}/documento`}
                         className={styles.actionBtnPdf} title="Documento / descargar"
                         style={{ display:'inline-flex', alignItems:'center', justifyContent:'center' }}
                         onClick={e => e.stopPropagation()}>
                         <Download size={13} />
                       </a>
+                      )}
                     </div>
                   </td>
+                  )}
                 </tr>
               );
             })}

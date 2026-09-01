@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { BlogHotel } from "@/components/panel/BlogHotel";
 import { requireHotelMember } from "@/lib/tenant";
+import { motivoCierre } from "@/lib/panel/pantallas";
+import { SinPermiso, pantallaDe } from "@/components/panel/SinPermiso";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +22,22 @@ export default async function BlogHotelPage({
 }) {
   const { slug } = await params;
   const ctx = await requireHotelMember(slug);
+
+  // El blog escribe en la página PÚBLICA del hotel. Bastaba ser miembro: una
+  // camarista podía publicar un artículo a nombre del hotel. Va con "Editar mi
+  // sitio", que es de mando.
+  const cierre = motivoCierre(ctx.rol, ctx.pantallas, "sitio");
+  if (cierre) {
+    return (
+      <SinPermiso
+        titulo="Blog de tu hotel"
+        quien="encargada"
+        motivo={cierre}
+        volverA={pantallaDe(ctx.rol, slug, ctx.pantallas)}
+      />
+    );
+  }
+
   if (!ctx.hotel?.id) notFound();
 
   return (

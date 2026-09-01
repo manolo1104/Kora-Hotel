@@ -5,7 +5,7 @@
 
 import { getAllOTACalendars } from "@/lib/db/admin";
 import { requireHotelMember } from "@/lib/tenant";
-import { puede } from "@/lib/panel/permisos";
+import { motivoCierre } from "@/lib/panel/pantallas";
 import { SinPermiso, pantallaDe } from "@/components/panel/SinPermiso";
 import { tipoNamesOf } from "@/lib/booking";
 import CanalesClient from "./CanalesClient";
@@ -26,8 +26,16 @@ export default async function CanalesPage({
   // `requireHotelMember` sólo comprueba MEMBRESÍA. Sin esto, cualquier rol
   // del hotel abría esta pantalla — y las que cargan datos en el servidor
   // (ingresos, facturación, cotizaciones, canales) se los enseñaban.
-  if (!puede(ctx.rol, "canales:leer")) {
-    return <SinPermiso titulo="Canales OTA" quien="encargada" volverA={pantallaDe(ctx.rol, slug)} />;
+  const cierre = motivoCierre(ctx.rol, ctx.pantallas, "canales");
+  if (cierre) {
+    return (
+      <SinPermiso
+        titulo="Canales OTA"
+        quien="encargada"
+        motivo={cierre}
+        volverA={pantallaDe(ctx.rol, slug, ctx.pantallas)}
+      />
+    );
   }
   // Retirada del panel. Se redirige en vez de borrar la pantalla: el día que
   // vuelva (o llegue el channel manager) es una constante, no un rescate de git.

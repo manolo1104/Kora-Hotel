@@ -91,6 +91,22 @@ body {
   border-bottom-color: rgb(47 60 54);
 }
 
+/* "Cerrar sesión" y el correo de quien está dentro viven en esa misma barra, y
+   por lo tanto FUERA de .panel-root: sus grises de Tailwind (gray-700 sobre el
+   verde oscuro) daban 1.5:1, muy por debajo de AA. Aquí se les devuelve el
+   contraste, igual que se hizo con las 89 reglas del panel. */
+[data-tema="oscuro"] body:has(.panel-root) [data-app-header] [data-cuenta-email] {
+  color: rgb(156 163 175); /* 6.3:1 sobre el verde de la barra */
+}
+[data-tema="oscuro"] body:has(.panel-root) [data-app-header] [data-cuenta-salir] {
+  color: rgb(226 232 240); /* 13.6:1 */
+  border-color: rgb(63 79 71);
+}
+[data-tema="oscuro"] body:has(.panel-root) [data-app-header] [data-cuenta-salir]:hover {
+  color: rgb(255 255 255);
+  border-color: rgb(82 183 136);
+}
+
 /* Los campos de formulario nativos y el scrollbar tienen que saber el tema. */
 [data-tema="oscuro"] .panel-root {
   color-scheme: dark;

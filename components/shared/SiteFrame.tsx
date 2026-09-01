@@ -8,6 +8,7 @@ import { ScrollProgressBar } from "@/components/shared/ScrollProgressBar";
 import { PageTransition } from "@/components/shared/PageTransition";
 import { ChatWidget } from "@/components/soporte/ChatWidget";
 import { PopupGuia } from "@/components/shared/PopupGuia";
+import { BarraCuenta } from "@/components/panel/BarraCuenta";
 
 // Marco del sitio: aplica el chrome correcto según la sección.
 // - Páginas públicas del hotel (/h, /g): sin chrome de Kora (son del hotelero).
@@ -46,11 +47,15 @@ export function SiteFrame({ children }: { children: React.ReactNode }) {
           >
             <a
               href="/"
-              className="text-2xl font-bold tracking-tight text-kora-primary transition-transform hover:scale-105 origin-left"
+              className="text-2xl font-bold tracking-tight text-kora-primary transition-transform hover:scale-105 origin-left shrink-0"
               aria-label="Kora - Inicio"
             >
               Kora
             </a>
+            {/* Quién está dentro y cómo salir, en TODAS las pantallas del panel
+                y sin abrir ningún menú. El de la barra lateral vivía al fondo,
+                detrás de la hamburguesa: una camarista no lo encontró. */}
+            {esPanel && <BarraCuenta />}
           </div>
         </header>
         {children}

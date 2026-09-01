@@ -2,7 +2,7 @@ import { reservaCuenta } from "@/lib/booking/estado-reserva";
 import { getAllBookings } from "@/lib/db/admin";
 import { facturamaConfigured, facturamaIsSandbox } from "@/lib/admin/facturama";
 import { requireHotelMember } from "@/lib/tenant";
-import { puede } from "@/lib/panel/permisos";
+import { motivoCierre } from "@/lib/panel/pantallas";
 import { SinPermiso, pantallaDe } from "@/components/panel/SinPermiso";
 import FacturacionClient from "./FacturacionClient";
 
@@ -19,8 +19,16 @@ export default async function FacturacionPage({
   // `requireHotelMember` sólo comprueba MEMBRESÍA. Sin esto, cualquier rol
   // del hotel abría esta pantalla — y las que cargan datos en el servidor
   // (ingresos, facturación, cotizaciones, canales) se los enseñaban.
-  if (!puede(ctx.rol, "facturacion:usar")) {
-    return <SinPermiso titulo="Facturación" quien="encargada" volverA={pantallaDe(ctx.rol, slug)} />;
+  const cierre = motivoCierre(ctx.rol, ctx.pantallas, "facturacion");
+  if (cierre) {
+    return (
+      <SinPermiso
+        titulo="Facturación"
+        quien="encargada"
+        motivo={cierre}
+        volverA={pantallaDe(ctx.rol, slug, ctx.pantallas)}
+      />
+    );
   }
 
   const bookings = await getAllBookings(ctx.hotelId);

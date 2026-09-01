@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { EditorVisual } from "@/components/panel/EditorVisual";
 import { requireHotelMember } from "@/lib/tenant";
-import { puede } from "@/lib/panel/permisos";
+import { puedeCtx } from "@/lib/panel/permisos";
 import { SinPermiso, pantallaDe } from "@/components/panel/SinPermiso";
 import { ownerTienePlanActivo, accesoDelHotel } from "@/lib/suscripcion";
 import { getResenasPublicadas } from "@/lib/db/reviews";
@@ -29,7 +29,7 @@ export default async function EditorVisualPage({
 
   // Editar el sitio cambia la cara pública del hotel y sus precios: es de
   // mando, no de mostrador. Antes bastaba con ser miembro.
-  if (!puede(ctx.rol, "sitio:leer")) {
+  if (!puedeCtx(ctx, "sitio:leer")) {
     return <SinPermiso titulo="Editar mi sitio" quien="encargada" volverA={pantallaDe(ctx.rol, slug)} />;
   }
   const hotel = ctx.hotel as unknown as {

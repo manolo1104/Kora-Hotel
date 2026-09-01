@@ -1,6 +1,6 @@
 import { buildCRM } from "@/lib/admin/sheets-admin";
 import { requireHotelMember } from "@/lib/tenant";
-import { puede } from "@/lib/panel/permisos";
+import { motivoCierre } from "@/lib/panel/pantallas";
 import { SinPermiso, pantallaDe } from "@/components/panel/SinPermiso";
 import ClientesClient from "./ClientesClient";
 
@@ -17,8 +17,16 @@ export default async function ClientesPage({
   // `requireHotelMember` sólo comprueba MEMBRESÍA. Sin esto, cualquier rol
   // del hotel abría esta pantalla — y las que cargan datos en el servidor
   // (ingresos, facturación, cotizaciones, canales) se los enseñaban.
-  if (!puede(ctx.rol, "clientes:leer")) {
-    return <SinPermiso titulo="Clientes" quien="recepcion" volverA={pantallaDe(ctx.rol, slug)} />;
+  const cierre = motivoCierre(ctx.rol, ctx.pantallas, "clientes");
+  if (cierre) {
+    return (
+      <SinPermiso
+        titulo="Clientes"
+        quien="recepcion"
+        motivo={cierre}
+        volverA={pantallaDe(ctx.rol, slug, ctx.pantallas)}
+      />
+    );
   }
   const crm = await buildCRM(ctx.hotelId);
   return <ClientesClient initialClientes={crm} slug={slug} />;

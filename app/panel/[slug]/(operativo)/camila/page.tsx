@@ -1,5 +1,5 @@
 import { requireHotelMember } from "@/lib/tenant";
-import { puede } from "@/lib/panel/permisos";
+import { motivoCierre } from "@/lib/panel/pantallas";
 import { SinPermiso, pantallaDe } from "@/components/panel/SinPermiso";
 import { diagnosticarHotel } from "@/lib/panel/diagnostico";
 import CamilaClient from "./CamilaClient";
@@ -21,8 +21,16 @@ export default async function CamilaPage({
   // `requireHotelMember` sólo comprueba MEMBRESÍA. Sin esto, cualquier rol
   // del hotel abría esta pantalla — y las que cargan datos en el servidor
   // (ingresos, facturación, cotizaciones, canales) se los enseñaban.
-  if (!puede(ctx.rol, "bot:leer")) {
-    return <SinPermiso titulo="Camila (bot)" quien="encargada" volverA={pantallaDe(ctx.rol, slug)} />;
+  const cierre = motivoCierre(ctx.rol, ctx.pantallas, "camila");
+  if (cierre) {
+    return (
+      <SinPermiso
+        titulo="Camila (bot)"
+        quien="encargada"
+        motivo={cierre}
+        volverA={pantallaDe(ctx.rol, slug, ctx.pantallas)}
+      />
+    );
   }
   const diagnostico = diagnosticarHotel(ctx.hotel);
   return (

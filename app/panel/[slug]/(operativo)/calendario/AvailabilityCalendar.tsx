@@ -34,9 +34,11 @@ interface Props {
   roomPrices: Record<string, number>;
   bookingRooms: BookingRoom[];
   onRefresh: () => void;
+  /** ¿Ve importes? (`reservas:dinero`, decidido en el servidor). */
+  verDinero?: boolean;
 }
 
-export default function AvailabilityCalendar({ slug, bookings, rooms, roomPrices, bookingRooms, onRefresh }: Props) {
+export default function AvailabilityCalendar({ slug, bookings, rooms, roomPrices, bookingRooms, onRefresh, verDinero = true }: Props) {
   const now = new Date();
   // Hoy en HORA DE MÉXICO. Con toISOString() se usaba UTC, así que a partir de
   // las 18:00 locales el panel ya creía que era mañana: pintaba el día de hoy en
@@ -258,7 +260,7 @@ export default function AvailabilityCalendar({ slug, bookings, rooms, roomPrices
                 <span style={{ fontSize: 11, color: 'var(--clay)', fontFamily: 'var(--font-jost,sans-serif)' }}>
                   <span style={{ color: '#3B6D11', fontWeight: 600 }}>{free}</span> libres
                 </span>
-                {roomPrices[room] ? (
+                {verDinero && roomPrices[room] ? (
                   <span style={{ fontSize: 11, color: 'var(--clay)', fontFamily: 'var(--font-jost,sans-serif)' }}>
                     ${roomPrices[room].toLocaleString('es-MX')}/n
                   </span>
@@ -312,7 +314,10 @@ export default function AvailabilityCalendar({ slug, bookings, rooms, roomPrices
                     ['Check-in', clicked.state.booking.checkin],
                     ['Check-out', clicked.state.booking.checkout],
                     ['Noches', String(clicked.state.booking.noches)],
-                    ['Total', `$${clicked.state.booking.total.toLocaleString('es-MX')} MXN`],
+                    // El importe sólo para quien lo puede ver: mostrador.
+                    ...(verDinero
+                      ? [['Total', `$${clicked.state.booking.total.toLocaleString('es-MX')} MXN`]]
+                      : []),
                     ['Folio', clicked.state.booking.confirmacion],
                   ].map(([label, val]) => (
                     <div key={label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '2px 0', fontFamily: 'var(--font-jost,sans-serif)' }}>
@@ -347,12 +352,17 @@ export default function AvailabilityCalendar({ slug, bookings, rooms, roomPrices
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {clicked.state.status === 'available' && (
                   <>
+                    {/* El modal de reserva es un desglose de importes: no se
+                        abre para quien no puede ver dinero. Bloquear/desbloquear
+                        la fecha sí se queda — eso es operación, no dinero. */}
+                    {verDinero && (
                     <button
                       onClick={() => { setNewBookingParams({ room: clicked.room, date: clicked.date }); setClicked(null); }}
                       style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '10px', background: '#2d7a34', color: 'var(--cream)', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontFamily: 'var(--font-jost,sans-serif)', fontWeight: 600 }}
                     >
                       <Plus size={14} /> Nueva Reserva
                     </button>
+                    )}
                     <button
                       onClick={handleBlock}
                       disabled={saving}
@@ -375,7 +385,7 @@ export default function AvailabilityCalendar({ slug, bookings, rooms, roomPrices
                   </button>
                 )}
 
-                {clicked.state.status === 'booking' && clicked.state.booking && (
+                {verDinero && clicked.state.status === 'booking' && clicked.state.booking && (
                   <button
                     onClick={() => { setEditBooking(clicked.state.booking!); setClicked(null); }}
                     style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '10px', background: '#2e6b8a', color: 'var(--cream)', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontFamily: 'var(--font-jost,sans-serif)' }}
