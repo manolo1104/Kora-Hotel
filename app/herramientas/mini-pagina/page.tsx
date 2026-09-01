@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowRight, Globe, MessageCircle, BookOpen, QrCode } from "lucide-react";
 import { BarraCTA } from "@/components/shared/BarraCTA";
 import { Reveal } from "@/components/shared/Reveal";
+import { JsonLd } from "@/components/shared/JsonLd";
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
 
@@ -64,10 +65,7 @@ const jsonLd = {
 export default function MiniPaginaLanding() {
   return (
     <main className="pt-16">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      <JsonLd data={jsonLd} />
       {/* Hero */}
       <section className="py-16 sm:py-24 bg-kora-primary text-white">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">

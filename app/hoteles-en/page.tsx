@@ -4,6 +4,7 @@ import { ciudades } from "@/lib/ciudades";
 import { Reveal } from "@/components/shared/Reveal";
 import { BarraCTA } from "@/components/shared/BarraCTA";
 import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
+import { JsonLd } from "@/components/shared/JsonLd";
 
 export const metadata: Metadata = {
   title: "Sistema de reservas para hoteles en la Huasteca Potosina | Kora",
@@ -29,10 +30,7 @@ const itemListJsonLd = {
 export default function HotelesEnPage() {
   return (
     <main className="pt-16">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }}
-      />
+      <JsonLd data={itemListJsonLd} />
       <section className="py-16 sm:py-20 bg-kora-primary text-white">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <Reveal>

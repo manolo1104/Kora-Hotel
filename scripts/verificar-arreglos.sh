@@ -161,7 +161,11 @@ cero "A17.4 updateBooking con lista blanca"        bash -c 'grep -qI "CAMPOS_EDI
 cero "A17.5 el id de canales no viene del body"   bash -c 'grep -nI "onConflict: *\"id\"\|onConflict:\x27id\x27" lib/db/admin.ts app/api/admin/canales/route.ts'
 
 sec "A18 · Escapado, URLs y entradas peligrosas"
-cero "A18.1 todo JSON-LD escapa <"                 bash -c 'grep -rnI --exclude=verificar-arreglos.sh --include="*.tsx" "JSON.stringify(jsonLd)\|JSON.stringify(itemListJsonLd)\|JSON.stringify(orgJsonLd)" app | grep -v "replace(/</g"'
+# Ya no se persigue nombre por nombre de variable: el bloque `<script
+# type="application/ld+json">` sólo puede aparecer en el componente compartido,
+# que serializa con `serializarJsonLd`. Cualquier página que lo escriba a mano
+# vuelve a salir aquí.
+cero "A18.1 todo JSON-LD escapa <"                 bash -c 'grep -rlI "application/ld+json" --include="*.tsx" app components | grep -v "^components/shared/JsonLd.tsx$"'
 cero "A18.2 sin HTML crudo del agente de IA"       bash -c 'grep -rnI --exclude=verificar-arreglos.sh --include="*.tsx" "dangerouslySetInnerHTML" app components | grep -v "JSON.stringify" | grep -v "sanitiz"'
 cero "A18.3 URLs de usuario con lista blanca"      bash -c 'grep -qI "HOSTS_PERMITIDOS\|hostPermitido" lib/maps.ts || echo "lib/maps.ts sin lista blanca"'
 cero "A18.4 esc() escapa comillas"                 bash -c 'grep -qI "&quot;" lib/email/design.ts || echo "esc() no escapa comillas"'

@@ -6,6 +6,7 @@ import { personas, getPersona } from "@/lib/personas";
 import { metaDescripcion } from "@/lib/seo";
 import { Reveal } from "@/components/shared/Reveal";
 import { BarraCTA } from "@/components/shared/BarraCTA";
+import { JsonLd } from "@/components/shared/JsonLd";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -64,10 +65,7 @@ export default async function PersonaPage({ params }: Props) {
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      <JsonLd data={jsonLd} />
       <main className="pt-16">
         {/* Hero */}
         <section className="py-16 sm:py-20 bg-kora-primary text-white">

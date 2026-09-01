@@ -4,6 +4,7 @@ import { getAllArticles } from "@/lib/blog-db";
 import { BarraCTA } from "@/components/shared/BarraCTA";
 import { Reveal } from "@/components/shared/Reveal";
 import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
+import { JsonLd } from "@/components/shared/JsonLd";
 
 export const metadata: Metadata = {
   title: "Blog Kora: gestión hotelera y reservas directas",
@@ -37,10 +38,7 @@ export default async function BlogPage() {
 
   return (
     <main className="pt-16">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }}
-      />
+      <JsonLd data={itemListJsonLd} />
       {/* Header */}
       <section className="py-16 sm:py-20 bg-white border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

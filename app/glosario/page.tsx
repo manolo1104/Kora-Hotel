@@ -4,6 +4,7 @@ import { glosario } from "@/lib/glosario";
 import { Reveal } from "@/components/shared/Reveal";
 import { BarraCTA } from "@/components/shared/BarraCTA";
 import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
+import { JsonLd } from "@/components/shared/JsonLd";
 
 export const metadata: Metadata = {
   title: "Glosario hotelero: términos que todo hotelero debe conocer | Kora",
@@ -30,10 +31,7 @@ export default function GlosarioPage() {
 
   return (
     <main className="pt-16">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      <JsonLd data={jsonLd} />
       <section className="py-16 sm:py-20 bg-kora-primary text-white">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <Reveal>

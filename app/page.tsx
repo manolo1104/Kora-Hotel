@@ -17,6 +17,7 @@ import { PricingSection } from "@/components/landing/PricingSection";
 import { FAQSection } from "@/components/landing/FAQSection";
 import { FundadorSection } from "@/components/landing/FundadorSection";
 import { ContactForm } from "@/components/landing/ContactForm";
+import { JsonLd } from "@/components/shared/JsonLd";
 
 export const metadata: Metadata = {
   title: "Kora — Sistema hotelero con IA para hoteles en México",
@@ -103,10 +104,7 @@ const jsonLd = {
 export default function HomePage() {
   return (
     <main>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      <JsonLd data={jsonLd} />
       <Hero />
       <TrustStrip />
       {/* Demo + prueba real JUSTO bajo el hero: el "ajá" en 90 seg, el caso de

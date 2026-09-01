@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Reveal } from "@/components/shared/Reveal";
 import { SuscripcionForm } from "@/components/shared/SuscripcionForm";
+import { JsonLd } from "@/components/shared/JsonLd";
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
 
@@ -125,10 +126,7 @@ export default function GuiaPage() {
 
   return (
     <main className="bg-white">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      <JsonLd data={jsonLd} />
 
       {/* ── Portada ────────────────────────────────────────────────────── */}
       <section className="bg-kora-primary px-4 pb-16 pt-20 sm:px-6 sm:pt-24 lg:px-8">

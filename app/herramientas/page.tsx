@@ -4,6 +4,7 @@ import { Reveal } from "@/components/shared/Reveal";
 import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 import { HerramientasExplorador } from "@/components/herramientas/HerramientasExplorador";
 import { herramientasDisponibles } from "@/lib/herramientas";
+import { JsonLd } from "@/components/shared/JsonLd";
 
 export const metadata: Metadata = {
   title: "Herramientas gratis para hoteles | Kora",
@@ -31,10 +32,7 @@ const itemListJsonLd = {
 export default function HerramientasPage() {
   return (
     <main className="pt-16">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }}
-      />
+      <JsonLd data={itemListJsonLd} />
       {/* Hero */}
       <section className="py-16 sm:py-20 bg-kora-primary text-white">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">

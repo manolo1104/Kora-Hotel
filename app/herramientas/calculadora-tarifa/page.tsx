@@ -4,6 +4,7 @@ import { BarraCTA } from "@/components/shared/BarraCTA";
 import { Reveal } from "@/components/shared/Reveal";
 import { FirmaKora } from "@/components/herramientas/FirmaKora";
 import { CalculadoraTarifa } from "@/components/herramientas/CalculadoraTarifa";
+import { JsonLd } from "@/components/shared/JsonLd";
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
 
@@ -71,10 +72,7 @@ export default function CalculadoraTarifaPage() {
 
   return (
     <main className="pt-16">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      <JsonLd data={jsonLd} />
 
       {/* Hero */}
       <section className="py-16 sm:py-20 bg-kora-primary text-white">

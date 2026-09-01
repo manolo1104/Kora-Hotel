@@ -7,6 +7,7 @@ import { metaDescripcion } from "@/lib/seo";
 import { Reveal } from "@/components/shared/Reveal";
 import { BarraCTA } from "@/components/shared/BarraCTA";
 import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
+import { JsonLd } from "@/components/shared/JsonLd";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -102,10 +103,7 @@ export default async function PaginaWhatsApp({ params }: Props) {
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      <JsonLd data={jsonLd} />
       <main className="pt-16">
         {/* Hero */}
         <section className="py-14 sm:py-20 bg-kora-primary text-white">

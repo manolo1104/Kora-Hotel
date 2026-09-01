@@ -7,6 +7,7 @@ import { SuscripcionInline } from "@/components/shared/SuscripcionInline";
 import { FUNDADOR } from "@/lib/fundador";
 import { ShareButtons } from "@/components/blog/ShareButtons";
 import { CoverImage } from "@/components/blog/CoverImage";
+import { JsonLd } from "@/components/shared/JsonLd";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -125,10 +126,7 @@ export default async function BlogArticlePage({ params }: Props) {
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      <JsonLd data={jsonLd} />
 
       <main className="pt-16 bg-white">
         {/* Cover image */}

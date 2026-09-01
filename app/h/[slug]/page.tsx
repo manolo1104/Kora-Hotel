@@ -23,6 +23,7 @@ import { getResenasPublicadas } from "@/lib/db/reviews";
 import { tienePostsPublicados } from "@/lib/hotel-blog";
 import { metaDescripcion } from "@/lib/seo";
 import { extraerCoords } from "@/lib/maps";
+import { JsonLd } from "@/components/shared/JsonLd";
 
 export const dynamic = "force-dynamic";
 
@@ -304,49 +305,37 @@ export default async function MiniPagina({
     (b: Bloque) => !b.oculto && b.tipo === "texto" && (b.texto ?? "").trim()
   );
 
+  const faqJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "@id": `https://kora-hotel.com/h/${hotel.slug}#faq`,
+    mainEntity: faqsVisibles.map((f) => ({
+      "@type": "Question",
+      name: f.pregunta,
+      acceptedAnswer: { "@type": "Answer", text: f.respuesta ?? "" },
+    })),
+  };
+  const paginaJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "@id": `https://kora-hotel.com/h/${hotel.slug}#pagina`,
+    url: `https://kora-hotel.com/h/${hotel.slug}`,
+    name: hotel.nombre,
+    hasPart: bloquesTexto.map((b) => ({
+      "@type": "WebPageElement",
+      name: tituloBloque(b) || hotel.nombre,
+      text: (b.texto ?? "").slice(0, 1500),
+    })),
+  };
+
   return (
     <main className="min-h-screen">
-      <script
-        type="application/ld+json"
-        // El JSON incluye texto del hotelero (nombre, reseñas, FAQ): escapar "<"
-        // evita que un "</script>" inyectado rompa el bloque y ejecute JS (XSS).
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
-      />
+      <JsonLd data={jsonLd} />
       {faqsVisibles.length > 0 && (
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@type": "FAQPage",
-              "@id": `https://kora-hotel.com/h/${hotel.slug}#faq`,
-              mainEntity: faqsVisibles.map((f) => ({
-                "@type": "Question",
-                name: f.pregunta,
-                acceptedAnswer: { "@type": "Answer", text: f.respuesta ?? "" },
-              })),
-            }).replace(/</g, "\\u003c"),
-          }}
-        />
+        <JsonLd data={faqJsonLd} />
       )}
       {bloquesTexto.length > 0 && (
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@type": "WebPage",
-              "@id": `https://kora-hotel.com/h/${hotel.slug}#pagina`,
-              url: `https://kora-hotel.com/h/${hotel.slug}`,
-              name: hotel.nombre,
-              hasPart: bloquesTexto.map((b) => ({
-                "@type": "WebPageElement",
-                name: tituloBloque(b) || hotel.nombre,
-                text: (b.texto ?? "").slice(0, 1500),
-              })),
-            }).replace(/</g, "\\u003c"),
-          }}
-        />
+        <JsonLd data={paginaJsonLd} />
       )}
 
       {preview === "1" && (

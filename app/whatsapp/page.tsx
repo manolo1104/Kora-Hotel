@@ -17,6 +17,7 @@ import { WhatsAppDemoChat } from "@/components/landing/WhatsAppDemoChat";
 import { paginasWhatsApp } from "@/lib/whatsapp";
 import { PRECIO_DESDE } from "@/lib/oferta";
 import { metaDescripcion } from "@/lib/seo";
+import { JsonLd } from "@/components/shared/JsonLd";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
 
@@ -186,10 +187,7 @@ export default function WhatsAppPage() {
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      <JsonLd data={jsonLd} />
       <main className="pt-16">
         {/* Hero */}
         <section className="py-16 sm:py-24 bg-kora-primary text-white">

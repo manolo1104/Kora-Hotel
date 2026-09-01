@@ -11,6 +11,7 @@ import { COLOR_DEFAULT, inkFor, fontStack, type MiniExtras } from "@/lib/mini";
 import { AMENIDADES_MAP } from "@/lib/amenidades";
 import { accesoDelHotel } from "@/lib/suscripcion";
 import RoomDetailClient from "./RoomDetailClient";
+import { JsonLd } from "@/components/shared/JsonLd";
 
 export const dynamic = "force-dynamic";
 
@@ -202,12 +203,7 @@ export default async function Page({
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        // Texto del hotelero dentro del JSON: escapar "<" evita inyección de
-        // un "</script>" que rompa el bloque (misma regla que la mini-página).
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
-      />
+      <JsonLd data={jsonLd} />
       <RoomDetailClient
       hotelNombre={hotel.nombre}
       ubicacion={hotel.ubicacion}

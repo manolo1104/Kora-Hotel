@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { JsonLd } from "@/components/shared/JsonLd";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
 
@@ -23,10 +24,7 @@ export function Breadcrumbs({ items }: { items: Crumb[] }) {
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      <JsonLd data={jsonLd} />
       <nav aria-label="Breadcrumb" className="text-sm text-kora-muted">
         <ol className="flex items-center gap-2 flex-wrap">
           {items.map((it, i) => {

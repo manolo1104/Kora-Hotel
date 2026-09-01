@@ -4,6 +4,7 @@ import Script from "next/script";
 import { SiteFrame } from "@/components/shared/SiteFrame";
 import { FUNDADOR } from "@/lib/fundador";
 import "./globals.css";
+import { JsonLd } from "@/components/shared/JsonLd";
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -110,10 +111,7 @@ export default function RootLayout({
       className={`${jakarta.variable} ${playfair.variable} ${lora.variable} ${poppins.variable}`}
     >
       <body className="antialiased">
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }}
-        />
+        <JsonLd data={orgJsonLd} />
         {gaId && (
           <>
             <Script

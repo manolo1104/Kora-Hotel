@@ -5,6 +5,7 @@ import { ArrowRight } from "lucide-react";
 import { glosario, getTermino } from "@/lib/glosario";
 import { Reveal } from "@/components/shared/Reveal";
 import { BarraCTA } from "@/components/shared/BarraCTA";
+import { JsonLd } from "@/components/shared/JsonLd";
 
 interface Props {
   params: Promise<{ termino: string }>;
@@ -72,10 +73,7 @@ export default async function TerminoPage({ params }: Props) {
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      <JsonLd data={jsonLd} />
       <main className="pt-16 bg-white">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14">
           {/* Breadcrumb */}

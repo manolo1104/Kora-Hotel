@@ -6,6 +6,7 @@ import { comparativas, getComparativa } from "@/lib/comparativas";
 import { metaDescripcion } from "@/lib/seo";
 import { Reveal } from "@/components/shared/Reveal";
 import { BarraCTA } from "@/components/shared/BarraCTA";
+import { JsonLd } from "@/components/shared/JsonLd";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -65,10 +66,7 @@ export default async function ComparativaPage({ params }: Props) {
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      <JsonLd data={jsonLd} />
       <main className="pt-16 bg-white">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14">
           <nav aria-label="Breadcrumb" className="mb-8 text-sm text-kora-muted">

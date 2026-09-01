@@ -21,6 +21,7 @@ import {
   type MiniExtras,
 } from "@/lib/mini";
 import { SUPABASE_URL, SUPABASE_ANON_KEY, supabaseEnvReady } from "@/lib/supabase/env";
+import { JsonLd } from "@/components/shared/JsonLd";
 
 export const revalidate = 3600;
 
@@ -129,10 +130,7 @@ export default async function PostHotel({
         } as React.CSSProperties
       }
     >
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
-      />
+      <JsonLd data={jsonLd} />
       <MiniNav
         slugHotel={hotel.slug}
         nav={{

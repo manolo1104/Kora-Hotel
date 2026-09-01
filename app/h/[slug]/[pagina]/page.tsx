@@ -18,6 +18,7 @@ import {
 import { SUPABASE_URL, SUPABASE_ANON_KEY, supabaseEnvReady } from "@/lib/supabase/env";
 import { ownerTienePlanActivo, accesoDelHotel } from "@/lib/suscripcion";
 import { tienePostsPublicados } from "@/lib/hotel-blog";
+import { JsonLd } from "@/components/shared/JsonLd";
 
 export const dynamic = "force-dynamic";
 
@@ -150,10 +151,7 @@ export default async function PaginaPropia({
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
-      />
+      <JsonLd data={jsonLd} />
       <MiniRender datos={datos} pagina={pagina} />
     </>
   );
