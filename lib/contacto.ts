@@ -40,3 +40,33 @@ export const EMAIL_PRIVACIDAD = EMAIL_CONTACTO;
 // confirmación de su reserva, la respuesta REBOTA. Y responder a la confirmación
 // es exactamente lo que hace un huésped que quiere cambiar una fecha.
 export const EMAIL_RESERVAS = "reservas@kora-hotel.com";
+
+// ─── WhatsApp ────────────────────────────────────────────────────────────────
+//
+// 🔴 Mismo problema que el correo, con otra cara. El número estaba escrito a
+// mano en TRECE archivos, con el `524891251458` metido dentro de cada uno como
+// respaldo. Y había DOS variables para lo mismo:
+//
+//   • NEXT_PUBLIC_WHATSAPP_NUMBER — sí está en Vercel producción
+//   • NEXT_PUBLIC_WHATSAPP_KORA   — NO está en Vercel producción
+//
+// `app/panel/[slug]/error.tsx` encadenaba las dos y por eso funcionaba. Los
+// otros dos sitios que usaban KORA no encadenaban nada, y con la variable
+// ausente quedaban así (comprobado el 1 sep 2026 con `vercel env ls production`):
+//
+//   • components/panel/SuscripcionCard.tsx — el botón «Escríbenos por WhatsApp»
+//     está detrás de `atascado && WA_KORA`, así que NUNCA APARECE. Justo el
+//     hotelero cuyo pago se atoró se queda sin manera de avisar.
+//   • lib/email/templates.ts — degradaba a un botón a /contacto, así que no se
+//     rompía; pero el correo dice "te escribo por WhatsApp" y el botón llevaba
+//     a la web.
+export const WHATSAPP =
+  process.env.NEXT_PUBLIC_WHATSAPP_KORA ||
+  process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ||
+  "524891251458";
+
+/** Enlace de WhatsApp con mensaje ya escrito. Devuelve "" si no hay número. */
+export function waLink(texto: string): string {
+  const n = WHATSAPP.replace(/\D/g, "");
+  return n ? `https://wa.me/${n}?text=${encodeURIComponent(texto)}` : "";
+}

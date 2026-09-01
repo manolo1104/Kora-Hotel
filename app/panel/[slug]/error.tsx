@@ -4,8 +4,9 @@
 // trabajando y necesita saber qué hacer ahora, no una disculpa.
 
 import { RefreshCw } from "lucide-react";
+import { WHATSAPP } from "@/lib/contacto";
 
-const WA_KORA = process.env.NEXT_PUBLIC_WHATSAPP_KORA || process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "";
+const WA_KORA = WHATSAPP;
 
 export default function ErrorPanel({ reset }: { error: Error & { digest?: string }; reset: () => void }) {
   return (

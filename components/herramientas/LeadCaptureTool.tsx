@@ -4,8 +4,9 @@ import { useState } from "react";
 import { Check, Loader2, ArrowRight } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { trackLead } from "@/lib/analytics";
+import { WHATSAPP } from "@/lib/contacto";
 
-const WA_FALLBACK_URL = `https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "524891251458"}?text=Hola%2C%20us%C3%A9%20una%20calculadora%20de%20Kora%20y%20quiero%20mi%20reporte`;
+const WA_FALLBACK_URL = `https://wa.me/${WHATSAPP.replace(/\D/g, "")}?text=Hola%2C%20us%C3%A9%20una%20calculadora%20de%20Kora%20y%20quiero%20mi%20reporte`;
 
 interface LeadCaptureToolProps {
   /** Título dentro del recuadro de captura */

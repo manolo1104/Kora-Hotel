@@ -24,6 +24,7 @@ import {
   waLink,
   etiqueta,
 } from "@/lib/email/design";
+import { WHATSAPP } from "@/lib/contacto";
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
 
@@ -175,7 +176,7 @@ export function emailLeadNuevo({
 
 export type LeadSecuencia = "lead_day0" | "lead_day3" | "lead_day7";
 
-const WA_KORA = process.env.NEXT_PUBLIC_WHATSAPP_KORA || "";
+const WA_KORA = WHATSAPP;
 
 function ctaKora(texto: string, nombre: string): string {
   const wa = waLink(WA_KORA, `Hola Manolo, soy ${nombre}. Vi tu correo de Kora y quiero saber más.`);

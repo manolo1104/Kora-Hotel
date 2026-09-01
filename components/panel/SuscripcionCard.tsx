@@ -4,8 +4,9 @@ import { useState } from "react";
 import Link from "next/link";
 import { Loader2, CreditCard, Sparkles } from "lucide-react";
 import { postJson, mensajeDeError } from "@/lib/ui/api";
+import { WHATSAPP } from "@/lib/contacto";
 
-const WA_KORA = process.env.NEXT_PUBLIC_WHATSAPP_KORA || "";
+const WA_KORA = WHATSAPP;
 
 // Tarjeta de suscripción en el panel: muestra el plan/estado y abre el
 // Customer Portal de Stripe (cambiar tarjeta, recibos, cancelar) sin

@@ -12,6 +12,7 @@ import { BarraCTA } from "@/components/shared/BarraCTA";
 import { Reveal } from "@/components/shared/Reveal";
 import { DrawLine } from "@/components/shared/DrawLine";
 import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
+import { WHATSAPP } from "@/lib/contacto";
 
 export const metadata: Metadata = {
   title: "Cómo funciona Kora — Onboarding en 24 horas",
@@ -22,7 +23,7 @@ export const metadata: Metadata = {
   },
 };
 
-const WA_URL = `https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "524891251458"}?text=Hola%2C%20quiero%20empezar%20con%20Kora`;
+const WA_URL = `https://wa.me/${WHATSAPP.replace(/\D/g, "")}?text=Hola%2C%20quiero%20empezar%20con%20Kora`;
 
 const steps = [
   {

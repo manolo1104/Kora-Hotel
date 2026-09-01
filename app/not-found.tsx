@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import { WHATSAPP } from "@/lib/contacto";
 
 export const metadata: Metadata = {
   title: "Página no encontrada — Kora",
   robots: { index: false },
 };
 
-const WA_URL = `https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "524891251458"}?text=Hola%2C%20quiero%20saber%20m%C3%A1s%20sobre%20Kora`;
+const WA_URL = `https://wa.me/${WHATSAPP.replace(/\D/g, "")}?text=Hola%2C%20quiero%20saber%20m%C3%A1s%20sobre%20Kora`;
 
 export default function NotFound() {
   return (

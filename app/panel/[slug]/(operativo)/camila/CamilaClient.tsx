@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import type { DiagnosticoHotel, DiagnosticoItem } from "@/lib/panel/diagnostico";
 import type { BotAvailability } from "@/lib/bot/tools";
+import { waLink } from "@/lib/contacto";
 
 interface BotFaq {
   q: string;
@@ -1119,7 +1120,7 @@ export default function CamilaClient({
                   quedó registrado. Escríbenos y lo levantamos hoy mismo.
                 </p>
                 <a
-                  href="https://wa.me/524891251458?text=Hola%2C%20mi%20Camila%20no%20pudo%20arrancar%20y%20no%20me%20sale%20el%20c%C3%B3digo%20QR"
+                  href={waLink("Hola, mi Camila no pudo arrancar y no me sale el código QR")}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="mt-2 inline-block font-semibold text-red-900 underline"

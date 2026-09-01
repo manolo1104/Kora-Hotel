@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Reveal } from "@/components/shared/Reveal";
-import { EMAIL_PRIVACIDAD } from "@/lib/contacto";
+import { EMAIL_PRIVACIDAD, WHATSAPP } from "@/lib/contacto";
 
 export const metadata: Metadata = {
   title: "Política de privacidad — Kora",
@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   },
 };
 
-const WA_URL = `https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "524891251458"}`;
+const WA_URL = `https://wa.me/${WHATSAPP.replace(/\D/g, "")}`;
 
 export default function PrivacidadPage() {
   return (

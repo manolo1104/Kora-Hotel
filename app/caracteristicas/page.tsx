@@ -20,6 +20,7 @@ import {
 } from "@/components/caracteristicas/Mockups";
 import { VsBooking } from "@/components/caracteristicas/VsBooking";
 import { FORECAST_DIAS } from "@/lib/oferta";
+import { WHATSAPP } from "@/lib/contacto";
 
 export const metadata: Metadata = {
   title: "Características de Kora: PMS, IA y reservas directas",
@@ -30,7 +31,7 @@ export const metadata: Metadata = {
   },
 };
 
-const WA_URL = `https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "524891251458"}?text=Hola%2C%20quiero%20ver%20el%20demo%20de%20Kora`;
+const WA_URL = `https://wa.me/${WHATSAPP.replace(/\D/g, "")}?text=Hola%2C%20quiero%20ver%20el%20demo%20de%20Kora`;
 
 // ─── Module section ───────────────────────────────────────────────────────────
 

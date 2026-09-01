@@ -4,8 +4,9 @@ import { useEffect } from "react";
 import { motion, useMotionValue, useSpring, AnimatePresence } from "motion/react";
 import { MessageCircle } from "lucide-react";
 import { useState } from "react";
+import { WHATSAPP } from "@/lib/contacto";
 
-const WA_URL = `https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "524891251458"}?text=Hola%2C%20vi%20Kora%20y%20quiero%20saber%20m%C3%A1s%20para%20mi%20hotel`;
+const WA_URL = `https://wa.me/${WHATSAPP.replace(/\D/g, "")}?text=Hola%2C%20vi%20Kora%20y%20quiero%20saber%20m%C3%A1s%20para%20mi%20hotel`;
 
 export function BotonWhatsApp() {
   const [visible, setVisible] = useState(false);

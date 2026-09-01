@@ -164,7 +164,10 @@ cero "A14.5 sin Paraíso en módulos compartidos"    bash -c 'grep -rniI "parais
 # dominios distintos, y sólo uno de los dos está registrado. Fuente única:
 # lib/contacto.ts. `sinComentarios` deja pasar la nota que lo explica ahí.
 cero "A14.6 ningún correo de Kora escrito a mano"  bash -c 'grep -rnIE --exclude=verificar-arreglos.sh --include="*.ts" --include="*.tsx" "[a-zA-Z0-9._%+-]+@kora[a-z-]*\.[a-z]+" app lib components | grep -v "^lib/contacto.ts:" | grep -vE "^[^:]+:[0-9]+:[[:space:]]*(//|\*)"'
-cero "A14.7 sin envs huérfanas en el código"       bash -c 'comm -23 <(grep -rhoI "process\.env\.[A-Z0-9_]*" app lib components agentes scripts | sed "s/process\.env\.//" | sort -u) <(cat .env.example agentes/camila/.env.example | grep -oI "^#\{0,2\} *[A-Z0-9_]*" | tr -d "# " | sort -u) | grep -v "^NODE_ENV$\|^VERCEL"'
+# 🔴 --exclude-dir=node_modules, otra vez: sin él contaba las variables de TODAS
+# las dependencias de agentes/camila. Marcaba 58 huérfanas y sólo 10 eran de
+# Kora; las otras 48 eran del SDK de Anthropic y compañía.
+cero "A14.7 sin envs huérfanas en el código"       bash -c 'comm -23 <(grep -rhoI --exclude-dir=node_modules "process\.env\.[A-Z0-9_]*" app lib components agentes scripts | sed "s/process\.env\.//" | sort -u) <(cat .env.example agentes/camila/.env.example | grep -oI "^#\{0,2\} *[A-Z0-9_]*" | tr -d "# " | sort -u) | grep -vE "^(NODE_ENV|VERCEL)"'
 cero "A14.8 sin ?nuevo=1 huérfano"                 bash -c 'grep -rnI --exclude=verificar-arreglos.sh "nuevo=1" app | grep -v "searchParams"'
 
 sec "A15 · Cabeceras de seguridad en un solo sitio"

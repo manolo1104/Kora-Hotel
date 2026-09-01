@@ -15,6 +15,7 @@ import {
   IMPLEMENTACION_HORAS,
   mxn,
 } from "@/lib/caso-paraiso";
+import { WHATSAPP } from "@/lib/contacto";
 
 export const metadata: Metadata = {
   title: "Caso de estudio: Hotel Paraíso Encantado — Kora",
@@ -24,7 +25,7 @@ export const metadata: Metadata = {
   },
 };
 
-const WA_URL = `https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "524891251458"}?text=Hola%2C%20vi%20el%20caso%20de%20Par%C3%A1iso%20Encantado%20y%20quiero%20saber%20m%C3%A1s`;
+const WA_URL = `https://wa.me/${WHATSAPP.replace(/\D/g, "")}?text=Hola%2C%20vi%20el%20caso%20de%20Par%C3%A1iso%20Encantado%20y%20quiero%20saber%20m%C3%A1s`;
 
 // ─── Fotos del hotel ──────────────────────────────────────────────────────────
 // Cuando tengas fotos, pega aquí las URLs.

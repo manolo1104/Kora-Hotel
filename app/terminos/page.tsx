@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Reveal } from "@/components/shared/Reveal";
 import { GARANTIA } from "@/lib/oferta";
-import { EMAIL_CONTACTO } from "@/lib/contacto";
+import { EMAIL_CONTACTO, WHATSAPP } from "@/lib/contacto";
 
 export const metadata: Metadata = {
   title: "Términos de servicio — Kora",
@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   },
 };
 
-const WA_URL = `https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "524891251458"}`;
+const WA_URL = `https://wa.me/${WHATSAPP.replace(/\D/g, "")}`;
 
 export default function TerminosPage() {
   return (

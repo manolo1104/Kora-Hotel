@@ -7,8 +7,9 @@ import { Reveal } from "@/components/shared/Reveal";
 import { AhorroStickyPill } from "@/components/landing/AhorroStickyPill";
 import { trackCta } from "@/lib/analytics";
 import { PRECIO_DESDE } from "@/lib/oferta";
+import { WHATSAPP } from "@/lib/contacto";
 
-const WA_CALC_URL = `https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "524891251458"}?text=Hola%2C%20us%C3%A9%20la%20calculadora%20de%20Kora%20y%20quiero%20saber%20m%C3%A1s`;
+const WA_CALC_URL = `https://wa.me/${WHATSAPP.replace(/\D/g, "")}?text=Hola%2C%20us%C3%A9%20la%20calculadora%20de%20Kora%20y%20quiero%20saber%20m%C3%A1s`;
 
 function fmtMXN(n: number): string {
   const abs = Math.round(Math.abs(n));

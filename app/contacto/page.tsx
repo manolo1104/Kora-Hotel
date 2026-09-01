@@ -3,6 +3,7 @@ import { MessageCircle, Phone } from "lucide-react";
 import { ContactForm } from "@/components/landing/ContactForm";
 import { Reveal } from "@/components/shared/Reveal";
 import { IMPLEMENTACION_HORAS } from "@/lib/oferta";
+import { WHATSAPP } from "@/lib/contacto";
 
 // Por qué existe esta página:
 //
@@ -29,7 +30,7 @@ export const metadata: Metadata = {
   alternates: { canonical: "/contacto" },
 };
 
-const WA_URL = `https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "524891251458"}?text=Hola%2C%20quiero%20m%C3%A1s%20informaci%C3%B3n%20de%20Kora`;
+const WA_URL = `https://wa.me/${WHATSAPP.replace(/\D/g, "")}?text=Hola%2C%20quiero%20m%C3%A1s%20informaci%C3%B3n%20de%20Kora`;
 
 export default function ContactoPage() {
   return (

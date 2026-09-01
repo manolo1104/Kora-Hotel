@@ -5,9 +5,10 @@ import { Check, Loader2, Lock } from "lucide-react";
 import { Reveal } from "@/components/shared/Reveal";
 import { motion, AnimatePresence } from "motion/react";
 import { trackLead } from "@/lib/analytics";
+import { WHATSAPP } from "@/lib/contacto";
 
 // Respaldo: si el envío falla, ofrecemos WhatsApp para no perder el lead.
-const WA_FALLBACK_URL = `https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "524891251458"}?text=Hola%2C%20quiero%20m%C3%A1s%20informaci%C3%B3n%20de%20Kora`;
+const WA_FALLBACK_URL = `https://wa.me/${WHATSAPP.replace(/\D/g, "")}?text=Hola%2C%20quiero%20m%C3%A1s%20informaci%C3%B3n%20de%20Kora`;
 
 const benefits = [
   "Plan mes a mes de $550 MXN/mes, habitaciones ilimitadas — sin permanencia",

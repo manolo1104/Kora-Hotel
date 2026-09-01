@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Reveal } from "@/components/shared/Reveal";
 import { SuscripcionForm } from "@/components/shared/SuscripcionForm";
 import { OTA_ANTES, OTA_DESPUES } from "@/lib/caso-paraiso";
-import { EMAIL_CONTACTO } from "@/lib/contacto";
+import { EMAIL_CONTACTO, WHATSAPP } from "@/lib/contacto";
 
 // Actualiza estas URLs cuando crees las cuentas sociales
 const LINKEDIN_URL = ""; // e.g. "https://linkedin.com/company/kora-hotel"
@@ -138,7 +138,7 @@ export function Footer() {
                 </li>
                 <li>
                   <a
-                    href={`https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "524891251458"}`}
+                    href={`https://wa.me/${WHATSAPP.replace(/\D/g, "")}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="nav-link text-sm text-white/60 hover:text-white transition-colors"

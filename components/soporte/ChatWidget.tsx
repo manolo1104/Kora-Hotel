@@ -5,11 +5,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
 import { HelpCircle, Loader2, MessageCircle, Send, X } from "lucide-react";
+import { WHATSAPP } from "@/lib/contacto";
 
 // Chat de soporte con IA. Flota en el sitio de Kora y el panel (no en las
 // páginas públicas de los hoteles ni en el CRM — eso lo decide SiteFrame).
 
-const WA_FUNDADOR = `https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "524891251458"}?text=${encodeURIComponent(
+const WA_FUNDADOR = `https://wa.me/${WHATSAPP.replace(/\D/g, "")}?text=${encodeURIComponent(
   "Hola, vengo del chat de ayuda de Kora y tengo una duda"
 )}`;
 
