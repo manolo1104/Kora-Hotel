@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Reveal } from "@/components/shared/Reveal";
+import { EMAIL_PRIVACIDAD } from "@/lib/contacto";
 
 export const metadata: Metadata = {
   title: "Política de privacidad — Kora",
@@ -124,10 +125,10 @@ export default function PrivacidadPage() {
                 <p>
                   Correo electrónico:{" "}
                   <a
-                    href="mailto:privacidad@korahotel.mx"
+                    href={`mailto:${EMAIL_PRIVACIDAD}`}
                     className="text-kora-primary underline"
                   >
-                    privacidad@korahotel.mx
+                    {EMAIL_PRIVACIDAD}
                   </a>
                 </p>
                 <p className="text-xs mt-1">
@@ -187,10 +188,10 @@ export default function PrivacidadPage() {
                 Si tiene dudas sobre esta política o el tratamiento de sus
                 datos, escríbenos a{" "}
                 <a
-                  href="mailto:privacidad@korahotel.mx"
+                  href={`mailto:${EMAIL_PRIVACIDAD}`}
                   className="text-kora-primary underline"
                 >
-                  privacidad@korahotel.mx
+                  {EMAIL_PRIVACIDAD}
                 </a>{" "}
                 o por WhatsApp al{" "}
                 <a

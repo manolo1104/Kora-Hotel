@@ -28,6 +28,7 @@ import {
   pieKora,
   respiro,
 } from "@/lib/email/design";
+import { EMAIL_RESERVAS } from "@/lib/contacto";
 
 /** Noches entre dos fechas YYYY-MM-DD (mínimo 1). */
 function calcNoches(checkin: string, checkout: string): number {
@@ -105,7 +106,7 @@ async function sendMotorEmail(
     to,
     subject,
     html,
-    from: fromOverride || process.env.RESEND_FROM || "reservas@kora-hotel.com",
+    from: fromOverride || process.env.RESEND_FROM || EMAIL_RESERVAS,
     replyTo: replyTo || undefined,
   });
 }

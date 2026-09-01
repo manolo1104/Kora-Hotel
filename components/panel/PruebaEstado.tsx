@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Clock, Lock, ArrowRight, Database } from "lucide-react";
 import type { PruebaHotel } from "@/lib/suscripcion";
+import { EMAIL_CONTACTO } from "@/lib/contacto";
 
 // Estado de la prueba de 30 días en el panel operativo (server components).
 // - Banner: cuenta regresiva discreta pero visible, con CTA a activar el plan.
@@ -120,10 +121,10 @@ export function HotelBloqueado({
           Mientras el bloqueo siga, tu página de reservas y tu bot de WhatsApp
           están apagados. Para resolverlo, escribe a{" "}
           <a
-            href="mailto:hola@kora-hotel.com"
+            href={`mailto:${EMAIL_CONTACTO}`}
             className="font-semibold text-kora-primary hover:underline"
           >
-            hola@kora-hotel.com
+            {EMAIL_CONTACTO}
           </a>
           .
         </p>

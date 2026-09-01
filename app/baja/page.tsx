@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { darDeBaja } from "@/lib/suscriptores-db";
 import { SuscripcionForm } from "@/components/shared/SuscripcionForm";
+import { EMAIL_CONTACTO } from "@/lib/contacto";
 
 export const dynamic = "force-dynamic";
 
@@ -74,10 +75,10 @@ export default async function BajaPage({ searchParams }: Props) {
                 : "El enlace está incompleto o ya no es válido. Abre el que viene al final del correo más reciente, o escríbenos y lo hacemos a mano."}
             </p>
             <a
-              href="mailto:hola@kora-hotel.com?subject=Darme%20de%20baja"
+              href={`mailto:${EMAIL_CONTACTO}?subject=Darme%20de%20baja`}
               className="btn-press mt-8 inline-flex items-center gap-2 rounded-full bg-kora-primary px-7 py-3.5 text-sm font-bold text-white transition-colors hover:bg-kora-primary-dark"
             >
-              Escribir a hola@kora-hotel.com
+              Escribir a {EMAIL_CONTACTO}
             </a>
           </>
         )}

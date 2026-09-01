@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Reveal } from "@/components/shared/Reveal";
 import { SuscripcionForm } from "@/components/shared/SuscripcionForm";
 import { OTA_ANTES, OTA_DESPUES } from "@/lib/caso-paraiso";
+import { EMAIL_CONTACTO } from "@/lib/contacto";
 
 // Actualiza estas URLs cuando crees las cuentas sociales
 const LINKEDIN_URL = ""; // e.g. "https://linkedin.com/company/kora-hotel"
@@ -129,10 +130,10 @@ export function Footer() {
               <ul className="space-y-2.5">
                 <li>
                   <a
-                    href="mailto:hola@korahotel.mx"
+                    href={`mailto:${EMAIL_CONTACTO}`}
                     className="nav-link text-sm text-white/60 hover:text-white transition-colors"
                   >
-                    hola@korahotel.mx
+                    {EMAIL_CONTACTO}
                   </a>
                 </li>
                 <li>

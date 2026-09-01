@@ -159,7 +159,11 @@ cero "A14.2 DEPLOY sin restos del PR viejo"        bash -c 'grep -nI "PR #1\|fea
 cero "A14.3 OPERACION sin plan hotel ni escalada"  bash -c "grep -nI \"'hotel', 'cortesia'\\|escala a tu WhatsApp\" docs/OPERACION.md"
 cero "A14.4 README de Camila sin Opus 4.8"         bash -c 'grep -nI "opus-4-8\|Opus 4.8" agentes/camila/README.md agentes/camila/.env.example'
 cero "A14.5 sin Paraíso en módulos compartidos"    bash -c 'grep -rniI "paraiso\|paraíso" lib/room-slugs.ts lib/booking-html.ts lib/admin/cleaning-config.ts app/api/agent-demo/route.ts app/panel components/panel 2>/dev/null'
-cero "A14.6 sin korahotel.mx"                      bash -c 'grep -rnI --exclude=verificar-arreglos.sh --include="*.ts" --include="*.tsx" "korahotel.mx" app lib components'
+# Ya no basta con vigilar `korahotel.mx` (el dominio que no existe): lo que
+# falla es escribir CUALQUIER correo a mano. Estaban en 18 sitios con dos
+# dominios distintos, y sólo uno de los dos está registrado. Fuente única:
+# lib/contacto.ts. `sinComentarios` deja pasar la nota que lo explica ahí.
+cero "A14.6 ningún correo de Kora escrito a mano"  bash -c 'grep -rnIE --exclude=verificar-arreglos.sh --include="*.ts" --include="*.tsx" "[a-zA-Z0-9._%+-]+@kora[a-z-]*\.[a-z]+" app lib components | grep -v "^lib/contacto.ts:" | grep -vE "^[^:]+:[0-9]+:[[:space:]]*(//|\*)"'
 cero "A14.7 sin envs huérfanas en el código"       bash -c 'comm -23 <(grep -rhoI "process\.env\.[A-Z0-9_]*" app lib components agentes scripts | sed "s/process\.env\.//" | sort -u) <(cat .env.example agentes/camila/.env.example | grep -oI "^#\{0,2\} *[A-Z0-9_]*" | tr -d "# " | sort -u) | grep -v "^NODE_ENV$\|^VERCEL"'
 cero "A14.8 sin ?nuevo=1 huérfano"                 bash -c 'grep -rnI --exclude=verificar-arreglos.sh "nuevo=1" app | grep -v "searchParams"'
 

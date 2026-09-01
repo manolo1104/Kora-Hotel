@@ -1,4 +1,5 @@
 import { Resend } from "resend";
+import { EMAIL_FROM } from "@/lib/contacto";
 
 // LA ÚNICA PUERTA por la que sale un correo de Kora. SOLO servidor.
 //
@@ -16,7 +17,7 @@ import { Resend } from "resend";
 const API_KEY = process.env.RESEND_API_KEY ?? "";
 
 /** Remitente. El dominio debe estar verificado en resend.com. */
-const FROM = process.env.RESEND_FROM || "Kora <hola@kora-hotel.com>";
+const FROM = process.env.RESEND_FROM || EMAIL_FROM;
 
 /** Correo del fundador para avisos internos (leads, digest, pagos). */
 export const NOTIFY_EMAIL = process.env.NOTIFY_EMAIL || "";

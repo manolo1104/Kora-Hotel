@@ -5,6 +5,7 @@ import { SiteFrame } from "@/components/shared/SiteFrame";
 import { FUNDADOR } from "@/lib/fundador";
 import "./globals.css";
 import { JsonLd } from "@/components/shared/JsonLd";
+import { EMAIL_CONTACTO } from "@/lib/contacto";
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -65,7 +66,7 @@ const orgJsonLd = {
       logo: { "@type": "ImageObject", url: `${SITE_URL}/opengraph-image` },
       description:
         "Sistema hotelero todo-en-uno con IA para hoteles boutique en México.",
-      email: "hola@korahotel.mx",
+      email: EMAIL_CONTACTO,
       foundingDate: "2026",
       areaServed: { "@type": "Country", name: "México" },
       knowsAbout: [
@@ -83,7 +84,7 @@ const orgJsonLd = {
       contactPoint: {
         "@type": "ContactPoint",
         contactType: "customer support",
-        email: "hola@korahotel.mx",
+        email: EMAIL_CONTACTO,
         availableLanguage: ["Spanish"],
         areaServed: "MX",
       },

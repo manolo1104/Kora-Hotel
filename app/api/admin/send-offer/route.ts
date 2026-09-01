@@ -9,6 +9,7 @@ import { draftOfferEmail } from "@/lib/offers";
 import type { HotelRow } from "@/lib/tenant";
 import { leerCuerpo, zEmail, zTextoCorto, zTextoLargo } from "@/lib/api/cuerpo";
 import { z } from "zod";
+import { EMAIL_FROM } from "@/lib/contacto";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -56,7 +57,7 @@ function promoParaCorreo(h: HotelRow): { promoCode?: string; promoDiscount?: str
 function fromForHotel(h: HotelRow): string {
   const config = (h.config ?? {}) as Record<string, unknown>;
   const fromCfg = typeof config.email_from === "string" ? config.email_from : "";
-  return fromCfg || process.env.RESEND_FROM || "Kora <hola@kora-hotel.com>";
+  return fromCfg || process.env.RESEND_FROM || EMAIL_FROM;
 }
 
 // Esto MANDA UN CORREO desde el dominio de Kora a la dirección que venga en el

@@ -14,6 +14,7 @@ import {
   buildWelcomeGuideEmailHtml,
   type HotelBrand,
 } from "@/lib/email-sequences";
+import { EMAIL_FROM } from "@/lib/contacto";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -141,7 +142,7 @@ function promoDelHotel(h: HotelRow): { promoCode?: string; promoDiscount?: strin
 /** Remitente del hotel: config.email_from → RESEND_FROM → default Kora. */
 function fromForHotel(h: HotelRow): string {
   const fromCfg = h.config && typeof h.config.email_from === "string" ? h.config.email_from : "";
-  return fromCfg || process.env.RESEND_FROM || "Kora <hola@kora-hotel.com>";
+  return fromCfg || process.env.RESEND_FROM || EMAIL_FROM;
 }
 
 export async function GET(req: Request) {

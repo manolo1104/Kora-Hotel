@@ -26,6 +26,7 @@ import {
   waLink as waLinkKora,
   type Lang as LangKora,
 } from "@/lib/email/design";
+import { EMAIL_FROM } from "@/lib/contacto";
 
 export interface BookingBrand {
   nombre: string;
@@ -67,7 +68,7 @@ export function bookingBrandFromHotel(h: {
 export function bookingFromHotel(h: HotelRow): string {
   const config = (h.config ?? {}) as Record<string, unknown>;
   const fromCfg = typeof config.email_from === "string" ? config.email_from : "";
-  return fromCfg || process.env.RESEND_FROM || "Kora <hola@kora-hotel.com>";
+  return fromCfg || process.env.RESEND_FROM || EMAIL_FROM;
 }
 
 type Lang = LangKora;

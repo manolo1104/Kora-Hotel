@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Reveal } from "@/components/shared/Reveal";
 import { GARANTIA } from "@/lib/oferta";
+import { EMAIL_CONTACTO } from "@/lib/contacto";
 
 export const metadata: Metadata = {
   title: "Términos de servicio — Kora",
@@ -218,10 +219,10 @@ export default function TerminosPage() {
               <p>
                 Para cualquier consulta sobre estos términos, escríbenos a{" "}
                 <a
-                  href="mailto:hola@korahotel.mx"
+                  href={`mailto:${EMAIL_CONTACTO}`}
                   className="text-kora-primary underline"
                 >
-                  hola@korahotel.mx
+                  {EMAIL_CONTACTO}
                 </a>{" "}
                 o por WhatsApp al{" "}
                 <a
