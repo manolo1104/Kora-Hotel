@@ -194,8 +194,10 @@ Investiga lo necesario y escribe el artículo.`;
         },
       },
       messages: [{ role: "user" as const, content: user }],
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } as any;
+      // Sin `as any`: el SDK 0.100.1 no tipaba `output_config` ni la herramienta
+      // de búsqueda web, así que el objeto entero iba sin comprobar — un `max_tokens`
+      // mal escrito habría pasado de largo. Desde 0.122 sí los tipa.
+    } satisfies Anthropic.MessageCreateParamsNonStreaming;
 
     let msg = await anthropic.messages.create(params, { timeout: restante() });
     // Con herramientas del servidor, el turno puede pausarse (pause_turn): se

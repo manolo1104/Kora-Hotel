@@ -6,14 +6,14 @@
   },
   "type": "module",
   "private": true,
-  "description": "Agente de blog SEO para kora-hotel.com — 1 artículo cada 3 días desde el banco de 50 temas",
+  "description": "Agente de blog SEO para kora-hotel.com \u2014 1 art\u00edculo cada 3 d\u00edas desde el banco de 50 temas",
   "scripts": {
     "generate": "node index.js",
     "dry-run": "node index.js --dry-run",
     "force": "node index.js --force"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.112.3",
+    "@anthropic-ai/sdk": "^0.122.0",
     "dotenv": "^16.4.5"
   }
 }
