@@ -11,6 +11,28 @@ export const PRECIO_DESDE = 550;
 // visibles en la misma visita. Manolo fijó el número el 31 ago 2026.
 export const IMPLEMENTACION_HORAS = 24;
 
+// ─── La garantía ──────────────────────────────────────────────────────────────
+//
+// 🔴 EL ANUNCIO Y EL CONTRATO TIENEN QUE DECIR LO MISMO. Hasta el 31 ago 2026 no
+// lo decían: /precios prometía la "Garantía Reservas Directas" —«si en 60 días
+// no recuperas tu mensualidad en comisiones ahorradas, seguimos trabajando
+// gratis hasta lograrlo»— y los Términos §6 decían, literalmente, que «Kora no
+// garantiza resultados específicos en ocupación, ingresos o reservas». Una
+// promesa publicitaria que el propio contrato niega es publicidad engañosa
+// (LFPC art. 32), y encima era incobrable: nada en el panel mide "comisiones
+// ahorradas", así que cada reclamación se habría negociado a mano.
+//
+// Decisión de Manolo (31 ago 2026): se sustituye por la garantía que YA estaba
+// en los Términos y sí se puede cumplir. Quien toque este texto tiene que tocar
+// también `app/terminos/page.tsx`, y al revés.
+export const GARANTIA = {
+  titulo: "Sin riesgo para ti",
+  /** Días de prueba gratis, antes de pedir ningún dato de pago. */
+  diasPrueba: 30,
+  /** Días tras el PRIMER PAGO en los que se devuelve esa mensualidad. */
+  diasDevolucion: 30,
+} as const;
+
 // ─── Plan de suscripción (fuente única) ───────────────────────────────────────
 // Los price IDs de Stripe viven en variables de entorno porque cambian entre
 // modo prueba y modo live (se generan con: node scripts/stripe-setup.mjs).

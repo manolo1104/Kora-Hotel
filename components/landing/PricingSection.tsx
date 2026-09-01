@@ -4,7 +4,7 @@ import { Reveal } from "@/components/shared/Reveal";
 import { CountUp } from "@/components/shared/CountUp";
 import { GlowCard } from "@/components/shared/GlowCard";
 import { CtaLink } from "@/components/shared/CtaLink";
-import { PLANES } from "@/lib/oferta";
+import { PLANES, GARANTIA } from "@/lib/oferta";
 
 // Lo que incluye el sitio web profesional que construimos (el gancho gratis).
 const incluyeWeb = [
@@ -53,8 +53,15 @@ const garantias = [
   },
 ];
 
-// Arranque "llave en mano": los bonos que van GRATIS con el plan (valor en pesos
-// justificable). Cada uno mata una objeción real del hotelero.
+// Arranque "llave en mano": lo que va GRATIS con el plan.
+//
+// ⚠️ LOS IMPORTES NO SE PINTAN TACHADOS. Un precio tachado afirma, en México y
+// ante la PROFECO, que ESE precio se cobró antes (LFPC art. 32 y NOM-029-SCFI:
+// el "precio anterior" tiene que haber sido real). Kora nunca ha cobrado $8,000
+// por montar un hotel: el arranque siempre fue gratis, así que el tachado
+// inventaba un descuento que no existió. Los números sí son defendibles como
+// VALOR DE MERCADO —lo que cuesta contratar cada cosa por separado— y así es
+// como se presentan ahora.
 const arranque = [
   { titulo: "Arranque Llave en Mano (24 h)", detalle: "Cargamos cuartos, fotos, tarifas y tu motor", valor: 8000 },
   { titulo: "Tu página de reservas lista", detalle: "Motor embebido en una página con tu marca", valor: 6000 },
@@ -158,8 +165,10 @@ export function PricingSection() {
                 Arranque Reservas Directas · llave en mano
               </span>
               <p className="mt-3 text-sm text-kora-muted">
-                Al activar tu plan, montamos todo por ti. Estos servicios de arranque
-                van <span className="font-semibold text-kora-text">incluidos gratis:</span>
+                Al activar tu plan, montamos todo por ti. Estos servicios de
+                arranque van{" "}
+                <span className="font-semibold text-kora-text">incluidos gratis</span>{" "}
+                — al lado de cada uno, lo que costaría contratarlo aparte:
               </p>
             </div>
             <ul className="divide-y divide-gray-100">
@@ -172,19 +181,26 @@ export function PricingSection() {
                       <p className="text-xs text-kora-muted">{b.detalle}</p>
                     </div>
                   </div>
-                  <span className="text-sm font-semibold text-kora-muted tabular-nums whitespace-nowrap line-through">
-                    ${b.valor.toLocaleString("es-MX")}
+                  <span className="text-sm font-semibold text-kora-muted tabular-nums whitespace-nowrap">
+                    ~${b.valor.toLocaleString("es-MX")}
                   </span>
                 </li>
               ))}
             </ul>
             <div className="mt-4 flex items-center justify-between rounded-2xl bg-kora-primary px-5 py-4 text-white">
               <span className="text-sm">
-                Valor del arranque:{" "}
-                <span className="line-through text-white/60">${arranqueTotal.toLocaleString("es-MX")}</span>
+                Contratado por separado:{" "}
+                <span className="font-semibold text-white/80">
+                  ~${arranqueTotal.toLocaleString("es-MX")}
+                </span>
               </span>
-              <span className="text-lg font-bold text-kora-accent">Gratis</span>
+              <span className="text-lg font-bold text-kora-accent">Contigo: gratis</span>
             </div>
+            <p className="mt-2 text-center text-[11px] text-kora-muted">
+              Los importes son lo que cuesta contratar cada servicio por su
+              cuenta, no un precio que Kora haya cobrado antes: el arranque
+              siempre ha ido incluido.
+            </p>
           </div>
         </Reveal>
 
@@ -195,11 +211,21 @@ export function PricingSection() {
               <ShieldCheck size={22} className="text-kora-primary" aria-hidden="true" />
             </div>
             <div>
-              <p className="text-base font-bold text-kora-text">Garantía Reservas Directas</p>
+              <p className="text-base font-bold text-kora-text">{GARANTIA.titulo}</p>
               <p className="mt-1 text-sm text-kora-muted leading-relaxed">
-                Pruébalo 30 días gratis, sin tarjeta. Y si en 60 días de usar Kora activo
-                no recuperas tu mensualidad en comisiones ahorradas,{" "}
-                <span className="font-semibold text-kora-text">seguimos trabajando gratis hasta que lo logres.</span>
+                Pruébalo {GARANTIA.diasPrueba} días gratis, sin tarjeta. Y si
+                activas tu plan y te arrepientes,{" "}
+                <span className="font-semibold text-kora-text">
+                  te devolvemos esa primera mensualidad
+                </span>{" "}
+                si cancelas dentro de los {GARANTIA.diasDevolucion} días
+                siguientes. Está por escrito en los{" "}
+                <a
+                  href="/terminos"
+                  className="underline underline-offset-2 hover:text-kora-primary"
+                >
+                  Términos
+                </a>, no sólo aquí.
               </p>
             </div>
           </div>

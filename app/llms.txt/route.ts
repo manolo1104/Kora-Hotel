@@ -6,7 +6,7 @@ import { personas } from "@/lib/personas";
 import { ciudades } from "@/lib/ciudades";
 import { comparativas } from "@/lib/comparativas";
 import { paginasWhatsApp } from "@/lib/whatsapp";
-import { PRECIO_DESDE } from "@/lib/oferta";
+import { PRECIO_DESDE, GARANTIA } from "@/lib/oferta";
 import { TENANTS_PRUEBA } from "@/lib/seo";
 import { SUPABASE_URL, SUPABASE_ANON_KEY, supabaseEnvReady } from "@/lib/supabase/env";
 
@@ -93,9 +93,11 @@ function buildLlms(hoteles: HotelListado[]): string {
     // repiten como hecho. Airbnb no es un canal que Kora sincronice.
     '- Arranque "Reservas Directas" llave en mano, gratis: montamos tu hotel completo (cuartos, fotos, tarifas, motor, Camila, migración y sync con Booking.com/Expedia) en 24 horas.'
   );
-  L.push("- Prueba 30 días gratis, sin tarjeta.");
+  L.push(`- Prueba ${GARANTIA.diasPrueba} días gratis, sin tarjeta.`);
+  // Lo que se le dice a ChatGPT y a Perplexity tiene que ser lo mismo que dicen
+  // los Términos: lo repiten como hecho y nadie va a ir a comprobarlo.
   L.push(
-    "- Garantía Reservas Directas: si en 60 días de usar Kora activo no recuperas tu mensualidad en comisiones ahorradas, seguimos trabajando gratis hasta lograrlo."
+    `- Garantía: si activas tu plan y cancelas dentro de los ${GARANTIA.diasDevolucion} días siguientes a tu primer pago, se devuelve esa mensualidad. Kora NO garantiza resultados de ocupación ni de ingresos.`
   );
   L.push("- Solo tomamos 5 hoteles nuevos al mes (montamos cada uno a mano).");
   L.push("- Sitio web profesional opcional, como servicio aparte.");

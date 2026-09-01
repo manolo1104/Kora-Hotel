@@ -120,3 +120,45 @@ describe("los datos medidos siguen siendo los verificados por Manolo", () => {
     expect(CRECIMIENTO_DIRECTAS).toBe(40);
   });
 });
+
+describe("el anuncio no promete lo que el contrato niega", () => {
+  // Hasta el 31 ago 2026, /precios prometía la "Garantía Reservas Directas"
+  // —recuperar la mensualidad en comisiones a los 60 días o seguir trabajando
+  // gratis— mientras los Términos §6 decían que Kora NO garantiza resultados de
+  // ocupación ni de ingresos. Publicidad que el propio contrato niega es
+  // engañosa (LFPC art. 32), y además era incobrable: nada mide "comisiones
+  // ahorradas". La garantía viva es la de devolución, y sale de lib/oferta.ts.
+  const COMERCIALES = [
+    "components/landing/PricingSection.tsx",
+    "app/llms.txt/route.ts",
+    "app/llms-full.txt/route.ts",
+    "lib/faqs.ts",
+  ];
+
+  for (const rel of COMERCIALES) {
+    it(`${rel} no promete resultados de ocupación ni de comisiones`, () => {
+      const texto = leer(rel);
+      expect(/comisiones ahorradas/i.test(texto)).toBe(false);
+      expect(/Garant[ií]a Reservas Directas/i.test(texto)).toBe(false);
+      expect(/seguimos trabajando gratis/i.test(texto)).toBe(false);
+    });
+  }
+
+  it("los Términos siguen diciendo que no se garantizan resultados", () => {
+    expect(leer("app/terminos/page.tsx")).toContain(
+      "no garantiza resultados específicos",
+    );
+  });
+
+  it("la garantía de devolución la escriben los dos desde la misma fuente", () => {
+    for (const rel of ["components/landing/PricingSection.tsx", "app/terminos/page.tsx"]) {
+      expect(leer(rel)).toContain("GARANTIA");
+    }
+  });
+
+  it("nadie pinta un precio tachado (afirma un precio anterior que no existió)", () => {
+    // LFPC art. 32 y NOM-029-SCFI: el "precio anterior" tiene que haber sido
+    // real. Kora nunca cobró los $23,500 del arranque.
+    expect(leer("components/landing/PricingSection.tsx")).not.toContain("line-through");
+  });
+});

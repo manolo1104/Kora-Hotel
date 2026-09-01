@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Reveal } from "@/components/shared/Reveal";
+import { GARANTIA } from "@/lib/oferta";
 
 export const metadata: Metadata = {
   title: "Términos de servicio — Kora",
@@ -77,10 +78,19 @@ export default function TerminosPage() {
                   El plan es mes a mes: no se requiere contrato anual ni
                   permanencia mínima
                 </li>
+                {/* Es LA MISMA garantía que anuncia /precios, y sale del mismo
+                    sitio (lib/oferta.ts). Hasta el 31 ago 2026 la publicidad
+                    prometía una cosa —recuperar la mensualidad en comisiones a
+                    los 60 días— y este contrato negaba justo eso en el §6. */}
                 <li>
-                  Garantía de 30 días: si cancelas dentro de los primeros 30
-                  días posteriores a tu primer pago, te reembolsamos el importe
-                  de esa primera mensualidad
+                  Garantía de {GARANTIA.diasDevolucion} días: si cancelas dentro
+                  de los primeros {GARANTIA.diasDevolucion} días posteriores a tu
+                  primer pago, te reembolsamos el importe de esa primera
+                  mensualidad
+                </li>
+                <li>
+                  Antes de eso, la prueba de {GARANTIA.diasPrueba} días no
+                  requiere tarjeta: si no activas el plan, no se cobra nada
                 </li>
                 <li>
                   El sitio web profesional a la medida es un servicio de pago

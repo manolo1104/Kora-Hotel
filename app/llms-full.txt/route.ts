@@ -7,7 +7,7 @@ import { ciudades } from "@/lib/ciudades";
 import { paginasWhatsApp } from "@/lib/whatsapp";
 import { AYUDA } from "@/lib/ayuda";
 import { faqs } from "@/lib/faqs";
-import { PRECIO_DESDE } from "@/lib/oferta";
+import { PRECIO_DESDE, GARANTIA } from "@/lib/oferta";
 
 // llms-full.txt dinámico: enumeración exhaustiva de todo el contenido del sitio,
 // generada de los mismos datos que renderizan las páginas. Se regenera en cada build.
@@ -22,7 +22,7 @@ function buildFull(): string {
   L.push(
     "Kora contesta el WhatsApp de tu hotel 24/7 con Camila, un agente de IA conectado al inventario real: cotiza con disponibilidad y precio reales y cierra la reserva con link de pago. Incluye además motor de reservas directas 0% comisión, PMS, dashboard y CRM, para hoteles independientes en México. Plan único $" +
       PRECIO_DESDE.toLocaleString("es-MX") +
-      " MXN/mes, todo incluido, sin permanencia. Prueba 30 días gratis sin tarjeta. Arranque llave en mano gratis; solo 5 hoteles nuevos al mes."
+      ` MXN/mes, todo incluido, sin permanencia. Prueba ${GARANTIA.diasPrueba} días gratis sin tarjeta, y si activas el plan y cancelas dentro de los ${GARANTIA.diasDevolucion} días siguientes al primer pago se devuelve esa mensualidad. Arranque llave en mano gratis; solo 5 hoteles nuevos al mes.`
   );
   L.push("");
 
