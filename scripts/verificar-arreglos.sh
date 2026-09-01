@@ -193,8 +193,21 @@ sec "A17 · Contratos y permisos de las rutas"
 # Se busca `zod` o `z\.` o `zId`, porque las rutas que sólo reciben un id por la
 # ruta lo validan con `zId.safeParse` y no declaran esquema.
 cero "A17.1 toda ruta de escritura valida con zod" bash -c 'for f in $(grep -rlI "export async function \(POST\|PATCH\|PUT\)" app/api/admin --include=route.ts); do case "$f" in *bot-train*|*canales/sync*|*bot-config*) continue;; esac; grep -q "zod\|z\.\|zId" "$f" || echo "SIN VALIDAR: $f"; done'
-cero "A17.2 ninguna ruta del panel sin permiso"    bash -c 'for f in $(grep -rlI "getActiveHotel\|hotelDeLaPeticion" app/api --include=route.ts); do grep -q "negar(\|exigirRol(" "$f" || echo "SIN PERMISO: $f"; done'
-cero "A17.3 sin cookie kora_active_slug"           bash -c 'grep -rnI --exclude=verificar-arreglos.sh --include="*.ts" --include="*.tsx" "kora_active_slug" app lib components proxy.ts 2>/dev/null'
+# Delega en scripts/check-permisos.mjs en vez de duplicarlo peor. El de aquí no
+# conocía su lista de EXENTAS —tour-visto (preferencia de UI del propio usuario)
+# y el cron de ical-sync (se autentica con CRON_SECRET, no hay sesión con rol)—
+# así que marcaba dos rojos que nunca iban a poder ponerse en verde. El .mjs
+# además detecta exenciones muertas, que este no sabía hacer.
+cero "A17.2 ninguna ruta del panel sin permiso"    bash -c 'node scripts/check-permisos.mjs >/dev/null 2>&1 || node scripts/check-permisos.mjs 2>&1 | grep -v "^✅"'
+# Pasa por `sinComentarios`: de 8 aciertos, 6 eran los COMENTARIOS que explican
+# por qué la cookie dejó de ser la fuente de verdad. Los 2 reales —proxy.ts la
+# escribe y active-hotel.ts la lee como último respaldo— siguen ahí A PROPÓSITO,
+# y este rojo tiene que seguir rojo hasta que se borren.
+# ⚠️ NO borrarla a ciegas. El criterio está escrito en el propio código: una
+# jornada completa de uso del panel SIN que llegue el correo
+# «🚨 Kora — el panel usó la cookie del hotel activo». Ese correo lo manda
+# `getActiveHotel()` cada vez que cae al respaldo. Es el paso 5.3 del plan.
+cero "A17.3 sin cookie kora_active_slug"           G --include="*.ts" --include="*.tsx" "kora_active_slug" app lib components proxy.ts
 cero "A17.4 updateBooking con lista blanca"        bash -c 'grep -qI "CAMPOS_EDITABLES\|allowlist" lib/db/admin.ts || echo "updateBooking sigue copiando el body entero"'
 cero "A17.5 el id de canales no viene del body"   bash -c 'grep -nI "onConflict: *\"id\"\|onConflict:\x27id\x27" lib/db/admin.ts app/api/admin/canales/route.ts'
 

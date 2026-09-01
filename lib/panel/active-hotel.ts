@@ -69,6 +69,12 @@ export async function getActiveHotel(): Promise<TenantContext | null> {
     // borrar la cookie sin romper nada. Con la alerta, el criterio para
     // ejecutar el paso 5.3 es concreto: una jornada de uso del panel sin que
     // llegue este correo.
+    //
+    // 👉 CÓMO COMPROBARLO: buscar en la bandeja de NOTIFY_EMAIL el asunto
+    //    «🚨 Kora — el panel usó la cookie del hotel activo».
+    //    Si no aparece ninguno tras un día normal de uso, se pueden borrar las
+    //    DOS líneas que quedan: el `cookies().get` de abajo y el
+    //    `response.cookies.set` de `proxy.ts`.
     await alertar(
       "el panel usó la cookie del hotel activo",
       `Slug ${slug}. Alguna ruta del panel llegó SIN la cabecera x-kora-hotel y ` +
