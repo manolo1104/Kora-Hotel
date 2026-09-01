@@ -42,37 +42,6 @@
   ],
   "headers": [
     {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "X-Content-Type-Options",
-          "value": "nosniff"
-        },
-        {
-          "key": "X-XSS-Protection",
-          "value": "1; mode=block"
-        }
-      ]
-    },
-    {
-      "source": "/((?!h/).*)",
-      "headers": [
-        {
-          "key": "X-Frame-Options",
-          "value": "DENY"
-        }
-      ]
-    },
-    {
-      "source": "/h/(.*)",
-      "headers": [
-        {
-          "key": "Content-Security-Policy",
-          "value": "frame-ancestors *"
-        }
-      ]
-    },
-    {
       "source": "/sitemap.xml",
       "headers": [
         {
