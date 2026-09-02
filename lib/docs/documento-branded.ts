@@ -7,7 +7,7 @@
 import type { BookingBrand } from "@/lib/email/booking-branded";
 import { esColorOscuro } from "@/lib/email/design";
 import { COLOR_DEFAULT } from "@/lib/mini";
-import { COTIZACION_TPL, RESERVA_TPL } from "./templates";
+import { COTIZACION_TPL, RESERVA_TPL, TICKET_TPL } from "./templates";
 import { KORA_ICON_DATA_URI } from "./icon";
 import { renderMustacheLite, type TemplateData } from "./render";
 
@@ -103,6 +103,41 @@ export function buildCotizacionDoc(
 ): string {
   const vars: TemplateData = { ...brandVars(brand), ...data, conceptos: data.conceptos };
   return finalize(renderMustacheLite(COTIZACION_TPL, vars), brand, opts.forPrint);
+}
+
+/** Anchos de rollo que existen en el mercado. 58 es la de mostrador chico. */
+export type AnchoTicket = "58mm" | "80mm";
+
+/**
+ * El mismo comprobante de reserva, en rollo térmico.
+ *
+ * Reutiliza `ReservaDocData` entero —o sea `assembleReserva`, los overrides
+ * guardados en `bookings.doc` y todo lo demás—: lo único que cambia es la hoja.
+ *
+ * NO pasa por el retinte de marca de `finalize()` a propósito: una térmica no
+ * tiene tinta, imprime por calor, y cualquier color acaba en un gris sucio. La
+ * jerarquía se hace con tamaño y grosor. Sí se conserva el auto-imprimir, que es
+ * justo lo que el hotelero pidió: un clic y sale, sin descargar nada.
+ */
+export function buildTicketDoc(
+  brand: BookingBrand,
+  data: ReservaDocData,
+  opts: { forPrint?: boolean; ancho?: AnchoTicket } = {},
+): string {
+  const vars: TemplateData = {
+    ...brandVars(brand),
+    ...data,
+    conceptos: data.conceptos,
+    ancho: opts.ancho ?? "58mm",
+  };
+  let html = renderMustacheLite(TICKET_TPL, vars);
+  if (opts.forPrint) {
+    html = html.replace(
+      "</body>",
+      "<script>window.addEventListener('load',function(){setTimeout(function(){window.print();},300);});</script></body>",
+    );
+  }
+  return html;
 }
 
 export function buildReservaDoc(

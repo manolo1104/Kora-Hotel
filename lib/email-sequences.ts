@@ -243,6 +243,84 @@ export function buildWelcomeGuideEmailHtml(data: {
   );
 }
 
+// ── Registro previo (pre check-in): 2 días antes de llegar ──────────────────
+// Lo pidió el hotelero que paga: "que el sistema pudiera enviar automáticamente
+// un correo previo al día de la reserva, con un enlace para que el huésped pueda
+// realizar su pre check-in desde antes de llegar", porque "una mala experiencia
+// para el huésped puede ser tener que esperar demasiado tiempo en recepción".
+//
+// Va a −2 días y no el día de la llegada: el que ya va en carretera no llena
+// formularios. El correo de bienvenida del día de entrada (`pre_checkin`, más
+// arriba) sigue existiendo y no se toca.
+//
+// Sólo sale si el hotel lo encendió (`config.pre_checkin_enabled`) y si el
+// huésped no se ha registrado ya. Las dos comprobaciones viven en el cron.
+export function buildRegistroPrevioEmailHtml(data: {
+  hotel: HotelBrand;
+  customerName: string;
+  confirmacion: string;
+  checkin: string;
+  habitaciones: string;
+  registroUrl: string;
+  checkinHora?: string;
+  lang?: Lang;
+}): string {
+  const en = data.lang === "en";
+  const b = brandDefaults(data.hotel);
+  const first = primerNombre(data.customerName, en);
+
+  const t = en
+    ? {
+        eyebrow: "Before you arrive",
+        h: "Save time at the front desk",
+        intro:
+          "Fill in your check-in details now and all you'll have to do when you get here is pick up your key.",
+        datos: "Your stay",
+        folio: "Confirmation",
+        hab: "Room",
+        entra: "Check-in from",
+        llega: "Arrival",
+        cta: "Complete my check-in",
+        nota: "It takes about a minute, and you can do it from your phone.",
+      }
+    : {
+        eyebrow: "Antes de tu llegada",
+        h: "Ahorra tiempo en recepción",
+        intro:
+          "Llena tus datos de registro ahora y al llegar sólo tendrás que recoger tu llave.",
+        datos: "Tu estancia",
+        folio: "Confirmación",
+        hab: "Habitación",
+        entra: "Entrada desde",
+        llega: "Llegada",
+        cta: "Hacer mi registro",
+        nota: "Te toma como un minuto y lo puedes hacer desde tu celular.",
+      };
+
+  const filas = [
+    `<strong style="color:${T.tinta};">${t.folio}:</strong> ${esc(data.confirmacion)}`,
+    data.checkin ? `<strong style="color:${T.tinta};">${t.llega}:</strong> ${esc(fechaLarga(data.checkin, en))}` : "",
+    data.habitaciones ? `<strong style="color:${T.tinta};">${t.hab}:</strong> ${esc(data.habitaciones)}` : "",
+    data.checkinHora ? `<strong style="color:${T.tinta};">${t.entra}:</strong> ${esc(data.checkinHora)}` : "",
+  ].filter(Boolean);
+
+  const inner =
+    cabecera({ nombre: b.nombre, eyebrow: t.eyebrow }) +
+    titulo(t.h) +
+    saludo(HOLA(en), first, t.intro) +
+    lista(t.datos, filas) +
+    boton(data.registroUrl, t.cta) +
+    caja(t.nota) +
+    cierre(b);
+
+  return doc(
+    `${b.nombre} — ${t.eyebrow}`,
+    en ? `Check in before you arrive at ${b.nombre}` : `Regístrate antes de llegar a ${b.nombre}`,
+    inner,
+    en ? "en" : "es",
+  );
+}
+
 // ── 3. Post-estancia +1 día: encuesta de 5 estrellas ────────────────────────
 // Las estrellas llevan a la página de reseña de Kora con la calificación ya
 // preseleccionada. ANTES apuntaban a `{baseUrl}/api/feedback`, una ruta que no

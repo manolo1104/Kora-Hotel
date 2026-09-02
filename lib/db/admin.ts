@@ -71,6 +71,15 @@ export interface AdminBooking {
    * ocupado y no se puede volver a vender. Ver sql/kora-checkout-real.sql.
    */
   checkoutReal: string;
+  /**
+   * Cuándo llegó de verdad el huésped ("" si no ha llegado).
+   *
+   * Es el espejo de `checkoutReal` y resuelve lo contrario: hasta que existió,
+   * la llegada se DEDUCÍA de las fechas y no se podía distinguir "llega hoy" de
+   * "ya está aquí". Una estancia de una noche ni siquiera llegaba a aparecer
+   * "En casa". Ver sql/kora-checkin-real.sql.
+   */
+  checkinReal: string;
 }
 
 export interface AdminQuote {
@@ -157,6 +166,8 @@ interface BookingRow {
   lang?: string | null; // idioma con el que reservó (opcional: columna nueva)
   /** Cuándo salió de verdad el huésped. Opcional: columna nueva (kora-checkout-real.sql). */
   checkout_real?: string | null;
+  /** Cuándo llegó de verdad el huésped. Opcional: columna nueva (kora-checkin-real.sql). */
+  checkin_real?: string | null;
 }
 
 interface QuoteRow {
@@ -229,6 +240,7 @@ function mapBooking(r: BookingRow): AdminBooking {
     doc: (r.doc ?? {}) as Record<string, unknown>,
     lang: r.lang === "en" ? "en" : "es",
     checkoutReal: r.checkout_real ?? "",
+    checkinReal: r.checkin_real ?? "",
   };
 }
 
@@ -295,6 +307,105 @@ export async function deshacerCheckout(
     .eq("confirmacion", confirmacion);
   if (error) {
     console.error("deshacerCheckout:", error.message);
+    return false;
+  }
+  return true;
+}
+
+/**
+ * ¿Este error es "todavía no se ha corrido sql/kora-checkin-real.sql"?
+ *
+ * El SQL lo corre Manolo a mano en Supabase, así que entre el despliegue y ese
+ * momento la columna no existe. Distinguirlo importa: sin esto el hotelero ve
+ * "no se pudo, inténtalo de nuevo" y lo intenta para siempre, cuando lo que
+ * falta es un paso de instalación que él mismo puede dar en un minuto.
+ */
+function faltaLaColumnaCheckin(error: { message?: string; code?: string }): boolean {
+  // 42703 = undefined_column en Postgres. El mensaje se comprueba además porque
+  // PostgREST no siempre propaga el `code`.
+  return error.code === "42703" || /checkin_real/.test(error.message ?? "");
+}
+
+/**
+ * Marca que el huésped YA LLEGÓ y ocupa su cuarto desde este momento.
+ *
+ * Espejo exacto de `checkoutBooking`, y por las mismas razones: no toca `estado`
+ * (su CHECK sólo admite CONFIRMADA/CANCELADA/MANUAL/REEMBOLSADA) y es
+ * idempotente, así que dos clics seguidos no reescriben la hora de llegada.
+ *
+ * POR QUÉ EXISTE: hasta ahora la llegada se DEDUCÍA de las fechas y nunca se
+ * afirmaba. Eso dejaba a recepción sin poder distinguir "llega hoy" de "ya está
+ * aquí", y a la estancia de una noche sin pasar nunca por "En casa" (el estado
+ * derivado exige `checkin < hoy` estricto). Ver sql/kora-checkin-real.sql.
+ */
+export async function checkinBooking(
+  hotelId: string,
+  confirmacion: string,
+): Promise<{ ok: true; cuando: string; habitaciones: string[] } | { ok: false; error: string }> {
+  const supabase = createAdminClient();
+  const { data: fila, error: errLeer } = await supabase
+    .from("bookings")
+    .select("id, estado, habitaciones, checkin_real, checkout_real")
+    .eq("hotel_id", hotelId)
+    .eq("confirmacion", confirmacion)
+    .maybeSingle();
+
+  if (errLeer) {
+    console.error("checkinBooking leer:", errLeer.message);
+    // Aquí falla ANTES que en la escritura, y es fácil pasarlo por alto: la
+    // lista de reservas usa `select("*")` y sigue funcionando sin la columna,
+    // pero esta consulta la NOMBRA, así que revienta en la lectura. Medido en
+    // localhost contra la base real: `column bookings.checkin_real does not exist`.
+    if (faltaLaColumnaCheckin(errLeer)) return { ok: false, error: "falta-columna" };
+    return { ok: false, error: "no-se-pudo-leer" };
+  }
+  if (!fila) return { ok: false, error: "no-encontrada" };
+
+  const habitaciones = splitRooms(String(fila.habitaciones ?? ""));
+
+  // Una cancelada o reembolsada no tiene a quién recibir.
+  if (!reservaCuenta(fila.estado)) return { ok: false, error: "reserva-sin-valor" };
+  // A quien ya se le hizo check-out no se le puede "registrar la llegada" encima:
+  // sería dejar la reserva llegada Y salida a la vez, y el cuarto ocupado por
+  // alguien que ya se fue. Primero hay que deshacer el check-out.
+  if (fila.checkout_real) return { ok: false, error: "ya-salio" };
+  if (fila.checkin_real) {
+    return { ok: true, cuando: String(fila.checkin_real), habitaciones };
+  }
+
+  const cuando = new Date().toISOString();
+  const { error } = await supabase
+    .from("bookings")
+    .update({ checkin_real: cuando })
+    .eq("id", fila.id)
+    .eq("hotel_id", hotelId); // cinturón: nunca tocar la fila de otro hotel
+
+  if (error) {
+    console.error("checkinBooking escribir:", error.message);
+    // El SQL lo corre Manolo a mano en Supabase, así que entre el despliegue y
+    // ese momento la columna puede no existir. Leer no falla (`select("*")`
+    // simplemente no la trae y la reserva se comporta como antes), pero escribir
+    // sí. Sin distinguirlo, el hotelero veía "no se pudo, inténtalo de nuevo" y
+    // lo intentaba para siempre. Mismo remedio que la ruta del documento.
+    if (faltaLaColumnaCheckin(error)) return { ok: false, error: "falta-columna" };
+    return { ok: false, error: "no-se-pudo-guardar" };
+  }
+  return { ok: true, cuando, habitaciones };
+}
+
+/** Deshace un check-in hecho por error (se marcó la reserva equivocada). */
+export async function deshacerCheckin(
+  hotelId: string,
+  confirmacion: string,
+): Promise<boolean> {
+  const supabase = createAdminClient();
+  const { error } = await supabase
+    .from("bookings")
+    .update({ checkin_real: null })
+    .eq("hotel_id", hotelId)
+    .eq("confirmacion", confirmacion);
+  if (error) {
+    console.error("deshacerCheckin:", error.message);
     return false;
   }
   return true;

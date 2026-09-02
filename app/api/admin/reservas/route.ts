@@ -2,7 +2,7 @@ import { negar } from "@/lib/panel/permisos";
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getActiveHotel } from '@/lib/panel/active-hotel';
-import { getAllBookings, createManualBooking } from '@/lib/db/admin';
+import { getAllBookings, createManualBooking, checkinBooking } from '@/lib/db/admin';
 import { checkAvailability } from '@/lib/db/availability';
 import type { HotelRow } from '@/lib/tenant';
 import {
@@ -34,6 +34,12 @@ const ManualBookingBody = z
     notas: z.string().max(20_000).optional(),
     /** Meter la reserva ENCIMA de otra, a sabiendas. Deja rastro en las notas. */
     forzar: z.boolean().optional(),
+    /**
+     * El huésped está AQUÍ, delante del mostrador (walk-in). Registra la llegada
+     * en el mismo paso que crea la reserva, para que el cuarto salga ocupado sin
+     * tener que ir a buscarla a la lista y pulsar un segundo botón.
+     */
+    llegoYa: z.boolean().optional(),
   })
   .refine((d) => d.checkout > d.checkin, {
     message: "La salida tiene que ser posterior a la llegada.",
@@ -139,6 +145,23 @@ export async function POST(req: NextRequest) {
     }
     const confirmacion = creada.confirmacion;
 
+    // WALK-IN: el huésped ya está aquí. Se registra su llegada en el acto para
+    // que el cuarto aparezca ocupado de inmediato — que es lo que el hotelero
+    // echaba de menos de AZHotel: "se puede hacer un registro sin reserva y
+    // automáticamente la habitación aparece como ocupada".
+    //
+    // Best-effort a propósito: la reserva YA está creada y cobrada. Si esto
+    // falla, el cuarto se ocupa igual por fechas (entra hoy) y recepción puede
+    // pulsar "Ya llegó" en la lista. Tumbar el alta por esto sería peor.
+    let llegadaRegistrada = false;
+    if (data.llegoYa) {
+      const r = await checkinBooking(ctx.hotelId, confirmacion);
+      llegadaRegistrada = r.ok;
+      if (!r.ok) {
+        console.error(`[admin.reservas.crear] reserva ${confirmacion} creada pero la llegada no se registró: ${r.error}`);
+      }
+    }
+
     // TODO loyalty: en Paraíso se llamaba checkAndEnrollLoyalty aquí. Kora aún no
     // tiene módulo de lealtad → se omite.
 
@@ -150,7 +173,7 @@ export async function POST(req: NextRequest) {
     // queda sin su confirmación (ver la nota en /api/panel/crear-hotel).
     await notifyBookingEmails(req, ctx.hotel, confirmacion, data).catch((e) => console.error("[admin/reservas] ignorado:", e));
 
-    return NextResponse.json({ ok: true, confirmacion });
+    return NextResponse.json({ ok: true, confirmacion, llegadaRegistrada });
   } catch (e) {
     // El detalle (nombres de tabla, restricciones, columnas) se queda en el log
     // del servidor; al navegador sólo va un mensaje que el hotelero pueda leer.

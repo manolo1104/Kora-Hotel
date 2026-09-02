@@ -68,6 +68,36 @@ export default function PrivacidadPage() {
                 No recopilamos datos sensibles según lo define la LFPDPPP, como
                 datos biométricos, de salud o de origen racial.
               </p>
+
+              <h3 className="text-base font-bold text-kora-text mt-6 mb-2">
+                Registro de llegada del huésped (pre check-in)
+              </h3>
+              <p>
+                Cuando un hotel activa el registro en línea, el huésped puede
+                llenar su ficha de llegada desde su celular. En ese caso Kora
+                trata, <strong>por cuenta y a nombre del hotel</strong>, los
+                siguientes datos del huésped:
+              </p>
+              <ul className="mt-3 space-y-1.5 list-disc list-inside text-kora-muted">
+                <li>Nombre completo, teléfono y correo</li>
+                <li>Domicilio, ciudad de origen y país</li>
+                <li>
+                  Tipo de identificación y sus últimos dígitos —{" "}
+                  <strong>nunca una imagen o copia del documento</strong>
+                </li>
+                <li>Nombre de sus acompañantes</li>
+                <li>Hora estimada de llegada y placas del vehículo</li>
+                <li>Firma autógrafa digitalizada</li>
+              </ul>
+              <p className="mt-3">
+                Estos datos se usan <strong>únicamente</strong> para el registro
+                de hospedaje del hotel que recibe al huésped. No se comparten con
+                otros hoteles, no se usan con fines publicitarios y no se venden.
+                El responsable frente al huésped es el hotel; Kora actúa como
+                encargado del tratamiento. Para ejercer derechos ARCO sobre un
+                registro de llegada, el huésped puede dirigirse al hotel donde se
+                hospedó o escribirnos y lo canalizamos.
+              </p>
             </section>
 
             <section aria-labelledby="finalidad">

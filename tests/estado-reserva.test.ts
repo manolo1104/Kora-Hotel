@@ -27,7 +27,9 @@ describe("reservaCuenta", () => {
 /** Usos legítimos de comparar contra CANCELADA a secas, con su razón. */
 const PERMITIDOS = new Map<string, string>([
   // Traduce el estado a la etiqueta de la lista: REEMBOLSADA tiene la suya.
-  ["app/panel/[slug]/(operativo)/reservas/ReservasClient.tsx", "mapea cada estado a su propia etiqueta"],
+  // (Vivía en ReservasClient.tsx; se extrajo a lib/ para poder probarlo y para
+  // que los contadores de "Hoy" dejaran de reimplementarlo a mano.)
+  ["lib/booking/estado-operativo.ts", "mapea cada estado a su propia etiqueta"],
   // Detecta la TRANSICIÓN a cancelada; no filtra reservas vivas.
   ["app/api/admin/reservas/[id]/route.ts", "detecta el cambio DE estado, no filtra"],
   // Es EL mapeador: traduce fila → DTO comparando estado por estado.

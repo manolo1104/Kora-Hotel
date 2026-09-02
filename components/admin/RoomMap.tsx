@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { X, AlertTriangle, Sparkles, BedDouble, CheckCircle, LogOut, Loader2 } from 'lucide-react';
+import { X, AlertTriangle, Sparkles, BedDouble, CheckCircle, LogOut, LogIn, UserPlus, Loader2 } from 'lucide-react';
 import { postJson, mensajeDeError } from '@/lib/ui/api';
+import { ZONA_HOTEL } from '@/lib/fecha-hotel';
 import styles from './RoomMap.module.css';
 
 export type RoomStatusType = 'DISPONIBLE' | 'OCUPADA' | 'MANTENIMIENTO' | 'LIMPIEZA';
@@ -12,15 +13,46 @@ interface RoomData {
   estado: RoomStatusType;
   notas: string;
   actualizacion: string;
-  ocupadaPor: { cliente: string; checkout: string; huespedes: number; confirmacion: string } | null;
+  ocupadaPor: {
+    cliente: string; checkout: string; huespedes: number; confirmacion: string;
+    /** ¿Recepción ya registró su llegada? `false` = el calendario dice que entra hoy, pero no está. */
+    llegoYa: boolean;
+  } | null;
 }
 
+// Cada estado apunta a un PAR de variables de tema, no a dos hex sueltos.
+//
+// POR QUÉ: estos colores eran `#4ade80`, `#facc15`, `#f87171` y `#60a5fa` —los
+// tonos 400 de Tailwind, pensados para una superficie OSCURA, herencia del panel
+// de Paraíso—. En el panel claro de Kora quedaban lavados, y el texto de las
+// tarjetas (blanco crema) desaparecía sobre ellos. Es el mismo fallo que ya
+// había reportado un hotelero: "las letras son blancas y uno no sabe qué está
+// haciendo". Los pares de chips ya existen y ya voltean solos en tema oscuro
+// (ver admin.module.css), así que el mapa los reutiliza en vez de inventarse
+// su propia paleta.
 const STATUS_CONFIG: Record<RoomStatusType, { label: string; color: string; bg: string; icon: React.ReactNode }> = {
-  DISPONIBLE:   { label: 'Disponible',         color: '#4ade80', bg: 'rgba(74,222,128,0.22)',  icon: <CheckCircle size={14} /> },
-  OCUPADA:      { label: 'Ocupada',             color: '#facc15', bg: 'rgba(250,204,21,0.22)',  icon: <BedDouble size={14} /> },
-  MANTENIMIENTO:{ label: 'Mantenimiento',       color: '#f87171', bg: 'rgba(248,113,113,0.28)', icon: <AlertTriangle size={14} /> },
-  LIMPIEZA:     { label: 'Limpieza pendiente',  color: '#60a5fa', bg: 'rgba(96,165,250,0.22)',  icon: <Sparkles size={14} /> },
+  DISPONIBLE:   { label: 'Disponible',         color: 'var(--chip-ok-text)',     bg: 'var(--chip-ok-bg)',     icon: <CheckCircle size={14} /> },
+  OCUPADA:      { label: 'Ocupada',            color: 'var(--chip-aviso-text)',  bg: 'var(--chip-aviso-bg)',  icon: <BedDouble size={14} /> },
+  MANTENIMIENTO:{ label: 'Mantenimiento',      color: 'var(--chip-mal-text)',    bg: 'var(--chip-mal-bg)',    icon: <AlertTriangle size={14} /> },
+  LIMPIEZA:     { label: 'Limpieza pendiente', color: 'var(--chip-info-text)',   bg: 'var(--chip-info-bg)',   icon: <Sparkles size={14} /> },
 };
+
+/**
+ * La marca de tiempo de Postgres, en cristiano y en hora del hotel.
+ *
+ * Se pintaba cruda: «Actualizado: 2026-09-01T16:12:08.71+00:00». Además de
+ * ilegible, es UTC — la camarista leía una hora que no es la suya. Si llegara
+ * algo que no se puede interpretar se devuelve tal cual: es un dato informativo
+ * y no vale la pena romper la tarjeta por él.
+ */
+function fechaLegible(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleString('es-MX', {
+    timeZone: ZONA_HOTEL,
+    day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
+  });
+}
 
 interface EditModal {
   room: RoomData;
@@ -28,13 +60,20 @@ interface EditModal {
   notas: string;
 }
 
-export default function RoomMap() {
+interface Props {
+  slug: string;
+  /** ¿Puede dar de alta una reserva? Sin esto, el botón de walk-in no se pinta. */
+  puedeReservar: boolean;
+}
+
+export default function RoomMap({ slug, puedeReservar }: Props) {
   const [rooms, setRooms] = useState<RoomData[]>([]);
   const [loading, setLoading] = useState(true);
   const [editModal, setEditModal] = useState<EditModal | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [saliendo, setSaliendo] = useState<string | null>(null);
+  const [llegando, setLlegando] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -71,6 +110,29 @@ export default function RoomMap() {
       setError('No se pudo conectar. Revisa tu internet e inténtalo de nuevo.');
     } finally {
       setSaliendo(null);
+    }
+  }
+
+  /**
+   * Check-in desde el mapa. Mismo motivo que el check-out: es donde el hotelero
+   * VE el cuarto, así que es donde busca la acción. Y aquí importa el doble,
+   * porque el mapa marca "Ocupada" desde la medianoche del día de llegada: sin
+   * este botón no había forma de distinguir el cuarto que espera a alguien del
+   * que ya lo tiene dentro.
+   */
+  async function checkin(folio: string) {
+    if (!folio || llegando) return;
+    setLlegando(folio);
+    setError('');
+    try {
+      const res = await fetch(`/api/admin/reservas/${encodeURIComponent(folio)}/checkin`, { method: 'POST' });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) { setError(d.error || 'No se pudo registrar la llegada.'); return; }
+      await load();
+    } catch {
+      setError('No se pudo conectar. Revisa tu internet e inténtalo de nuevo.');
+    } finally {
+      setLlegando(null);
     }
   }
 
@@ -130,12 +192,12 @@ export default function RoomMap() {
             <div
               key={room.suite}
               className={styles.card}
-              style={{ background: cfg.bg, borderColor: cfg.color + 'cc' }}
+              style={{ background: cfg.bg, borderColor: cfg.color }}
               onClick={() => setEditModal({ room, estado: room.estado, notas: room.notas })}
             >
               <div className={styles.cardHeader}>
                 <span className={styles.statusIcon} style={{ color: cfg.color }}>{cfg.icon}</span>
-                <span className={styles.statusBadge} style={{ color: cfg.color, background: cfg.color + '22' }}>
+                <span className={styles.statusBadge} style={{ color: cfg.color, background: 'var(--cream)' }}>
                   {cfg.label}
                 </span>
               </div>
@@ -143,8 +205,26 @@ export default function RoomMap() {
               {room.estado === 'OCUPADA' && room.ocupadaPor && (
                 <div className={styles.occupiedInfo}>
                   <span className={styles.guestName}>{room.ocupadaPor.cliente.split(' ')[0]} {room.ocupadaPor.cliente.split(' ')[1] || ''}</span>
-                  <span className={styles.checkoutDate}>Sale: {room.ocupadaPor.checkout}</span>
+                  {/* "Ocupada" solo no basta: el cuarto se pinta ocupado desde la
+                      medianoche del día de llegada. Esta línea dice cuál de las
+                      dos cosas es. */}
+                  <span className={styles.checkoutDate}>
+                    {room.ocupadaPor.llegoYa ? 'En casa' : 'Aún no llega'} · Sale: {room.ocupadaPor.checkout}
+                  </span>
                   <span className={styles.guestCount}>{room.ocupadaPor.huespedes} huéspedes</span>
+                  {room.ocupadaPor.confirmacion && !room.ocupadaPor.llegoYa && (
+                    <button
+                      type="button"
+                      className={styles.checkinBtn}
+                      onClick={e => { e.stopPropagation(); checkin(room.ocupadaPor!.confirmacion); }}
+                      disabled={llegando === room.ocupadaPor.confirmacion}
+                      title="El huésped ya llegó: registrar su entrada"
+                    >
+                      {llegando === room.ocupadaPor.confirmacion
+                        ? <><Loader2 size={12} className={styles.spin} /> Registrando…</>
+                        : <><LogIn size={12} /> Ya llegó</>}
+                    </button>
+                  )}
                   {room.ocupadaPor.confirmacion && (
                     <button
                       type="button"
@@ -162,11 +242,28 @@ export default function RoomMap() {
                   )}
                 </div>
               )}
+              {/* WALK-IN. El hotelero echaba de menos de AZHotel "hacer un
+                  registro sin reserva y que la habitación aparezca ocupada", y
+                  éste es el sitio donde lo va a buscar: la tarjeta del cuarto
+                  libre que tiene delante.
+                  Lleva a la pantalla de Reservas en vez de abrir el alta aquí a
+                  propósito: ese formulario enseña PRECIOS, y a Operaciones entra
+                  la camarista, a quien el panel se los esconde. */}
+              {puedeReservar && room.estado === 'DISPONIBLE' && (
+                <a
+                  href={`/panel/${slug}/reservas?walkin=${encodeURIComponent(room.suite)}`}
+                  className={styles.walkinBtn}
+                  onClick={e => e.stopPropagation()}
+                  title="Registrar a un huésped que llegó sin reserva"
+                >
+                  <UserPlus size={12} /> Registrar huésped
+                </a>
+              )}
               {room.notas && room.estado !== 'OCUPADA' && (
                 <p className={styles.cardNota}>{room.notas}</p>
               )}
               {room.actualizacion && (
-                <p className={styles.cardTs}>Actualizado: {room.actualizacion}</p>
+                <p className={styles.cardTs}>Actualizado: {fechaLegible(room.actualizacion)}</p>
               )}
             </div>
           );

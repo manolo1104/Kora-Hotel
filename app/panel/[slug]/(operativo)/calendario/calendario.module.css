@@ -111,22 +111,6 @@
   overflow: hidden;
 }
 
-.weekdays {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  background: var(--forest);
-}
-
-.weekday {
-  padding: 10px;
-  text-align: center;
-  font-size: 0.72rem;
-  font-weight: 500;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: rgba(250,248,245,0.7);
-}
-
 .grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);

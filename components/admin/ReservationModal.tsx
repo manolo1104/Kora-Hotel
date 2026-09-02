@@ -6,6 +6,7 @@ import type { AdminBooking } from '@/lib/admin/sheets-admin';
 import { getRoomBasePrice, type BookingRoom } from '@/lib/booking';
 import { type TourCat, type PaqueteCat } from '@/lib/admin/cotizaciones-catalogo';
 import { parseNotas, construirNotas, type TourItem, type PaqueteItem } from '@/lib/notas';
+import { hoyHotel, sumarDias } from '@/lib/fecha-hotel';
 import styles from './Modal.module.css';
 import { postJson } from '@/lib/ui/api';
 
@@ -129,11 +130,16 @@ interface Props {
   slug: string;
   defaultCheckin?: string;
   defaultRoom?: string;
+  /**
+   * Walk-in: el huésped está delante del mostrador. Arranca la casilla "ya está
+   * aquí" marcada, para que registrar y ocupar el cuarto sea un solo gesto.
+   */
+  walkin?: boolean;
   onClose: () => void;
   onSaved: () => void;
 }
 
-export default function ReservationModal({ booking, rooms, slug, defaultCheckin, defaultRoom, onClose, onSaved }: Props) {
+export default function ReservationModal({ booking, rooms, slug, defaultCheckin, defaultRoom, walkin = false, onClose, onSaved }: Props) {
   const isEdit = !!booking;
   // Lista las UNIDADES físicas (no los tipos): un tipo con cantidad N aporta sus
   // N unidades. Así el hotelero elige la unidad exacta y no sobrevende un tipo.
@@ -163,7 +169,10 @@ export default function ReservationModal({ booking, rooms, slug, defaultCheckin,
     telefono: booking?.telefono || '',
     email: booking?.email || '',
     checkin: booking?.checkin || defaultCheckin || '',
-    checkout: booking?.checkout || '',
+    // En un walk-in la salida se prellena a mañana: es la estancia por defecto
+    // de quien llega sin reserva, y el formulario la exige. Sin esto recepción
+    // tenía que abrir el calendario con el huésped delante para poder guardar.
+    checkout: booking?.checkout || (walkin && defaultCheckin ? sumarDias(defaultCheckin, 1) : ''),
     noches: booking?.noches || 1,
     total: booking?.total || 0,
   });
@@ -223,6 +232,8 @@ export default function ReservationModal({ booking, rooms, slug, defaultCheckin,
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [availStatus, setAvailStatus] = useState<'idle' | 'checking' | 'available' | 'unavailable' | 'error'>('idle');
+  // Walk-in: registrar la llegada en el mismo paso que se crea la reserva.
+  const [llegoYa, setLlegoYa] = useState(walkin);
   // "Meter la reserva encima de otra, a sabiendas." Existe porque a veces el
   // hotel SÍ quiere hacerlo (un huésped que comparte cuarto, un cambio de última
   // hora), pero antes se podía hacer sin querer y sin dejar rastro: la reserva a
@@ -393,6 +404,7 @@ export default function ReservationModal({ booking, rooms, slug, defaultCheckin,
         body: JSON.stringify({
           ...form, habitacion, huespedes: totalHuespedes, anticipo, notas,
           ...(!isEdit && forzar ? { forzar: true } : {}),
+          ...(!isEdit && llegoYa ? { llegoYa: true } : {}),
         }),
       });
       const data = await res.json();
@@ -725,6 +737,19 @@ export default function ReservationModal({ booking, rooms, slug, defaultCheckin,
               {availStatus === 'unavailable' && <><AlertTriangle size={13} /> No disponible en esas fechas</>}
               {availStatus === 'error' && <><AlertTriangle size={13} /> No se pudo verificar la disponibilidad</>}
             </div>
+          )}
+
+          {/* WALK-IN. Sólo tiene sentido si la reserva empieza HOY: marcar "ya
+              está aquí" en una reserva de la semana que viene ocuparía el cuarto
+              desde ahora. Por eso la casilla aparece únicamente ese día. */}
+          {!isEdit && form.checkin === hoyHotel() && (
+            <label className={styles.llegoYa}>
+              <input type="checkbox" checked={llegoYa} onChange={e => setLlegoYa(e.target.checked)} />
+              <span>
+                <strong>El huésped ya está aquí.</strong> Registra su llegada al guardar,
+                así el cuarto aparece ocupado de inmediato y no hay que buscarlo en la lista.
+              </span>
+            </label>
           )}
 
           {/* La salida de emergencia. Sólo aparece cuando de verdad hay choque:

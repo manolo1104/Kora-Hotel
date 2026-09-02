@@ -378,3 +378,110 @@ export const RESERVA_TPL = `<!DOCTYPE html>
 </body>
 </html>
 `;
+
+/* ==========================================================================
+   KORA · TICKET TÉRMICO (impresoras de rollo de 58 y 80 mm)
+   --------------------------------------------------------------------------
+   POR QUÉ EXISTE: el comprobante de reserva es una hoja CARTA. El hotelero que
+   paga imprime en una térmica chica de mostrador y pidió dos cosas: "un formato
+   de ticket más pequeño" y "que se pueda imprimir directamente desde el
+   sistema, sin tener que descargarlo, guardarlo, abrirlo y mandarlo a imprimir".
+
+   Usa las MISMAS variables que RESERVA_TPL (mismo `ReservaDocData`, mismo
+   `assembleReserva`): sólo cambia la hoja.
+
+   REGLAS DE UNA TÉRMICA, que no son las de una hoja:
+   - El ancho es fijo y la altura la marca el papel: `size: {{ ancho }} auto`.
+   - NO imprime color: no hay tinta, hay calor. Todo en negro sobre blanco, y
+     la jerarquía se hace con tamaño y grosor, no con tono. Por eso este
+     template NO lleva el verde de marca, y `finalize()` no tiene nada que
+     recolorear.
+   - Sin fuentes externas: la impresora tarda y una web font que no cargue
+     mueve todo. Pila del sistema, monoespaciada para las cifras.
+   - Márgenes en cero: el driver ya reserva el suyo, y sumar los dos parte el
+     ticket en dos hojas.
+   ========================================================================== */
+export const TICKET_TPL = `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ticket {{ folio }} · {{ hotel_nombre }}</title>
+<style>
+  @page { size: {{ ancho }} auto; margin: 0; }
+  * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body {
+    margin: 0;
+    background: #fff;
+    color: #000;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 11px;
+    line-height: 1.35;
+  }
+  .ticket { width: {{ ancho }}; padding: 4mm 3mm; margin: 0 auto; }
+  .c { text-align: center; }
+  .hotel { font-size: 14px; font-weight: 700; letter-spacing: .02em; }
+  .sub { font-size: 10px; }
+  .folio { font-size: 17px; font-weight: 700; letter-spacing: .06em; margin: 2mm 0 1mm; }
+  hr { border: 0; border-top: 1px dashed #000; margin: 2.5mm 0; }
+  .fila { display: flex; justify-content: space-between; gap: 4px; }
+  .fila span:first-child { flex-shrink: 0; }
+  .fila span:last-child { text-align: right; font-weight: 600; word-break: break-word; }
+  /* Entrada y salida NO caben en una fila etiqueta-valor: a 58 mm entran unos 32
+     caracteres, y "1 · Mar · Sep 2026 · desde 3:00 PM" son 34. Alineado a la
+     derecha se partía en dos con la segunda mitad colgando. Apilado se lee de
+     corrido, que es lo que importa cuando el huésped mira el papel. */
+  .bloque { margin: 1mm 0; }
+  .bloque .et { font-size: 10px; }
+  .bloque .val { font-weight: 700; }
+  .tot { font-size: 13px; font-weight: 700; }
+  .saldo { font-size: 13px; font-weight: 700; border: 1.5px solid #000; padding: 1.5mm 2mm; margin-top: 1.5mm; }
+  .pie { font-size: 9px; margin-top: 3mm; }
+  /* En pantalla se ve como el papel: el mismo ancho, centrado y con sombra,
+     para que el hotelero compruebe que cabe ANTES de gastar rollo. */
+  @media screen {
+    body { background: #e7e4dc; padding: 24px 0; }
+    .ticket { background: #fff; box-shadow: 0 8px 28px rgba(0,0,0,.18); }
+  }
+</style>
+</head>
+<body>
+<div class="ticket">
+  <div class="c">
+    <div class="hotel">{{ hotel_nombre }}</div>
+    {{ hotel_ubicacion }}
+    <div class="sub">{{ hotel_telefono }}</div>
+    <div class="folio">{{ folio }}</div>
+    <div class="sub">{{ fecha_reserva }}</div>
+  </div>
+
+  <hr>
+
+  <div class="fila"><span>Huésped</span><span>{{ cliente_nombre }}</span></div>
+  <div class="fila"><span>Habitación</span><span>{{ habitacion }}</span></div>
+  <div class="bloque">
+    <span class="et">Entrada</span>
+    <div class="val">{{ entrada_dia }} · {{ entrada_detalle }}</div>
+  </div>
+  <div class="bloque">
+    <span class="et">Salida</span>
+    <div class="val">{{ salida_dia }} · {{ salida_detalle }}</div>
+  </div>
+  <div class="fila"><span>Noches</span><span>{{ noches }}</span></div>
+  <div class="fila"><span>Huéspedes</span><span>{{ huespedes }}</span></div>
+
+  <hr>
+
+  <div class="fila tot"><span>Total</span><span>{{ total_estancia }} {{ moneda }}</span></div>
+  <div class="fila"><span>Anticipo</span><span>{{ anticipo_pagado }}</span></div>
+  <div class="fila saldo"><span>Por pagar</span><span>{{ restante }}</span></div>
+
+  <hr>
+
+  <div class="c pie">
+    {{ hotel_email }}<br>
+    ¡Gracias por su visita!
+  </div>
+</div>
+</body>
+</html>`;

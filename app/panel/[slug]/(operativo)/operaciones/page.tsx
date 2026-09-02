@@ -1,20 +1,13 @@
 import { requireHotelMember } from "@/lib/tenant";
 import { motivoCierre } from "@/lib/panel/pantallas";
+import { puedeCtx } from "@/lib/panel/permisos";
 import { SinPermiso, pantallaDe } from "@/components/panel/SinPermiso";
 import { getCleaningTasks, getMaintenanceTasks } from "@/lib/db/admin";
 import { unitNamesOf } from "@/lib/booking";
+import { hoyHotel } from "@/lib/fecha-hotel";
 import OperacionesClient from "./OperacionesClient";
 
 export const dynamic = "force-dynamic";
-
-function todayMX(): string {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Mexico_City",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
-}
 
 export default async function OperacionesPage({
   params,
@@ -53,7 +46,13 @@ export default async function OperacionesPage({
       initialCleaning={cleaning}
       initialMaintenance={maintenance}
       suites={roomNames}
-      today={todayMX()}
+      today={hoyHotel()}
+      slug={slug}
+      // El botón de walk-in lleva a dar de alta una reserva: si el puesto no
+      // puede escribirlas (la camarista entra aquí a ver la limpieza), ni
+      // siquiera se le enseña. Un botón que lleva a un 403 se lee como que el
+      // panel se descompuso.
+      puedeReservar={puedeCtx(ctx, "reservas:escribir")}
     />
   );
 }

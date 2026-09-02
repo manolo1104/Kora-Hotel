@@ -246,6 +246,26 @@
   cursor: pointer;
 }
 .forzar input { margin-top: 2px; flex-shrink: 0; accent-color: var(--chip-mal-text); }
+
+/* "El huésped ya está aquí" (walk-in). Misma forma que `.forzar` pero en azul de
+   información, no en rojo: forzar una reserva encima de otra es una salida de
+   emergencia y debe dar respeto; registrar a quien llega sin reserva es la
+   operación normal de un mostrador y no hay nada que advertir. */
+.llegoYa {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--chip-info-text);
+  border-radius: 10px;
+  background: var(--chip-info-bg);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--chip-info-text);
+  cursor: pointer;
+}
+.llegoYa input { margin-top: 2px; flex-shrink: 0; accent-color: var(--chip-info-text); }
 .forzar strong { color: var(--chip-mal-text); }
 
 /* Multi-habitación */

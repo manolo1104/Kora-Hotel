@@ -1,4 +1,6 @@
 import { reservaCuenta } from "@/lib/booking/estado-reserva";
+import { hoyHotel } from "@/lib/fecha-hotel";
+import { bookingsConPreCheckin } from "@/lib/db/pre-checkin";
 import { NextResponse } from "next/server";
 import { createAdminClient, adminEnvReady } from "@/lib/supabase/admin";
 import { enviarEmail } from "@/lib/email/resend";
@@ -12,6 +14,7 @@ import {
   buildReturnOfferEmailHtml,
   buildRestaurantEmailHtml,
   buildWelcomeGuideEmailHtml,
+  buildRegistroPrevioEmailHtml,
   type HotelBrand,
 } from "@/lib/email-sequences";
 import { EMAIL_FROM } from "@/lib/contacto";
@@ -34,6 +37,10 @@ export const maxDuration = 60;
 
 type EmailType =
   | "pre_day3"
+  // Registro previo (pre check-in): el enlace para llenarlo desde el celular.
+  // OJO con el nombre: `pre_checkin` de aquí abajo NO es esto — es la guía de
+  // bienvenida del DÍA de llegada, que ya existía y sigue igual.
+  | "registro_previo"
   | "pre_checkin"
   | "post_day1"
   | "post_day7"
@@ -68,15 +75,9 @@ interface HotelRow {
   extras: Record<string, unknown> | null;
 }
 
-// ── HELPERS DE FECHA (zona MX, espejo del origen) ───────────────────────────
-function todayMX(): string {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Mexico_City",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
-}
+// ── HELPERS DE FECHA ────────────────────────────────────────────────────────
+// El día del hotel lo da lib/fecha-hotel.ts, que es la única fuente: cuando cada
+// pantalla lo calculaba por su cuenta, la mitad lo hacía en UTC y se contradecían.
 
 function shiftDate(dateStr: string, days: number): string {
   const d = new Date(dateStr + "T12:00:00");
@@ -156,7 +157,7 @@ export async function GET(req: Request) {
   }
 
   const admin = createAdminClient();
-  const today = todayMX();
+  const today = hoyHotel();
   const maxPastDate = shiftDate(today, -MAX_LOOKBACK_DAYS);
 
   // Envío gated: si no hay API key, no enviamos (pero tampoco marcamos email_log).
@@ -220,6 +221,16 @@ export async function GET(req: Request) {
     );
 
     // Datos opcionales de guía (check-in/out, dirección) desde hotel.guia/config.
+    // El correo de registro previo es OPT-IN por hotel: apagado salvo que el
+    // hotelero lo encienda. Nadie empieza a escribirle a sus huéspedes sin
+    // enterarse — que es exactamente lo que pasaría con 11 hoteles en la flota.
+    const registroPrevioActivo = Boolean((hotel.config ?? {}).pre_checkin_enabled);
+    // A quien ya se registró no se le insiste. Se consulta UNA vez por hotel, no
+    // una por reserva.
+    const yaRegistrados = registroPrevioActivo
+      ? await bookingsConPreCheckin(hotel.id)
+      : new Set<string>();
+
     const guia = (hotel.guia ?? {}) as Record<string, unknown>;
     const gstr = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : undefined);
     const checkinHora = gstr(guia.checkin);
@@ -328,6 +339,37 @@ export async function GET(req: Request) {
         : undefined;
 
       try {
+        // registro_previo: ventana [checkin-2, checkin). A −2 días y no el mismo
+        // día: quien ya va en carretera no llena formularios.
+        if (
+          registroPrevioActivo &&
+          hotel.slug &&
+          !yaRegistrados.has(b.id) &&
+          shiftDate(checkin, -2) <= today &&
+          today < checkin
+        ) {
+          await sendOnce(
+            b,
+            "registro_previo",
+            en
+              ? `${first}, check in before you arrive at ${brand.nombre}`
+              : `${first}, regístrate antes de llegar a ${brand.nombre}`,
+            buildRegistroPrevioEmailHtml({
+              hotel: brand,
+              customerName: b.cliente,
+              confirmacion: b.confirmacion,
+              checkin,
+              habitaciones: b.habitaciones,
+              // Canónico kora-hotel.com, igual que el enlace de reseña: el correo
+              // se abre en el teléfono del huésped, donde un dominio de vista
+              // previa no resuelve.
+              registroUrl: `https://kora-hotel.com/h/${hotel.slug}/pre-checkin?r=${b.id}&lang=${lang}`,
+              checkinHora,
+              lang,
+            }),
+          );
+        }
+
         // pre_day3: ventana [checkin-3, checkin)
         if (shiftDate(checkin, -3) <= today && today < checkin) {
           await sendOnce(

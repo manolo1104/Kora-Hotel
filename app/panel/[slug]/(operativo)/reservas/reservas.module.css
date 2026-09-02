@@ -376,6 +376,26 @@
 .actionBtnCheckout:hover:not(:disabled) { background: rgba(53, 122, 91, 0.20); }
 .actionBtnCheckout:disabled { opacity: 0.5; cursor: not-allowed; }
 
+/* El botón de LLEGADA. Comparte forma con el de check-out —son la misma pareja
+   de acciones— pero no color: dos botones idénticos pegados en la misma fila se
+   pulsan por error, y aquí equivocarse significa ocupar un cuarto que no era.
+   Este va en azul de información, el de salida en verde. */
+.actionBtnCheckin {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid var(--chip-info-text);
+  background: var(--chip-info-bg);
+  color: var(--chip-info-text);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.actionBtnCheckin:hover:not(:disabled) { filter: brightness(0.95); }
+.actionBtnCheckin:disabled { opacity: 0.5; cursor: not-allowed; }
+
 /* ── Days chip ───────────────────────────────────────────────────────────── */
 .daysChip {
   display: inline-block; font-size: 0.72rem; font-weight: 600;

@@ -15,7 +15,7 @@
   display: flex;
   align-items: center;
   gap: 7px;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--cream);
   border: 1px solid;
   border-radius: 6px;
   padding: 8px 14px;
@@ -32,7 +32,7 @@
 
 .summaryLabel {
   font-size: 0.78rem;
-  color: rgba(250, 248, 245, 0.6);
+  color: var(--clay);
   flex: 1;
   font-family: var(--font-jost), sans-serif;
 }
@@ -91,7 +91,7 @@
 .suiteName {
   font-family: var(--font-cormorant), Georgia, serif;
   font-size: 1rem;
-  color: rgba(250, 248, 245, 0.9);
+  color: var(--ink);
   margin: 0;
   line-height: 1.2;
 }
@@ -105,23 +105,23 @@
 
 .guestName {
   font-size: 0.8rem;
-  color: rgba(250, 248, 245, 0.85);
+  color: var(--ink);
   font-weight: 500;
 }
 
 .checkoutDate {
   font-size: 0.72rem;
-  color: rgba(250, 248, 245, 0.5);
+  color: var(--clay);
 }
 
 .guestCount {
   font-size: 0.72rem;
-  color: rgba(250, 248, 245, 0.45);
+  color: var(--clay);
 }
 
 .cardNota {
   font-size: 0.72rem;
-  color: rgba(250, 248, 245, 0.5);
+  color: var(--clay);
   margin: 0;
   font-style: italic;
   overflow: hidden;
@@ -132,7 +132,7 @@
 
 .cardTs {
   font-size: 0.65rem;
-  color: rgba(250, 248, 245, 0.25);
+  color: var(--clay);
   margin: auto 0 0;
 }
 
@@ -149,8 +149,8 @@
 }
 
 .modal {
-  background: #1a2e24;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--cream);
+  border: 1px solid var(--line);
   border-radius: 12px;
   width: 100%;
   max-width: 420px;
@@ -164,25 +164,25 @@
   align-items: center;
   justify-content: space-between;
   padding: 20px 24px 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid var(--line);
 }
 
 .modalTitle {
   font-family: var(--font-cormorant), Georgia, serif;
   font-size: 1.2rem;
   font-weight: 400;
-  color: rgba(250, 248, 245, 0.9);
+  color: var(--ink);
   margin: 0;
 }
 
 .closeBtn {
   background: none;
   border: none;
-  color: rgba(250, 248, 245, 0.4);
+  color: var(--clay);
   cursor: pointer;
   padding: 4px;
 }
-.closeBtn:hover { color: rgba(250, 248, 245, 0.8); }
+.closeBtn:hover { color: var(--ink); }
 
 .modalBody {
   padding: 20px 24px;
@@ -195,7 +195,7 @@
   font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: rgba(250, 248, 245, 0.4);
+  color: var(--clay);
   font-family: var(--font-jost), sans-serif;
   display: block;
   margin-bottom: 6px;
@@ -213,25 +213,25 @@
   gap: 7px;
   padding: 10px 12px;
   border-radius: 7px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.03);
-  color: rgba(250, 248, 245, 0.6);
+  border: 1px solid var(--line);
+  background: var(--cream);
+  color: var(--clay);
   font-size: 0.78rem;
   font-family: var(--font-jost), sans-serif;
   cursor: pointer;
   transition: all 0.15s;
   text-align: left;
 }
-.statusOpt:hover { background: rgba(255, 255, 255, 0.07); }
+.statusOpt:hover { background: var(--parch); }
 .statusOptActive { font-weight: 600; }
 
 .textarea {
   width: 100%;
   padding: 10px 12px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--cream);
+  border: 1px solid var(--line);
   border-radius: 6px;
-  color: rgba(250, 248, 245, 0.9);
+  color: var(--ink);
   font-size: 0.875rem;
   font-family: var(--font-jost), sans-serif;
   resize: vertical;
@@ -239,41 +239,46 @@
   box-sizing: border-box;
 }
 .textarea:focus { border-color: rgba(201, 169, 122, 0.4); }
-.textarea::placeholder { color: rgba(250, 248, 245, 0.25); }
+.textarea::placeholder { color: var(--clay); }
 
 .modalFooter {
   display: flex;
   gap: 10px;
   justify-content: flex-end;
   padding: 16px 24px 20px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid var(--line);
 }
 
 .cancelBtn {
   padding: 9px 18px;
   border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid var(--line);
   background: transparent;
-  color: rgba(250, 248, 245, 0.5);
+  color: var(--clay);
   font-size: 0.875rem;
   font-family: var(--font-jost), sans-serif;
   cursor: pointer;
 }
-.cancelBtn:hover { background: rgba(255, 255, 255, 0.05); }
+.cancelBtn:hover { background: var(--cream); }
 
 .saveBtn {
   padding: 9px 22px;
   border-radius: 6px;
   border: none;
-  background: rgba(53, 122, 91, 0.12);
-  color: var(--sage-text);
+  /* Relleno sólido, no tinte. Con el modal en verde oscuro el verde de texto
+     sobre un tinte al 12% bastaba; con el modal en la tarjeta del tema se
+     quedaba en 4.39:1, justo por debajo del mínimo legible (4.5:1). Blanco
+     sobre `--forest` da 12.6:1 en claro y 8.6:1 en oscuro, porque `--forest`
+     se aclara con el tema y el blanco no depende de ningún token. */
+  background: var(--forest);
+  color: #FFFFFF;
   font-size: 0.875rem;
   font-family: var(--font-jost), sans-serif;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.15s;
 }
-.saveBtn:hover:not(:disabled) { background: rgba(53, 122, 91, 0.22); }
+.saveBtn:hover:not(:disabled) { background: var(--moss); }
 .saveBtn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* Loading */
@@ -283,7 +288,7 @@
   justify-content: center;
   gap: 12px;
   padding: 60px;
-  color: rgba(250, 248, 245, 0.4);
+  color: var(--clay);
   font-size: 0.875rem;
   font-family: var(--font-jost), sans-serif;
 }
@@ -305,7 +310,7 @@
 @media (max-width: 640px) {
   /* El botón de check-out del mapa es la acción principal de la camarista
      desde el celular: tiene que ser cómodo de tocar. */
-  .checkoutBtn { padding: 12px 10px; font-size: 0.78rem; }
+  .checkoutBtn, .checkinBtn, .walkinBtn { padding: 12px 10px; font-size: 0.78rem; }
   .grid { grid-template-columns: repeat(2, 1fr); }
   .summaryItem { min-width: 120px; }
 }
@@ -332,3 +337,56 @@
 }
 .checkoutBtn:hover:not(:disabled) { background: rgba(53, 122, 91, 0.22); }
 .checkoutBtn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* Botón de LLEGADA. Misma forma que el de salida —son la pareja de acciones del
+   día— pero en azul: en una tarjeta chica pueden salir los dos a la vez, y
+   confundirlos significa registrar la entrada de quien acaba de irse. */
+.checkinBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  margin-top: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--chip-info-text);
+  background: var(--chip-info-bg);
+  color: var(--chip-info-text);
+  font-size: 0.72rem;
+  font-weight: 600;
+  font-family: var(--font-jost), sans-serif;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.checkinBtn:hover:not(:disabled) { filter: brightness(0.95); }
+.checkinBtn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* Registrar a un huésped que llegó sin reserva, desde la tarjeta del cuarto
+   libre. Discreto a propósito: el estado del cuarto es la información
+   principal de la tarjeta, esto es una acción de paso. */
+.walkinBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  margin-top: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px dashed var(--clay);
+  background: transparent;
+  color: var(--clay);
+  font-size: 0.72rem;
+  font-weight: 600;
+  font-family: var(--font-jost), sans-serif;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.walkinBtn:hover {
+  border-style: solid;
+  border-color: var(--sage-text);
+  color: var(--sage-text);
+  background: var(--cream);
+}

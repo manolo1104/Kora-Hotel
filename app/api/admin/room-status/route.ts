@@ -1,4 +1,4 @@
-import { reservaCuenta } from "@/lib/booking/estado-reserva";
+import { ocupaElCuarto, estadoDelCuarto } from "@/lib/booking/estado-operativo";
 import { negar } from "@/lib/panel/permisos";
 import { z } from "zod";
 import { rutaSegura } from "@/lib/api/responder";
@@ -12,6 +12,7 @@ import {
   type RoomStatusType,
 } from "@/lib/db/admin";
 import { unitNamesOf } from "@/lib/booking";
+import { hoyHotel } from "@/lib/fecha-hotel";
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +30,7 @@ const PATCH_SCHEMA = z.object({
 // hotel salen de tipoNamesOf(ctx.hotel). Sembramos en memoria un estado
 // DISPONIBLE para cada cuarto que aún no tiene fila en room_statuses, de modo que
 // el mapa muestre TODOS los cuartos del hotel aunque nunca se haya tocado su
-// estado. La ocupación real (reservas activas hoy) sobrescribe el estado.
+// estado. La ocupación (ver `estadoDelCuarto`) sobrescribe el estado guardado.
 export async function GET() {
   return rutaSegura("admin.roomStatus.get", async () => {
   const ctx = await getActiveHotel();
@@ -54,40 +55,49 @@ export async function GET() {
     bySuite.set(s.suite, s);
   }
 
-  const todayStr = new Date().toISOString().split("T")[0];
+  // Antes esto era `new Date().toISOString()`, o sea UTC, mientras la lista de
+  // Reservas usaba la zona de México: de las 18:00 a la medianoche el mapa
+  // adelantaba un día y las dos pantallas se contradecían. Ver lib/fecha-hotel.ts.
+  const todayStr = hoyHotel();
 
-  // Ocupación derivada de reservas activas (sobrescribe el estado guardado salvo
-  // MANTENIMIENTO/LIMPIEZA, que tienen prioridad operativa).
-  const occupiedMap = new Map<string, { cliente: string; checkout: string; huespedes: number; confirmacion: string }>();
+  // Quién ocupa cada cuarto ahora mismo. Qué GANA (esto o el estado guardado) lo
+  // decide `estadoDelCuarto` más abajo, y no es lo mismo si la llegada está
+  // afirmada que si sólo la deducen las fechas.
+  const occupiedMap = new Map<
+    string,
+    { cliente: string; checkout: string; huespedes: number; confirmacion: string; llegoYa: boolean }
+  >();
   for (const b of bookings) {
-    if (!reservaCuenta(b.estado) || !b.checkin || !b.checkout) continue;
-    // Si ya se le hizo check-out, el huésped se fue: el cuarto queda libre sin
-    // esperar a la fecha de salida. Sin esto, marcar el cuarto a mano no servía
-    // de nada — esta ocupación derivada lo volvía a pisar en cada carga.
-    if (b.checkoutReal) continue;
-    if (b.checkin <= todayStr && b.checkout > todayStr) {
-      // habitaciones puede traer varias separadas por coma.
-      for (const raw of String(b.habitaciones).split(",")) {
-        const room = raw.trim();
-        if (!room) continue;
-        occupiedMap.set(room, {
-          cliente: b.cliente,
-          checkout: b.checkout,
-          huespedes: b.huespedes,
-          // El folio viaja para que el mapa pueda ofrecer el check-out del
-          // huésped que está mostrando, sin tener que ir a buscarlo a la lista.
-          confirmacion: b.confirmacion,
-        });
-      }
+    // Una sola función decide quién ocupa un cuarto, y la comparten el mapa, la
+    // lista y los Insights: tenerlo escrito tres veces es lo que hacía que las
+    // tres pantallas se contradijeran. Ver lib/booking/estado-operativo.ts.
+    if (!ocupaElCuarto(b, todayStr)) continue;
+
+    // habitaciones puede traer varias separadas por coma.
+    for (const raw of String(b.habitaciones).split(",")) {
+      const room = raw.trim();
+      if (!room) continue;
+      occupiedMap.set(room, {
+        cliente: b.cliente,
+        checkout: b.checkout,
+        huespedes: b.huespedes,
+        // El folio viaja para que el mapa pueda ofrecer el check-out del
+        // huésped que está mostrando, sin tener que ir a buscarlo a la lista.
+        confirmacion: b.confirmacion,
+        // Distingue "el calendario dice que hoy entra alguien" de "ese alguien
+        // ya está dentro". Sin esto, un cuarto de una llegada de hoy se pinta
+        // "Ocupada" desde la medianoche y la camarista lo ve tomado horas antes
+        // de que el huésped ponga un pie en el hotel.
+        llegoYa: Boolean(b.checkinReal),
+      });
     }
   }
 
   const result = Array.from(bySuite.values()).map((s) => {
-    const occupied = occupiedMap.get(s.suite);
-    if (occupied && s.estado !== "MANTENIMIENTO" && s.estado !== "LIMPIEZA") {
-      return { ...s, estado: "OCUPADA" as RoomStatusType, ocupadaPor: occupied };
-    }
-    return { ...s, ocupadaPor: null };
+    const occupied = occupiedMap.get(s.suite) ?? null;
+    // La regla de qué gana —lo guardado o la ocupación— vive en lib/ y tiene
+    // pruebas: es donde estaba el bug de perder el estado del cuarto.
+    return { ...s, estado: estadoDelCuarto(s.estado, occupied), ocupadaPor: occupied };
   });
 
   return NextResponse.json(result);

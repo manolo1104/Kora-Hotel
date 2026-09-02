@@ -1,38 +1,29 @@
 'use client';
 
 import { reservaCuenta } from "@/lib/booking/estado-reserva";
-import { useState, useMemo } from 'react';
-import { Plus, Search, RefreshCw, Send, Download, Loader2, ChevronDown, ChevronUp, Sun, LogOut, Undo2 } from 'lucide-react';
+import { estadoOperativo, contadoresDeHoy, type EstadoOperativo } from "@/lib/booking/estado-operativo";
+import { hoyHotel } from '@/lib/fecha-hotel';
+import { useState, useMemo, useEffect } from 'react';
+import { Plus, Search, RefreshCw, Send, Download, Loader2, ChevronDown, ChevronUp, Sun, LogOut, LogIn, Printer, QrCode, UserCheck, Undo2 } from 'lucide-react';
 import type { AdminBooking } from '@/lib/admin/sheets-admin';
 import type { BookingRoom } from '@/lib/booking';
 import ReservationModal from '@/components/admin/ReservationModal';
+import RegistroModal from './RegistroModal';
 import styles from './reservas.module.css';
 
 // ── Operational state ────────────────────────────────────────────────────────
+//
+// La lógica vive en lib/booking/estado-operativo.ts, no aquí: los contadores de
+// la vista "Hoy" la reimplementaban con filtros a mano y no coincidían con los
+// chips de las filas. Ahora chip y número salen de la misma llamada, y hay
+// pruebas que lo vigilan (tests/estado-operativo.test.ts).
 
-type OpsState = 'CHECK_IN_HOY' | 'CHECK_OUT_HOY' | 'EN_CASA' | 'PROXIMA' | 'COMPLETADA' | 'CANCELADA' | 'REEMBOLSADA' | 'NO_SHOW' | 'SALIO';
+type OpsState = EstadoOperativo;
 
-function getOpsState(b: AdminBooking, today: string): OpsState {
-  if (b.estado === 'CANCELADA') return 'CANCELADA';
-  // Una reembolsada NO es una reserva viva: se colapsaba en "CONFIRMADA" y salía
-  // como "Próxima" o "En Casa", con su dinero sumado (K-42).
-  if (b.estado === 'REEMBOLSADA') return 'REEMBOLSADA';
-  // El check-out registrado manda sobre las fechas: un huésped puede irse antes
-  // de su fecha de salida y hasta que alguien lo registre el cuarto sigue
-  // apareciendo ocupado.
-  if (b.checkoutReal) return 'SALIO';
-  const ci = b.checkin;
-  const co = b.checkout;
-  if (!ci) return 'PROXIMA';
-  if (ci === today) return 'CHECK_IN_HOY';
-  if (co === today) return 'CHECK_OUT_HOY';
-  if (ci < today && co > today) return 'EN_CASA';
-  if (co < today) return 'COMPLETADA';
-  return 'PROXIMA';
-}
+const getOpsState = estadoOperativo;
 
 const OPS_LABEL: Record<OpsState, string> = {
-  CHECK_IN_HOY:  'Check-in Hoy',
+  CHECK_IN_HOY:  'Por llegar hoy',
   CHECK_OUT_HOY: 'Check-out Hoy',
   EN_CASA:       'En Casa',
   PROXIMA:       'Próxima',
@@ -120,13 +111,47 @@ export default function ReservasClient({
   const [showFilters, setShowFilters] = useState(false);
   const [vistaHoy, setVistaHoy] = useState(false);
   const [sortBy, setSortBy] = useState<'checkin' | 'reciente'>('checkin');
-  const [modal, setModal] = useState<{ mode: 'new' | 'edit'; booking?: AdminBooking } | null>(null);
+  const [modal, setModal] = useState<{ mode: 'new' | 'edit'; booking?: AdminBooking; cuarto?: string; walkin?: boolean } | null>(null);
   const [loading, setLoading] = useState(false);
   const [sendingId, setSendingId] = useState<string | null>(null);
   const [checkoutId, setCheckoutId] = useState<string | null>(null);
+  const [checkinId, setCheckinId] = useState<string | null>(null);
+  const [imprimiendoId, setImprimiendoId] = useState<string | null>(null);
+  // Ventana del registro de llegada: el QR para el huésped, o su ficha si ya lo
+  // llenó. Se abre desde el icono de la fila.
+  const [registroDe, setRegistroDe] = useState<AdminBooking | null>(null);
+  // Qué reservas YA tienen registro, para marcarlas en la lista. Sólo son ids:
+  // ni un dato personal viaja hasta que alguien abre una ficha concreta.
+  const [conRegistro, setConRegistro] = useState<Set<string>>(new Set());
 
-  // Fecha de HOY en la zona horaria del hotel (no UTC). 'en-CA' da formato YYYY-MM-DD.
-  const today = useMemo(() => new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' }), []);
+  // Fecha de HOY en la zona del hotel, desde la fuente única (lib/fecha-hotel.ts).
+  const today = useMemo(() => hoyHotel(), []);
+
+  useEffect(() => {
+    if (!verAcciones) return;
+    let vivo = true;
+    fetch('/api/admin/pre-checkin')
+      .then(r => r.ok ? r.json() : { conRegistro: [] })
+      .then(d => { if (vivo) setConRegistro(new Set(d.conRegistro ?? [])); })
+      // La lista se pinta igual sin esto: la palomita es un adorno, no una
+      // pantalla que dependa de ella. Pero el fallo se DICE — un `catch` vacío
+      // es exactamente cómo se pierde un error de verdad.
+      .catch(e => console.error('[reservas] no se pudo saber quién ya se registró:', e));
+    return () => { vivo = false; };
+  }, [verAcciones]);
+
+  // WALK-IN: se llega aquí desde la tarjeta de un cuarto libre en el mapa
+  // (`?walkin=<cuarto>`). Abre el alta ya prellenada con ese cuarto, entrada hoy
+  // y la casilla de "ya está aquí" marcada, para que recepción no tenga que
+  // teclear nada de eso con el huésped esperando delante.
+  useEffect(() => {
+    const cuarto = new URLSearchParams(window.location.search).get('walkin');
+    if (!cuarto || !verAcciones) return;
+    setModal({ mode: 'new', cuarto, walkin: true });
+    // Se limpia de la URL para que recargar o compartir el enlace no vuelva a
+    // abrir el alta encima de lo que el hotelero estuviera haciendo.
+    window.history.replaceState(null, '', window.location.pathname);
+  }, [verAcciones]);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
@@ -160,12 +185,8 @@ export default function ReservasClient({
     });
   }, [bookings, search, suiteFilter, estadoFilter, fechaDesde, fechaHasta, vistaHoy, sortBy, today]);
 
-  // Counters for "today" badge
-  const todayCounts = useMemo(() => ({
-    checkIn:  bookings.filter(b => reservaCuenta(b.estado) && b.checkin === today).length,
-    checkOut: bookings.filter(b => reservaCuenta(b.estado) && b.checkout === today).length,
-    enCasa:   bookings.filter(b => reservaCuenta(b.estado) && !b.checkoutReal && b.checkin < today && b.checkout > today).length,
-  }), [bookings, today]);
+  // Contadores de la vista "Hoy", desde la MISMA función que pinta cada chip.
+  const todayCounts = useMemo(() => contadoresDeHoy(bookings, today), [bookings, today]);
 
   const hasActiveFilters = suiteFilter || estadoFilter || fechaDesde || fechaHasta;
 
@@ -208,6 +229,69 @@ export default function ReservasClient({
     } finally {
       setCheckoutId(null);
     }
+  }
+
+  /**
+   * Registrar que el huésped YA LLEGÓ. Ocupa su cuarto en el acto.
+   *
+   * Es el espejo del check-out y resuelve lo contrario: sin esto, la llegada se
+   * deducía de las fechas y no había forma de distinguir "llega hoy" de "ya está
+   * aquí" — ni de que una estancia de una noche apareciera "En casa".
+   */
+  async function hacerCheckin(e: React.MouseEvent, b: AdminBooking) {
+    e.stopPropagation();
+    if (!b.confirmacion || checkinId) return;
+    const yaLlego = Boolean(b.checkinReal);
+    setCheckinId(b.confirmacion);
+    try {
+      const res = await fetch(`/api/admin/reservas/${encodeURIComponent(b.confirmacion)}/checkin`, {
+        method: yaLlego ? 'DELETE' : 'POST',
+      });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        alert(d.error || 'No se pudo registrar la llegada.');
+        return;
+      }
+      await refresh();
+    } catch {
+      alert('No se pudo conectar. Revisa tu internet e inténtalo de nuevo.');
+    } finally {
+      setCheckinId(null);
+    }
+  }
+
+  /**
+   * Imprimir el ticket de una reserva: UN clic, y sale.
+   *
+   * Lo pidió el hotelero tal cual: "que el ticket se pudiera imprimir
+   * directamente desde el sistema, sin tener que descargarlo, guardarlo, abrirlo
+   * y posteriormente mandarlo a imprimir".
+   *
+   * Va por un <iframe> oculto y no por `window.open`: una pestaña nueva parpadea,
+   * se queda abierta, y el bloqueador de emergentes la mata sin avisar. El
+   * documento ya trae dentro su propio `window.print()`, así que en cuanto carga
+   * se abre el diálogo del sistema con el ancho de rollo correcto.
+   */
+  function imprimirTicket(e: React.MouseEvent, b: AdminBooking) {
+    e.stopPropagation();
+    if (!b.confirmacion || imprimiendoId) return;
+    setImprimiendoId(b.confirmacion);
+    const marco = document.createElement('iframe');
+    marco.style.position = 'fixed';
+    marco.style.right = '0';
+    marco.style.bottom = '0';
+    marco.style.width = '0';
+    marco.style.height = '0';
+    marco.style.border = '0';
+    marco.src = `/api/admin/reservas/${encodeURIComponent(b.confirmacion)}/render?formato=ticket`;
+    // Se retira después de imprimir. El diálogo del navegador es BLOQUEANTE, así
+    // que para cuando vuelve el control ya se imprimió (o se canceló); el margen
+    // es para que el propio diálogo no se cierre con el iframe debajo.
+    marco.onload = () => {
+      setImprimiendoId(null);
+      setTimeout(() => marco.remove(), 60_000);
+    };
+    document.body.appendChild(marco);
   }
 
   async function sendEmail(e: React.MouseEvent, b: AdminBooking) {
@@ -321,10 +405,10 @@ export default function ReservasClient({
               <span>Estado operativo</span>
               <select value={estadoFilter} onChange={e => setEstadoFilter(e.target.value)}>
                 <option value="">Todos</option>
-                <option value="CHECK_IN_HOY">Check-in Hoy</option>
+                <option value="CHECK_IN_HOY">Por llegar hoy</option>
                 <option value="CHECK_OUT_HOY">Check-out Hoy</option>
                 <option value="SALIO">Salió (check-out hecho)</option>
-                <option value="EN_CASA">En Casa</option>
+                <option value="EN_CASA">En Casa (llegada registrada)</option>
                 <option value="PROXIMA">Próxima</option>
                 <option value="COMPLETADA">Completada</option>
                 <option value="CANCELADA">Cancelada</option>
@@ -373,6 +457,32 @@ export default function ReservasClient({
                 <div className={styles.mobileCardTotal}>${b.total.toLocaleString('es-MX')} MXN</div>
               )}
               <div className={styles.mobileCardActions}>
+                {verAcciones && !['CANCELADA','REEMBOLSADA'].includes(ops) && (
+                  <button className={`${styles.mobileCardBtn} ${styles.mobileCardBtnSecondary}`}
+                    onClick={e => { e.stopPropagation(); setRegistroDe(b); }}>
+                    {conRegistro.has(b.id) ? ' Ver registro' : ' QR registro'}
+                  </button>
+                )}
+                {/* Llegada y salida TAMBIÉN en móvil. Antes sólo existían en la
+                    tabla de escritorio, y recepción trabaja con el teléfono en la
+                    mano: quien atendía desde el móvil no tenía forma de registrar
+                    ni una entrada ni una salida. Aquí van con texto y no con
+                    icono, que en una pantalla chica dos flechitas parecidas se
+                    pulsan por error. */}
+                {verAcciones && ['CHECK_IN_HOY', 'EN_CASA', 'CHECK_OUT_HOY'].includes(ops) && (
+                  <button className={`${styles.mobileCardBtn} ${styles.mobileCardBtnSecondary}`}
+                    onClick={e => hacerCheckin(e, b)} disabled={checkinId === b.confirmacion}>
+                    {checkinId === b.confirmacion ? <Loader2 size={12} className={styles.spin} /> : null}
+                    {b.checkinReal ? ' Deshacer llegada' : ' Ya llegó'}
+                  </button>
+                )}
+                {verAcciones && ['EN_CASA', 'CHECK_OUT_HOY', 'CHECK_IN_HOY', 'SALIO'].includes(ops) && (
+                  <button className={`${styles.mobileCardBtn} ${styles.mobileCardBtnSecondary}`}
+                    onClick={e => hacerCheckout(e, b)} disabled={checkoutId === b.confirmacion}>
+                    {checkoutId === b.confirmacion ? <Loader2 size={12} className={styles.spin} /> : null}
+                    {ops === 'SALIO' ? ' Deshacer salida' : ' Check-out'}
+                  </button>
+                )}
                 {verDinero && (
                   <button className={`${styles.mobileCardBtn} ${styles.mobileCardBtnPrimary}`}
                     onClick={() => setModal({ mode: 'edit', booking: b })}>
@@ -383,6 +493,12 @@ export default function ReservasClient({
                   <button className={`${styles.mobileCardBtn} ${styles.mobileCardBtnSecondary}`}
                     onClick={e => sendEmail(e, b)} disabled={sendingId === b.confirmacion}>
                     {sendingId === b.confirmacion ? <Loader2 size={12} className={styles.spin} /> : null} Email
+                  </button>
+                )}
+                {verAcciones && (
+                  <button className={`${styles.mobileCardBtn} ${styles.mobileCardBtnSecondary}`}
+                    onClick={e => imprimirTicket(e, b)} disabled={imprimiendoId === b.confirmacion}>
+                    {imprimiendoId === b.confirmacion ? <Loader2 size={12} className={styles.spin} /> : null} Ticket
                   </button>
                 )}
                 {verAcciones && (
@@ -460,6 +576,39 @@ export default function ReservasClient({
                   {verAcciones && (
                   <td onClick={e => e.stopPropagation()}>
                     <div className={styles.rowActions}>
+                      {/* REGISTRO DEL HUÉSPED. El QR que recepción le enseña
+                          para que se registre desde su celular, o su ficha si ya
+                          lo hizo. La palomita distingue una cosa de la otra sin
+                          tener que abrir nada. */}
+                      {verAcciones && !['CANCELADA','REEMBOLSADA'].includes(ops) && (
+                        <button
+                          className={conRegistro.has(b.id) ? styles.actionBtnCheckin : styles.actionBtn}
+                          onClick={e => { e.stopPropagation(); setRegistroDe(b); }}
+                          title={conRegistro.has(b.id)
+                            ? 'Ver el registro que llenó el huésped'
+                            : 'QR para que el huésped se registre desde su celular'}
+                        >
+                          {conRegistro.has(b.id) ? <UserCheck size={13} /> : <QrCode size={13} />}
+                        </button>
+                      )}
+                      {/* LLEGADA. Va primero porque es lo primero que pasa. Se
+                          ofrece a quien todavía no ha salido: al que llega hoy,
+                          al que ya está en casa (para deshacer si se marcó la
+                          reserva equivocada) y al que se retrasó un día. */}
+                      {verAcciones && ['CHECK_IN_HOY', 'EN_CASA', 'CHECK_OUT_HOY'].includes(ops) && (
+                        <button
+                          className={b.checkinReal ? styles.actionBtn : styles.actionBtnCheckin}
+                          onClick={e => hacerCheckin(e, b)}
+                          disabled={checkinId === b.confirmacion}
+                          title={b.checkinReal
+                            ? `Deshacer la llegada (registrada ${new Date(b.checkinReal).toLocaleString('es-MX')})`
+                            : 'El huésped ya llegó: ocupa su cuarto ahora'}
+                        >
+                          {checkinId === b.confirmacion
+                            ? <Loader2 size={13} className={styles.spin} />
+                            : b.checkinReal ? <Undo2 size={13} /> : <LogIn size={13} />}
+                        </button>
+                      )}
                       {/* Sólo donde tiene sentido: alguien que está (o estuvo)
                           en casa. En una reserva próxima o cancelada estorba. */}
                       {verAcciones && ['EN_CASA', 'CHECK_OUT_HOY', 'CHECK_IN_HOY', 'SALIO'].includes(ops) && (
@@ -481,6 +630,18 @@ export default function ReservasClient({
                       </button>
                       )}
                       {verAcciones && (
+                        <button
+                          className={styles.actionBtn}
+                          onClick={e => imprimirTicket(e, b)}
+                          disabled={imprimiendoId === b.confirmacion}
+                          title="Imprimir ticket en la impresora de mostrador"
+                        >
+                          {imprimiendoId === b.confirmacion
+                            ? <Loader2 size={13} className={styles.spin} />
+                            : <Printer size={13} />}
+                        </button>
+                      )}
+                      {verAcciones && (
                       <a href={`/panel/${slug}/reservas/${b.confirmacion}/documento`}
                         className={styles.actionBtnPdf} title="Documento / descargar"
                         style={{ display:'inline-flex', alignItems:'center', justifyContent:'center' }}
@@ -499,11 +660,24 @@ export default function ReservasClient({
       </div>
       </div> {/* /tableScrollWrap */}
 
+      {registroDe && (
+        <RegistroModal
+          slug={slug}
+          folio={registroDe.confirmacion}
+          bookingId={registroDe.id}
+          cliente={registroDe.cliente}
+          onClose={() => setRegistroDe(null)}
+        />
+      )}
+
       {modal && (
         <ReservationModal
           booking={modal.mode === 'edit' ? modal.booking : undefined}
           rooms={rooms}
           slug={slug}
+          defaultRoom={modal.cuarto}
+          defaultCheckin={modal.walkin ? today : undefined}
+          walkin={modal.walkin}
           onClose={() => setModal(null)}
           onSaved={refresh}
         />

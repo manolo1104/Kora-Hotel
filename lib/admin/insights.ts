@@ -1,10 +1,15 @@
 import { reservaCuenta } from "@/lib/booking/estado-reserva";
 import { FORECAST_DIAS } from "@/lib/oferta";
+import { hoyHotel } from "@/lib/fecha-hotel";
+import { ocupaElCuarto } from "@/lib/booking/estado-operativo";
 import type { AdminBooking } from './sheets-admin';
 
-const TOTAL_SUITES = 13;
 const OTA_COMMISSION = 0.15; // 15% Booking.com / Airbnb
 
+// OJO: sólo para fechas que ya son "un día concreto" (las barras del forecast,
+// que se construyen sumando días a partir de hoy). Para saber QUÉ DÍA ES HOY va
+// `hoyHotel()`: `toISOString()` es UTC y de las 18:00 a la medianoche adelantaba
+// un día, contradiciendo a la lista de Reservas. Ver lib/fecha-hotel.ts.
 function toDateStr(d: Date) {
   return d.toISOString().split('T')[0];
 }
@@ -37,6 +42,7 @@ function bookingCoversDate(b: AdminBooking, date: Date): boolean {
   const co = new Date(b.checkout + 'T00:00:00');
   return ci <= date && date < co;
 }
+
 
 export interface TodayMovement {
   tipo: 'checkin' | 'checkout';
@@ -93,15 +99,23 @@ export interface InsightsData {
 export function calcInsights(
   bookings: AdminBooking[],
   agentMetrics: { tipo: string; fecha: string }[],
-  totalSuites: number = TOTAL_SUITES
+  // Sin valor por defecto A PROPÓSITO. Era `= TOTAL_SUITES`, un 13 escrito a
+  // mano heredado de Paraíso: en un producto multi-hotel, el día que alguien
+  // llamara sin pasarlo, ese hotel habría enseñado su ocupación calculada sobre
+  // los cuartos de OTRO. Los dos únicos que llaman ya pasan `totalUnits(hotel)`.
+  totalSuites: number
 ): InsightsData {
   const now = new Date();
-  const todayStr = toDateStr(now);
+  // Hoy en la zona del hotel, no en UTC: era lo que hacía que estas cifras
+  // contradijeran a la lista de Reservas cada tarde. Ver lib/fecha-hotel.ts.
+  const todayStr = hoyHotel(now);
   const today = new Date(todayStr + 'T00:00:00');
 
   // ── HOY ─────────────────────────────────────────────────────────────
   const suitesOcupadasHoy = bookings
-    .filter(b => bookingCoversDate(b, today))
+    // La MISMA función que usa el mapa de cuartos: antes las gráficas
+    // seguían contando ocupado al que ya salió y no contaban al walk-in.
+    .filter(b => ocupaElCuarto(b, todayStr))
     .reduce((s, b) => s + countUnits(b.habitaciones), 0);
   const pctOcupacion = Math.round((suitesOcupadasHoy / totalSuites) * 100);
 

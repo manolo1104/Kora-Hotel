@@ -1,6 +1,7 @@
 'use client';
 
 import { reservaCuenta } from "@/lib/booking/estado-reserva";
+import { hoyHotel } from '@/lib/fecha-hotel';
 import { useMemo, useState, useRef, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { AdminBooking } from '@/lib/admin/sheets-admin';
@@ -33,9 +34,6 @@ const DAYS_VISIBLE = 49;
 interface Props { slug: string; bookings: AdminBooking[]; rooms: string[]; bookingRooms: BookingRoom[]; onRefresh: () => void; /** ¿Ve importes? (`reservas:dinero`). */ verDinero?: boolean }
 
 function toDate(s: string) { return new Date(s + 'T00:00:00'); }
-// Hoy en HORA DE MÉXICO: con toISOString() (UTC) la línea de "hoy" del Gantt se
-// adelantaba un día a partir de las 18:00 locales.
-function isoToday() { return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' }); }
 // Web bookings store "Suite Jungla (2 personas)" — strip the parenthetical
 function extractRoom(s: string): string { return s.replace(/\s*\([^)]*\)/g, '').trim(); }
 
@@ -44,7 +42,7 @@ export default function GanttView({ slug, bookings, rooms, bookingRooms, onRefre
   const [offsetDays, setOffsetDays] = useState(-3); // start 3 days before today
   const [modal, setModal] = useState<{ booking?: AdminBooking; defaultCheckin?: string } | null>(null);
   const [tooltip, setTooltip] = useState<{ booking: AdminBooking; x: number; y: number } | null>(null);
-  const todayStr = isoToday();
+  const todayStr = hoyHotel();
 
   // Scroll to "today" on mount
   useEffect(() => {

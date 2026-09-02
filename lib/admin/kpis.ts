@@ -35,7 +35,6 @@ function calcNightsForBooking(b: AdminBooking): number {
 
 export function calcKPIs(bookings: AdminBooking[], totalSuites: number = TOTAL_SUITES) {
   const now = new Date();
-  const todayStr = now.toISOString().split('T')[0];
 
   // Semana actual
   const weekStart = new Date(now);

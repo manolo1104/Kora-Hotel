@@ -19,6 +19,9 @@ interface Props {
   initialMaintenance: MaintenanceTask[];
   suites: string[];
   today: string;
+  slug: string;
+  /** ¿Puede dar de alta una reserva? (`reservas:escribir`) */
+  puedeReservar: boolean;
 }
 
 // ── Limpieza ──────────────────────────────────────────────────────────────────
@@ -186,7 +189,7 @@ const ESTADO_LABEL: Record<MaintenanceEstado, string> = {
   CERRADA: 'Cerrada',
 };
 
-export default function OperacionesClient({ initialCleaning, initialMaintenance, suites, today }: Props) {
+export default function OperacionesClient({ initialCleaning, initialMaintenance, suites, today, slug, puedeReservar }: Props) {
   const [tab, setTab] = useState<'limpieza' | 'mantenimiento' | 'cuartos'>('limpieza');
   const [cleaning, setCleaning] = useState(initialCleaning);
   const [maintenance, setMaintenance] = useState(initialMaintenance);
@@ -393,7 +396,7 @@ export default function OperacionesClient({ initialCleaning, initialMaintenance,
       )}
 
       {/* Contenido: Estado de cuartos (mapa) */}
-      {tab === 'cuartos' && <RoomMap />}
+      {tab === 'cuartos' && <RoomMap slug={slug} puedeReservar={puedeReservar} />}
 
       {selectedSuite && (
         <ChecklistModal
