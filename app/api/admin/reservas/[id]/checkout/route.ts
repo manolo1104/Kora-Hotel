@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getActiveHotel } from "@/lib/panel/active-hotel";
 import { checkoutBooking, deshacerCheckout, setRoomStatus } from "@/lib/db/admin";
 import { zId } from "@/lib/api/cuerpo";
+import { NOTA_SALIDA_REGISTRADA } from "@/lib/booking/nota-cuarto";
 
 export const dynamic = "force-dynamic";
 
@@ -57,7 +58,7 @@ export async function POST(
     // operación ni hacer que el hotelero repita el check-out.
     const limpieza = await Promise.allSettled(
       r.habitaciones.map((suite) =>
-        setRoomStatus(ctx.hotelId, suite, "LIMPIEZA", "Salida registrada — pendiente de limpieza"),
+        setRoomStatus(ctx.hotelId, suite, "LIMPIEZA", NOTA_SALIDA_REGISTRADA),
       ),
     );
     const fallidas = limpieza.filter((x) => x.status === "rejected").length;

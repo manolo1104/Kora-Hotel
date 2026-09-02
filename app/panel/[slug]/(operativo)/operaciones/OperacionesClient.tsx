@@ -190,7 +190,10 @@ const ESTADO_LABEL: Record<MaintenanceEstado, string> = {
 };
 
 export default function OperacionesClient({ initialCleaning, initialMaintenance, suites, today, slug, puedeReservar }: Props) {
-  const [tab, setTab] = useState<'limpieza' | 'mantenimiento' | 'cuartos'>('limpieza');
+  // Arranca en «Estado de cuartos» y no en «Limpieza»: es la pantalla que
+  // contesta la pregunta con la que se entra aquí —¿qué cuartos tengo?—, y las
+  // tareas de limpieza son la consecuencia, no la pregunta.
+  const [tab, setTab] = useState<'limpieza' | 'mantenimiento' | 'cuartos'>('cuartos');
   const [cleaning, setCleaning] = useState(initialCleaning);
   const [maintenance, setMaintenance] = useState(initialMaintenance);
   const [selectedSuite, setSelectedSuite] = useState<string | null>(null);

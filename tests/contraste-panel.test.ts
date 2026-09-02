@@ -20,6 +20,16 @@ import { join } from "node:path";
 
 /** El crema de superficie oscura, y los tonos 400 de Tailwind como TEXTO. */
 const CREMA_OSCURO = /rgba\(\s*250,\s*248,\s*245/;
+
+/**
+ * Cremas y grises escritos a mano donde debería ir `var(--line)`.
+ *
+ * No cambian con el tema, así que sobre la tarjeta oscura del panel quedan como
+ * bordes encendidos: medido en producción, el borde de un campo del modal de
+ * reservas daba **10.5:1** contra su fondo, cuando una línea divisoria debería
+ * andar por 1.5-3:1. Por eso el formulario parecía una rejilla de cajas.
+ */
+const LINEA_FIJA = /(border[^:]*|background[^:]*)\s*:[^;]*#(e4ddd3|d4cec7|c9b99a|f0ebe3|e5e7eb)\b/i;
 const BLANCO_TRANSLUCIDO = /(color|border[^:]*)\s*:\s*rgba\(\s*255,\s*255,\s*255/;
 
 /** Ficheros del panel que se pintan sobre el fondo claro del shell. */
@@ -84,6 +94,22 @@ describe("ninguna pantalla del panel pinta texto de superficie oscura sobre el p
     expect(
       culpables,
       `usa var(--line) / var(--ink) en vez de blanco translúcido:\n${culpables.join("\n")}`,
+    ).toEqual([]);
+  });
+
+  it("nadie escribe a mano el color de una línea divisoria", () => {
+    const culpables: string[] = [];
+    for (const abs of archivos) {
+      const rel = abs.slice(raiz.length + 1);
+      if (PERMITIDOS.has(rel)) continue;
+      for (const [i, linea] of readFileSync(abs, "utf8").split("\n").entries()) {
+        if (/^\s*(\/\*|\*)/.test(linea)) continue;
+        if (LINEA_FIJA.test(linea)) culpables.push(`${rel}:${i + 1}`);
+      }
+    }
+    expect(
+      culpables,
+      `usa var(--line), que voltea con el tema:\n${culpables.join("\n")}`,
     ).toEqual([]);
   });
 

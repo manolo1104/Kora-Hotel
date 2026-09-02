@@ -4,10 +4,12 @@
   background: rgba(0,0,0,0.45);
   z-index: 1000;
   display: flex;
-  align-items: flex-start;
+  /* Centrado, y el scroll DENTRO de la tarjeta. Antes era `flex-start` +
+     `overflow-y:auto` en el velo, así que el formulario —1054 px de alto—
+     scrolleaba la página completa por detrás del modal. */
+  align-items: center;
   justify-content: center;
-  padding: 40px 16px;
-  overflow-y: auto;
+  padding: 24px 16px;
 }
 
 .modal {
@@ -15,6 +17,9 @@
   border-radius: 8px;
   width: 100%;
   max-width: 680px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
   box-shadow: 0 20px 60px rgba(0,0,0,0.2);
   animation: modalIn 0.2s ease-out;
 }
@@ -29,7 +34,7 @@
   align-items: center;
   gap: 12px;
   padding: 20px 24px;
-  border-bottom: 1px solid #e4ddd3;
+  border-bottom: 1px solid var(--line);
 }
 
 .title {
@@ -62,10 +67,45 @@
 .closeBtn:hover { color: var(--ink); }
 
 .form {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+}
+
+/* El cuerpo que scrollea. El pie queda fuera, así el botón de guardar está
+   siempre a la vista en un formulario que mide 1000 px de alto. */
+.formCuerpo {
   padding: 24px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  /* 20 y no 16: con secciones de verdad, el aire ENTRE ellas es lo que las
+     separa. Con 16 volvían a leerse como una lista continua de campos. */
+  gap: 20px;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+/* ── Secciones ──────────────────────────────────────────────────────────────
+   El formulario eran 6 campos seguidos (cliente, teléfono, email, entrada,
+   salida, noches) en una sola rejilla, sin nada que separara «quién viene» de
+   «cuándo». Estas dos clases son toda la jerarquía que faltaba. */
+.seccion {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.seccionTitulo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--clay);
+  margin: 0;
 }
 
 .grid2 {
@@ -81,11 +121,12 @@
 .field {
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  font-size: 0.75rem;
+  gap: 6px;
+  font-size: 0.78rem;
   font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
+  /* SIN versalitas. Catorce etiquetas en mayúsculas con letter-spacing pesan
+     más que los datos que etiquetan: las versalitas se quedan sólo en las
+     cabeceras de sección, que es lo que se lee de un vistazo. */
   color: var(--clay);
 }
 
@@ -93,7 +134,7 @@
 .field select,
 .field textarea {
   padding: 9px 12px;
-  border: 1px solid #d4cec7;
+  border: 1px solid var(--line);
   border-radius: 4px;
   font-size: 0.9rem;
   font-family: var(--font-jost), sans-serif;
@@ -109,9 +150,18 @@
 }
 .field textarea { resize: vertical; }
 
+/* Un campo que calcula el sistema (las noches). Se distingue del que se teclea
+   sin apagarlo: `readOnly` con el mismo look que un campo editable invita a
+   escribir en él. */
+.campoCalculado {
+  background: var(--parch) !important;
+  color: var(--clay) !important;
+  cursor: default;
+}
+
 .error {
   font-size: 0.83rem;
-  color: #8a1a1a;
+  color: var(--chip-mal-text);
   margin: 0;
   padding: 10px 14px;
   background: var(--chip-mal-bg);
@@ -122,9 +172,15 @@
   display: flex;
   gap: 10px;
   justify-content: flex-end;
-  padding-top: 8px;
-  border-top: 1px solid #e4ddd3;
+  align-items: center;
   flex-wrap: wrap;
+  /* Relleno PROPIO, no heredado. La ficha monta este pie colgando del modal y
+     no del formulario: sin esto los botones quedaban a 0 px de los tres bordes,
+     pegados al borde de la tarjeta. Medido. */
+  padding: 14px 24px 18px;
+  border-top: 1px solid var(--line);
+  flex-shrink: 0;
+  background: var(--cream);
 }
 
 .primaryBtn {
@@ -147,7 +203,7 @@
 
 .secondaryBtn {
   background: none;
-  border: 1px solid #d4cec7;
+  border: 1px solid var(--line);
   border-radius: 4px;
   padding: 10px 16px;
   font-size: 0.875rem;
@@ -160,7 +216,7 @@
 
 .dangerBtn {
   background: none;
-  border: 1px solid #c9484a;
+  border: 1px solid var(--chip-mal-text);
   border-radius: 4px;
   padding: 10px 16px;
   font-size: 0.875rem;
@@ -196,10 +252,63 @@
   font-size: 1rem;
   color: var(--forest-text);
 }
+/* La línea que separa el sumatorio del total. Es lo que le faltaba a este
+   bloque: hasta ahora el total era un campo más dentro de un flex, sin nada que
+   lo distinguiera de las líneas de arriba. Calcado de `.priceTotalRow` de
+   cotizaciones.module.css, que es el gemelo de este modal y ya lo tenía. */
 .totalRow {
   display: flex;
-  align-items: flex-end;
-  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+  flex-wrap: wrap;
+}
+.totalLabel {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--clay);
+  white-space: nowrap;
+}
+.totalEditRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+/* El importe se lee como importe: 1rem y 700, alineado a la derecha. */
+.totalInput {
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--forest-text);
+  font-family: var(--font-jost), sans-serif;
+  background: var(--cream);
+  outline: none;
+  width: 140px;
+  text-align: right;
+}
+.totalInput:focus { border-color: var(--forest-text); }
+
+/* El saldo, dentro del MISMO bloque de cobro. Antes «Anticipo y saldo» era una
+   segunda losa gris pegada debajo, y el hotelero veía dos cajas iguales sin
+   saber cuál mandaba. */
+.saldoRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.saldoDestacado {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--forest-text);
 }
 .resetPrice {
   background: none;
@@ -237,12 +346,12 @@
   gap: 8px;
   margin-top: 8px;
   padding: 10px 12px;
-  border: 1px solid #f0d4d4;
+  border: 1px solid var(--chip-mal-text);
   border-radius: 10px;
   background: var(--chip-mal-bg);
   font-size: 12px;
   line-height: 1.5;
-  color: #7a3b3c;
+  color: var(--chip-mal-text);
   cursor: pointer;
 }
 .forzar input { margin-top: 2px; flex-shrink: 0; accent-color: var(--chip-mal-text); }
@@ -269,26 +378,26 @@
 .forzar strong { color: var(--chip-mal-text); }
 
 /* Multi-habitación */
-.roomsSection { display: flex; flex-direction: column; gap: 8px; border: 1px solid #e4ddd3; border-radius: 6px; padding: 12px 14px; }
+.roomsSection { display: flex; flex-direction: column; gap: 8px; border: 1px solid var(--line); border-radius: 6px; padding: 12px 14px; }
 .roomsSectionHeader { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px; }
 .roomsSectionLabel { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--clay); }
-.addRoomBtn { display: flex; align-items: center; gap: 5px; background: none; border: 1px dashed #c9b99a; border-radius: 4px; padding: 5px 10px; font-size: 0.75rem; color: var(--clay); cursor: pointer; font-family: var(--font-jost), sans-serif; }
+.addRoomBtn { display: flex; align-items: center; gap: 5px; background: none; border: 1px dashed var(--line); border-radius: 4px; padding: 5px 10px; font-size: 0.75rem; color: var(--clay); cursor: pointer; font-family: var(--font-jost), sans-serif; }
 .addRoomBtn:hover { border-color: var(--forest-text); color: var(--forest-text); }
 .roomRow { display: grid; grid-template-columns: 1fr auto auto auto; gap: 8px; align-items: center; }
-.roomRowSelect { padding: 8px 10px; border: 1px solid #d4cec7; border-radius: 4px; font-size: 0.875rem; font-family: var(--font-jost), sans-serif; background: var(--cream); color: var(--ink); outline: none; }
+.roomRowSelect { padding: 8px 10px; border: 1px solid var(--line); border-radius: 4px; font-size: 0.875rem; font-family: var(--font-jost), sans-serif; background: var(--cream); color: var(--ink); outline: none; }
 .roomRowSelect:focus { border-color: var(--forest-text); }
 @media (max-width: 480px) {
   /* En pantallas chicas la fila colapsa: la suite toma su propia fila */
   .roomRow { grid-template-columns: 1fr auto; row-gap: 6px; }
   .roomRow > select:first-child { grid-column: 1 / -1; }
 }
-.removeRoomBtn { background: none; border: 1px solid #e4ddd3; border-radius: 4px; padding: 7px; cursor: pointer; color: var(--chip-mal-text); display: flex; align-items: center; }
+.removeRoomBtn { background: none; border: 1px solid var(--line); border-radius: 4px; padding: 7px; cursor: pointer; color: var(--chip-mal-text); display: flex; align-items: center; }
 .removeRoomBtn:hover { background: var(--chip-mal-bg); border-color: var(--chip-mal-text); }
 .roomsTotal { font-size: 0.75rem; color: var(--sage-text); margin: 0; text-align: right; }
 
 .roomPriceInput {
   padding: 7px 8px;
-  border: 1px solid #d4cec7;
+  border: 1px solid var(--line);
   border-radius: 4px;
   font-size: 0.82rem;
   font-family: var(--font-jost), sans-serif;
@@ -328,7 +437,7 @@
 }
 .anticipoFieldWrap input {
   padding: 9px 12px;
-  border: 1px solid #d4cec7;
+  border: 1px solid var(--line);
   border-radius: 4px;
   font-size: 0.9rem;
   font-family: var(--font-jost), sans-serif;
@@ -356,7 +465,7 @@
   top: 100%;
   left: 0; right: 0;
   background: var(--cream);
-  border: 1px solid #d4cec7;
+  border: 1px solid var(--line);
   border-top: none;
   border-radius: 0 0 4px 4px;
   z-index: 50;
@@ -367,7 +476,7 @@
 .suggestItem {
   padding: 9px 12px;
   cursor: pointer;
-  border-bottom: 1px solid #f0ebe3;
+  border-bottom: 1px solid var(--line);
   transition: background 0.1s;
 }
 .suggestItem:last-child { border-bottom: none; }
@@ -394,7 +503,7 @@
   align-items: center;
   gap: 10px;
   padding: 18px 24px;
-  border-bottom: 1px solid #e4ddd3;
+  border-bottom: 1px solid var(--line);
 }
 .successTitle {
   flex: 1;
@@ -461,3 +570,140 @@
 }
 .successActionBtn:hover { opacity: 0.88; }
 .successActionBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── Ficha de solo lectura ──────────────────────────────────────────────────
+   Es lo primero que se ve al abrir una reserva. Diez líneas de etiqueta y valor
+   se leen de un vistazo; catorce campos de formulario apagados, no. */
+.fichaCuerpo {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  overflow-y: auto;
+  min-height: 0;
+}
+.fichaFila {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 3px 0;
+}
+.fichaEtiqueta {
+  font-size: 0.78rem;
+  color: var(--clay);
+  flex-shrink: 0;
+}
+.fichaValor {
+  font-size: 0.9rem;
+  color: var(--ink);
+  font-weight: 500;
+  text-align: right;
+  word-break: break-word;
+}
+/* El dinero y lo que hay que hacer con él, más pesado que el resto. */
+.fichaValorFuerte {
+  font-size: 0.95rem;
+  color: var(--forest-text);
+  font-weight: 700;
+  text-align: right;
+}
+.fichaNota {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--ink);
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+.fichaFirma {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+.fichaFirmaImg {
+  display: block;
+  width: 100%;
+  background: #fff;   /* la firma es tinta negra: su lienzo es blanco en los dos temas */
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
+/* ── El registro del huésped DENTRO del formulario ──────────────────────────
+   Aviso de que el huésped escribió algo distinto de lo que hay en la reserva.
+   No pisa nada: decide recepción, que tiene el documento delante. */
+.campoConAviso {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.difAviso {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+  font-size: 0.75rem;
+  color: var(--chip-aviso-text);
+  background: var(--chip-aviso-bg);
+  border-radius: 6px;
+  padding: 6px 8px;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.difUsar {
+  background: none;
+  border: 1px solid var(--chip-aviso-text);
+  border-radius: 4px;
+  padding: 3px 8px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--chip-aviso-text);
+  cursor: pointer;
+  font-family: var(--font-jost), sans-serif;
+  white-space: nowrap;
+}
+.difUsar:hover { filter: brightness(0.96); }
+/* Marca de "esto lo trajo el registro del huésped". */
+.delRegistro {
+  font-size: 0.72rem;
+  color: var(--chip-ok-text);
+  text-transform: none;
+  letter-spacing: 0;
+}
+/* El bloque de datos del registro que NO tienen campo en la reserva. */
+.registroBloque {
+  background: var(--parch);
+  border-radius: 6px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* ── Móvil ─────────────────────────────────────────────────────────────────
+   La rejilla de éxito y sus botones NO colapsaban nunca: seguían a dos columnas
+   a 320 px, con el importe partido en dos líneas. Y el modal ocupa toda la
+   pantalla, que a ese ancho es lo correcto: un velo de 16 px alrededor sólo
+   roba sitio. */
+@media (max-width: 480px) {
+  .overlay { padding: 0; }
+  .modal { max-height: 100vh; border-radius: 0; }
+  .formCuerpo, .fichaCuerpo { padding: 18px 16px; }
+  .actions { padding: 12px 16px 16px; }
+  .successGrid { grid-template-columns: 1fr; }
+  .successActions { grid-template-columns: 1fr; }
+  /* El pie deja de apretar tres botones en una fila de 320 px. */
+  .actions { flex-direction: column-reverse; align-items: stretch; }
+  .actions button, .actions a { width: 100%; justify-content: center; }
+  .dangerBtn { margin-right: 0; }
+  /* El importe se lleva su fila entera en vez de competir con la etiqueta. */
+  .totalEditRow { margin-left: 0; width: 100%; }
+  .totalInput { width: 100%; }
+  /* Etiqueta arriba y valor abajo: a 320 px una fila de dos columnas parte los
+     nombres largos por la mitad. */
+  .fichaFila { flex-direction: column; align-items: flex-start; gap: 2px; }
+  .fichaValor, .fichaValorFuerte { text-align: left; }
+}

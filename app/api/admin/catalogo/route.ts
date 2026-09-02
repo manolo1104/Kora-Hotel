@@ -5,9 +5,9 @@ import { catalogoTours, catalogoPaquetes } from "@/lib/admin/cotizaciones-catalo
 
 export const dynamic = "force-dynamic";
 
-// Catálogo de tours y paquetes del hotel activo (desde extras.cotizaciones, con
-// fallback al catálogo del hotel piloto). Lo consumen CotizacionesClient y
-// ReservationModal para no depender de un hardcode por slug.
+// Catálogo de tours y paquetes del hotel activo: SÓLO lo que el hotelero dio de
+// alta en `extras.cotizaciones`. Sin fallback — un hotel que no configuró nada
+// recibe listas vacías y las secciones se ocultan solas.
 export async function GET() {
   const ctx = await getActiveHotel();
   if (!ctx) return NextResponse.json({ error: "no-auth" }, { status: 401 });
@@ -15,7 +15,7 @@ export async function GET() {
   if (no) return no;
   const cot = (ctx.hotel.extras as Record<string, unknown> | null)?.cotizaciones;
   return NextResponse.json({
-    tours: catalogoTours(ctx.hotel.slug, cot),
-    paquetes: catalogoPaquetes(ctx.hotel.slug, cot),
+    tours: catalogoTours(cot),
+    paquetes: catalogoPaquetes(cot),
   });
 }

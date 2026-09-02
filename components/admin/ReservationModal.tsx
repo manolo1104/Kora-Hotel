@@ -7,6 +7,9 @@ import { getRoomBasePrice, type BookingRoom } from '@/lib/booking';
 import { type TourCat, type PaqueteCat } from '@/lib/admin/cotizaciones-catalogo';
 import { parseNotas, construirNotas, type TourItem, type PaqueteItem } from '@/lib/notas';
 import { hoyHotel, sumarDias } from '@/lib/fecha-hotel';
+import { importarDelHuesped, type Diferencia } from '@/lib/booking/importar-pre-checkin';
+import type { PreCheckinGuardado } from '@/lib/db/pre-checkin';
+import FichaReserva from './FichaReserva';
 import styles from './Modal.module.css';
 import { postJson } from '@/lib/ui/api';
 
@@ -253,6 +256,21 @@ export default function ReservationModal({ booking, rooms, slug, defaultCheckin,
   const [anticipo, setAnticipo] = useState(booking?.anticipo || 0);
   const [restanteOverride, setRestanteOverride] = useState<number | null>(null);
 
+  // ── Modo: ficha o formulario ───────────────────────────────────────────────
+  // Un alta arranca escribiendo; abrir una reserva arranca LEYENDO. Antes abrir
+  // era editar, y con el huésped delante un roce en una fecha dispara el PATCH,
+  // que revalida disponibilidad y le manda un correo de "tu reserva cambió" a
+  // quien no cambió nada.
+  const [editando, setEditando] = useState(!booking);
+
+  // El registro que llenó el huésped en su pre check-in. Vivía sólo detrás del
+  // icono del QR, en otra ventana; aquí entra donde recepción ya está mirando.
+  const [registro, setRegistro] = useState<PreCheckinGuardado | null>(null);
+  // Campos donde el huésped escribió algo DISTINTO. No se pisan: se avisan.
+  const [difs, setDifs] = useState<Diferencia[]>([]);
+  // Campos que estaban vacíos y rellenó el registro (para poner el ✓).
+  const [rellenados, setRellenados] = useState<Set<string>>(new Set());
+
   // Load CRM clients once for autocomplete (new reservations only)
   useEffect(() => {
     if (isEdit) return;
@@ -377,6 +395,45 @@ export default function ReservationModal({ booking, rooms, slug, defaultCheckin,
     }
   }
 
+  // Trae el registro del huésped y decide qué se rellena y de qué se avisa.
+  // La regla vive en lib/booking/importar-pre-checkin.ts, que es puro y probado:
+  // hueco vacío → se rellena; distinto → se avisa y NO se pisa; igual → nada.
+  useEffect(() => {
+    // Se limpia SIEMPRE lo del huésped anterior, antes de nada. Al pasar de una
+    // reserva a otra sin cerrar el modal, React reutiliza esta misma instancia:
+    // sin este reset, la reserva nueva se pintaba con el registro de la vieja
+    // —el teléfono y el correo de OTRO huésped—. Se vio en el navegador.
+    setRegistro(null);
+    setDifs([]);
+    setRellenados(new Set());
+    if (!booking?.confirmacion) return;
+    let vivo = true;
+    (async () => {
+      try {
+        const res = await fetch(`/api/admin/pre-checkin?folio=${encodeURIComponent(booking.confirmacion)}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const d = await res.json();
+        if (!vivo || !d.registro) return;
+        const reg = d.registro as PreCheckinGuardado;
+        setRegistro(reg);
+        setForm(f => {
+          const { rellenos, diferencias } = importarDelHuesped(
+            { cliente: f.cliente, telefono: f.telefono, email: f.email },
+            { nombreCompleto: reg.nombreCompleto, telefono: reg.telefono, email: reg.email },
+          );
+          setDifs(diferencias);
+          setRellenados(new Set(Object.keys(rellenos)));
+          return { ...f, ...rellenos };
+        });
+      } catch (e) {
+        // No se traga: sin el registro el formulario funciona igual, pero un
+        // catch mudo es exactamente cómo se pierde un error de verdad.
+        console.error('[ReservationModal] no se pudo leer el registro del huésped:', e);
+      }
+    })();
+    return () => { vivo = false; };
+  }, [booking?.confirmacion]);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!isEdit && availStatus === 'unavailable' && !forzar) {
@@ -469,6 +526,70 @@ export default function ReservationModal({ booking, rooms, slug, defaultCheckin,
     );
   }
 
+  /** Acepta el valor del huésped para un campo y quita su aviso. */
+  function usarDelHuesped(d: Diferencia) {
+    set(d.campo, d.delHuesped);
+    setDifs(prev => prev.filter(x => x.campo !== d.campo));
+    setRellenados(prev => new Set(prev).add(d.campo));
+  }
+
+  /**
+   * Descartar la edición: vuelve a la ficha y deja los campos como estaban.
+   *
+   * Restaurar importa: sin esto, «Cancelar» volvería a la ficha pero el
+   * formulario conservaría lo tecleado, y al volver a pulsar «Editar»
+   * reaparecerían unos cambios que el hotelero creía descartados.
+   */
+  function descartarEdicion() {
+    if (!booking) return;
+    setForm({
+      cliente: booking.cliente || '',
+      telefono: booking.telefono || '',
+      email: booking.email || '',
+      checkin: booking.checkin || '',
+      checkout: booking.checkout || '',
+      noches: booking.noches || 1,
+      total: booking.total || 0,
+    });
+    const n = parseNotas(booking.notas || '');
+    setNotasCliente(n.cliente);
+    setNotasInternas(n.interno);
+    setTourItems(n.tours);
+    setPaqueteItems(n.paquetes);
+    setAnticipo(booking.anticipo || 0);
+    setRestanteOverride(null);
+    setError('');
+    setEditando(false);
+  }
+
+  /** Una línea del registro del huésped. No pinta la fila si no hay valor. */
+  function DatoRegistro({ etiqueta, valor }: { etiqueta: string; valor?: string }) {
+    if (!valor || !valor.trim()) return null;
+    return (
+      <span className={styles.fichaFila}>
+        <span className={styles.fichaEtiqueta}>{etiqueta}</span>
+        <span className={styles.fichaValor}>{valor}</span>
+      </span>
+    );
+  }
+
+  /** El aviso/marca que va debajo de un campo del huésped. */
+  function MarcaRegistro({ campo }: { campo: 'cliente' | 'telefono' | 'email' }) {
+    const d = difs.find(x => x.campo === campo);
+    if (d) {
+      return (
+        <span className={styles.difAviso}>
+          El huésped puso «{d.delHuesped}»
+          <button type="button" className={styles.difUsar} onClick={() => usarDelHuesped(d)}>
+            usar este
+          </button>
+        </span>
+      );
+    }
+    if (rellenados.has(campo)) return <span className={styles.delRegistro}>✓ del registro</span>;
+    return null;
+  }
+
   // ── Autocomplete helper ──────────────────────────────────────────────────────
   function AutoSuggest({ field }: { field: 'cliente' | 'email' | 'telefono' }) {
     const suggestions = getSuggestions(field);
@@ -485,18 +606,44 @@ export default function ReservationModal({ booking, rooms, slug, defaultCheckin,
     );
   }
 
+  // FICHA. El `<form>` no se monta siquiera: el modal manda `{...form}` entero
+  // en cada envío, y un PATCH con fechas dispara la revalidación de
+  // disponibilidad y un correo al huésped. Esconder el botón no bastaría.
+  if (booking && !editando) {
+    return (
+      <div className={styles.overlay} onClick={e => e.target === e.currentTarget && onClose()}>
+        <div className={styles.modal}>
+          <FichaReserva
+            booking={booking}
+            registro={registro}
+            verDinero
+            puedeEditar
+            onEditar={() => setEditando(true)}
+            onCancelarReserva={handleCancel}
+            onClose={onClose}
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={styles.overlay} onClick={e => e.target === e.currentTarget && onClose()}>
       <div className={styles.modal}>
         <div className={styles.header}>
-          <h2 className={styles.title}>{isEdit ? 'Editar Reserva' : 'Nueva Reserva'}</h2>
+          <h2 className={styles.title}>{isEdit ? 'Editar reserva' : 'Nueva reserva'}</h2>
           {isEdit && <span className={styles.confirmNum}>{booking.confirmacion}</span>}
-          <button className={styles.closeBtn} onClick={onClose}><X size={18} /></button>
+          <button className={styles.closeBtn} onClick={onClose} aria-label="Cerrar"><X size={18} /></button>
         </div>
 
         <form onSubmit={handleSubmit} className={styles.form}>
+          <div className={styles.formCuerpo}>
+          {/* ── Huésped ── */}
+          <section className={styles.seccion}>
+          <h3 className={styles.seccionTitulo}>Huésped</h3>
           <div className={styles.grid2}>
             {/* Cliente con autocomplete */}
+            <div className={styles.campoConAviso}>
             <label className={styles.field} style={{ position: 'relative' }}>
               <span>Cliente *</span>
               <input
@@ -508,8 +655,11 @@ export default function ReservationModal({ booking, rooms, slug, defaultCheckin,
               />
               <AutoSuggest field="cliente" />
             </label>
+            <MarcaRegistro campo="cliente" />
+            </div>
 
             {/* Teléfono con autocomplete */}
+            <div className={styles.campoConAviso}>
             <label className={styles.field} style={{ position: 'relative' }}>
               <span>Teléfono / WhatsApp</span>
               <input
@@ -520,8 +670,11 @@ export default function ReservationModal({ booking, rooms, slug, defaultCheckin,
               />
               <AutoSuggest field="telefono" />
             </label>
+            <MarcaRegistro campo="telefono" />
+            </div>
 
             {/* Email con autocomplete */}
+            <div className={styles.campoConAviso}>
             <label className={styles.field} style={{ position: 'relative' }}>
               <span>Email</span>
               <input
@@ -533,198 +686,45 @@ export default function ReservationModal({ booking, rooms, slug, defaultCheckin,
               />
               <AutoSuggest field="email" />
             </label>
+            <MarcaRegistro campo="email" />
+            </div>
 
+          </div>
+          {/* Lo que el huésped puso y no tiene campo en la reserva. Sólo lectura:
+              domicilio, identificación, placas y acompañantes no son campos de
+              `bookings`, y copiarlos a las notas los dejaría desincronizados en
+              cuanto el huésped rehaga su registro. */}
+          {registro && (
+            <div className={styles.registroBloque}>
+              <DatoRegistro etiqueta="Domicilio" valor={registro.domicilio} />
+              <DatoRegistro etiqueta="Procedencia" valor={[registro.ciudadOrigen, registro.pais].filter(Boolean).join(', ')} />
+              <DatoRegistro etiqueta="Identificación" valor={[registro.documentoTipo, registro.documentoRef && `····${registro.documentoRef}`].filter(Boolean).join(' ')} />
+              <DatoRegistro etiqueta="Llega a las" valor={registro.horaEstimada} />
+              <DatoRegistro etiqueta="Placas" valor={registro.placas} />
+              <DatoRegistro etiqueta="Acompañantes" valor={(registro.acompanantes ?? []).map(a => a.nombre).filter(Boolean).join(', ')} />
+            </div>
+          )}
+          </section>
+
+          {/* ── Estancia ── */}
+          <section className={styles.seccion}>
+          <h3 className={styles.seccionTitulo}>Estancia</h3>
+          <div className={styles.grid2}>
             <label className={styles.field}>
-              <span>Check-in *</span>
+              <span>Entrada *</span>
               <input type="date" value={form.checkin} onChange={e => handleCheckin(e.target.value)} required />
             </label>
             <label className={styles.field}>
-              <span>Check-out *</span>
+              <span>Salida *</span>
               <input type="date" value={form.checkout}
                 min={form.checkin || undefined}
                 onChange={e => set('checkout', e.target.value)} required />
             </label>
             <label className={styles.field}>
               <span>Noches</span>
-              <input type="number" min={1} value={form.noches} readOnly style={{ background: 'var(--parch)' }} />
+              <input type="number" min={1} value={form.noches} readOnly className={styles.campoCalculado} />
             </label>
           </div>
-
-          {/* Habitaciones */}
-          <div className={styles.roomsSection}>
-            <div className={styles.roomsSectionHeader}>
-              <span className={styles.roomsSectionLabel}>Habitaciones *</span>
-              <button type="button" className={styles.addRoomBtn} onClick={addHab}>
-                <Plus size={13} /> Agregar habitación
-              </button>
-            </div>
-            {habitaciones.map((hab, i) => (
-              <div key={i} className={styles.roomRow}>
-                <select className={styles.roomRowSelect} value={hab.suite}
-                  onChange={e => updateHab(i, 'suite', e.target.value)}>
-                  {SUITES.map(s => <option key={s}>{s}</option>)}
-                </select>
-                <select className={styles.roomRowSelect} value={hab.huespedes}
-                  onChange={e => updateHab(i, 'huespedes', parseInt(e.target.value))}>
-                  {[1,2,3,4,5,6,7,8].map(n => <option key={n} value={n}>{n}p</option>)}
-                </select>
-                <input
-                  type="number" min={0}
-                  className={styles.roomPriceInput}
-                  value={getHabPrecio(rooms, hab)}
-                  onChange={e => updateHabPrecio(i, parseInt(e.target.value) || 0)}
-                  title="Precio por noche"
-                />
-                {habitaciones.length > 1 && (
-                  <button type="button" className={styles.removeRoomBtn} onClick={() => removeHab(i)}>
-                    <X size={13} />
-                  </button>
-                )}
-              </div>
-            ))}
-            <p className={styles.roomsTotal}>{totalHuespedes} huésped{totalHuespedes !== 1 ? 'es' : ''} en total</p>
-          </div>
-
-          {/* Tours / Experiencias (oculto si el hotel no tiene catálogo y la reserva no trae tours) */}
-          {(tours.length > 0 || tourItems.length > 0) && (
-          <div className={styles.roomsSection}>
-            <div className={styles.roomsSectionHeader}>
-              <span className={styles.roomsSectionLabel}>Tours / Experiencias</span>
-              <button type="button" className={styles.addRoomBtn} onClick={addTourM}>
-                <Plus size={13} /> Agregar tour
-              </button>
-            </div>
-            {tourItems.length === 0 && (
-              <p style={{ fontSize: '0.75rem', color: 'var(--clay)', padding: '6px 0' }}>Sin tours (opcional)</p>
-            )}
-            {tourItems.map((t, i) => (
-              <div key={i} className={styles.roomRow}>
-                <select className={styles.roomRowSelect} style={{ flex: 2 }} value={t.nombre}
-                  onChange={e => updateTourM(i, 'nombre', e.target.value)}>
-                  {tours.map(c => <option key={c.nombre}>{c.nombre}</option>)}
-                </select>
-                <select className={styles.roomRowSelect} value={t.personas}
-                  onChange={e => updateTourM(i, 'personas', parseInt(e.target.value))}>
-                  {[1,2,3,4,5,6,7,8].map(n => <option key={n} value={n}>{n}p</option>)}
-                </select>
-                <input type="number" min={0} className={styles.roomPriceInput}
-                  value={t.precio} title="Precio por persona"
-                  onChange={e => updateTourM(i, 'precio', parseInt(e.target.value) || 0)} />
-                <button type="button" className={styles.removeRoomBtn} onClick={() => removeTourM(i)}>
-                  <X size={13} />
-                </button>
-              </div>
-            ))}
-            {tourItems.length > 0 && (
-              <p className={styles.roomsTotal}>Tours: ${toursCalculado.toLocaleString('es-MX')} MXN</p>
-            )}
-          </div>
-          )}
-
-          {/* Paquetes (oculto si el hotel no tiene catálogo y la reserva no trae paquetes) */}
-          {(paquetes.length > 0 || paqueteItems.length > 0) && (
-          <div className={styles.roomsSection}>
-            <div className={styles.roomsSectionHeader}>
-              <span className={styles.roomsSectionLabel}>🎁 Paquetes Todo Incluido</span>
-              <button type="button" className={styles.addRoomBtn} onClick={addPaqueteM}>
-                <Plus size={13} /> Agregar paquete
-              </button>
-            </div>
-            {paqueteItems.length === 0 && <p style={{ fontSize: '0.75rem', color: 'var(--clay)', padding: '6px 0' }}>Sin paquetes (opcional)</p>}
-            {paqueteItems.map((p, i) => (
-              <div key={i} className={styles.roomRow} style={{ flexWrap: 'wrap', gap: 6 }}>
-                <select className={styles.roomRowSelect} style={{ flex: '2 1 140px' }} value={p.nombre}
-                  onChange={e => updatePaqueteM(i, 'nombre', e.target.value)}>
-                  {paquetes.map(c => <option key={c.nombre}>{c.nombre}</option>)}
-                </select>
-                <select className={styles.roomRowSelect} style={{ flex: '2 1 120px' }} value={p.habitacion}
-                  onChange={e => updatePaqueteM(i, 'habitacion', e.target.value)}>
-                  {SUITES.map(s => <option key={s}>{s}</option>)}
-                </select>
-                <select className={styles.roomRowSelect} value={p.noches}
-                  onChange={e => updatePaqueteM(i, 'noches', parseInt(e.target.value))}>
-                  {[1,2,3,4,5,6,7].map(n => <option key={n} value={n}>{n}n</option>)}
-                </select>
-                <select className={styles.roomRowSelect} value={p.personas}
-                  onChange={e => updatePaqueteM(i, 'personas', parseInt(e.target.value))}>
-                  {[1,2,3,4,5,6,7,8].map(n => <option key={n} value={n}>{n}p</option>)}
-                </select>
-                <input type="number" min={0} className={styles.roomPriceInput}
-                  value={p.precio} title="Precio total del paquete"
-                  onChange={e => updatePaqueteM(i, 'precio', parseInt(e.target.value) || 0)} />
-                <button type="button" className={styles.removeRoomBtn} onClick={() => removePaqueteM(i)}><X size={13} /></button>
-              </div>
-            ))}
-            {paqueteItems.length > 0 && (
-              <p className={styles.roomsTotal}>Paquetes: ${paquetesCalculado.toLocaleString('es-MX')} MXN</p>
-            )}
-          </div>
-          )}
-
-          {/* Calculador de precio */}
-          <div className={styles.priceCalc}>
-            {habitaciones.length > 1 && habitaciones.map((hab, i) => {
-              const pn = getHabPrecio(rooms, hab);
-              return (
-                <div key={i} className={styles.priceCalcRow}>
-                  <span>{hab.suite} ({hab.huespedes}p) × {Math.max(form.noches,1)} noches</span>
-                  <span>${(pn * Math.max(form.noches,1)).toLocaleString('es-MX')}</span>
-                </div>
-              );
-            })}
-            {habitaciones.length === 1 && (
-              <div className={styles.priceCalcRow}>
-                <span>${getHabPrecio(rooms, habitaciones[0]).toLocaleString('es-MX')}/noche × {Math.max(form.noches, 1)} noches</span>
-                <strong>${precioCalculado.toLocaleString('es-MX')} MXN</strong>
-              </div>
-            )}
-            <div className={styles.totalRow}>
-              <label className={styles.field} style={{ flex: 1 }}>
-                <span>Total a cobrar (MXN) *</span>
-                <input
-                  type="number" min={0} value={form.total}
-                  onChange={e => { setTotalOverride(true); set('total', parseInt(e.target.value) || 0); }}
-                  required
-                />
-              </label>
-              {form.total !== precioCalculado && (
-                <button type="button" className={styles.resetPrice}
-                  onClick={() => { setTotalOverride(false); set('total', precioCalculado); }}>
-                  ↩ Usar calculado
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Anticipo / Restante */}
-          <div className={styles.anticipoSection}>
-            <span className={styles.anticipoTitle}>Anticipo y saldo pendiente</span>
-            <div className={styles.anticipoGrid}>
-              <div className={styles.anticipoFieldWrap}>
-                <span>Anticipo recibido (MXN)</span>
-                <input
-                  type="number" min={0}
-                  value={anticipo}
-                  onChange={e => { setAnticipo(parseInt(e.target.value) || 0); setRestanteOverride(null); }}
-                />
-              </div>
-              <div className={styles.anticipoFieldWrap}>
-                <span>Saldo restante (MXN)</span>
-                <input
-                  type="number" min={0}
-                  value={restante}
-                  onChange={e => setRestanteOverride(parseInt(e.target.value) || 0)}
-                />
-              </div>
-            </div>
-            {restanteOverride !== null && (
-              <button type="button" className={styles.anticipoReset}
-                onClick={() => setRestanteOverride(null)}>
-                ↩ Recalcular restante
-              </button>
-            )}
-          </div>
-
           {/* Disponibilidad */}
           {!isEdit && form.checkin && form.checkout && (
             <div className={`${styles.availBadge} ${
@@ -763,6 +763,201 @@ export default function ReservationModal({ booking, rooms, slug, defaultCheckin,
               </span>
             </label>
           )}
+          </section>
+
+          {/* Habitaciones */}
+          <div className={styles.roomsSection}>
+            <div className={styles.roomsSectionHeader}>
+              <span className={styles.roomsSectionLabel}>Habitaciones *</span>
+              <button type="button" className={styles.addRoomBtn} onClick={addHab}>
+                <Plus size={13} /> Agregar habitación
+              </button>
+            </div>
+            {habitaciones.map((hab, i) => (
+              <div key={i} className={styles.roomRow}>
+                <select className={styles.roomRowSelect} value={hab.suite}
+                  onChange={e => updateHab(i, 'suite', e.target.value)}>
+                  {SUITES.map(s => <option key={s}>{s}</option>)}
+                </select>
+                <select className={styles.roomRowSelect} value={hab.huespedes}
+                  onChange={e => updateHab(i, 'huespedes', parseInt(e.target.value))}>
+                  {[1,2,3,4,5,6,7,8].map(n => <option key={n} value={n}>{n}p</option>)}
+                </select>
+                <input
+                  type="number" min={0}
+                  className={styles.roomPriceInput}
+                  value={getHabPrecio(rooms, hab)}
+                  onChange={e => updateHabPrecio(i, parseInt(e.target.value) || 0)}
+                  title="Precio por noche"
+                />
+                {habitaciones.length > 1 && (
+                  <button type="button" className={styles.removeRoomBtn} onClick={() => removeHab(i)}>
+                    <X size={13} />
+                  </button>
+                )}
+              </div>
+            ))}
+            <p className={styles.roomsTotal}>{totalHuespedes} huésped{totalHuespedes !== 1 ? 'es' : ''} en total</p>
+          </div>
+
+          {/* ── Extras ──
+              Tours y paquetes bajo una sola cabecera: son lo mismo desde el
+              mostrador —cosas que se añaden a la estancia— y tenerlos como dos
+              bloques hermanos del mismo peso que «Habitaciones» hacía parecer
+              que el formulario tenía seis secciones cuando tiene cuatro. */}
+          {(tours.length > 0 || tourItems.length > 0 || paquetes.length > 0 || paqueteItems.length > 0) && (
+          <section className={styles.seccion}>
+          <h3 className={styles.seccionTitulo}>Extras</h3>
+          {(tours.length > 0 || tourItems.length > 0) && (
+          <div className={styles.roomsSection}>
+            <div className={styles.roomsSectionHeader}>
+              <span className={styles.roomsSectionLabel}>Tours / Experiencias</span>
+              <button type="button" className={styles.addRoomBtn} onClick={addTourM}>
+                <Plus size={13} /> Agregar tour
+              </button>
+            </div>
+            {tourItems.map((t, i) => (
+              <div key={i} className={styles.roomRow}>
+                <select className={styles.roomRowSelect} style={{ flex: 2 }} value={t.nombre}
+                  onChange={e => updateTourM(i, 'nombre', e.target.value)}>
+                  {tours.map(c => <option key={c.nombre}>{c.nombre}</option>)}
+                </select>
+                <select className={styles.roomRowSelect} value={t.personas}
+                  onChange={e => updateTourM(i, 'personas', parseInt(e.target.value))}>
+                  {[1,2,3,4,5,6,7,8].map(n => <option key={n} value={n}>{n}p</option>)}
+                </select>
+                <input type="number" min={0} className={styles.roomPriceInput}
+                  value={t.precio} title="Precio por persona"
+                  onChange={e => updateTourM(i, 'precio', parseInt(e.target.value) || 0)} />
+                <button type="button" className={styles.removeRoomBtn} onClick={() => removeTourM(i)}>
+                  <X size={13} />
+                </button>
+              </div>
+            ))}
+            {tourItems.length > 0 && (
+              <p className={styles.roomsTotal}>Tours: ${toursCalculado.toLocaleString('es-MX')} MXN</p>
+            )}
+          </div>
+          )}
+
+          {/* Paquetes (oculto si el hotel no tiene catálogo y la reserva no trae paquetes) */}
+          {(paquetes.length > 0 || paqueteItems.length > 0) && (
+          <div className={styles.roomsSection}>
+            <div className={styles.roomsSectionHeader}>
+              <span className={styles.roomsSectionLabel}>Paquetes todo incluido</span>
+              <button type="button" className={styles.addRoomBtn} onClick={addPaqueteM}>
+                <Plus size={13} /> Agregar paquete
+              </button>
+            </div>
+            {paqueteItems.map((p, i) => (
+              <div key={i} className={styles.roomRow} style={{ flexWrap: 'wrap', gap: 6 }}>
+                <select className={styles.roomRowSelect} style={{ flex: '2 1 140px' }} value={p.nombre}
+                  onChange={e => updatePaqueteM(i, 'nombre', e.target.value)}>
+                  {paquetes.map(c => <option key={c.nombre}>{c.nombre}</option>)}
+                </select>
+                <select className={styles.roomRowSelect} style={{ flex: '2 1 120px' }} value={p.habitacion}
+                  onChange={e => updatePaqueteM(i, 'habitacion', e.target.value)}>
+                  {SUITES.map(s => <option key={s}>{s}</option>)}
+                </select>
+                <select className={styles.roomRowSelect} value={p.noches}
+                  onChange={e => updatePaqueteM(i, 'noches', parseInt(e.target.value))}>
+                  {[1,2,3,4,5,6,7].map(n => <option key={n} value={n}>{n}n</option>)}
+                </select>
+                <select className={styles.roomRowSelect} value={p.personas}
+                  onChange={e => updatePaqueteM(i, 'personas', parseInt(e.target.value))}>
+                  {[1,2,3,4,5,6,7,8].map(n => <option key={n} value={n}>{n}p</option>)}
+                </select>
+                <input type="number" min={0} className={styles.roomPriceInput}
+                  value={p.precio} title="Precio total del paquete"
+                  onChange={e => updatePaqueteM(i, 'precio', parseInt(e.target.value) || 0)} />
+                <button type="button" className={styles.removeRoomBtn} onClick={() => removePaqueteM(i)}><X size={13} /></button>
+              </div>
+            ))}
+            {paqueteItems.length > 0 && (
+              <p className={styles.roomsTotal}>Paquetes: ${paquetesCalculado.toLocaleString('es-MX')} MXN</p>
+            )}
+          </div>
+          )}
+
+          </section>
+          )}
+
+          {/* ── Cobro ──
+              Antes eran DOS losas grises seguidas —«precio» y «anticipo y
+              saldo»— sin título ninguna, y el hotelero veía dos cajas iguales
+              sin saber cuál mandaba. Ahora es un solo bloque con el desglose
+              arriba, una línea que lo separa, y el total y el saldo debajo. */}
+          <section className={styles.seccion}>
+          <h3 className={styles.seccionTitulo}>Cobro</h3>
+          <div className={styles.priceCalc}>
+            {habitaciones.map((hab, i) => {
+              const pn = getHabPrecio(rooms, hab);
+              const n = Math.max(form.noches, 1);
+              return (
+                <div key={`h${i}`} className={styles.priceCalcRow}>
+                  <span>{hab.suite} · ${pn.toLocaleString('es-MX')} × {n} noche{n !== 1 ? 's' : ''}</span>
+                  <span>${(pn * n).toLocaleString('es-MX')}</span>
+                </div>
+              );
+            })}
+            {/* Cada tour y cada paquete, su propia línea. Antes se sumaban en un
+                total agregado y el hotelero no podía cuadrar de dónde salía. */}
+            {tourItems.map((t, i) => (
+              <div key={`t${i}`} className={styles.priceCalcRow}>
+                <span>{t.nombre} · {t.personas}p</span>
+                <span>${(t.precio * t.personas).toLocaleString('es-MX')}</span>
+              </div>
+            ))}
+            {paqueteItems.map((pq, i) => (
+              <div key={`p${i}`} className={styles.priceCalcRow}>
+                <span>{pq.nombre}</span>
+                <span>${(pq.precio || 0).toLocaleString('es-MX')}</span>
+              </div>
+            ))}
+
+            <div className={styles.totalRow}>
+              <span className={styles.totalLabel}>Total a cobrar</span>
+              <span className={styles.totalEditRow}>
+                {form.total !== precioCalculado && (
+                  <button type="button" className={styles.resetPrice}
+                    onClick={() => { setTotalOverride(false); set('total', precioCalculado); }}>
+                    ↩ Usar calculado
+                  </button>
+                )}
+                <input
+                  type="number" min={0} value={form.total}
+                  className={styles.totalInput}
+                  aria-label="Total a cobrar en pesos"
+                  onChange={e => { setTotalOverride(true); set('total', parseInt(e.target.value) || 0); }}
+                  required
+                />
+              </span>
+            </div>
+
+            <div className={styles.anticipoGrid}>
+              <label className={styles.field}>
+                <span>Anticipo recibido</span>
+                <input
+                  type="number" min={0} value={anticipo}
+                  onChange={e => { setAnticipo(parseInt(e.target.value) || 0); setRestanteOverride(null); }}
+                />
+              </label>
+              <label className={styles.field}>
+                <span>Saldo por pagar</span>
+                <input
+                  type="number" min={0} value={restante}
+                  onChange={e => setRestanteOverride(parseInt(e.target.value) || 0)}
+                />
+              </label>
+            </div>
+            {restanteOverride !== null && (
+              <button type="button" className={styles.anticipoReset}
+                onClick={() => setRestanteOverride(null)}>
+                ↩ Recalcular saldo
+              </button>
+            )}
+          </div>
+          </section>
 
           {/* Notas */}
           <div className={styles.grid2}>
@@ -778,13 +973,20 @@ export default function ReservationModal({ booking, rooms, slug, defaultCheckin,
 
           {error && <p className={styles.error}>{error}</p>}
 
+          </div>
+
           <div className={styles.actions}>
             {isEdit && (
               <button type="button" className={styles.dangerBtn} onClick={handleCancel} disabled={loading}>
                 Cancelar reserva
               </button>
             )}
-            <button type="button" className={styles.secondaryBtn} onClick={onClose}>Cerrar</button>
+            {/* Editando una reserva, «Cancelar» vuelve a la ficha SIN guardar y
+                deshaciendo lo tecleado. En un alta cierra, que es lo que había. */}
+            <button type="button" className={styles.secondaryBtn}
+              onClick={isEdit ? descartarEdicion : onClose}>
+              {isEdit ? 'Cancelar' : 'Cerrar'}
+            </button>
             <button
               type="submit"
               className={styles.primaryBtn}

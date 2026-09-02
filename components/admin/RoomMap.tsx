@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { X, AlertTriangle, Sparkles, BedDouble, CheckCircle, LogOut, LogIn, UserPlus, Loader2 } from 'lucide-react';
 import { postJson, mensajeDeError } from '@/lib/ui/api';
 import { ZONA_HOTEL } from '@/lib/fecha-hotel';
+import { notaAlCambiarEstado } from '@/lib/booking/nota-cuarto';
 import styles from './RoomMap.module.css';
 
 export type RoomStatusType = 'DISPONIBLE' | 'OCUPADA' | 'MANTENIMIENTO' | 'LIMPIEZA';
@@ -289,7 +290,14 @@ export default function RoomMap({ slug, puedeReservar }: Props) {
                     key={key}
                     className={`${styles.statusOpt} ${editModal.estado === key ? styles.statusOptActive : ''}`}
                     style={editModal.estado === key ? { borderColor: cfg.color, background: cfg.bg } : {}}
-                    onClick={() => setEditModal(m => m ? { ...m, estado: key } : m)}
+                    // La nota se escribe sola al elegir el estado, PERO sólo si
+                    // la que hay la puso el sistema. Lo que escribió una persona
+                    // ("el aire no enfría") no se pisa por mover un desplegable.
+                    onClick={() =>
+                      setEditModal(m =>
+                        m ? { ...m, estado: key, notas: notaAlCambiarEstado(key, m.notas) } : m,
+                      )
+                    }
                   >
                     <span style={{ color: cfg.color }}>{cfg.icon}</span>
                     <span style={{ color: editModal.estado === key ? cfg.color : 'inherit' }}>{cfg.label}</span>
