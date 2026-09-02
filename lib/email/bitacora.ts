@@ -65,6 +65,9 @@ export async function registrarCorreo(args: {
       },
       { onConflict: "hotel_id,confirmacion,email_type" },
     );
+    // Apunte AUXILIAR: es la bitácora de lo que se mandó. Lanzar aquí haría
+    // fallar el ENVÍO por no haber podido apuntarlo, que es exactamente al revés
+    // de para lo que sirve. Se registra y se sigue.
     if (error) console.error("[bitacora] no se pudo registrar el correo:", error.message);
   } catch (e) {
     console.error("[bitacora] error registrando:", e);

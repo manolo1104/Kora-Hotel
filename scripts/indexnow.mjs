@@ -1,10 +1,13 @@
 // Notifica a IndexNow (Bing, Yandex y motores que alimentan a Copilot/ChatGPT)
 // todas las URLs del sitemap en vivo. Úsalo tras cada deploy: `npm run indexnow`.
 //
-// La llave vive en public/<KEY>.txt (debe estar publicada en el dominio).
+// La llave sale de lib/indexnow-key.mjs y da nombre a public/<KEY>.txt, que
+// TIENE que estar publicado en el dominio para que IndexNow acepte los avisos.
+
+import { INDEXNOW_KEY } from "../lib/indexnow-key.mjs";
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
-const KEY = "a40e702ec65b92696674e8c3a8b1223a";
+const KEY = INDEXNOW_KEY;
 
 async function main() {
   const host = new URL(SITE).host;

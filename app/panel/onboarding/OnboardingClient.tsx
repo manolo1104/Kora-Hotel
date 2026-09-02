@@ -89,7 +89,10 @@ export function OnboardingClient() {
         // kora_active_slug al pasar por /panel/[slug], y el paso de cobros
         // (Stripe Connect) la necesita. Se mantiene `enviando` para no
         // rehabilitar el botón mientras el navegador cambia de página.
-        window.location.assign(`/panel/${data.slug}/onboarding?nuevo=1`);
+        // Sin `?nuevo=1`: lo ponía desde siempre y NADIE lo leía (ni esta
+        // pantalla ni la de destino). Un parámetro huérfano en la URL invita a
+        // que alguien construya lógica sobre algo que no significa nada.
+        window.location.assign(`/panel/${data.slug}/onboarding`);
         return;
       }
       setError(data.error || "No se pudo crear tu hotel. Inténtalo de nuevo.");

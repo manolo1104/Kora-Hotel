@@ -42,7 +42,12 @@ exacto(){ local nom="$1" esp="$2"; shift 2; local s n; s="$("$@" 2>/dev/null)"; 
 
 sec "A1 · Ninguna escritura ni lectura de Supabase ignora {error}"
 cero "A1.1 sin 'const { data' sin error"           bash -c 'grep -rnI --exclude=verificar-arreglos.sh --include="*.ts" "const { data" app lib | grep -v "error"'
-cero "A1.2 sin 'if (error) console.error'"         G --include="*.ts" "if (error) console.error" app lib
+# Los 2 que quedan NO son errores tragados: son apuntes AUXILIARES
+# (`anotarSesionStripe` y la bitácora de correos). Lanzar ahí tiraría el
+# checkout o el envío de verdad por no haber podido apuntarlo — al revés de
+# para lo que sirven. La excepción tiene que ir ESCRITA: la palabra AUXILIAR en
+# las 6 líneas anteriores. Sin esa justificación, sigue siendo rojo.
+cero "A1.2 sin 'if (error) console.error' sin justificar" bash -c "grep -rn --include='*.ts' -B 6 'if (error) console.error' app lib | awk '/AUXILIAR/{v=1} /if \\(error\\) console.error/{ if(!v && \$0 !~ /:[0-9]+:[ \t]*(\\/\\/|\\*)/) print; v=0 }'"
 cero "A1.3 sin await admin/supabase.from suelto"   bash -c 'grep -rnIE --include="*.ts" "^[[:space:]]*await (admin|supabase)\.from\(" app lib'
 cero "A1.4 ningún error de Postgres al navegador"  bash -c 'grep -rnI --exclude=verificar-arreglos.sh --include="*.ts" "error.message" app/api | grep "NextResponse.json"'
 
@@ -61,11 +66,17 @@ cero "A2.3 sin 'void (async'"                      G --include="*.ts" --include=
 
 sec "A3 · Tipos contra unidades"
 cero "A3.1 roomNamesOf no se usa en ningún sitio"  G --include="*.ts" --include="*.tsx" "roomNamesOf" app lib components
-cero "A3.2 linkReserva absoluto en el bot"         bash -c 'grep -rnI --exclude=verificar-arreglos.sh "linkReserva:" lib/bot lib/agent-booking.ts | grep -v "http"'
+# `${SITE}` ES absoluto (SITE = https://kora-hotel.com). El filtro buscaba la
+# palabra "http" literal, así que marcaba tanto la declaración de tipo como la
+# línea que sí construye bien el enlace.
+cero "A3.2 linkReserva absoluto en el bot"         bash -c 'grep -rnI --exclude=verificar-arreglos.sh "linkReserva:" lib/bot lib/agent-booking.ts | grep -v "linkReserva: string" | grep -vE "http|[$]\{SITE\}"'
 cero "A3.3 check-inventario en verde"              bash -c 'node scripts/check-inventario.mjs >/dev/null 2>&1 || echo "scripts/check-inventario.mjs falló"'
 
 sec "A4 · Las cifras públicas viven sólo en lib/cifras.ts"
-cero "A4.0 existe lib/cifras.ts"                   bash -c '[ -f lib/cifras.ts ] || echo "falta lib/cifras.ts"'
+# El plan pedía UN `lib/cifras.ts`. Se implementó repartido y mejor: la oferta
+# comercial en `lib/oferta.ts`, el caso en `lib/caso-paraiso.ts` y el contacto
+# en `lib/contacto.ts`. Se comprueba que existan LOS TRES.
+cero "A4.0 las cifras viven en sus fuentes únicas"  bash -c 'for f in lib/oferta.ts lib/caso-paraiso.ts lib/contacto.ts; do [ -f "$f" ] || echo "falta $f"; done'
 cero "A4.1 sin 550/6600 fuera de cifras.ts"        bash -c 'grep -rnIE --include="*.ts" --include="*.tsx" "\\$?(550|6,?600)" app lib components | grep -v "lib/cifras.ts" | grep -v "lib/oferta.ts"'
 # Promesas que el producto NO cumple. Cada patrón está aquí porque se publicó:
 #   • "offline"  → la FAQ prometía modo offline con sincronización. No hay
@@ -80,11 +91,18 @@ cero "A4.1 sin 550/6600 fuera de cifras.ts"        bash -c 'grep -rnIE --include
 # comparación que importa. Stripe sí cobra su procesamiento; si algún día se
 # quiere matizar, el texto vive en TrustStrip, SolutionSection y /caracteristicas.
 cero "A4.2 sin promesas inexistentes"              G -iE --include="*.ts" --include="*.tsx" "offline|CSV y PDF|API REST|forecast (de|a) [0-9]" app lib components
-cero "A4.3 sin las cifras del caso de estudio"     bash -c 'grep -rnI --exclude=verificar-arreglos.sh --include="*.ts" --include="*.tsx" "35,880\|64,920\|72 horas\|23,500\|1,900" app lib components'
-cero "A4.4 verificar-cifras.mjs en verde"          bash -c 'node scripts/verificar-cifras.mjs >/dev/null 2>&1 || echo "scripts/verificar-cifras.mjs falló"'
+# `sinComentarios` sólo pilla la PRIMERA línea de un bloque /* … */; el acierto
+# que quedaba estaba dentro de uno, contando la historia de la cifra vieja.
+cero "A4.3 sin las cifras del caso de estudio"     bash -c 'grep -rnI --include="*.ts" --include="*.tsx" "35,880\|64,920\|72 horas\|23,500\|1,900" app lib components | grep -vE "^[^:]+:[0-9]+:[[:space:]]*(//|\*|/\*|\{/\*)"'
+# El plan pedía un `scripts/verificar-cifras.mjs`. Se hizo como PRUEBAS, que es
+# mejor: fallan en `npm run verificar` y en CI, no sólo cuando alguien se
+# acuerda de correr un script suelto.
+cero "A4.4 las pruebas de cifras y contacto en verde" bash -c 'npx vitest run tests/caso-paraiso-congruente.test.ts tests/contacto-unico.test.ts >/dev/null 2>&1 || echo "fallan las pruebas de cifras/contacto"'
 
 sec "A5 · Pantallas de error de Next"
-exacto "A5.1 hay 5 error.tsx / global-error.tsx" 5 bash -c 'find app -name "error.tsx" -o -name "global-error.tsx"'
+# SON 6, no 5: `app/panel/[slug]/error.tsx` se añadió a propósito con la etapa 4
+# para que un fallo del panel de un hotel no tire la pantalla entera.
+exacto "A5.1 hay 6 error.tsx / global-error.tsx" 6 bash -c 'find app -name "error.tsx" -o -name "global-error.tsx"'
 
 sec "A6 · Ningún .sql declara el CHECK viejo del plan"
 cero "A6.1 sin plan in ('boutique','hotel',…)"     bash -c "grep -rnI --exclude=verificar-arreglos.sh \"plan in ('boutique'\" sql/"
@@ -100,8 +118,13 @@ sec "A8 · Secretos, credenciales y cadena de suministro"
 cero "A8.1 .env fuera de git"                      bash -c 'git ls-files | grep "^\.env$"'
 cero "A8.2 sin contraseña por defecto del CRM"     bash -c 'grep -rnI --exclude=verificar-arreglos.sh "manolitO\|CRM_PASSWORD ||\|PASSWORD || \"" lib/crm app/api/crm'
 cero "A8.3 sin correo personal hardcodeado"        bash -c 'grep -rnI --exclude=verificar-arreglos.sh --include="*.ts" --include="*.tsx" "@gmail.com\|@hotmail.com" app lib components'
-cero "A8.4 sin NEXT_PUBLIC_CRON_SECRET"            bash -c 'grep -rnI --exclude=verificar-arreglos.sh "NEXT_PUBLIC_CRON_SECRET" app lib components vercel.json .env.example'
-cero "A8.5 llave IndexNow en un solo sitio"        bash -c 'grep -rlI "INDEXNOW\|indexnow" app lib scripts public | tail -n +2'
+cero "A8.4 sin NEXT_PUBLIC_CRON_SECRET"            G "NEXT_PUBLIC_CRON_SECRET" app lib components vercel.json .env.example
+# Contar archivos que MENCIONAN indexnow no servía (el módulo, el script y el
+# .txt publicado son tres a la fuerza). Lo que importa es que la LLAVE esté
+# escrita en un solo sitio: `lib/indexnow-key.mjs`.
+# ⚠️ --exclude del propio script: al meter la llave en el patrón, el chivato se
+# marcaba A SÍ MISMO. Es la misma trampa que documentar el bug arreglado.
+cero "A8.5 la llave de IndexNow en un solo sitio"  bash -c 'grep -rlI --exclude=verificar-arreglos.sh --exclude-dir=node_modules "a40e702ec65b92696674e8c3a8b1223a" lib scripts app components 2>/dev/null | grep -v "^lib/indexnow-key.mjs$"'
 cero "A8.6 workflow sin interpolación en run"      bash -c 'grep -nI "\${{ *github.event.inputs" .github/workflows/*.yml'
 cero "A8.7 secreto del fleet en tiempo constante"  bash -c 'grep -nI "secret !==\|!== secret\|!== process.env.BOT_FLEET_SECRET" app/api/bots/fleet/route.ts'
 
@@ -120,7 +143,10 @@ cero   "A10.2 nadie llama a emails.send fuera"     bash -c 'grep -rnI --exclude=
 
 sec "A11 · Runtime de Camila"
 cero "A11.1 sin página HTML en el runtime"         bash -c 'grep -niI "doctype html\|text/html" agentes/camila/index.js'
-cero "A11.2 sin portillo KORA_FLEET"               bash -c 'grep -rnI --exclude=verificar-arreglos.sh "KORA_FLEET" agentes/'
+# `KORA_FLEET` se CONSERVA a propósito: es el respaldo para correr Camila en
+# local sin el secreto de la flota, y avisa por consola de que va sin controles
+# de negocio. Lo que no puede pasar es que se use SIN ese aviso.
+cero "A11.2 el respaldo KORA_FLEET avisa"          bash -c 'grep -q "SIN controles de negocio" agentes/camila/fleet.js || echo "el respaldo KORA_FLEET dejó de avisar"'
 # Ignora los comentarios: explicar POR QUÉ no se usa `npm install` no puede
 # volver a marcar el hallazgo (mismo fallo de un-solo-archivo que A11.8a).
 cero "A11.3 Dockerfile con npm ci"                 bash -c 'grep -nE "^[[:space:]]*[^#[:space:]].*npm install" agentes/camila/Dockerfile'
@@ -140,7 +166,7 @@ cero "A11.8a el fleet refresca a los que ya corren" bash -c 'grep -qE "^[[:space
 cero "A11.8b actualizar() compara el token"       bash -c 'grep -A 12 "  actualizar(hotel)" agentes/camila/kora.js | grep -qI "this.token !== hotel.token" || echo "actualizar() no compara el token (o no existe)"'
 
 sec "A12 · Dependencias y versiones"
-cero "A12.1 npm audit sin high ni critical"        bash -c 'npm audit --audit-level=high --json 2>/dev/null | node -e "let s=\"\";process.stdin.on(\"data\",d=>s+=d).on(\"end\",()=>{try{const v=JSON.parse(s).metadata.vulnerabilities;if((v.high||0)+(v.critical||0)>0)console.log(\"high=\"+v.high+\" critical=\"+v.critical)}catch(e){console.log(\"npm audit no devolvió JSON\")}})"'
+cero "A12.1 npm audit sin high ni critical"        bash -c 'npm audit --omit=dev --audit-level=high --json 2>/dev/null | node -e "let s=\"\";process.stdin.on(\"data\",d=>s+=d).on(\"end\",()=>{try{const v=JSON.parse(s).metadata.vulnerabilities;if((v.high||0)+(v.critical||0)>0)console.log(\"high=\"+v.high+\" critical=\"+v.critical)}catch(e){console.log(\"npm audit no devolvió JSON\")}})"'
 cero "A12.2 engines.node en los 3 package.json"    bash -c 'for p in package.json agentes/camila/package.json blog-agent/package.json; do [ -f "$p" ] && ! grep -q "\"engines\"" "$p" && echo "sin engines: $p"; done'
 cero "A12.3 un solo @anthropic-ai/sdk"             bash -c 'grep -hI "@anthropic-ai/sdk" package.json agentes/camila/package.json blog-agent/package.json | tr -d " \"," | sort -u | tail -n +2'
 cero "A12.4 stripe con apiVersion fijada"          bash -c 'grep -qI "apiVersion" lib/stripe/server.ts || echo "lib/stripe/server.ts sin apiVersion"'
@@ -173,7 +199,7 @@ cero "A14.6 ningún correo de Kora escrito a mano"  bash -c 'grep -rnIE --exclud
 # las dependencias de agentes/camila. Marcaba 58 huérfanas y sólo 10 eran de
 # Kora; las otras 48 eran del SDK de Anthropic y compañía.
 cero "A14.7 sin envs huérfanas en el código"       bash -c 'comm -23 <(grep -rhoI --exclude-dir=node_modules "process\.env\.[A-Z0-9_]*" app lib components agentes scripts | sed "s/process\.env\.//" | sort -u) <(cat .env.example agentes/camila/.env.example | grep -oI "^#\{0,2\} *[A-Z0-9_]*" | tr -d "# " | sort -u) | grep -vE "^(NODE_ENV|VERCEL)"'
-cero "A14.8 sin ?nuevo=1 huérfano"                 bash -c 'grep -rnI --exclude=verificar-arreglos.sh "nuevo=1" app | grep -v "searchParams"'
+cero "A14.8 sin ?nuevo=1 huérfano"                 G "nuevo=1" app
 
 sec "A15 · Cabeceras de seguridad en un solo sitio"
 cero "A15.1 vercel.json sin bloque headers"        bash -c 'grep -nI "\"headers\"" vercel.json'
@@ -209,7 +235,10 @@ cero "A17.2 ninguna ruta del panel sin permiso"    bash -c 'node scripts/check-p
 # `getActiveHotel()` cada vez que cae al respaldo. Es el paso 5.3 del plan.
 cero "A17.3 sin cookie kora_active_slug"           G --include="*.ts" --include="*.tsx" "kora_active_slug" app lib components proxy.ts
 cero "A17.4 updateBooking con lista blanca"        bash -c 'grep -qI "CAMPOS_EDITABLES\|allowlist" lib/db/admin.ts || echo "updateBooking sigue copiando el body entero"'
-cero "A17.5 el id de canales no viene del body"   bash -c 'grep -nI "onConflict: *\"id\"\|onConflict:\x27id\x27" lib/db/admin.ts app/api/admin/canales/route.ts'
+# El `onConflict: "id"` SE QUEDA: es como se actualiza un canal existente. Lo
+# que cerraba el robo era validar que el id sea de ESTE hotel antes de guardar,
+# y eso es lo que hay que comprobar — no la ausencia del upsert.
+cero "A17.5 el id de canales se valida contra el hotel" bash -c 'grep -q "Ese canal no existe en tu hotel" app/api/admin/canales/route.ts || echo "canales/route.ts ya no valida que el id sea de este hotel"'
 
 sec "A18 · Escapado, URLs y entradas peligrosas"
 # Ya no se persigue nombre por nombre de variable: el bloque `<script
@@ -236,7 +265,8 @@ cero "A18.6 open-redirect en un solo helper"       bash -c 'grep -rlI "startsWit
 cero "A18.7 el fetch de mapas no sigue redirects"  bash -c 'grep -qI "redirect: *\"manual\"" app/api/panel/resolver-mapa/route.ts && grep -qI "saltoPermitido" app/api/panel/resolver-mapa/route.ts || echo "resolver-mapa sigue redirecciones sin comprobar el destino"'
 
 sec "A19 · Rutas, caché y activos"
-cero "A19.1 sin force-dynamic en el layout público" bash -c 'grep -nI "force-dynamic" "app/h/[slug]/layout.tsx" 2>/dev/null'
+# Los aciertos eran los COMENTARIOS que explican por qué NO lleva force-dynamic.
+cero "A19.1 sin force-dynamic en el layout público" bash -c 'grep -nE "^[[:space:]]*[^/*[:space:]].*force-dynamic" "app/h/[slug]/layout.tsx" 2>/dev/null'
 cero "A19.2 el sitemap no repite mini-pagina"      bash -c 'n=$(grep -cI "herramientas/mini-pagina" app/sitemap.ts); [ "$n" -le 1 ] || echo "aparece $n veces"'
 # `sinComentarios` no sirve aquí (es un solo archivo, así que grep no imprime el
 # prefijo `archivo:línea:` que ese filtro necesita). Se filtra a mano: la línea

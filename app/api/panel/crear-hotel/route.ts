@@ -253,8 +253,15 @@ export async function POST(req: Request) {
     }).catch((e) => console.error("[panel/crear-hotel] ignorado:", e));
   }
 
+  // Antes caía a un Gmail personal escrito a mano. Un correo con los datos de un
+  // hotel nuevo yendo a una cuenta que no es la del proyecto es una fuga
+  // silenciosa; y peor, escondía que faltaba NOTIFY_EMAIL. Ahora, si falta, se
+  // dice y no se manda: `enviarEmail` no tiene a quién escribirle.
+  if (!NOTIFY_EMAIL) {
+    console.error("[panel/crear-hotel] falta NOTIFY_EMAIL: nadie se entera del hotel nuevo");
+  }
   await enviarEmail({
-    to: NOTIFY_EMAIL || "daftpunkmanolo@gmail.com",
+    to: NOTIFY_EMAIL,
     ...emailHotelNuevo({
       hotel: (body.nombre || "").trim() || creado.slug,
       ubicacion: body.ubicacion,

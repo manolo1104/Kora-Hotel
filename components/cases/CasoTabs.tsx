@@ -353,7 +353,7 @@ function TabResultados() {
             TODA esta tabla se calcula desde lib/caso-paraiso.ts, que a su vez
             saca el precio de lib/oferta.ts. Ninguna cifra se escribe a mano.
             Historia de por qué: primero el ahorro neto estaba escrito a mano y
-            decía $35,880 al año — 5.4 veces el precio real (K-38), o sea el caso
+            daba un ahorro neto 5.4 veces mayor que el real (K-38), o sea el caso
             se equivocaba EN CONTRA. Después la landing publicaba "≈$30,000" para
             el mismo ahorro que aquí valía $8,400 al mes. Un caso de éxito que no
             cuadra consigo mismo destruye el resto de la página: quien saca la

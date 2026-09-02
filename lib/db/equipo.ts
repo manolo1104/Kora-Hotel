@@ -105,7 +105,12 @@ export async function getEquipo(hotelId: string): Promise<MiembroHotel[]> {
       let email = "";
       let nuncaEntro = false;
       try {
-        const { data } = await supabase.auth.admin.getUserById(f.user_id);
+        // `getUserById` NO lanza cuando la API falla: devuelve `{ error }`. Sin
+        // mirarlo, `data.user` venía vacío y la pantalla de equipo decía
+        // «nunca entró» de alguien que sí entra — el dueño podía echar a un
+        // empleado creyendo que nunca usó el panel.
+        const { data, error } = await supabase.auth.admin.getUserById(f.user_id);
+        if (error) throw error;
         email = data.user?.email ?? "";
         nuncaEntro = !data.user?.last_sign_in_at;
       } catch (e) {

@@ -1,7 +1,9 @@
+import { INDEXNOW_KEY } from "./indexnow-key.mjs";
 // Ping a IndexNow (Bing, Yandex y los motores que alimentan a Copilot/ChatGPT)
 // para que descubran una URL nueva en minutos en vez de días. Si falla, no rompe
 // nada — el sitemap y scripts/indexnow.mjs siguen cubriendo.
-// Misma llave que el script manual (public/{KEY}.txt).
+// La llave sale de lib/indexnow-key.mjs, que es también la que da nombre al
+// archivo de public/. Antes estaba escrita a mano aquí Y en el script.
 //
 // NO es fire-and-forget: quien la llama debe hacerle `await`. En Vercel una
 // petición lanzada sin esperar se congela cuando la función responde, así que el
@@ -9,7 +11,7 @@
 // falló". El tope de 3 s es lo que hace que esperarlo sea barato.
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
-const KEY = "a40e702ec65b92696674e8c3a8b1223a";
+const KEY = INDEXNOW_KEY;
 
 export async function pingIndexNow(rutas: string[]): Promise<void> {
   const urlList = rutas.filter(Boolean).map((r) => (r.startsWith("http") ? r : `${SITE}${r}`));

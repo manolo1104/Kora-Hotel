@@ -439,6 +439,10 @@ export async function anotarSesionStripe(
     .eq("hotel_id", hotelId)
     .eq("status", "HOLD")
     .eq("hold_session", sessionId);
+  // Apunte AUXILIAR: guarda el id de la sesión de Stripe sobre un apartado que
+  // YA existe. Si no se pudo anotar, lanzar tiraría el checkout entero por no
+  // haber podido dejar una referencia — el huésped perdería el pago en curso por
+  // un fallo de bitácora. Se registra y se sigue.
   if (error) console.error("[availability] anotarSesionStripe:", error.message);
 }
 

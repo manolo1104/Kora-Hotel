@@ -111,7 +111,10 @@ export async function POST(req: Request) {
   // /api/leads, que documenta ese bug ya cazado).
   let enviado = false;
   try {
-    const { data: claimed } = await admin
+    // El `error` NO se puede ignorar: sin él, un fallo de la base deja `claimed`
+    // en null, la condición de abajo da falso y el correo de bienvenida
+    // simplemente NO SALE — indistinguible de «ya se lo habíamos mandado».
+    const { data: claimed, error: errClaim } = await admin
       .from("suscriptor_email_log")
       .upsert(
         { suscriptor_id: sus.id, email_type: "guia_0", email_destino: email },
@@ -119,6 +122,9 @@ export async function POST(req: Request) {
       )
       .select("id");
 
+    if (errClaim) {
+      console.error("[suscribir] no se pudo reclamar el envío de guia_0:", errClaim.message);
+    }
     if (claimed && claimed.length > 0) {
       const logId = (claimed[0] as { id: string }).id;
       const envio = await enviarEmail({
