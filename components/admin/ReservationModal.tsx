@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { X, Loader2, AlertTriangle, CheckCircle, Plus, MessageSquare, Mail, Download, Pencil } from 'lucide-react';
 import type { AdminBooking } from '@/lib/admin/sheets-admin';
-import { getRoomBasePrice, type BookingRoom } from '@/lib/booking';
+import { getRoomBasePrice, calcRoomStayTotal, type BookingRoom, type NightPriceOpts } from '@/lib/booking';
 import { type TourCat, type PaqueteCat } from '@/lib/admin/cotizaciones-catalogo';
 import { parseNotas, construirNotas, type TourItem, type PaqueteItem } from '@/lib/notas';
 import { hoyHotel, sumarDias } from '@/lib/fecha-hotel';
@@ -15,15 +15,58 @@ import { postJson } from '@/lib/ui/api';
 
 interface HabItem { suite: string; huespedes: number; precioOverride?: number }
 
-function getPrecioNoche(rooms: BookingRoom[], suite: string, personas: number): number {
-  // Fuente única de precios: lib/booking (motor). `suite` puede ser el nombre de
-  // una UNIDAD (ej. "Deluxe 2"); se mapea a su TIPO para tomar el precio.
-  const room = rooms.find(r => r.unidades.includes(suite)) ?? rooms.find(r => r.name === suite);
-  return room ? getRoomBasePrice(room, personas) : 1900;
+/** `suite` puede ser el nombre de una UNIDAD ("Deluxe 2"); se mapea a su TIPO. */
+function buscarCuarto(rooms: BookingRoom[], suite: string): BookingRoom | undefined {
+  return rooms.find(r => r.unidades.includes(suite)) ?? rooms.find(r => r.name === suite);
 }
 
-function getHabPrecio(rooms: BookingRoom[], hab: HabItem): number {
-  return hab.precioOverride ?? getPrecioNoche(rooms, hab.suite, hab.huespedes);
+/**
+ * Lo que cuesta esa habitación TODA la estancia.
+ *
+ * 🔴 EL DEFECTO QUE ESTO CIERRA (2 sep 2026). Antes era `precioBase × noches`:
+ * la reserva manual del panel ignoraba las temporadas, el recargo de fin de
+ * semana y el descuento entre semana. Dar de alta a mano una reserva de Semana
+ * Santa cobraba tarifa de temporada baja — y el total viajaba al servidor, que
+ * lo aceptaba tal cual. Es la otra cara del hallazgo de las temporadas: uno
+ * regala noches por una temporada mal puesta, este por no aplicarla.
+ *
+ * `precioOverride` sigue mandando: si el hotelero teclea un precio, es su
+ * decisión y no se le discute.
+ */
+function getHabTotal(
+  rooms: BookingRoom[],
+  hab: HabItem,
+  checkin: string,
+  checkout: string,
+  noches: number,
+  opts: NightPriceOpts,
+): number {
+  const n = Math.max(noches, 1);
+  if (hab.precioOverride != null) return hab.precioOverride * n; // TARIFA-A-MANO: precio tecleado por el hotelero; su decisión gana sobre el motor
+  const room = buscarCuarto(rooms, hab.suite);
+  if (!room) return 1900 * n;
+  // Sin fechas todavía (el modal se abre vacío) no hay estancia que calcular.
+  if (!checkin || !checkout || checkout <= checkin) {
+    return getRoomBasePrice(room, hab.huespedes) * n; // TARIFA-A-MANO: aún no hay fechas, no hay estancia que cotizar
+  }
+  return calcRoomStayTotal(room, hab.huespedes, checkin, checkout, opts);
+}
+
+/**
+ * El precio por noche que se ENSEÑA. Con temporadas, las noches de una misma
+ * estancia pueden costar distinto, así que es el promedio: es el número que
+ * multiplicado por las noches da el total que se va a cobrar.
+ */
+function getHabPrecio(
+  rooms: BookingRoom[],
+  hab: HabItem,
+  checkin: string,
+  checkout: string,
+  noches: number,
+  opts: NightPriceOpts,
+): number {
+  const n = Math.max(noches, 1);
+  return Math.round(getHabTotal(rooms, hab, checkin, checkout, n, opts) / n);
 }
 
 function fmtDate(d: string) {
@@ -130,6 +173,13 @@ function SuccessPanel({ data, onEdit, onClose }: {
 interface Props {
   booking?: AdminBooking;
   rooms: BookingRoom[];
+  /**
+   * Temporadas, recargo de fin de semana y descuento entre semana del hotel, tal
+   * como los usa el motor público. Sin esto, la reserva manual cobraba tarifa de
+   * temporada baja en Semana Santa. Opcional para no romper a quien no lo pase,
+   * pero TODAS las pantallas del panel lo pasan.
+   */
+  nightOpts?: NightPriceOpts;
   slug: string;
   defaultCheckin?: string;
   defaultRoom?: string;
@@ -142,7 +192,7 @@ interface Props {
   onSaved: () => void;
 }
 
-export default function ReservationModal({ booking, rooms, slug, defaultCheckin, defaultRoom, walkin = false, onClose, onSaved }: Props) {
+export default function ReservationModal({ booking, rooms, nightOpts = {}, slug, defaultCheckin, defaultRoom, walkin = false, onClose, onSaved }: Props) {
   const isEdit = !!booking;
   // Lista las UNIDADES físicas (no los tipos): un tipo con cantidad N aporta sus
   // N unidades. Así el hotelero elige la unidad exacta y no sobrevende un tipo.
@@ -336,7 +386,10 @@ export default function ReservationModal({ booking, rooms, slug, defaultCheckin,
   }
 
   const totalHuespedes = habitaciones.reduce((sum, h) => sum + h.huespedes, 0);
-  const habsCalculado = habitaciones.reduce((sum, h) => sum + getHabPrecio(rooms, h) * Math.max(form.noches, 1), 0);
+  const habsCalculado = habitaciones.reduce(
+    (sum, h) => sum + getHabTotal(rooms, h, form.checkin, form.checkout, form.noches, nightOpts),
+    0,
+  );
   const toursCalculado = tourItems.reduce((s, t) => s + t.precio * t.personas, 0);
   const paquetesCalculado = paqueteItems.reduce((s, p) => s + p.precio, 0);
   const precioCalculado = habsCalculado + toursCalculado + paquetesCalculado;
@@ -347,7 +400,10 @@ export default function ReservationModal({ booking, rooms, slug, defaultCheckin,
     const { checkin, checkout } = form;
     if (checkin && checkout) {
       const n = Math.max(0, Math.round((new Date(checkout).getTime() - new Date(checkin).getTime()) / 86400000));
-      const precioAuto = habitaciones.reduce((sum, h) => sum + getHabPrecio(rooms, h) * n, 0);
+      const precioAuto = habitaciones.reduce(
+        (sum, h) => sum + getHabTotal(rooms, h, checkin, checkout, n, nightOpts),
+        0,
+      );
       setForm(f => ({
         ...f,
         noches: n,
@@ -786,7 +842,7 @@ export default function ReservationModal({ booking, rooms, slug, defaultCheckin,
                 <input
                   type="number" min={0}
                   className={styles.roomPriceInput}
-                  value={getHabPrecio(rooms, hab)}
+                  value={getHabPrecio(rooms, hab, form.checkin, form.checkout, form.noches, nightOpts)}
                   onChange={e => updateHabPrecio(i, parseInt(e.target.value) || 0)}
                   title="Precio por noche"
                 />
@@ -891,7 +947,7 @@ export default function ReservationModal({ booking, rooms, slug, defaultCheckin,
           <h3 className={styles.seccionTitulo}>Cobro</h3>
           <div className={styles.priceCalc}>
             {habitaciones.map((hab, i) => {
-              const pn = getHabPrecio(rooms, hab);
+              const pn = getHabPrecio(rooms, hab, form.checkin, form.checkout, form.noches, nightOpts);
               const n = Math.max(form.noches, 1);
               return (
                 <div key={`h${i}`} className={styles.priceCalcRow}>

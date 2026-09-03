@@ -4,7 +4,7 @@ import { reservaCuenta } from "@/lib/booking/estado-reserva";
 import { useState } from 'react';
 import { Plus, CalendarDays, GanttChartSquare } from 'lucide-react';
 import type { AdminBooking } from '@/lib/admin/sheets-admin';
-import type { BookingRoom } from '@/lib/booking';
+import type { BookingRoom, NightPriceOpts } from '@/lib/booking';
 import ReservationModal from '@/components/admin/ReservationModal';
 import GanttView from './GanttView';
 import AvailabilityCalendar from './AvailabilityCalendar';
@@ -16,6 +16,9 @@ interface Props {
   rooms: string[];
   roomPrices: Record<string, number>;
   bookingRooms: BookingRoom[];
+  /** Temporadas y recargos del hotel: sin esto la reserva manual ignora la
+   *  temporada y cobra tarifa baja en Semana Santa. */
+  nightOpts?: NightPriceOpts;
   /**
    * ¿Ve los importes? Lo decide el servidor (`reservas:dinero`). Con `false`
    * desaparecen el precio por noche de cada cuarto, el total del globo del
@@ -25,7 +28,7 @@ interface Props {
   verDinero?: boolean;
 }
 
-export default function CalendarioClient({ slug, initialBookings, rooms, roomPrices, bookingRooms, verDinero = true }: Props) {
+export default function CalendarioClient({ slug, initialBookings, rooms, roomPrices, bookingRooms, nightOpts = {}, verDinero = true }: Props) {
   const [view, setView] = useState<'calendario' | 'gantt'>('calendario');
   const [bookings, setBookings] = useState(initialBookings);
   const [modal, setModal] = useState<{ booking?: AdminBooking; defaultCheckin?: string } | null>(null);
@@ -76,13 +79,14 @@ export default function CalendarioClient({ slug, initialBookings, rooms, roomPri
           rooms={rooms}
           roomPrices={roomPrices}
           bookingRooms={bookingRooms}
+          nightOpts={nightOpts}
           onRefresh={refresh}
           verDinero={verDinero}
         />
       )}
 
       {view === 'gantt' && (
-        <GanttView slug={slug} bookings={bookings} rooms={rooms} bookingRooms={bookingRooms} onRefresh={refresh} verDinero={verDinero} />
+        <GanttView slug={slug} bookings={bookings} rooms={rooms} bookingRooms={bookingRooms} nightOpts={nightOpts} onRefresh={refresh} verDinero={verDinero} />
       )}
 
       {modal && (
@@ -90,6 +94,7 @@ export default function CalendarioClient({ slug, initialBookings, rooms, roomPri
           booking={modal.booking}
           defaultCheckin={modal.defaultCheckin}
           rooms={bookingRooms}
+          nightOpts={nightOpts}
           slug={slug}
           onClose={() => setModal(null)}
           onSaved={() => { refresh(); setModal(null); }}

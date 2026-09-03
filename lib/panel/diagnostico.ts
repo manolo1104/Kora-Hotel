@@ -3,7 +3,13 @@
 //   - el checklist "Primeros pasos" del Inicio — /panel/[slug]/insights
 // SOLO servidor (lee la fila del hotel). Cada consumidor elige qué items mostrar.
 
-import { hotelRooms, temporadasDe } from "@/lib/booking";
+import {
+  hotelRooms,
+  temporadasDe,
+  getRoomBasePrice,
+  applyAdjustment,
+  ajusteDeTemporada,
+} from "@/lib/booking";
 import type { HotelRow } from "@/lib/tenant";
 
 export interface DiagnosticoItem {
@@ -14,7 +20,7 @@ export interface DiagnosticoItem {
   tab?: string; // pestaña del editor a la que enlazar (?tab=...) en /panel/[slug]/sitio
 }
 
-export type EstadoTemporadas = "ok" | "sin-temporadas" | "vencida" | "por-vencer";
+export type EstadoTemporadas = "ok" | "sin-temporadas" | "vencida" | "por-vencer" | "anomala";
 
 export interface CoberturaTemporadas {
   tiene: boolean;
@@ -51,9 +57,62 @@ function fechaLegible(iso: string): string {
   return `${d}/${m}/${y}`;
 }
 
+/** A partir de qué caída se considera que una temporada está regalando el cuarto. */
+const CAIDA_ANOMALA_PCT = 30;
+
+/**
+ * Cuartos que alguna temporada deja muy por debajo de su tarifa. Es el mismo
+ * criterio que el aviso del editor, pero mirando lo que YA está guardado: el
+ * aviso sólo salta al guardar, así que una temporada cargada antes de que
+ * existiera —o metida a mano en el jsonb— no la vería nadie.
+ */
+function tarifasRegaladas(
+  hotel: HotelRow,
+  temporadas: ReturnType<typeof temporadasDe>,
+): { temporada: string; cuarto: string; base: number; queda: number; caidaPct: number }[] {
+  const cuartos = hotelRooms(hotel);
+  const out: { temporada: string; cuarto: string; base: number; queda: number; caidaPct: number }[] = [];
+  for (const t of temporadas) {
+    for (const r of cuartos) {
+      const base = getRoomBasePrice(r, r.maxGuests);
+      if (base <= 0) continue;
+      const queda = applyAdjustment(base, ajusteDeTemporada(t, r));
+      const caidaPct = Math.round(((base - queda) / base) * 100);
+      if (caidaPct > CAIDA_ANOMALA_PCT) {
+        out.push({ temporada: t.nombre, cuarto: r.name, base, queda, caidaPct });
+      }
+    }
+  }
+  // La peor primero: es la que hay que enseñar si sólo cabe una.
+  return out.sort((a, b) => b.caidaPct - a.caidaPct);
+}
+
 /** Analiza hasta qué fecha llegan los precios de temporada y en qué estado están. */
 export function coberturaTemporadas(hotel: HotelRow): CoberturaTemporadas {
   const temporadas = temporadasDe(hotel);
+
+  // 🔴 LO PRIMERO QUE SE MIRA: una temporada que REGALA el cuarto. Hasta el
+  // 2 sep 2026 esto sólo avisaba de temporadas vencidas —"podrías estar
+  // cobrando de menos"— y nunca de temporadas absurdas, que es cómo se cobra de
+  // menos de verdad: un precio fijo tecleado pensando en el cuarto más barato y
+  // aplicado a todos. Va antes que el resto porque es lo que cuesta dinero hoy,
+  // no dentro de treinta días.
+  const regaladas = tarifasRegaladas(hotel, temporadas);
+  if (regaladas.length > 0) {
+    const [peor] = regaladas;
+    const otras = regaladas.length - 1;
+    return {
+      tiene: true,
+      estado: "anomala",
+      mensaje:
+        `Revisa tus precios de temporada: en «${peor.temporada}», ${peor.cuarto} se ` +
+        `vende a $${peor.queda.toLocaleString("es-MX")} en vez de sus ` +
+        `$${peor.base.toLocaleString("es-MX")} (−${peor.caidaPct}%)` +
+        (otras > 0 ? `, y hay ${otras} caso${otras > 1 ? "s" : ""} más.` : ".") +
+        " Si es a propósito, ignóralo; si no, se está vendiendo así ahora mismo.",
+    };
+  }
+
   if (temporadas.length === 0) {
     return {
       tiene: false,

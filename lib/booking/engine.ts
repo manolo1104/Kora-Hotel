@@ -46,8 +46,24 @@ export interface SeasonAdjustment {
 
 /**
  * Temporada de tarifa por rango de fechas. El precio de esas noches sube/baja
- * según `ajuste`. Aplica IGUAL a todos los cuartos (un +40% sube todos). El
- * precio por-cuarto llegará con la migración a tipos de habitación.
+ * según el ajuste que le toque a CADA tipo de habitación.
+ *
+ * 🔴 POR QUÉ HAY DOS CAMPOS. Hasta el 2 sep 2026 sólo existía `ajuste`, y se
+ * aplicaba IGUAL a todos los cuartos. Con un porcentaje eso es razonable (un
+ * +40% sube todo), pero con un PRECIO FIJO es una trampa: el mismo número
+ * aplasta por igual la cabaña de $1,500 y la suite de $8,000. Un hotelero que
+ * teclee "150" pensando en su cuarto más barato regala las suites de la semana
+ * de mayor demanda del año, automáticamente, 24/7, por el motor y por WhatsApp,
+ * sin que nada se lo diga.
+ *
+ *   • `porTipo` — el ajuste de cada tipo, INDEXADO POR NOMBRE. Es lo que
+ *                 escribe el editor cuando eliges precio fijo.
+ *   • `ajuste`  — el respaldo global. SE QUEDA a propósito: es lo que tienen
+ *                 las temporadas ya guardadas, y sin él se romperían el día del
+ *                 despliegue. Un porcentaje sigue siendo global y está bien.
+ *
+ * Al abrir una temporada vieja, el editor precarga su fijo global en todos los
+ * tipos, así que se migra sola al guardar. No hace falta ningún SQL.
  */
 export interface Temporada {
   id: string;
@@ -55,6 +71,20 @@ export interface Temporada {
   desde: string; // 'YYYY-MM-DD' inclusive
   hasta: string; // 'YYYY-MM-DD' inclusive
   ajuste: SeasonAdjustment;
+  /**
+   * Ajuste por tipo de habitación, indexado por el NOMBRE del cuarto.
+   *
+   * 🔴 POR NOMBRE Y NO POR ID, a propósito. `hotelRooms` asigna
+   * `id: h.id ?? i + 1`: el id es el ÍNDICE en el jsonb, y el editor no escribe
+   * ninguno. Con claves por id, borrar o reordenar un cuarto le pasaría el
+   * precio de temporada al cuarto equivocado sin decir nada — el peor fallo
+   * posible aquí, porque nadie lo ve hasta que llega el estado de cuenta.
+   *
+   * Con el nombre, renombrar un cuarto sólo hace que esa entrada quede huérfana
+   * y ese cuarto caiga al ajuste global. Es un fallo VISIBLE (el hotelero ve el
+   * precio distinto al abrir el editor) y además está protegido por el piso.
+   */
+  porTipo?: Record<string, SeasonAdjustment>;
   minNoches?: number; // mín. de noches si la estancia LLEGA en esta temporada
 }
 
@@ -81,10 +111,60 @@ export interface NightPriceOpts {
   recargoFinDeSemana?: RecargoFinDeSemana;
 }
 
-/** Aplica un ajuste (porcentaje o fijo) a un precio base. Nunca baja de 0. */
-function applyAdjustment(base: number, adj: SeasonAdjustment): number {
-  if (adj.tipo === "fijo") return Math.max(0, Math.round(adj.valor));
-  return Math.max(0, Math.round(base * (1 + adj.valor / 100)));
+/**
+ * EL PISO DE TARIFA. Ninguna temporada ni recargo puede dejar una noche por
+ * debajo de este porcentaje de su tarifa base.
+ *
+ * 🔴 POR QUÉ EXISTE. El único piso que hubo hasta el 2 sep 2026 era CERO pesos:
+ * `Math.max(0, …)`. Un precio fijo de $150 en una suite de $1,900 pasaba el
+ * saneado sin una sola advertencia, y también lo pasaba un porcentaje de −90 %.
+ * No es un caso teórico: es cómo se regala la semana de mayor demanda del año
+ * por un número mal tecleado.
+ *
+ * POR QUÉ 25 % Y NO 70 %. Esto NO es la defensa principal —esa es el aviso del
+ * editor, que enseña el efecto real y pide confirmar—. Esto es el último
+ * cortafuegos, y tiene que dejar pasar una promoción agresiva de verdad (un 2x1
+ * es −50 %; una liquidación de temporada baja puede ser −70 %). Lo que corta es
+ * lo que ya no es una promoción sino un accidente: vender una suite de $8,000
+ * en $150 es un 1.9 % de su tarifa.
+ *
+ * POR QUÉ VIVE AQUÍ Y NO EN EL EDITOR. `PanelEditor` escribe DIRECTO a Postgres
+ * desde el navegador (`supabase.from("hoteles").update(...)`): no hay ruta de
+ * API en medio, así que cualquier validación que viva sólo en el componente se
+ * esquiva con la consola del navegador o con un jsonb editado a mano. Este es
+ * el único punto por el que pasan sin excepción el motor, la caja, Camila y el
+ * cron de abandono.
+ */
+export const PISO_TARIFA_PCT = 25;
+
+/**
+ * Aplica un ajuste (porcentaje o fijo) a un precio base.
+ * Nunca baja del piso (ver `PISO_TARIFA_PCT`), ni de 0.
+ */
+export function applyAdjustment(base: number, adj: SeasonAdjustment): number {
+  const bruto =
+    adj.tipo === "fijo"
+      ? Math.round(adj.valor)
+      : Math.round(base * (1 + adj.valor / 100));
+  // Un cuarto sin precio base (0) no tiene piso que aplicar: se deja como está.
+  const piso = base > 0 ? Math.round((base * PISO_TARIFA_PCT) / 100) : 0;
+  return Math.max(0, piso, bruto);
+}
+
+/**
+ * ¿Qué ajuste le toca a este cuarto en esta temporada? El suyo si lo tiene, y
+ * si no el global — que es lo que hace que las temporadas ya guardadas sigan
+ * funcionando sin tocar la base.
+ */
+export function ajusteDeTemporada(
+  t: Temporada,
+  room: Pick<BookingRoom, "id" | "name">,
+): SeasonAdjustment {
+  const porTipo = t.porTipo;
+  if (!porTipo) return t.ajuste;
+  // El nombre manda. El id se sigue mirando por si alguna vez los cuartos
+  // tienen id propio en el jsonb; hoy es el índice y no se escribe nunca.
+  return porTipo[room.name] ?? porTipo[String(room.id)] ?? t.ajuste;
 }
 
 export function getRoomNightPrice(
@@ -101,7 +181,7 @@ export function getRoomNightPrice(
   //    Gana la PRIMERA temporada de la lista que cubra la fecha.
   for (const t of opts.temporadas ?? []) {
     if (dateStr >= t.desde && dateStr <= t.hasta) {
-      return applyAdjustment(base, t.ajuste);
+      return applyAdjustment(base, ajusteDeTemporada(t, room));
     }
   }
 

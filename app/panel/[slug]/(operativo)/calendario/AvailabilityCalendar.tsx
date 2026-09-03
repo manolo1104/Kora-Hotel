@@ -4,7 +4,7 @@ import { reservaCuenta } from "@/lib/booking/estado-reserva";
 import { useState, useEffect, useCallback } from 'react';
 import { ChevronLeft, ChevronRight, Lock, Unlock, RefreshCw, Loader2, X, CalendarCheck, Plus } from 'lucide-react';
 import type { AdminBooking } from '@/lib/admin/sheets-admin';
-import type { BookingRoom } from '@/lib/booking';
+import { getRoomNightPrice, type BookingRoom, type NightPriceOpts } from '@/lib/booking';
 import ReservationModal from '@/components/admin/ReservationModal';
 import panelStyles from '../admin.module.css';
 
@@ -56,12 +56,14 @@ interface Props {
   rooms: string[];
   roomPrices: Record<string, number>;
   bookingRooms: BookingRoom[];
+  /** Temporadas y recargos del hotel; los usa el modal de reserva manual. */
+  nightOpts?: NightPriceOpts;
   onRefresh: () => void;
   /** ¿Ve importes? (`reservas:dinero`, decidido en el servidor). */
   verDinero?: boolean;
 }
 
-export default function AvailabilityCalendar({ slug, bookings, rooms, roomPrices, bookingRooms, onRefresh, verDinero = true }: Props) {
+export default function AvailabilityCalendar({ slug, bookings, rooms, roomPrices, bookingRooms, nightOpts = {}, onRefresh, verDinero = true }: Props) {
   const now = new Date();
   // Hoy en HORA DE MÉXICO. Con toISOString() se usaba UTC, así que a partir de
   // las 18:00 locales el panel ya creía que era mañana: pintaba el día de hoy en
@@ -122,6 +124,29 @@ export default function AvailabilityCalendar({ slug, bookings, rooms, roomPrices
       return { status: 'booking', booking: undefined };
     }
     return { status: 'available' };
+  }
+
+  /**
+   * Lo que cuesta ese cuarto EN EL MES QUE SE ESTÁ VIENDO.
+   *
+   * 🔴 Antes se pintaba `getRoomBasePrice` a secas: el hotelero abría diciembre,
+   * leía "$1,450/n" y ese no era el precio que estaba cobrando — su temporada
+   * alta ya lo había cambiado. El motor y el bot decían una cosa y su propio
+   * panel otra. Si el mes tiene varios precios (una temporada que empieza a
+   * media semana, el recargo de fin de semana), se enseña el rango.
+   */
+  function precioDelMes(room: string): { min: number; max: number } | null {
+    const tipo = bookingRooms.find((r) => r.unidades.includes(room)) ?? bookingRooms.find((r) => r.name === room);
+    if (!tipo) return null;
+    const dias = new Date(year, month + 1, 0).getDate();
+    let min = Infinity;
+    let max = 0;
+    for (let d = 1; d <= dias; d++) {
+      const p = getRoomNightPrice(tipo, tipo.maxGuests, dateStr(year, month, d), nightOpts);
+      if (p < min) min = p;
+      if (p > max) max = p;
+    }
+    return Number.isFinite(min) ? { min, max } : null;
   }
 
   function countFree(room: string) {
@@ -301,11 +326,25 @@ export default function AvailabilityCalendar({ slug, bookings, rooms, roomPrices
                 <span style={{ fontSize: 11, color: 'var(--clay)', fontFamily: 'var(--font-jost,sans-serif)' }}>
                   <span style={{ color: '#3B6D11', fontWeight: 600 }}>{free}</span> libres
                 </span>
-                {verDinero && roomPrices[room] ? (
-                  <span style={{ fontSize: 11, color: 'var(--clay)', fontFamily: 'var(--font-jost,sans-serif)' }}>
-                    ${roomPrices[room].toLocaleString('es-MX')}/n
-                  </span>
-                ) : null}
+                {verDinero && (() => {
+                  const p = precioDelMes(room);
+                  const base = roomPrices[room];
+                  if (!p && !base) return null;
+                  const txt = p
+                    ? p.min === p.max
+                      ? `$${p.min.toLocaleString('es-MX')}/n`
+                      : `$${p.min.toLocaleString('es-MX')}–$${p.max.toLocaleString('es-MX')}/n`
+                    : `$${base.toLocaleString('es-MX')}/n`;
+                  const cambiado = p != null && base != null && (p.min !== base || p.max !== base);
+                  return (
+                    <span
+                      title={cambiado ? `Tarifa normal $${base.toLocaleString('es-MX')}. Este mes cambia por una temporada o recargo.` : undefined}
+                      style={{ fontSize: 11, color: cambiado ? '#8A5A00' : 'var(--clay)', fontWeight: cambiado ? 600 : 400, fontFamily: 'var(--font-jost,sans-serif)' }}
+                    >
+                      {txt}
+                    </span>
+                  );
+                })()}
               </div>
             </div>
           );
@@ -502,6 +541,7 @@ export default function AvailabilityCalendar({ slug, bookings, rooms, roomPrices
         <ReservationModal
           booking={editBooking}
           rooms={bookingRooms}
+          nightOpts={nightOpts}
           slug={slug}
           onClose={() => setEditBooking(null)}
           onSaved={() => { onRefresh(); setEditBooking(null); loadSheet(); }}
@@ -514,6 +554,7 @@ export default function AvailabilityCalendar({ slug, bookings, rooms, roomPrices
           defaultCheckin={newBookingParams.date}
           defaultRoom={newBookingParams.room}
           rooms={bookingRooms}
+          nightOpts={nightOpts}
           slug={slug}
           onClose={() => setNewBookingParams(null)}
           onSaved={() => { onRefresh(); setNewBookingParams(null); loadSheet(); }}

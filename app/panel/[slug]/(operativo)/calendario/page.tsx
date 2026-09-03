@@ -8,7 +8,7 @@ import { requireHotelMember } from "@/lib/tenant";
 import { puedeCtx } from "@/lib/panel/permisos";
 import { motivoCierre } from "@/lib/panel/pantallas";
 import { SinPermiso, pantallaDe } from "@/components/panel/SinPermiso";
-import { hotelRooms, getRoomBasePrice } from "@/lib/booking";
+import { nightOpts, hotelRooms, getRoomBasePrice } from "@/lib/booking";
 import CalendarioClient from "./CalendarioClient";
 
 export const dynamic = "force-dynamic";
@@ -62,6 +62,7 @@ export default async function CalendarioPage({
       rooms={roomNames}
       roomPrices={roomPrices}
       bookingRooms={rooms}
+      nightOpts={nightOpts(ctx.hotel)}
       verDinero={puedeCtx(ctx, "reservas:dinero")}
     />
   );

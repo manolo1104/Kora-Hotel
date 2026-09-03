@@ -3,7 +3,7 @@ import { puedeCtx } from '@/lib/panel/permisos';
 import { motivoCierre } from '@/lib/panel/pantallas';
 import { SinPermiso, pantallaDe } from '@/components/panel/SinPermiso';
 import { getAllBookings } from '@/lib/db/admin';
-import { hotelRooms } from '@/lib/booking';
+import { hotelRooms, nightOpts } from '@/lib/booking';
 import ReservasClient from './ReservasClient';
 
 export const dynamic = 'force-dynamic';
@@ -36,6 +36,7 @@ export default async function ReservasPage({ params }: { params: Promise<{ slug:
     <ReservasClient
       initialBookings={bookings}
       rooms={rooms}
+      nightOpts={nightOpts(ctx.hotel)}
       slug={slug}
       verDinero={puedeCtx(ctx, 'reservas:dinero')}
       verTotalPeriodo={puedeCtx(ctx, 'ingresos:ver')}

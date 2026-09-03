@@ -49,6 +49,84 @@ interface Habitacion {
   unidades?: string[]; // nombres de cada unidad (solo si cantidad > 1)
   accesibilidad?: string; // cómo se llega: escalones, planta baja, elevador…
 }
+/**
+ * Lee el `porTipo` guardado. Si la temporada es VIEJA (sólo tiene el fijo
+ * global), no devuelve nada: el precargado en todos los cuartos lo hace el
+ * componente, que es quien conoce la lista de habitaciones.
+ */
+function leerPorTipo(
+  raw: unknown,
+  ajusteGlobal: Record<string, unknown>,
+): Record<string, string> {
+  const out: Record<string, string> = {};
+  if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+    for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+      const val = (v as Record<string, unknown>)?.valor;
+      if (val != null && Number.isFinite(Number(val))) out[k] = String(val);
+    }
+  }
+  // Marca para que el componente sepa que hay que precargar el global.
+  if (Object.keys(out).length === 0 && ajusteGlobal?.tipo === "fijo" && ajusteGlobal?.valor != null) {
+    out[PRECARGAR_GLOBAL] = String(ajusteGlobal.valor);
+  }
+  return out;
+}
+/** Clave interna: "esta temporada venía con un fijo global, reparte ese número". */
+const PRECARGAR_GLOBAL = "__global__";
+
+/**
+ * Qué precio fijo le toca a este cuarto en esta temporada. Lo usan el input, el
+ * aviso de riesgo y la serialización: si cada uno lo resolviera por su cuenta,
+ * el hotelero vería un número, el aviso calcularía otro y se guardaría un
+ * tercero. Es exactamente cómo nacen las incongruencias que estamos quitando.
+ */
+function valorDeCuarto(
+  t: { valor: string; porTipo: Record<string, string> },
+  cuarto: string,
+): string {
+  const propio = t.porTipo?.[cuarto];
+  if (propio !== undefined && propio !== "") return propio;
+  // Temporada vieja: se reparte su fijo global entre todos los cuartos.
+  const global = t.porTipo?.[PRECARGAR_GLOBAL];
+  if (global !== undefined && global !== "") return global;
+  return t.valor ?? "";
+}
+
+/**
+ * A partir de qué caída se avisa al hotelero. El PISO duro del motor
+ * (`PISO_TARIFA_PCT`, 25 %) es el último cortafuegos; esto es la defensa de
+ * verdad: enseñar el efecto ANTES de guardar, con los números del hotel.
+ */
+const AVISO_CAIDA_PCT = 30;
+
+/** Los cuartos que esta temporada dejaría muy por debajo de su tarifa. */
+function tarifasEnRiesgo(
+  t: { tipo: string; valor: string; porTipo: Record<string, string> },
+  habitaciones: { nombre: string; precio: string }[],
+): { cuarto: string; base: number; queda: number; caidaPct: number }[] {
+  const out: { cuarto: string; base: number; queda: number; caidaPct: number }[] = [];
+  for (const h of habitaciones) {
+    const nombre = String(h.nombre || "").trim();
+    const base = Number(h.precio) || 0;
+    if (!nombre || base <= 0) continue;
+    let queda: number;
+    if (t.tipo === "fijo") {
+      const crudo = valorDeCuarto(t, nombre);
+      if (crudo === "") continue;
+      const v = Number(crudo);
+      if (!Number.isFinite(v)) continue;
+      queda = v;
+    } else {
+      const pct = Number(t.valor);
+      if (!Number.isFinite(pct)) continue;
+      queda = Math.round(base * (1 + pct / 100));
+    }
+    const caidaPct = Math.round(((base - queda) / base) * 100);
+    if (caidaPct > AVISO_CAIDA_PCT) out.push({ cuarto: nombre, base, queda, caidaPct });
+  }
+  return out;
+}
+
 // Paquete de cotización tal como se edita (números como string para los inputs).
 interface PaqueteForm {
   nombre: string;
@@ -81,6 +159,12 @@ interface TemporadaForm {
   hasta: string;
   tipo: "porcentaje" | "fijo";
   valor: string;
+  /**
+   * Precio fijo POR CUARTO, indexado por nombre. Sólo se usa con `tipo="fijo"`.
+   * `valor` se conserva como respaldo global para las temporadas ya guardadas
+   * y para los cuartos que se creen después de la temporada.
+   */
+  porTipo: Record<string, string>;
   minNoches: string;
 }
 
@@ -415,6 +499,13 @@ export function PanelEditor({
   // Temporadas y tarifas por fecha (extras.temporadas) + recargo de fin de semana
   // (extras.recargoFinDeSemana). El motor las respeta noche por noche server-side.
   const [temporadas, setTemporadas] = useState<TemporadaForm[]>([]);
+  // Cuartos que alguna temporada dejaría muy por debajo de su tarifa. Se llena
+  // al pulsar Guardar; mientras tenga algo, Guardar pide confirmar. NO usa
+  // `confirm()`: un diálogo del navegador bloquea todo y no puede enseñar la
+  // tabla de "esto queda así", que es justo lo que hace entender el problema.
+  const [avisoTarifa, setAvisoTarifa] = useState<
+    { temporada: string; cuarto: string; base: number; queda: number; caidaPct: number }[] | null
+  >(null);
   const [finSemActivo, setFinSemActivo] = useState(false);
   const [finSemDias, setFinSemDias] = useState<number[]>([5, 6]);
   const [finSemTipo, setFinSemTipo] = useState<"porcentaje" | "fijo">("porcentaje");
@@ -429,15 +520,25 @@ export function PanelEditor({
         hasta: "",
         tipo: "porcentaje",
         valor: "",
+        porTipo: {},
         minNoches: "",
       },
     ]);
   }
   function updateTemporada(i: number, campo: keyof TemporadaForm, valor: string) {
+    // Cualquier cambio invalida el aviso ya confirmado: si no, confirmar una vez
+    // dejaría pasar todo lo que se tecleara después sin volver a mirarlo.
+    setAvisoTarifa(null);
     setTemporadas((t) => t.map((it, idx) => (idx === i ? { ...it, [campo]: valor } : it)));
   }
   function removeTemporada(i: number) {
     setTemporadas((t) => t.filter((_, idx) => idx !== i));
+  }
+  function updateTemporadaCuarto(i: number, cuarto: string, valor: string) {
+    setAvisoTarifa(null);
+    setTemporadas((t) =>
+      t.map((it, idx) => (idx === i ? { ...it, porTipo: { ...it.porTipo, [cuarto]: valor } } : it)),
+    );
   }
   function toggleFinSemDia(d: number) {
     setFinSemDias((ds) => (ds.includes(d) ? ds.filter((x) => x !== d) : [...ds, d].sort()));
@@ -622,6 +723,11 @@ export function PanelEditor({
                   hasta: typeof t?.hasta === "string" ? t.hasta : "",
                   tipo: aj.tipo === "fijo" ? "fijo" : "porcentaje",
                   valor: aj.valor != null ? String(aj.valor) : "",
+                  // Una temporada guardada ANTES del 2 sep 2026 sólo tiene el
+                  // fijo global. Se precarga en todos los cuartos para que el
+                  // hotelero vea qué está cobrando cada uno y pueda corregirlo;
+                  // al pulsar Guardar se migra sola, sin ningún SQL.
+                  porTipo: leerPorTipo(t?.porTipo, aj),
                   minNoches: t?.minNoches != null ? String(t.minNoches) : "",
                 };
               })
@@ -1087,6 +1193,26 @@ export function PanelEditor({
 
   async function guardar() {
     setError("");
+    // 🔴 EL AVISO DE TARIFA. Es la defensa PRINCIPAL contra regalar el año: el
+    // piso del motor (PISO_TARIFA_PCT) es sólo el último cortafuegos, y además
+    // deja pasar cualquier cosa por encima del 25 %. Lo que de verdad evita el
+    // accidente es enseñar el efecto con los números de ESTE hotel antes de
+    // guardar. Se pide una vez: si el hotelero confirma, se guarda.
+    if (avisoTarifa === null) {
+      const riesgos = temporadas
+        .filter((t) => t.desde && t.hasta)
+        .flatMap((t) =>
+          tarifasEnRiesgo(t, habitaciones).map((r) => ({
+            temporada: t.nombre.trim() || "Temporada",
+            ...r,
+          })),
+        );
+      if (riesgos.length > 0) {
+        setAvisoTarifa(riesgos);
+        setTab("avanzado");
+        return;
+      }
+    }
     if (!nombre.trim()) {
       setError("Ponle un nombre a tu hotel.");
       setTab("contenido");
@@ -1235,13 +1361,51 @@ export function PanelEditor({
       // Temporadas: solo las que tienen fechas y valor. El resolver del motor
       // (lib/booking/rooms.ts) revalida y clampa al leer, así que aquí basta filtrar.
       temporadas: temporadas
-        .filter((t) => t.desde && t.hasta && t.valor !== "")
+        // 🔴 El filtro pedía `t.valor` (el ajuste GLOBAL). Con precio fijo ese
+        // campo ya no existe —los precios van por cuarto— así que la temporada
+        // entera se tiraba en silencio: el hotelero pulsaba Guardar, veía
+        // "Guardado" y sus precios de Semana Santa no estaban. Se descubrió
+        // probándolo en el navegador; ni el typecheck ni las 702 pruebas lo
+        // vieron, porque la forma era válida y el número correcto.
+        .filter(
+          (t) =>
+            t.desde &&
+            t.hasta &&
+            (t.valor !== "" ||
+              (t.tipo === "fijo" &&
+                Object.values(t.porTipo ?? {}).some((v) => v !== "" && Number.isFinite(Number(v))))),
+        )
         .map((t) => ({
           id: t.id,
           nombre: t.nombre.trim() || "Temporada",
           desde: t.desde,
           hasta: t.hasta,
-          ajuste: { tipo: t.tipo, valor: Number(t.valor) || 0 },
+          // El respaldo global. Con precio fijo y sin global escrito NO se pone
+          // un fijo de $0: eso convertiría cualquier cuarto creado después en un
+          // regalo (caería al piso del motor). Un 0 % deja su precio normal, que
+          // es el único respaldo que no cuesta dinero.
+          ajuste:
+            t.valor === "" && t.tipo === "fijo"
+              ? { tipo: "porcentaje" as const, valor: 0 }
+              : { tipo: t.tipo, valor: Number(t.valor) || 0 },
+          // El precio por cuarto sólo tiene sentido con precio fijo: un
+          // porcentaje es global y está bien que lo sea.
+          // El precio por cuarto sólo se guarda con precio fijo: un porcentaje
+          // es global y está bien que lo sea. Se recorren LAS HABITACIONES (no
+          // las claves guardadas) para que una temporada vieja se migre sola y
+          // un cuarto creado después herede el global en vez de quedar fuera.
+          ...(t.tipo === "fijo"
+            ? {
+                porTipo: Object.fromEntries(
+                  habitaciones
+                    .map((h) => String(h.nombre || "").trim())
+                    .filter(Boolean)
+                    .map((nom) => [nom, valorDeCuarto(t, nom)] as const)
+                    .filter(([, v]) => v !== "" && Number.isFinite(Number(v)))
+                    .map(([nom, v]) => [nom, { tipo: "fijo" as const, valor: Number(v) }]),
+                ),
+              }
+            : {}),
           ...(Number(t.minNoches) > 0 ? { minNoches: Number(t.minNoches) } : {}),
         })),
       recargoFinDeSemana: {
@@ -1328,6 +1492,10 @@ export function PanelEditor({
       }
       // La nueva base es lo recién guardado (para el siguiente guardar()).
       extrasBase.current = extras;
+      // El aviso de tarifa vuelve a estar armado. Sin esto, confirmarlo una vez
+      // lo desarmaba para el resto de la sesión: el segundo error de tecleo se
+      // habría guardado sin que nada lo dijera.
+      setAvisoTarifa(null);
       setGuardado(true);
       setTimeout(() => setGuardado(false), 2500);
     } catch (e) {
@@ -2951,10 +3119,12 @@ export function PanelEditor({
               <h2 className="text-lg font-bold text-kora-text">Temporadas y tarifas</h2>
             </div>
             <p className="text-sm text-kora-muted">
-              Sube o baja el precio de <strong>todos</strong> tus cuartos en fechas
-              específicas (Semana Santa, diciembre, temporada baja). El ajuste solo
-              aplica en esas noches, tanto en tu motor de reservas como en el bot de
-              WhatsApp.
+              Sube o baja el precio de tus cuartos en fechas específicas (Semana
+              Santa, diciembre, temporada baja). Con <strong>porcentaje</strong> el
+              ajuste es igual para todos; con <strong>precio fijo</strong> pones el
+              de cada cuarto, porque el mismo número no le sirve a una cabaña de
+              $1,500 y a una suite de $8,000. Solo aplica en esas noches, tanto en
+              tu motor de reservas como en el bot de WhatsApp.
             </p>
 
             <div className="space-y-3">
@@ -3022,18 +3192,22 @@ export function PanelEditor({
                         <option value="fijo">Precio fijo por noche</option>
                       </select>
                     </div>
-                    <div className="w-32">
-                      <label className="block text-[11px] font-semibold text-kora-muted mb-1">
-                        {t.tipo === "fijo" ? "Precio/noche" : "Porcentaje"}
-                      </label>
-                      <input
-                        type="number"
-                        className={inputCls}
-                        value={t.valor}
-                        onChange={(e) => updateTemporada(i, "valor", e.target.value)}
-                        placeholder={t.tipo === "fijo" ? "3000" : "40"}
-                      />
-                    </div>
+                    {t.tipo === "porcentaje" && (
+                      <div className="w-32">
+                        <label className="block text-[11px] font-semibold text-kora-muted mb-1">
+                          Porcentaje
+                        </label>
+                        <input
+                          type="number"
+                          className={inputCls}
+                          value={t.valor}
+                          min={-90}
+                          max={500}
+                          onChange={(e) => updateTemporada(i, "valor", e.target.value)}
+                          placeholder="40"
+                        />
+                      </div>
+                    )}
                     <div className="w-32">
                       <label className="block text-[11px] font-semibold text-kora-muted mb-1">
                         Mín. noches
@@ -3048,9 +3222,59 @@ export function PanelEditor({
                       />
                     </div>
                   </div>
+                  {t.tipo === "fijo" && (
+                    <div className="rounded-lg border border-panel-border-soft bg-white/50 p-3 space-y-2">
+                      <p className="text-[11px] font-semibold text-kora-muted">
+                        Precio por noche de cada cuarto en esta temporada
+                      </p>
+                      {habitaciones.filter((h) => String(h.nombre || "").trim()).length === 0 ? (
+                        <p className="text-[11px] text-kora-muted">
+                          Primero agrega tus habitaciones en la pestaña Contenido.
+                        </p>
+                      ) : (
+                        habitaciones
+                          .filter((h) => String(h.nombre || "").trim())
+                          .map((h) => {
+                            const nom = String(h.nombre).trim();
+                            const base = Number(h.precio) || 0;
+                            const val = valorDeCuarto(t, nom);
+                            const queda = Number(val);
+                            const caida =
+                              base > 0 && Number.isFinite(queda)
+                                ? Math.round(((base - queda) / base) * 100)
+                                : 0;
+                            return (
+                              <div key={nom} className="flex items-center gap-2">
+                                <span className="flex-1 min-w-0 truncate text-[12px] text-kora-text">
+                                  {nom}
+                                  {base > 0 && (
+                                    <span className="text-kora-muted">
+                                      {" "}· normal ${base.toLocaleString("es-MX")}
+                                    </span>
+                                  )}
+                                </span>
+                                <input
+                                  type="number"
+                                  min={0}
+                                  className={`${inputCls} w-28`}
+                                  value={val}
+                                  onChange={(e) => updateTemporadaCuarto(i, nom, e.target.value)}
+                                  placeholder={base ? String(base) : "3000"}
+                                />
+                                {caida > AVISO_CAIDA_PCT && (
+                                  <span className="text-[11px] font-semibold text-amber-700 whitespace-nowrap">
+                                    −{caida}%
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })
+                      )}
+                    </div>
+                  )}
                   <p className="text-[11px] text-kora-muted">
                     {t.tipo === "fijo"
-                      ? "Esas noches cuestan exactamente este precio (reemplaza el precio del cuarto)."
+                      ? "Esas noches cuestan exactamente estos precios (reemplazan el del cuarto)."
                       : "Ej. 40 = +40% sobre el precio base. Usa un número negativo (−20) para descuento."}
                   </p>
                 </div>
@@ -3063,6 +3287,51 @@ export function PanelEditor({
             >
               <Plus size={15} /> Agregar temporada
             </button>
+
+            {/* El aviso. No dice "cuidado": dice EXACTAMENTE qué cuarto queda en
+                cuánto. Un letrero genérico se pulsa sin leer; una tabla con el
+                nombre de tu suite y el precio al que se va a vender, no. */}
+            {avisoTarifa && avisoTarifa.length > 0 && (
+              <div
+                role="alert"
+                className="rounded-xl border-2 border-amber-400 bg-amber-50 p-4 space-y-3"
+              >
+                <p className="text-sm font-bold text-amber-900">
+                  Revisa esto antes de guardar
+                </p>
+                <p className="text-[12.5px] text-amber-900 leading-relaxed">
+                  Con estas temporadas, estos cuartos se van a vender muy por debajo
+                  de su tarifa normal — en el motor y por WhatsApp, las 24 horas, sin
+                  que nadie lo apruebe cada vez:
+                </p>
+                <ul className="space-y-1">
+                  {avisoTarifa.map((r, k) => (
+                    <li key={k} className="text-[12.5px] text-amber-900">
+                      <strong>{r.cuarto}</strong> en <strong>{r.temporada}</strong>:
+                      de ${r.base.toLocaleString("es-MX")} a{" "}
+                      <strong>${r.queda.toLocaleString("es-MX")}</strong> por noche
+                      {" "}(−{r.caidaPct}%)
+                    </li>
+                  ))}
+                </ul>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={guardar}
+                    className="btn-press px-4 py-2 rounded-full bg-amber-700 text-white font-semibold text-sm"
+                  >
+                    Sí, es lo que quiero: guardar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAvisoTarifa(null)}
+                    className="btn-press px-4 py-2 rounded-full border border-amber-400 text-amber-900 font-semibold text-sm"
+                  >
+                    Voy a corregirlo
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Recargo de fin de semana */}
             <div className="pt-4 border-t border-panel-border-soft space-y-3">

@@ -5,7 +5,7 @@ import { hoyHotel } from '@/lib/fecha-hotel';
 import { useMemo, useState, useRef, useEffect, useCallback } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { AdminBooking } from '@/lib/admin/sheets-admin';
-import type { BookingRoom } from '@/lib/booking';
+import type { BookingRoom, NightPriceOpts } from '@/lib/booking';
 import ReservationModal from '@/components/admin/ReservationModal';
 import { tramosDeCierre } from '@/lib/booking/cierres';
 
@@ -32,7 +32,7 @@ const HEADER_H = 54;
 const MONTHS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 const DAYS_VISIBLE = 49;
 
-interface Props { slug: string; bookings: AdminBooking[]; rooms: string[]; bookingRooms: BookingRoom[]; onRefresh: () => void; /** ¿Ve importes? (`reservas:dinero`). */ verDinero?: boolean }
+interface Props { slug: string; bookings: AdminBooking[]; rooms: string[]; bookingRooms: BookingRoom[]; nightOpts?: NightPriceOpts; onRefresh: () => void; /** ¿Ve importes? (`reservas:dinero`). */ verDinero?: boolean }
 
 function toDate(s: string) { return new Date(s + 'T00:00:00'); }
 
@@ -46,7 +46,7 @@ const CIERRE: Record<string, { bg: string; texto: string; etiqueta: string }> = 
 // Web bookings store "Suite Jungla (2 personas)" — strip the parenthetical
 function extractRoom(s: string): string { return s.replace(/\s*\([^)]*\)/g, '').trim(); }
 
-export default function GanttView({ slug, bookings, rooms, bookingRooms, onRefresh, verDinero = true }: Props) {
+export default function GanttView({ slug, bookings, rooms, bookingRooms, nightOpts = {}, onRefresh, verDinero = true }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [offsetDays, setOffsetDays] = useState(-3); // start 3 days before today
   const [modal, setModal] = useState<{ booking?: AdminBooking; defaultCheckin?: string } | null>(null);
@@ -415,6 +415,7 @@ export default function GanttView({ slug, bookings, rooms, bookingRooms, onRefre
           booking={modal.booking}
           defaultCheckin={modal.defaultCheckin}
           rooms={bookingRooms}
+          nightOpts={nightOpts}
           slug={slug}
           onClose={() => setModal(null)}
           onSaved={() => { onRefresh(); setModal(null); }}

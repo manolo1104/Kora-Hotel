@@ -205,6 +205,19 @@ function parseTemporadas(raw: unknown): Temporada[] {
     if (!ISO_DATE.test(desde) || !ISO_DATE.test(hasta) || desde > hasta) continue;
     const ajuste = parseAdjustment(o.ajuste);
     if (!ajuste) continue;
+    // El ajuste POR TIPO de habitación. Cada entrada se sanea con el mismo
+    // `parseAdjustment` que el global: las rotas se descartan una a una en vez
+    // de tirar la temporada entera, porque quedarse sin temporada es peor que
+    // quedarse sin el precio especial de un cuarto (el resto sigue bien).
+    let porTipo: Record<string, SeasonAdjustment> | undefined;
+    if (o.porTipo && typeof o.porTipo === "object" && !Array.isArray(o.porTipo)) {
+      const mapa: Record<string, SeasonAdjustment> = {};
+      for (const [id, v] of Object.entries(o.porTipo as Record<string, unknown>)) {
+        const aj = parseAdjustment(v);
+        if (aj) mapa[String(id)] = aj;
+      }
+      if (Object.keys(mapa).length > 0) porTipo = mapa;
+    }
     const minNoches =
       o.minNoches != null && Number.isFinite(Number(o.minNoches))
         ? Math.max(1, Math.min(30, Math.round(Number(o.minNoches))))
@@ -215,6 +228,7 @@ function parseTemporadas(raw: unknown): Temporada[] {
       desde,
       hasta,
       ajuste,
+      porTipo,
       minNoches,
     });
   }

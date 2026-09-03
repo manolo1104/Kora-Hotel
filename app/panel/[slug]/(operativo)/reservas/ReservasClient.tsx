@@ -6,7 +6,7 @@ import { hoyHotel } from '@/lib/fecha-hotel';
 import { useState, useMemo, useEffect } from 'react';
 import { Plus, Search, RefreshCw, Send, Download, Loader2, ChevronDown, ChevronUp, Sun, LogOut, LogIn, Printer, QrCode, UserCheck, Undo2 } from 'lucide-react';
 import type { AdminBooking } from '@/lib/admin/sheets-admin';
-import type { BookingRoom } from '@/lib/booking';
+import type { BookingRoom, NightPriceOpts } from '@/lib/booking';
 import ReservationModal from '@/components/admin/ReservationModal';
 import RegistroModal from './RegistroModal';
 import styles from './reservas.module.css';
@@ -72,6 +72,9 @@ function DaysChip({ days }: { days: number }) {
 interface Props {
   initialBookings: AdminBooking[];
   rooms: BookingRoom[];
+  /** Temporadas y recargos del hotel, para que el modal no cobre tarifa baja
+   *  en temporada alta. */
+  nightOpts?: NightPriceOpts;
   slug: string;
   /**
    * ¿Ve el importe de cada reserva? Lo decide el SERVIDOR (`reservas:dinero`).
@@ -94,6 +97,7 @@ interface Props {
 export default function ReservasClient({
   initialBookings,
   rooms,
+  nightOpts = {},
   slug,
   verDinero = true,
   verTotalPeriodo = true,
@@ -674,6 +678,7 @@ export default function ReservasClient({
         <ReservationModal
           booking={modal.mode === 'edit' ? modal.booking : undefined}
           rooms={rooms}
+          nightOpts={nightOpts}
           slug={slug}
           defaultRoom={modal.cuarto}
           defaultCheckin={modal.walkin ? today : undefined}

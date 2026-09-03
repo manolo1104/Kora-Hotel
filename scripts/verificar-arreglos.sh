@@ -299,6 +299,16 @@ cero "A20.6 getOccupiedRoomNames con tope explícito" bash -c 'grep -A 32 "expor
 # que no se cierre otra vez: que la ruta acepte un RANGO (bloquear diez días no
 # puede ser diez clics — por eso nadie lo usaba y cerraban inventando una
 # reserva falsa) y que el Timeline pinte los cierres, donde eran invisibles.
+# 2 sep 2026 · guardarraíles de tarifa. El hallazgo que pagó la auditoría de
+# producto: una temporada de PRECIO FIJO ponía el mismo número a todas las
+# habitaciones y el único piso que existía era CERO pesos. Lo que se vigila:
+# que el piso siga en el motor (es el único punto por el que pasan todos, porque
+# el editor escribe DIRECTO a Postgres desde el navegador), que el precio por
+# tipo no se pierda, y que nadie vuelva a calcular tarifas por su cuenta.
+cero "A21.1 el motor tiene piso de tarifa"        bash -c 'grep -q "PISO_TARIFA_PCT" lib/booking/engine.ts || echo "el motor volvió a poder vender a cualquier precio"'
+cero "A21.2 la temporada tiene precio por tipo"   bash -c 'grep -q "porTipo" lib/booking/engine.ts && grep -q "porTipo" lib/booking/rooms.ts || echo "el precio fijo volvió a ser uno solo para todos los cuartos"'
+cero "A21.3 nadie calcula tarifas fuera del motor" bash -c 'node scripts/check-precios.mjs >/dev/null 2>&1 || echo "check-precios falla"'
+cero "A21.4 la prueba de temporadas en verde"     bash -c 'npx vitest run tests/temporadas.test.ts >/dev/null 2>&1 || echo "fallan las pruebas de temporadas"'
 cero "A20.8 el calendario cierra un rango, no una noche" bash -c 'grep -q "desde: FECHA.optional()" app/api/admin/disponibilidad/route.ts || echo "la ruta de disponibilidad sigue aceptando sólo una noche"'
 cero "A20.9 el Timeline pinta los cierres"              bash -c 'grep -q "tramosDeCierre" "app/panel/[slug]/(operativo)/calendario/GanttView.tsx" || echo "GanttView no pinta bloqueos: un cuarto fuera de servicio es invisible"'
 cero "A20.7 el cupo de experiencias acumula lo propio" bash -c 'grep -qI "validarCupoExperiencias(" "app/api/h/[slug]/checkout/route.ts" || echo "el cupo se compara línea por línea (K-100)"'

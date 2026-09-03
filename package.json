@@ -14,9 +14,10 @@
     "check:inventario": "node scripts/check-inventario.mjs",
     "test": "TZ=UTC vitest run",
     "test:watch": "TZ=UTC vitest",
-    "verificar": "npm run lint && npx tsc --noEmit && npm test && npm run check:inventario && npm run check:permisos",
+    "verificar": "npm run lint && npx tsc --noEmit && npm test && npm run check:inventario && npm run check:permisos && npm run check:precios",
     "check:permisos": "node scripts/check-permisos.mjs",
-    "check:aislamiento": "node scripts/verificar-aislamiento.mjs"
+    "check:aislamiento": "node scripts/verificar-aislamiento.mjs",
+    "check:precios": "node scripts/check-precios.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.122.0",
