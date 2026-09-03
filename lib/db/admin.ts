@@ -10,6 +10,7 @@
 //
 // SOLO servidor.
 
+import type { Politica } from "@/lib/politica";
 import { createBookingAtomic } from "@/lib/db/bookings";
 import { reservaCuenta, type EstadoReserva } from "@/lib/booking/estado-reserva";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -587,6 +588,12 @@ export async function createManualBooking(
   },
   prefijo?: string | null,
   opts?: { forzar?: boolean; forzadoPor?: string | null },
+  /**
+   * La política de cancelación del hotel, para guardarla con la reserva. Va
+   * como parámetro y no se lee aquí porque esta función sólo recibe el
+   * `hotelId`, no el hotel entero; el llamador (la ruta del panel) sí lo tiene.
+   */
+  politica?: Politica | null,
 ): Promise<ResultadoReservaManual> {
   const supabase = createAdminClient();
   // Prefijo de confirmación por hotel (hotel.prefijo_confirmacion). Si es NULL
@@ -626,6 +633,7 @@ export async function createManualBooking(
         estado: "MANUAL",
         origen: "manual",
         paymentIntentId: null,
+        politicaSnapshot: politica ?? null,
       });
       if (r.ok) return { ok: true, confirmacion: r.confirmacion ?? confirmacion };
       if (r.unavailable) return { ok: false, unavailable: true, error: r.error };

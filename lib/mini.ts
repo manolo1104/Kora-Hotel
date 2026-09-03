@@ -15,9 +15,25 @@ export interface MiniFaq {
 }
 
 export interface Politicas {
+  /**
+   * ⚠️ YA NO ES LA POLÍTICA DE CANCELACIÓN: es una NOTA que se añade al texto
+   * derivado de `extras.politica` (la estructurada). Se conserva el nombre para
+   * no romper lo que ya está guardado en la base de los 11 hoteles.
+   *
+   * Hasta el 2 sep 2026 este campo libre GANABA sobre la regla estructurada
+   * para lo que el huésped leía y aceptaba, mientras el enforcement aplicaba
+   * sólo la regla. El huésped aceptaba una cosa y el sistema hacía otra.
+   */
   cancelacion?: string;
   mascotas?: string;
   ninos?: string;
+}
+
+/** La política de cancelación estructurada. Ver `lib/politica.ts`. */
+export interface PoliticaGuardada {
+  escalones?: { diasAntes: number; reembolsoPct: number }[];
+  noShowPct?: number;
+  nota?: string;
 }
 
 export interface Diseno {
@@ -533,6 +549,8 @@ export interface MiniExtras {
   resenas?: Resena[];
   faqs?: MiniFaq[];
   politicas?: Politicas;
+  /** La política de cancelación estructurada (la que decide el dinero). */
+  politica?: PoliticaGuardada;
   accesibilidad?: string; // rampa, elevador, cuartos adaptados… (la usa Camila)
   reglas?: Reglas;
   impuestos?: Impuestos;

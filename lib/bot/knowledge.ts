@@ -2,7 +2,8 @@
 // ÚNICA que usan /api/agent (bot vivo) y /api/admin/bot-preview (chat de prueba),
 // para que ambos vean exactamente lo mismo. SOLO servidor.
 
-import { hotelRooms, getRoomBasePrice, formatMXN, bookingRules, temporadasDe } from "@/lib/booking";
+import { textoPolitica } from "@/lib/politica";
+import { hotelRooms, getRoomBasePrice, formatMXN, bookingRules, temporadasDe, politicaDelHotel } from "@/lib/booking";
 import { normalizeFaqs, type BotKnowledge } from "@/lib/bot/prompt";
 import type { HotelRow } from "@/lib/tenant";
 import type { Addon, Experiencia, ExperienciasBundle } from "@/lib/mini";
@@ -81,7 +82,16 @@ export function buildHotelKnowledge(hotel: HotelRow): BotKnowledge {
     // FIX: mezcla las FAQs del panel ({pregunta,respuesta}) + las solo-del-bot
     // (extras.bot.faqs {q,a}), normalizadas. Antes no llegaban al cerebro.
     faqs: normalizeFaqs(extras.faqs, bot.faqs),
-    politicas: (extras.politicas as Record<string, unknown>) ?? {},
+    // El campo libre pasa a ser una nota DENTRO del texto derivado; ya no se
+    // manda suelto. Antes el prompt llevaba las dos versiones sin jerarquía —el
+    // bloque REGLAS con `cancelacionDias` y el bloque POLÍTICAS con el texto
+    // libre— y el modelo elegía. Ahí nació el «Camila dijo otra cosa».
+    politicas: (() => {
+      const p = { ...((extras.politicas as Record<string, unknown>) ?? {}) };
+      delete p.cancelacion;
+      return p;
+    })(),
+    politicaCancelacion: textoPolitica(politicaDelHotel(hotel)),
     guia: (hotel.guia as Record<string, unknown>) ?? {},
     experiencias,
     addons,

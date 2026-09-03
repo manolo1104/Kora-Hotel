@@ -8,6 +8,7 @@
 // SOLO servidor. Los usan: send-email del panel, el webhook (confirmación) y el
 // cron de abandono (recordatorio) — vía lib/email/reserva.ts.
 
+import { politicaDe, textoPolitica } from "@/lib/politica";
 import type { TourItem } from "@/lib/notas";
 import type { HotelRow } from "@/lib/tenant";
 // Tipografía, paleta y piezas: TODO viene del sistema de diseño único de
@@ -37,6 +38,16 @@ export interface BookingBrand {
   email?: string;
   telefono?: string;
   mapsUrl?: string; // link "Cómo llegar" (extras.mapsUrl / config.maps_url)
+  /**
+   * La política de cancelación en texto, DERIVADA de `lib/politica.ts`.
+   *
+   * Hasta el 2 sep 2026 las plantillas de cotización y comprobante llevaban
+   * «7 días» QUEMADO, igual para los 11 hoteles, y el hotelero no podía
+   * corregirlo ni desde el editor «modificar antes de descargar» porque no era
+   * un campo. Un hotel con cancelación a 2 días entregaba por escrito un
+   * documento que decía 7.
+   */
+  politicaCancelacion?: string;
 }
 
 const str = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : undefined);
@@ -61,6 +72,14 @@ export function bookingBrandFromHotel(h: {
     email: str(config.email_from) || str(config.email),
     telefono: str(config.telefono) || (h.whatsapp ?? undefined),
     mapsUrl: str(extras.mapsUrl) || str(config.maps_url),
+    politicaCancelacion: textoPolitica(
+      politicaDe({
+        escalones: (extras.politica as { escalones?: unknown } | undefined)?.escalones,
+        noShowPct: (extras.politica as { noShowPct?: unknown } | undefined)?.noShowPct,
+        nota: (extras.politicas as { cancelacion?: string } | undefined)?.cancelacion,
+        cancelacionDias: (extras.reglas as { cancelacionDias?: number } | undefined)?.cancelacionDias,
+      }),
+    ),
   };
 }
 

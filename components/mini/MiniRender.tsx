@@ -9,6 +9,7 @@
 // Regla al tocar este archivo: nada de fetch, nada de `await`, nada de env vars.
 // Si necesita un dato, se agrega a MiniDatos y lo llena quien lo llama.
 
+import { politicaDe, textoPolitica } from "@/lib/politica";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -399,10 +400,26 @@ export function MiniRender({
   const amenidades = (extras.amenidades ?? []).map((k) => AMENIDADES_MAP[k]).filter(Boolean);
   const faqs = (extras.faqs ?? []).filter((f) => (f.pregunta ?? "").trim());
   const politicas = extras.politicas ?? {};
+  // 🔴 La cancelación ya no sale del campo libre: se deriva de la política
+  // estructurada, que es la misma que decide el reembolso si el huésped
+  // cancela. El campo libre queda dentro como nota (lo añade `textoPolitica`).
+  // Antes esta página podía decir «7 días 100 %, 3 días 50 %» mientras el
+  // sistema aplicaba «gratis hasta 2 días»: el huésped que reclamaba tenía la
+  // política del hotel por escrito a su favor.
+  const textoCancelacion = textoPolitica(politicaDe({
+    escalones: (extras.politica as { escalones?: unknown } | undefined)?.escalones,
+    noShowPct: (extras.politica as { noShowPct?: unknown } | undefined)?.noShowPct,
+    nota: politicas.cancelacion,
+    cancelacionDias: (extras.reglas as { cancelacionDias?: number } | undefined)?.cancelacionDias,
+  }));
   const formasPago = extras.formasPago ?? [];
   const idiomas = extras.idiomas ?? [];
+  // La cancelación SIEMPRE tiene texto ahora (se deriva, y todo hotel tiene al
+  // menos el plazo por defecto), así que la sección aparece siempre. Es lo
+  // correcto: un huésped que no ve la política antes de reservar es un
+  // contracargo esperando.
   const tienePoliticas =
-    !!(politicas.cancelacion || politicas.mascotas || politicas.ninos) ||
+    !!(textoCancelacion || politicas.mascotas || politicas.ninos) ||
     formasPago.length > 0 ||
     idiomas.length > 0;
 
@@ -693,11 +710,11 @@ export function MiniRender({
         if (!tienePoliticas) return null;
         return (
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-3 text-sm">
-            {politicas.cancelacion && (
+            {textoCancelacion && (
               <p className="flex gap-2">
                 <ShieldCheck size={16} className="flex-shrink-0 mt-0.5" style={{ color: "var(--brand)" }} aria-hidden="true" />
                 <span className="text-kora-text">
-                  <span className="font-semibold">Cancelación:</span> {politicas.cancelacion}
+                  <span className="font-semibold">Cancelación:</span> {textoCancelacion}
                 </span>
               </p>
             )}

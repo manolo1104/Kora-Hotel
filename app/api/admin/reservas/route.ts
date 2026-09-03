@@ -1,3 +1,4 @@
+import { politicaDelHotel } from "@/lib/booking";
 import { negar } from "@/lib/panel/permisos";
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
@@ -126,7 +127,10 @@ export async function POST(req: NextRequest) {
       total: data.total ?? 0,
       notas: data.notas ?? '',
       anticipo: data.anticipo,
-    }, ctx.hotel.prefijo_confirmacion, { forzar, forzadoPor: ctx.userId });
+    }, ctx.hotel.prefijo_confirmacion, { forzar, forzadoPor: ctx.userId },
+      // La política vigente del hotel se guarda CON la reserva: si el
+      // hotelero la cambia después, esta reserva conserva la suya.
+      politicaDelHotel(ctx.hotel));
 
     if (!creada.ok || !creada.confirmacion) {
       // El candado ganó: alguien se le adelantó entre el aviso de arriba y el

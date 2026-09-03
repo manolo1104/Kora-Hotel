@@ -74,6 +74,7 @@ function brandVars(brand: BookingBrand): TemplateData {
     hotel_email: brand.email || "",
     hotel_telefono: brand.telefono || "",
     whatsapp: brand.whatsapp ? `+${brand.whatsapp}` : "",
+    politica_cancelacion: brand.politicaCancelacion || "Consulta la política de cancelación con el hotel.",
   };
 }
 

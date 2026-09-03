@@ -1,3 +1,5 @@
+import { textoPolitica } from "@/lib/politica";
+import { politicaDelHotel } from "@/lib/booking";
 import { leer } from "@/lib/db/result";
 import { createClient } from "@supabase/supabase-js";
 import { getPostsPublicados } from "@/lib/hotel-blog";
@@ -93,8 +95,15 @@ export async function GET(
   }
 
   const p = extras.politicas ?? {};
+  // La cancelación se DERIVA de la política estructurada, igual que en la página
+  // y que en el prompt de Camila. Este archivo lo leen ChatGPT y Perplexity y lo
+  // repiten como hecho: publicar aquí un texto que el sistema no aplica es poner
+  // una promesa falsa en boca de un buscador.
+  const textoCancelacion = textoPolitica(
+    politicaDelHotel({ extras: extras as unknown as Record<string, unknown>, config: null }),
+  );
   const politicas = [
-    p.cancelacion ? `- Cancelación: ${p.cancelacion}` : "",
+    textoCancelacion ? `- Cancelación: ${textoCancelacion}` : "",
     p.mascotas ? `- Mascotas: ${p.mascotas}` : "",
     p.ninos ? `- Niños: ${p.ninos}` : "",
     (extras.formasPago ?? []).length ? `- Formas de pago: ${extras.formasPago!.join(", ")}` : "",

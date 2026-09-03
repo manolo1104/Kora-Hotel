@@ -9,7 +9,9 @@ import {
   getRoomBasePrice,
   applyAdjustment,
   ajusteDeTemporada,
+  politicaDelHotel,
 } from "@/lib/booking";
+import type { Politica } from "@/lib/politica";
 import type { HotelRow } from "@/lib/tenant";
 
 export interface DiagnosticoItem {
@@ -55,6 +57,36 @@ function hoyMexicoISO(): string {
 function fechaLegible(iso: string): string {
   const [y, m, d] = iso.split("-");
   return `${d}/${m}/${y}`;
+}
+
+/**
+ * ¿La nota del hotelero promete plazos distintos de los que aplica la política?
+ *
+ * La nota es texto libre: no se puede "entender", pero sí detectar que menciona
+ * plazos (días u horas) que la política no tiene. Con eso basta para avisar; no
+ * hace falta adivinar cuál de los dos es el bueno — lo sabe el hotelero.
+ */
+function plazosEnLaNota(
+  nota: string | undefined,
+  politica: Politica,
+): { aplica: string; promete: string } | null {
+  if (!nota || !nota.trim()) return null;
+  const enLaNota = [...nota.matchAll(/(\d+)\s*(d[ií]as?|horas?|hrs?\b|h\b)/gi)].map((m) => ({
+    n: Number(m[1]),
+    esHoras: /h/i.test(m[2]),
+  }));
+  if (enLaNota.length === 0) return null;
+  const dias = new Set(politica.escalones.map((e) => e.diasAntes));
+  // Las horas se convierten a días para poder compararlas (72 h = 3 días).
+  const sobran = enLaNota.filter((x) => !dias.has(x.esHoras ? Math.round(x.n / 24) : x.n));
+  if (sobran.length === 0) return null;
+  return {
+    aplica:
+      politica.escalones.length > 0
+        ? politica.escalones.map((e) => `${e.diasAntes} días → ${e.reembolsoPct}%`).join(", ")
+        : "ninguna cancelación con devolución",
+    promete: sobran.map((x) => `${x.n} ${x.esHoras ? "horas" : "días"}`).join(", "),
+  };
 }
 
 /** A partir de qué caída se considera que una temporada está regalando el cuarto. */
@@ -167,6 +199,7 @@ export function diagnosticarHotel(hotel: HotelRow): DiagnosticoHotel {
   const bot = (extras.bot ?? {}) as Record<string, unknown>;
   const faqsBot = Array.isArray(bot.faqs) ? (bot.faqs as unknown[]) : [];
   const politicas = (extras.politicas ?? {}) as Record<string, unknown>;
+  const pol = politicaDelHotel(hotel);
   const reglas = (extras.reglas ?? {}) as Record<string, unknown>;
   const experiencias = Array.isArray(extras.experiencias) ? (extras.experiencias as unknown[]) : [];
   const guia = (hotel.guia ?? {}) as Record<string, unknown>;
@@ -219,14 +252,43 @@ export function diagnosticarHotel(hotel: HotelRow): DiagnosticoHotel {
         : "Márcalas para que Camila pueda presumir alberca, wifi, estacionamiento…",
       tab: "contenido",
     },
-    politicas: {
-      ok: Object.keys(politicas).length > 0,
-      label: "Políticas",
-      aviso: Object.keys(politicas).length
-        ? undefined
-        : "Sin esto, Camila no sabe responder sobre cancelaciones, mascotas o niños.",
-      tab: "avanzado",
-    },
+    politicas: (() => {
+      // 🔴 EL CASO REAL, encontrado el 2 sep 2026 en el hotel bandera: la regla
+      // decía «gratis hasta 2 días» y la nota decía «7 días 100 %, 3 días 50 %,
+      // después de 72 h sin reembolso». El huésped leía la nota; el sistema
+      // aplicaba la regla. Quien cancelaba a 5 días veía negado su reembolso
+      // teniendo la política del hotel POR ESCRITO a su favor: eso es un
+      // contracargo, y lo paga el hotel.
+      //
+      // Ahora que el texto se deriva, la contradicción sale en la misma frase
+      // —que ya es mejor que estar repartida— pero hay que decírselo al
+      // hotelero para que ponga sus escalones y borre la nota.
+      const contradice = plazosEnLaNota(
+        typeof politicas.cancelacion === "string" ? politicas.cancelacion : undefined,
+        pol,
+      );
+      if (contradice) {
+        return {
+          ok: false,
+          label: "Políticas",
+          detalle: "Tu nota dice otro plazo",
+          aviso:
+            `Tu política aplica ${contradice.aplica}, pero tu nota promete ` +
+            `${contradice.promete}. El huésped lee la nota y el sistema aplica la ` +
+            "política: si reclama, tiene razón. Pon esos plazos como escalones y " +
+            "quita la nota.",
+          tab: "avanzado",
+        };
+      }
+      return {
+        ok: Object.keys(politicas).length > 0,
+        label: "Políticas",
+        aviso: Object.keys(politicas).length
+          ? undefined
+          : "Sin esto, Camila no sabe responder sobre cancelaciones, mascotas o niños.",
+        tab: "avanzado",
+      };
+    })(),
     reglas: {
       ok: Object.keys(reglas).length > 0,
       label: "Reglas de reserva e impuestos",

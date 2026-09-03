@@ -4,7 +4,15 @@
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { liberarExperienciaVentas } from "@/lib/db/experiencias";
-import { bookingRules } from "@/lib/booking";
+import { bookingRules, politicaDelHotel } from "@/lib/booking";
+import {
+  politicaDe,
+  reembolsoPorCancelar,
+  fechaLimiteDevolucion,
+  textoPolitica,
+  type Politica,
+  type Reembolso,
+} from "@/lib/politica";
 import type { MiniExtras } from "@/lib/mini";
 
 export interface GuestBookingRow {
@@ -22,6 +30,13 @@ export interface GuestBookingRow {
   anticipo: number;
   estado: string;
   rate_plan: string | null;
+  /**
+   * La política que el huésped aceptó al reservar. `null` en las reservas
+   * anteriores al 2 sep 2026 y mientras no se corra
+   * `sql/kora-politica-cancelacion.sql`; en ese caso se usa la del hotel, que
+   * es el comportamiento de siempre.
+   */
+  politica_snapshot?: Record<string, unknown> | null;
   hoteles: {
     nombre: string;
     slug: string;
@@ -49,6 +64,10 @@ export interface GuestBooking {
   fechaLimite: string;
   politicaCancelacion: string | null;
   cancelacionDias: number;
+  /** La política que decide: la que el huésped ACEPTÓ, si se guardó. */
+  politica: Politica;
+  /** Cuánto le toca si cancela ahora mismo, y por qué. */
+  reembolso: Reembolso;
 }
 
 /** Busca la reserva por folio + email (case-insensitive). null si no coincide. */
@@ -58,19 +77,39 @@ export async function findGuestBooking(folio: string, email: string): Promise<Gu
   if (!f || !e) return null;
 
   const supabase = createAdminClient();
-  const { data, error } = await supabase
-    .from("bookings")
-    .select(
-      "id, hotel_id, confirmacion, cliente, email, checkin, checkout, noches, huespedes, habitaciones, total, anticipo, estado, rate_plan, hoteles(nombre, slug, whatsapp, extras, config)",
-    )
-    // El folio es único por (hotel_id, confirmacion), no global: pueden existir
-    // varios hoteles con el mismo folio. El match real es folio+email; un tope
-    // bajo podía truncar justo la reserva del huésped.
-    .eq("confirmacion", f)
-    .limit(50);
+  // El folio es único por (hotel_id, confirmacion), no global: pueden existir
+  // varios hoteles con el mismo folio. El match real es folio+email; un tope
+  // bajo podía truncar justo la reserva del huésped.
+  const CAMPOS =
+    "id, hotel_id, confirmacion, cliente, email, checkin, checkout, noches, huespedes, habitaciones, total, anticipo, estado, rate_plan, hoteles(nombre, slug, whatsapp, extras, config)";
+  const buscar = (campos: string) =>
+    supabase.from("bookings").select(campos).eq("confirmacion", f).limit(50);
+
+  // Se pide `politica_snapshot`; si la columna todavía no existe, PostgREST
+  // rechaza el SELECT ENTERO y el portal del huésped se quedaría muerto. Se
+  // reintenta sin ella y se dice en el log, en vez de disimularlo: la reserva
+  // cae a la política vigente del hotel, que es el comportamiento de siempre.
+  let { data, error } = await buscar(
+    CAMPOS.replace("rate_plan,", "rate_plan, politica_snapshot,"),
+  );
   if (error) {
-    console.error("findGuestBooking error:", error);
-    return null;
+    const faltaColumna =
+      error.code === "42703" ||
+      error.code === "PGRST204" ||
+      /politica_snapshot/i.test(error.message ?? "");
+    if (!faltaColumna) {
+      console.error("findGuestBooking error:", error);
+      return null;
+    }
+    console.error(
+      "[portal] bookings.politica_snapshot no existe todavía; la cancelación usa " +
+        "la política VIGENTE del hotel. Falta correr sql/kora-politica-cancelacion.sql.",
+    );
+    ({ data, error } = await buscar(CAMPOS));
+    if (error) {
+      console.error("findGuestBooking error:", error);
+      return null;
+    }
   }
 
   const row = ((data ?? []) as unknown as GuestBookingRow[]).find(
@@ -78,22 +117,50 @@ export async function findGuestBooking(folio: string, email: string): Promise<Gu
   );
   if (!row || !row.hoteles) return null;
 
-  const rules = bookingRules({ extras: row.hoteles.extras, config: row.hoteles.config });
-  const extras = (row.hoteles.extras ?? {}) as MiniExtras;
-  const fechaLimite = fechaLimiteCancelacion(row.checkin, rules.cancelacionDias);
+  const hotelLike = { extras: row.hoteles.extras, config: row.hoteles.config };
+  const rules = bookingRules(hotelLike);
+
+  // 🔴 LA COPIA MANDA. Si la reserva guardó qué política aceptó el huésped, esa
+  // es la que decide — no la que el hotelero tenga hoy. Sin esto, cambiar
+  // «gratis hasta 7 días» por «hasta 2» alteraba retroactivamente las
+  // condiciones de reservas ya pagadas y aceptadas, y el huésped que reclamaba
+  // tenía razón. Las reservas anteriores al 2 sep 2026 no tienen copia y caen a
+  // la política vigente, que es el comportamiento de siempre.
+  const politica = row.politica_snapshot
+    ? politicaDe(row.politica_snapshot as Record<string, unknown>)
+    : politicaDelHotel(hotelLike);
+
+  const hoy = hoyMX();
+  const reembolso = reembolsoPorCancelar({
+    politica,
+    checkin: row.checkin,
+    hoy,
+    ratePlan: row.rate_plan,
+  });
+
+  // La fecha límite sale de la política, no de un número suelto. Se conserva el
+  // respaldo por `cancelacionDias` para una política sin ningún escalón con
+  // devolución, donde no hay fecha que enseñar.
+  const fechaLimite =
+    fechaLimiteDevolucion(politica, row.checkin) ??
+    fechaLimiteCancelacion(row.checkin, rules.cancelacionDias);
 
   let motivoNoCancelable: GuestBooking["motivoNoCancelable"] = null;
   if (row.estado !== "CONFIRMADA" && row.estado !== "MANUAL") motivoNoCancelable = "estado";
   else if (row.rate_plan === "nrf") motivoNoCancelable = "nrf";
-  else if (hoyMX() > fechaLimite) motivoNoCancelable = "plazo";
+  else if (reembolso.pct === 0 && reembolso.regla === "sin-plazo") motivoNoCancelable = "plazo";
 
   return {
     row,
     cancelable: motivoNoCancelable === null,
     motivoNoCancelable,
     fechaLimite,
-    politicaCancelacion: extras.politicas?.cancelacion || null,
+    // El texto que lee el huésped se DERIVA de la política, no de un campo
+    // suelto que pudiera contradecirla.
+    politicaCancelacion: textoPolitica(politica),
     cancelacionDias: rules.cancelacionDias,
+    politica,
+    reembolso,
   };
 }
 
@@ -121,6 +188,11 @@ export function serializeGuestBooking(b: GuestBooking) {
     fechaLimite: b.fechaLimite,
     cancelacionDias: b.cancelacionDias,
     politicaCancelacion: b.politicaCancelacion,
+    // Cuánto le toca y por qué, en la misma respuesta: el huésped ve el número
+    // ANTES de pulsar «cancelar», no después de reclamar.
+    reembolsoPct: b.reembolso.pct,
+    reembolsoMotivo: b.reembolso.motivo,
+    escalones: b.politica.escalones,
   };
 }
 

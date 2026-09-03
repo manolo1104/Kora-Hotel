@@ -10,6 +10,7 @@ import {
   type CrearReservaResult,
 } from "@/lib/db/bookings";
 import { releaseHold, extendHold } from "@/lib/db/availability";
+import { politicaDelHotel } from "@/lib/booking";
 import {
   registrarExperienciaVentas,
   liberarExperienciaVentas,
@@ -252,6 +253,11 @@ async function confirmarReserva(
         ratePlan: md.ratePlan === "nrf" ? "nrf" : "flex",
         notas: notasReserva,
         holdSession: md.holdSession || null,
+        // La política que aceptó al reservar, guardada con la reserva. Se toma
+        // AQUÍ y no en el checkout porque entre una cosa y otra pasan minutos y
+        // meterla por la metadata de Stripe (500 caracteres por clave) sería
+        // frágil para nada.
+        politicaSnapshot: hotel ? politicaDelHotel(hotel) : null,
       });
       if (result.ok || !/duplicate key|confirmacion/i.test(result.error ?? "")) break;
     }

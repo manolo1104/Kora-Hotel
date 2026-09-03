@@ -305,6 +305,16 @@ cero "A20.6 getOccupiedRoomNames con tope explícito" bash -c 'grep -A 32 "expor
 # que el piso siga en el motor (es el único punto por el que pasan todos, porque
 # el editor escribe DIRECTO a Postgres desde el navegador), que el precio por
 # tipo no se pierda, y que nadie vuelva a calcular tarifas por su cuenta.
+# 2 sep 2026 · UNA sola política de cancelación. Había CUATRO modelos de datos
+# para lo mismo: la regla (`cancelacionDias`, la única que se aplicaba), el texto
+# libre (lo que el huésped LEÍA), el «7 días» quemado en el PDF, y el generador
+# de documentos de marketing. El huésped aceptaba una cosa y el sistema hacía
+# otra — y quien reclamaba tenía razón.
+cero "A22.1 existe la política única"              bash -c '[ -f lib/politica.ts ] || echo "falta lib/politica.ts"'
+cero "A22.2 el PDF no lleva el plazo quemado"      bash -c 'grep -q "{{ politica_cancelacion }}" lib/docs/templates.ts || echo "las plantillas volvieron a escribir el plazo a mano"'
+cero "A22.3 el reembolso sale de la política"      bash -c 'grep -q "reembolsoPorCancelar" lib/db/portal.ts || echo "la cancelación volvió a decidir por su cuenta"'
+cero "A22.4 la reserva guarda la política aceptada" bash -c 'grep -q "politica_snapshot" lib/db/bookings.ts || echo "cambiar la política vuelve a alterar reservas ya pagadas"'
+cero "A22.5 las pruebas de política en verde"      bash -c 'npx vitest run tests/politica.test.ts tests/politica-congruente.test.ts >/dev/null 2>&1 || echo "fallan las pruebas de política"'
 cero "A21.1 el motor tiene piso de tarifa"        bash -c 'grep -q "PISO_TARIFA_PCT" lib/booking/engine.ts || echo "el motor volvió a poder vender a cualquier precio"'
 cero "A21.2 la temporada tiene precio por tipo"   bash -c 'grep -q "porTipo" lib/booking/engine.ts && grep -q "porTipo" lib/booking/rooms.ts || echo "el precio fijo volvió a ser uno solo para todos los cuartos"'
 cero "A21.3 nadie calcula tarifas fuera del motor" bash -c 'node scripts/check-precios.mjs >/dev/null 2>&1 || echo "check-precios falla"'

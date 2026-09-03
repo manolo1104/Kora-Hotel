@@ -102,6 +102,13 @@ export interface BotKnowledge {
   accesibilidad?: string; // accesibilidad general del hotel (rampa, elevador…)
   faqs?: BotFaq[];
   politicas?: Record<string, unknown>;
+  /**
+   * La política de cancelación en texto, derivada de `lib/politica.ts`. Es la
+   * MISMA que lee el huésped en la página y la que decide su reembolso si
+   * cancela. Antes el prompt llevaba DOS versiones sin jerarquía y el modelo
+   * elegía: de ahí salía el «Camila me dijo otra cosa».
+   */
+  politicaCancelacion?: string;
   guia?: Record<string, unknown>;
   experiencias?: BotExperiencia[];
   addons?: BotAddon[];
@@ -357,7 +364,14 @@ ${tempLineas.join("\n")}
   }
   if (reglas.minNoches && reglas.minNoches > 1)
     reglasLineas.push(`- Mínimo de noches por reserva: ${reglas.minNoches}.`);
-  if (reglas.cancelacionDias != null)
+  // UNA sola línea de cancelación, la misma que lee el huésped en la página y
+  // la que decide su reembolso si cancela. Antes había dos en el mismo prompt
+  // —esta y el volcado del texto libre en el bloque POLÍTICAS— sin decirle al
+  // modelo cuál mandaba, así que Camila podía prometer un plazo y el sistema
+  // aplicar otro.
+  if (k.politicaCancelacion)
+    reglasLineas.push(`- Cancelación: ${k.politicaCancelacion}`);
+  else if (reglas.cancelacionDias != null)
     reglasLineas.push(
       reglas.cancelacionDias > 0
         ? `- Cancelación gratis hasta ${reglas.cancelacionDias} ${reglas.cancelacionDias === 1 ? "día" : "días"} antes del check-in.`

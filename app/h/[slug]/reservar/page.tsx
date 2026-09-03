@@ -1,3 +1,5 @@
+import { textoPolitica } from "@/lib/politica";
+import { politicaDelHotel } from "@/lib/booking";
 import { notFound } from "next/navigation";
 import { MessageCircle } from "lucide-react";
 import { resolveHotel } from "@/lib/tenant";
@@ -151,7 +153,13 @@ export default async function ReservarPage({
         coverUrl={coverUrl}
         marcaOculta={marcaOculta}
         demo={extras.demo === true}
-        politicaCancelacion={extras.politicas?.cancelacion || null}
+        // 🔴 Ya NO es el campo libre de `extras.politicas.cancelacion`. Es el
+        // texto DERIVADO de la política estructurada, que es la misma que
+        // decide el reembolso cuando el huésped cancela. Antes el campo libre
+        // ganaba aquí y el enforcement aplicaba otra regla: el huésped aceptaba
+        // una cosa y el sistema hacía otra.
+        politicaCancelacion={textoPolitica(politicaDelHotel(hotel), "es")}
+        escalonesPolitica={politicaDelHotel(hotel).escalones}
         pagoEnHotel={rules.pagoEnHotel && connect.chargesEnabled}
         oxxoDisponible={connect.chargesEnabled && connect.oxxoEnabled}
         reglas={{

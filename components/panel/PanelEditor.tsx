@@ -1,5 +1,6 @@
 "use client";
 
+import { politicaDe, textoPolitica } from "@/lib/politica";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { QrCompartir } from "./QrCompartir";
 import { RegistroPrevioSwitch } from "./RegistroPrevioSwitch";
@@ -378,6 +379,12 @@ export function PanelEditor({
   const [nrfActiva, setNrfActiva] = useState(false);
   const [nrfPct, setNrfPct] = useState(10);
   const [cancelacionDias, setCancelacionDias] = useState(2);
+  // Los escalones de la política («7 días → 100 %, 3 días → 50 %»). Vacío =
+  // sigue mandando `cancelacionDias`, que es lo que tienen todos los hoteles
+  // hoy y lo que se deriva solo. Sólo al añadir el primero se pasa al modelo
+  // escalonado, y entonces `cancelacionDias` deja de decidir.
+  const [escalones, setEscalones] = useState<{ diasAntes: string; reembolsoPct: string }[]>([]);
+  const [noShowPct, setNoShowPct] = useState("0");
   const [pagoEnHotel, setPagoEnHotel] = useState(false);
   // Código de descuento del hotel (extras.reglas.promos). Se guarda como lista
   // porque así lo lee el motor, pero aquí se edita UNO: un hotel de 8 cuartos
@@ -712,6 +719,18 @@ export function PanelEditor({
             precio: String(t?.precio ?? ""),
           }))
         );
+        {
+          const pol = (ex.politica ?? {}) as { escalones?: unknown; noShowPct?: unknown };
+          setEscalones(
+            Array.isArray(pol.escalones)
+              ? (pol.escalones as { diasAntes?: unknown; reembolsoPct?: unknown }[]).map((e) => ({
+                  diasAntes: String(e?.diasAntes ?? ""),
+                  reembolsoPct: String(e?.reembolsoPct ?? ""),
+                }))
+              : [],
+          );
+          setNoShowPct(pol.noShowPct != null ? String(pol.noShowPct) : "0");
+        }
         setTemporadas(
           Array.isArray(ex.temporadas)
             ? ex.temporadas.map((t: Record<string, unknown>) => {
@@ -1413,6 +1432,23 @@ export function PanelEditor({
         dias: finSemDias,
         ajuste: { tipo: finSemTipo, valor: Number(finSemValor) || 0 },
       },
+      // La política estructurada. Si no hay escalones, NO se escribe nada: el
+      // hotel sigue con `reglas.cancelacionDias` y la política se deriva sola.
+      // Escribir un objeto vacío haría que `politicaDe` creyera que hay
+      // escalones definidos y devolvería «no admite cancelación».
+      ...(escalones.some((e) => e.diasAntes !== "" && e.reembolsoPct !== "")
+        ? {
+            politica: {
+              escalones: escalones
+                .filter((e) => e.diasAntes !== "" && e.reembolsoPct !== "")
+                .map((e) => ({
+                  diasAntes: Math.max(0, Math.min(365, Math.round(Number(e.diasAntes) || 0))),
+                  reembolsoPct: Math.max(0, Math.min(100, Math.round(Number(e.reembolsoPct) || 0))),
+                })),
+              noShowPct: Math.max(0, Math.min(100, Math.round(Number(noShowPct) || 0))),
+            },
+          }
+        : {}),
       formasPago,
       idiomas,
       premium: { marcaOculta },
@@ -3993,16 +4029,109 @@ export function PanelEditor({
               <FileText size={18} className="text-kora-primary" />
               <h2 className="text-lg font-bold text-kora-text">Políticas e información</h2>
             </div>
-            <div>
-              <label className="block text-sm font-semibold text-kora-text mb-1.5">
-                Política de cancelación
-              </label>
-              <input
-                className={inputCls}
-                value={polCancelacion}
-                onChange={(e) => setPolCancelacion(e.target.value)}
-                placeholder="Ej. Cancelación gratis hasta 48 h antes."
-              />
+            {/* 🔴 La política de cancelación dejó de ser texto libre el 2 sep
+                2026. Antes este campo GANABA sobre la regla estructurada para lo
+                que el huésped leía y aceptaba, mientras el sistema aplicaba otra
+                cosa: quien cancelaba a 5 días y veía negado su reembolso tenía
+                la política del hotel por escrito a su favor. Ahora el texto se
+                DERIVA de estos escalones y esto queda como nota. */}
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-semibold text-kora-text mb-1.5">
+                  Política de cancelación
+                </label>
+                <p className="text-xs text-kora-muted mb-2">
+                  Lo que ve el huésped y lo que el sistema aplica salen de aquí:
+                  no pueden decir cosas distintas. Sin escalones, se usa el plazo
+                  de «Cancelación gratis hasta…» de Reglas de reserva.
+                </p>
+                <div className="rounded-lg border border-panel-border-soft bg-kora-bg/40 p-3 text-xs text-kora-text">
+                  <span className="font-semibold">Así se lee hoy: </span>
+                  {textoPolitica(
+                    politicaDe({
+                      escalones: escalones
+                        .filter((e) => e.diasAntes !== "" && e.reembolsoPct !== "")
+                        .map((e) => ({ diasAntes: Number(e.diasAntes), reembolsoPct: Number(e.reembolsoPct) })),
+                      noShowPct: Number(noShowPct) || 0,
+                      nota: polCancelacion,
+                      cancelacionDias,
+                    }),
+                  )}
+                </div>
+              </div>
+
+              {escalones.map((e, i) => (
+                <div key={i} className="flex flex-wrap items-end gap-2">
+                  <div className="w-40">
+                    <label className="block text-[11px] font-semibold text-kora-muted mb-1">
+                      Hasta … días antes
+                    </label>
+                    <input
+                      type="number" min={0} max={365} className={inputCls} value={e.diasAntes}
+                      onChange={(ev) =>
+                        setEscalones((xs) => xs.map((x, k) => (k === i ? { ...x, diasAntes: ev.target.value } : x)))
+                      }
+                    />
+                  </div>
+                  <div className="w-40">
+                    <label className="block text-[11px] font-semibold text-kora-muted mb-1">
+                      Se devuelve (%)
+                    </label>
+                    <input
+                      type="number" min={0} max={100} className={inputCls} value={e.reembolsoPct}
+                      onChange={(ev) =>
+                        setEscalones((xs) => xs.map((x, k) => (k === i ? { ...x, reembolsoPct: ev.target.value } : x)))
+                      }
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setEscalones((xs) => xs.filter((_, k) => k !== i))}
+                    className="btn-press w-9 h-9 rounded-lg border border-panel-border flex items-center justify-center text-red-600 hover:border-red-300"
+                    aria-label="Quitar escalón"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              ))}
+
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setEscalones((xs) => [...xs, { diasAntes: "", reembolsoPct: "" }])}
+                  className="btn-press inline-flex items-center gap-2 px-4 py-2 rounded-full border border-panel-border text-kora-text font-semibold text-sm hover:border-kora-accent transition-colors"
+                >
+                  <Plus size={15} /> Agregar escalón
+                </button>
+                {escalones.length > 0 && (
+                  <div className="flex items-end gap-2">
+                    <div className="w-44">
+                      <label className="block text-[11px] font-semibold text-kora-muted mb-1">
+                        Si no llega y no avisa (%)
+                      </label>
+                      <input
+                        type="number" min={0} max={100} className={inputCls} value={noShowPct}
+                        onChange={(ev) => setNoShowPct(ev.target.value)}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-kora-text mb-1.5">
+                  Nota adicional (opcional)
+                </label>
+                <input
+                  className={inputCls}
+                  value={polCancelacion}
+                  onChange={(e) => setPolCancelacion(e.target.value)}
+                  placeholder="Ej. Escríbenos si es una urgencia."
+                />
+                <p className="mt-1.5 text-xs text-kora-muted">
+                  Se añade al final del texto de arriba. No lo sustituye.
+                </p>
+              </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>

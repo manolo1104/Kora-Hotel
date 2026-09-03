@@ -29,6 +29,8 @@ export const COTIZACION_TPL = `<!DOCTYPE html>
   ── Totales ─────────────────────────────────────────────
     subtotal, total, moneda            (ej. "$6,400.00" / "MXN")
     anticipo_pct, anticipo, saldo
+  ── Política de cancelación ─────────────────────────────
+    politica_cancelacion   (derivada de lib/politica.ts; NUNCA escrita a mano)
   ── Contacto de cierre ──────────────────────────────────
     whatsapp
   ============================================================================
@@ -166,7 +168,7 @@ export const COTIZACION_TPL = `<!DOCTYPE html>
     <div style="font-weight:700;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#a3aaa4;margin-bottom:12px;">Condiciones</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px 26px;">
       <div style="font-weight:500;font-size:12px;color:#6b746e;line-height:1.55;"><strong style="color:#1f2823;">Check-in:</strong> desde 3:00 PM · <strong style="color:#1f2823;">Check-out:</strong> antes de 12:00 PM</div>
-      <div style="font-weight:500;font-size:12px;color:#6b746e;line-height:1.55;"><strong style="color:#1f2823;">Cancelación gratuita</strong> hasta 7 días antes de la llegada.</div>
+      <div style="font-weight:500;font-size:12px;color:#6b746e;line-height:1.55;">{{ politica_cancelacion }}</div>
       <div style="font-weight:500;font-size:12px;color:#6b746e;line-height:1.55;">El anticipo confirma la reserva y se descuenta del total.</div>
       <div style="font-weight:500;font-size:12px;color:#6b746e;line-height:1.55;">Precios en pesos mexicanos (MXN) con impuestos incluidos.</div>
     </div>
@@ -217,6 +219,8 @@ export const RESERVA_TPL = `<!DOCTYPE html>
     total_estancia, moneda
     anticipo_pagado, restante
     metodo_pago, fecha_pago            (ej. "Tarjeta ···· 4242" / "16 jul 2026")
+  ── Política de cancelación ─────────────────────────────
+    politica_cancelacion   (derivada de lib/politica.ts; NUNCA escrita a mano)
   ── Contacto de cierre ──────────────────────────────────
     whatsapp
   ============================================================================
@@ -355,7 +359,7 @@ export const RESERVA_TPL = `<!DOCTYPE html>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px 26px;">
       <div style="font-weight:500;font-size:12px;color:#6b746e;line-height:1.55;"><strong style="color:#1f2823;">Check-in:</strong> desde 3:00 PM · <strong style="color:#1f2823;">Check-out:</strong> antes de 12:00 PM</div>
       <div style="font-weight:500;font-size:12px;color:#6b746e;line-height:1.55;">Presenta este comprobante y una identificación oficial.</div>
-      <div style="font-weight:500;font-size:12px;color:#6b746e;line-height:1.55;"><strong style="color:#1f2823;">Cancelación:</strong> el anticipo es reembolsable hasta 7 días antes.</div>
+      <div style="font-weight:500;font-size:12px;color:#6b746e;line-height:1.55;"><strong style="color:#1f2823;">Cancelación:</strong> {{ politica_cancelacion }}</div>
       <div style="font-weight:500;font-size:12px;color:#6b746e;line-height:1.55;">¿Llegas fuera de horario? Avísanos por WhatsApp y lo coordinamos.</div>
     </div>
   </div>

@@ -5,6 +5,7 @@ import { leer } from "@/lib/db/result";
 // REGLA: hotelId resuelto desde la sesión/slug, nunca del body.
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import type { Politica } from "@/lib/politica";
 
 export interface CrearReservaInput {
   habitaciones: string[]; // nombres de cuarto
@@ -30,6 +31,12 @@ export interface CrearReservaInput {
    * borrado fallaba el motor reembolsaba un pago bueno (K-03/K-47).
    */
   holdSession?: string | null;
+  /**
+   * La política de cancelación que aplica a ESTA reserva, para guardarla con
+   * ella. Sin la copia, cambiar la política del hotel altera retroactivamente
+   * las condiciones de reservas ya pagadas y aceptadas.
+   */
+  politicaSnapshot?: Politica | null;
 }
 
 export interface CrearReservaResult {
@@ -118,6 +125,33 @@ export async function createBookingAtomic(
     console.error("createBookingAtomic: no pude releer el folio real:", errFolio);
   } else if (fila?.confirmacion) {
     confirmacion = fila.confirmacion as string;
+  }
+
+  // La política aceptada, guardada con la reserva.
+  //
+  // Va en un UPDATE aparte y NO dentro del RPC a propósito: meterla en
+  // `crear_reserva_atomica` obliga a cambiar la firma de la función en Postgres,
+  // y esa función es la que impide la sobreventa — no se toca para añadir un
+  // dato informativo. Si este UPDATE falla, la reserva EXISTE igual (que es lo
+  // único imprescindible: el pago ya ocurrió) y la lectura cae a la política
+  // vigente del hotel, el comportamiento de siempre. Queda dicho en el log.
+  if (input.politicaSnapshot) {
+    const { error: errPol } = await supabase
+      .from("bookings")
+      .update({ politica_snapshot: input.politicaSnapshot })
+      .eq("id", bookingId);
+    if (errPol) {
+      const faltaColumna =
+        errPol.code === "42703" ||
+        errPol.code === "PGRST204" ||
+        /politica_snapshot/i.test(errPol.message ?? "");
+      console.error(
+        faltaColumna
+          ? "[bookings] politica_snapshot no existe todavía; la reserva se guarda sin " +
+              "copia de su política. Falta correr sql/kora-politica-cancelacion.sql."
+          : `[bookings] no pude guardar politica_snapshot: ${errPol.message}`,
+      );
+    }
   }
 
   return { ok: true, bookingId, confirmacion };

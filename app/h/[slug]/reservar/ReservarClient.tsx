@@ -1,5 +1,6 @@
 "use client";
 
+import { textoPolitica } from "@/lib/politica";
 import { useState, useEffect, useMemo, useRef } from "react";
 import {
   Users,
@@ -73,6 +74,8 @@ interface Props {
   experiencias: Experiencia[];
   experienciasBundle?: ExperienciasBundle | null; // descuento de paquete (N+ experiencias → %)
   politicaCancelacion: string | null;
+  /** Los escalones de la política, para poder derivar el texto en cualquier idioma. */
+  escalonesPolitica?: { diasAntes: number; reembolsoPct: number }[];
   pagoEnHotel: boolean; // el hotel permite reservar con tarjeta-garantía
   oxxoDisponible: boolean; // la cuenta Stripe del hotel acepta OXXO
   reglas: {
@@ -256,6 +259,7 @@ export default function ReservarClient({
   experiencias,
   experienciasBundle = null,
   politicaCancelacion,
+  escalonesPolitica = [],
   pagoEnHotel,
   oxxoDisponible,
   reglas,
@@ -1116,12 +1120,17 @@ export default function ReservarClient({
     );
   }
 
-  // Texto de política de cancelación (custom del hotel o default estructurado).
+  // La política que el huésped lee y acepta. Sale del MISMO sitio que la que
+  // decide su reembolso si cancela (`lib/politica.ts`), así que ya no pueden
+  // contradecirse. En inglés se vuelve a derivar de la estructura en vez de
+  // traducir un texto libre, que era imposible.
   const politicaFlex =
-    politicaCancelacion ||
-    (reglas.cancelacionDias === 0
-      ? t(lang, "politicaDefaultFlex0")
-      : t(lang, "politicaDefaultFlex", { n: reglas.cancelacionDias }));
+    lang === "en" && escalonesPolitica.length > 0
+      ? textoPolitica({ escalones: escalonesPolitica, noShowPct: 0 }, "en")
+      : politicaCancelacion ||
+        (reglas.cancelacionDias === 0
+          ? t(lang, "politicaDefaultFlex0")
+          : t(lang, "politicaDefaultFlex", { n: reglas.cancelacionDias }));
   const politicaActiva = esNrf ? t(lang, "politicaNrf") : politicaFlex;
 
   // ── Render ──────────────────────────────────────────────
@@ -2080,10 +2089,16 @@ export default function ReservarClient({
                       {
                         plan: "flex" as RatePlan,
                         titulo: t(lang, "tarifaFlexible"),
+                        // Antes decía «gratis hasta N días» leyendo
+                        // `cancelacionDias`, mientras el recuadro de abajo
+                        // pintaba el texto libre: dos políticas distintas en la
+                        // misma pantalla, a un scroll de distancia.
                         desc:
-                          reglas.cancelacionDias === 0
-                            ? t(lang, "tarifaFlexibleDesc0")
-                            : t(lang, "tarifaFlexibleDesc", { n: reglas.cancelacionDias }),
+                          escalonesPolitica.length > 0
+                            ? textoPolitica({ escalones: escalonesPolitica, noShowPct: 0 }, lang === "en" ? "en" : "es")
+                            : reglas.cancelacionDias === 0
+                              ? t(lang, "tarifaFlexibleDesc0")
+                              : t(lang, "tarifaFlexibleDesc", { n: reglas.cancelacionDias }),
                       },
                       {
                         plan: "nrf" as RatePlan,

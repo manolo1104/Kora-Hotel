@@ -3,6 +3,7 @@
 // guarda ({nombre, precio, descripcion}) y un formato rico con tarifas por
 // número de huéspedes ({nombre, precio, priceTiers, maxGuests, fotos...}).
 
+import { politicaDe, type Politica } from "@/lib/politica";
 import type {
   BookingRoom,
   NightPriceOpts,
@@ -359,6 +360,31 @@ function clampNum(v: unknown, def: number, min: number, max: number): number {
  * `extras.reglas.pagoEnHotel` NO se toca: vuelve tal cual estaba.
  */
 export const PAGO_EN_HOTEL_DISPONIBLE = false;
+
+/**
+ * La política de cancelación del hotel, ya estructurada.
+ *
+ * Vive aquí y no en `lib/politica.ts` para que ese archivo siga siendo lógica
+ * pura y sin dependencias: la dirección es booking → politica, nunca al revés.
+ *
+ * Un hotel que sólo tenga la regla vieja (`extras.reglas.cancelacionDias`)
+ * obtiene la política equivalente, así que ninguno se queda sin política ni ve
+ * cambiar sus condiciones el día del despliegue.
+ */
+export function politicaDelHotel(hotel: HotelLike): Politica {
+  const extras = (hotel.extras ?? {}) as Record<string, unknown>;
+  const pol = (extras.politica ?? {}) as Record<string, unknown>;
+  const politicas = (extras.politicas ?? {}) as Record<string, unknown>;
+  return politicaDe({
+    escalones: pol.escalones,
+    noShowPct: pol.noShowPct,
+    // El campo libre de siempre pasa a ser una NOTA que se añade al texto
+    // derivado, no la política. Antes ganaba sobre la regla y por eso podían
+    // contradecirse: el huésped leía una cosa y el sistema aplicaba otra.
+    nota: typeof pol.nota === "string" ? pol.nota : politicas.cancelacion,
+    cancelacionDias: bookingRules(hotel).cancelacionDias,
+  });
+}
 
 export function bookingRules(hotel: HotelLike): BookingRules {
   const extras = (hotel.extras ?? {}) as Record<string, unknown>;
