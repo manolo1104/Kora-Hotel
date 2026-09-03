@@ -168,7 +168,7 @@ export const COTIZACION_TPL = `<!DOCTYPE html>
     <div style="font-weight:700;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#a3aaa4;margin-bottom:12px;">Condiciones</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px 26px;">
       <div style="font-weight:500;font-size:12px;color:#6b746e;line-height:1.55;"><strong style="color:#1f2823;">Check-in:</strong> desde 3:00 PM · <strong style="color:#1f2823;">Check-out:</strong> antes de 12:00 PM</div>
-      <div style="font-weight:500;font-size:12px;color:#6b746e;line-height:1.55;">{{ politica_cancelacion }}</div>
+      <div style="font-weight:500;font-size:12px;color:#6b746e;line-height:1.55;"><strong style="color:#1f2823;">Cancelación:</strong> {{ politica_cancelacion }}</div>
       <div style="font-weight:500;font-size:12px;color:#6b746e;line-height:1.55;">El anticipo confirma la reserva y se descuenta del total.</div>
       <div style="font-weight:500;font-size:12px;color:#6b746e;line-height:1.55;">Precios en pesos mexicanos (MXN) con impuestos incluidos.</div>
     </div>

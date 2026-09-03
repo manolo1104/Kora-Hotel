@@ -18,6 +18,7 @@
 // No importa ni un solo `send*`: aquí sólo se llaman los constructores puros de
 // HTML. Este archivo no puede enviar un correo aunque se quiera.
 
+import { politicaDe, textoPolitica } from "@/lib/politica";
 import {
   buildConfirmacionEmailHtml,
   buildAvisoReservaHotelHtml,
@@ -97,6 +98,17 @@ const MARCA: BookingBrand = {
   nombre: "Hotel de Ejemplo",
   color: "#1B4332",
   ubicacion: "Xilitla, San Luis Potosí",
+  // La política, derivada como en producción (`bookingBrandFromHotel`). Sin
+  // esto la vista previa enseñaba el texto de respaldo y no se veía si la
+  // plantilla estaba bien: el preview mentía sobre el documento real.
+  politicaCancelacion: textoPolitica(
+    politicaDe({
+      escalones: [
+        { diasAntes: 7, reembolsoPct: 100 },
+        { diasAntes: 3, reembolsoPct: 50 },
+      ],
+    }),
+  ),
   whatsapp: "5215500000000",
   email: "hola@ejemplo.test",
   telefono: "481 000 0000",
