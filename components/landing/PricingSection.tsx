@@ -66,11 +66,11 @@ const arranque = [
   { titulo: "Arranque Llave en Mano (24 h)", detalle: "Cargamos cuartos, fotos, tarifas y tu motor", valor: 8000 },
   { titulo: "Tu página de reservas lista", detalle: "Motor embebido en una página con tu marca", valor: 6000 },
   { titulo: "Camila entrenada con tu hotel", detalle: "Tus precios, políticas y respuestas", valor: 4000 },
-  // Airbnb NO: el panel sólo conecta Booking.com y Expedia
-  // (canales/CanalesClient.tsx → `type Platform`). Y "sin overbooking" prometía
-  // más de lo que da una sincronía DIARIA por iCal: entre pasada y pasada caben
-  // horas, que es justo cuando se produce una sobreventa.
-  { titulo: "Migración + sync Booking/Expedia", detalle: "Calendarios al día, sin líos", valor: 2500 },
+  // RETIRADA el 2 sep 2026: "Migración + sync Booking/Expedia · $2,500". Se
+  // cobraba como valor un servicio cuya pestaña salió del panel el 26 de agosto
+  // (CANALES_OTA_DISPONIBLES = false). El total del arranque baja de $23,500 a
+  // $21,000 solo, porque `arranqueTotal` se suma abajo. Vuelve el día que exista
+  // el channel manager — y entonces con la cifra que valga entonces.
   { titulo: "2 meses de acompañamiento 1-a-1", detalle: "Con el equipo fundador", valor: 3000 },
 ];
 const arranqueTotal = arranque.reduce((s, b) => s + b.valor, 0);

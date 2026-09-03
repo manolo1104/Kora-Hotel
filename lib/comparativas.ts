@@ -155,7 +155,7 @@ export const comparativas: Comparativa[] = [
       },
       {
         q: "¿Kora evita el overbooking entre Expedia y mis reservas directas?",
-        a: "Sí. Kora sincroniza tu disponibilidad para que no vendas dos veces la misma noche entre tus canales.",
+        a: "Entre tus canales de Kora, sí: tu página de reservas, Camila y tu panel comparten un solo inventario, así que una reserva cierra la fecha en los tres. Las de Expedia las registras en el panel y bloquean igual; la sincronía automática con las OTAs todavía no existe.",
       },
     ],
   },
@@ -171,7 +171,7 @@ export const comparativas: Comparativa[] = [
     cuerpo: [
       "Vrbo (parte de Expedia Group) atrae viajeros que quieren rentar una propiedad completa para su familia o grupo, un perfil muy común en cabañas y ecolodges de destinos de naturaleza. El costo es una comisión por reserva y que la comunicación, los precios y las reseñas vivan dentro de la plataforma.",
       "Para una cabaña o un conjunto de unidades, cada reserva directa vale mucho: además de ahorrarte la comisión, te deja el contacto del huésped y te permite ofrecer estancias más largas o repetidas sin intermediario. El problema suele ser no tener una forma profesional de reservar y cobrar directo.",
-      "Kora te da un motor de reservas propio con cobro de anticipo, sincronía con tus OTAs para evitar overbooking y un asistente de IA que contesta 24/7. Así construyes el canal directo sin renunciar al alcance de Vrbo para el grupo que llega por ahí.",
+      "Kora te da un motor de reservas propio con cobro de anticipo, un solo inventario para tu página y tu WhatsApp, y un asistente de IA que contesta 24/7. Así construyes el canal directo sin renunciar al alcance de Vrbo para el grupo que llega por ahí.",
     ],
     tabla: [
       { aspecto: "Comisión por reserva", ota: "Comisión por reserva", kora: "$0 (reserva directa)" },

@@ -151,9 +151,9 @@ export const personas: Persona[] = [
     titulo: "Sistema de reservas para cabañas y ecoturismo",
     pregunta: "¿Qué sistema de reservas necesita una cabaña o un ecolodge?",
     resumen:
-      "Motor de reservas directas, WhatsApp con IA y sincronía con OTAs para cabañas, ecolodges y turismo de naturaleza.",
+      "Motor de reservas directas, WhatsApp con IA y un solo inventario para cabañas, ecolodges y turismo de naturaleza.",
     intro:
-      "Las cabañas y ecolodges viven del turismo de naturaleza y de fin de semana, muchas veces en zonas de baja señal y operados por su dueño o familia. Necesitan captar reservas directas sin comisión y no perder las consultas que llegan por WhatsApp. Kora les da motor de reservas, IA 24/7 y sincronía con las OTAs, en un solo sistema.",
+      "Las cabañas y ecolodges viven del turismo de naturaleza y de fin de semana, muchas veces en zonas de baja señal y operados por su dueño o familia. Necesitan captar reservas directas sin comisión y no perder las consultas que llegan por WhatsApp. Kora les da motor de reservas, IA 24/7 y un solo inventario para los tres, en un solo sistema.",
     dolor: [
       "La mayoría de las reservas llegan por Airbnb, Booking o Vrbo pagando comisión sobre cada noche.",
       "El huésped pregunta cómo llegar, qué actividades hay y si hay señal, a cualquier hora; sin respuesta rápida, se pierde la reserva.",
@@ -166,9 +166,9 @@ export const personas: Persona[] = [
           "Cada cabaña o unidad se reserva directo desde tu web o WhatsApp, y el ingreso se queda contigo.",
       },
       {
-        titulo: "Sincronía con tus OTAs, sin overbooking",
+        titulo: "Un solo inventario, sin overbooking",
         texto:
-          "Kora mantiene tu disponibilidad al día entre Airbnb, Booking y tus reservas directas para no vender dos veces la misma noche.",
+          "Tu página de reservas, Camila y tu panel leen la misma disponibilidad, así que no vendes dos veces la misma noche. Las reservas de Airbnb o Booking las registras en el panel y bloquean igual.",
       },
       {
         titulo: "Camila contesta 24/7",
@@ -179,7 +179,7 @@ export const personas: Persona[] = [
     faqs: [
       {
         q: "¿Kora sirve si tengo varias cabañas o unidades?",
-        a: "Sí. Maneja unidades ilimitadas en un solo plan, con su propio calendario y disponibilidad sincronizada con tus OTAs.",
+        a: "Sí. Maneja unidades ilimitadas en un solo plan, con su propio calendario y una disponibilidad única que comparten tu página, Camila y tu panel.",
       },
       {
         // Ver la nota en lib/faqs.ts: el "modo offline" que prometía esta
@@ -349,7 +349,7 @@ export const personas: Persona[] = [
       },
       {
         q: "¿Se sincroniza con las OTAs?",
-        a: "Sí. Kora sincroniza el calendario para que una reserva directa cierre esa fecha en todos los canales.",
+        a: "Todavía no de forma automática. Dentro de Kora sí hay un solo inventario —página, WhatsApp y panel—, y las reservas que entren por una OTA las registras en el panel en segundos y bloquean la fecha igual.",
       },
     ],
   },
@@ -385,7 +385,7 @@ export const personas: Persona[] = [
       {
         titulo: "Sin overbooking",
         texto:
-          "El calendario sigue sincronizado con las OTAs: una reserva directa cierra esa fecha también allá.",
+          "Una reserva directa cierra esa fecha a la vez en tu página, en Camila y en tu panel.",
       },
     ],
     faqs: [

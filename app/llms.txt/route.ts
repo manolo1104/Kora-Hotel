@@ -90,8 +90,11 @@ function buildLlms(hoteles: HotelListado[]): string {
   );
   L.push(
     // Este archivo se lo damos a ChatGPT y Perplexity: lo que diga aquí lo
-    // repiten como hecho. Airbnb no es un canal que Kora sincronice.
-    '- Arranque "Reservas Directas" llave en mano, gratis: montamos tu hotel completo (cuartos, fotos, tarifas, motor, Camila, migración y sync con Booking.com/Expedia) en 24 horas.'
+    // repiten como hecho, y nadie va a ir a comprobarlo. La sincronía con OTAs
+    // salió el 2 sep 2026: la pestaña de canales está retirada del panel desde
+    // el 26 de agosto (CANALES_OTA_DISPONIBLES = false), así que prometerla
+    // aquí era poner una mentira en boca de un buscador.
+    '- Arranque "Reservas Directas" llave en mano, gratis: montamos tu hotel completo (cuartos, fotos, tarifas, motor y Camila) en 24 horas.'
   );
   L.push(`- Prueba ${GARANTIA.diasPrueba} días gratis, sin tarjeta.`);
   // Lo que se le dice a ChatGPT y a Perplexity tiene que ser lo mismo que dicen

@@ -353,7 +353,7 @@ export const paginasWhatsApp: PaginaWhatsApp[] = [
       "En la mayoría de los hoteles pequeños, WhatsApp y el sistema de reservas son dos mundos separados. La conversación pasa en el celular y la reserva se anota después en un cuaderno, un Excel o el panel. Cuando hay prisa, ese \"después\" no llega.",
       "El costo se ve en tres formas: reservas que nadie anotó y aparecen el día del check-in, cuartos vendidos dos veces porque la libreta y la OTA no se hablaban, y horas de tu día capturando datos que ya estaban escritos en el chat.",
       "Kora cierra ese hueco haciendo que la reserva nazca dentro de la conversación. Cuando Camila cierra, no te manda un resumen para que lo captures: aparta el cuarto en tu inventario, genera el link de pago y, al pagarse, la reserva ya está registrada con los datos del huésped.",
-      "El mismo inventario alimenta tu página de reservas, tu panel y la sincronización con las OTAs. Una reserva cerrada por WhatsApp bloquea ese cuarto en todos lados, no sólo en el chat.",
+      "El mismo inventario alimenta tu página de reservas y tu panel. Una reserva cerrada por WhatsApp bloquea ese cuarto en los tres sitios, no sólo en el chat.",
     ],
     puntos: [
       {
@@ -377,8 +377,11 @@ export const paginasWhatsApp: PaginaWhatsApp[] = [
         a: "Las registras desde el panel en unos segundos y quedan igual de bloqueadas que las automáticas. No tienes que elegir un solo camino.",
       },
       {
+        // Decía "Sí" hasta el 2 sep 2026, con la pestaña de canales retirada del
+        // panel desde el 26 de agosto. Responder que no —y decir qué sí hace—
+        // vende peor un minuto y mejor un año.
         q: "¿Se sincroniza con Booking y Airbnb?",
-        a: "Sí. Kora sincroniza el calendario con las OTAs, así una reserva de WhatsApp cierra esa fecha también allá y evita el overbooking.",
+        a: "Todavía no. Kora se ocupa de tu canal directo: WhatsApp, tu página de reservas y tu calendario propio. Lo que sí hace hoy es quitarte comisión en cada reserva que entra por ahí, que es de donde sale el ahorro.",
       },
     ],
     relacionados: [

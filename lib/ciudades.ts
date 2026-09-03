@@ -112,7 +112,7 @@ export const ciudades: Ciudad[] = [
     cuerpo: [
       "El turismo de Aquismón es de naturaleza y aventura: viajeros que van a Tamul en lancha, al Sótano de las Golondrinas de madrugada o a nadar al Puente de Dios. Muchos hospedajes son cabañas y ecolodges en zonas de baja señal, operados por familias, que reciben la mayoría de sus reservas por Airbnb y Booking pagando comisión.",
       "Ese perfil de huésped pregunta mucho antes de reservar: cómo llegar, qué tours hay, si hay que madrugar. Esas consultas caen por WhatsApp a toda hora y, si no se contestan, se pierde la reserva. Para un ecolodge pequeño, cada reserva directa que se convierte vale mucho más que su comisión.",
-      "Con Kora montas un motor de reservas propio y Camila contesta esas dudas 24/7, cotiza y reúne los datos para cerrar la reserva directa. Sincroniza con tus OTAs para no tener overbooking y te deja operar todo desde el celular. Lo instalamos llave en mano en 24 horas, incluso si eres una cabaña familiar sin experiencia técnica.",
+      "Con Kora montas un motor de reservas propio y Camila contesta esas dudas 24/7, cotiza y reúne los datos para cerrar la reserva directa. Tu página, Camila y tu panel comparten un solo inventario, así que no vendes dos veces la misma noche, y lo operas todo desde el celular. Lo instalamos llave en mano en 24 horas, incluso si eres una cabaña familiar sin experiencia técnica.",
     ],
     faqs: [
       {
@@ -124,8 +124,9 @@ export const ciudades: Ciudad[] = [
         a: "Camila contesta 24/7 con la información que tú le cargues (precios, políticas, cómo llegar, qué incluye) y reúne los datos del huésped para cerrar la reserva. Los casos especiales los pasa contigo.",
       },
       {
+        // Ver lib/integraciones.ts: la sincronía con OTAs no existe hoy.
         q: "¿Evita el overbooking entre mi cabaña y las OTAs?",
-        a: "Sí. Kora sincroniza tu disponibilidad con Booking y Airbnb para que no vendas dos veces la misma noche.",
+        a: "Dentro de Kora, sí: el motor, Camila y tu calendario ven el mismo inventario, así que no se vende dos veces la misma noche. Con Booking o Airbnb todavía no hay sincronía automática; esas reservas las registras en el panel y quedan bloqueadas igual.",
       },
     ],
   },
@@ -202,7 +203,7 @@ export const ciudades: Ciudad[] = [
     cuerpo: [
       "El turismo de El Naranjo gira alrededor de sus cascadas y ríos, con visitantes que llegan en puentes y vacaciones a acampar o quedarse en cabañas. Muchos hospedajes son pequeños, en entornos naturales, y reciben la mayoría de sus reservas por Airbnb y Booking pagando comisión sobre cada noche.",
       "Como en el resto de la Huasteca, el huésped pregunta primero por WhatsApp: disponibilidad, cómo llegar, qué cascadas visitar. Si esas consultas no se contestan a tiempo —o no hay forma de reservar y pagar directo— la reserva se enfría o termina en una OTA con su comisión.",
-      "Kora te da un motor de reservas propio con cobro de anticipo y Camila contestando 24/7, para convertir esas consultas en reservas directas. Sincroniza con tus OTAs para evitar overbooking y te deja operar desde el celular. Lo montamos llave en mano en 24 horas.",
+      "Kora te da un motor de reservas propio con cobro de anticipo y Camila contestando 24/7, para convertir esas consultas en reservas directas. Tu página, Camila y tu panel comparten un solo inventario para no vender dos veces la misma noche, y lo operas desde el celular. Lo montamos llave en mano en 24 horas.",
     ],
     faqs: [
       {
@@ -215,7 +216,7 @@ export const ciudades: Ciudad[] = [
       },
       {
         q: "¿Convive con Airbnb y Booking?",
-        a: "Sí. Kora sincroniza tu disponibilidad con las OTAs para no tener overbooking, mientras tú haces crecer el canal directo sin comisión.",
+        a: "Sí, convive con ellas. Lo que Kora te da hoy es un canal directo sin comisión con su propio inventario; las reservas que entren por Booking o Airbnb las registras en el panel y bloquean la fecha igual. La sincronía automática con las OTAs todavía no existe.",
       },
     ],
   },
@@ -232,7 +233,7 @@ export const ciudades: Ciudad[] = [
     cuerpo: [
       "El turismo de la Huasteca es estacional y de aventura: cascadas, ríos, grutas y pueblos mágicos que se llenan en Semana Santa, puentes y verano. Esa concentración hace que cada reserva de temporada alta valga mucho, y que la comisión del 15% al 20% de Booking, Airbnb o Expedia sea un costo enorme en las semanas que sostienen todo el año.",
       "La mayoría de los hospedajes de la región son independientes y operados por su dueño —hoteles boutique, cabañas, ecolodges— donde el mismo dueño contesta el WhatsApp mientras atiende a los huéspedes. El resultado son consultas que se pierden fuera de horario, tarifas por temporada llevadas a mano y una dependencia cara de las plataformas.",
-      "Kora reúne en un solo sistema, en español y montado llave en mano en 24 horas, todo lo que un hospedaje de la Huasteca necesita: motor de reservas directas sin comisión, Camila (WhatsApp con IA 24/7), tarifas por temporada, sincronía con las OTAs para evitar overbooking y un dashboard para ver tu ocupación y tus ingresos. Es el mismo sistema que ya opera al Hotel Paraíso Encantado en Xilitla.",
+      "Kora reúne en un solo sistema, en español y montado llave en mano en 24 horas, todo lo que un hospedaje de la Huasteca necesita: motor de reservas directas sin comisión, Camila (WhatsApp con IA 24/7), tarifas por temporada, un solo inventario para no vender dos veces la misma noche y un dashboard para ver tu ocupación y tus ingresos. Es el mismo sistema que ya opera al Hotel Paraíso Encantado en Xilitla.",
     ],
     faqs: [
       {
@@ -245,7 +246,7 @@ export const ciudades: Ciudad[] = [
       },
       {
         q: "¿Tengo que dejar Booking o Airbnb?",
-        a: "No. Kora convive con tus OTAs y sincroniza tu disponibilidad; la idea es hacer crecer el canal directo (sin comisión) sin renunciar a la visibilidad de las plataformas.",
+        a: "No. Kora convive con tus OTAs: la idea es hacer crecer el canal directo (sin comisión) sin renunciar a la visibilidad de las plataformas. Las reservas que entren por ahí las registras en el panel y bloquean la fecha igual.",
       },
       {
         q: "¿Hay un caso real en la Huasteca?",
@@ -283,7 +284,7 @@ export const ciudades: Ciudad[] = [
       },
       {
         q: "¿Tengo que salirme de Booking o Airbnb?",
-        a: "No. Kora convive con las OTAs y sincroniza el calendario para evitar overbooking. La idea es bajar tu dependencia, no cortarla de golpe.",
+        a: "No. Kora convive con las OTAs; la idea es bajar tu dependencia, no cortarla de golpe. Las reservas que entren por ellas las registras en el panel y bloquean la fecha igual que las directas.",
       },
     ],
   },
@@ -296,7 +297,7 @@ export const ciudades: Ciudad[] = [
     resumen:
       "Reservas directas sin comisión y WhatsApp con IA para hospedajes frente a la Laguna de los Siete Colores.",
     intro:
-      "Bacalar creció como destino de hospedaje pequeño e independiente —cabañas, hoteles boutique y proyectos ecológicos frente a la laguna— con altísima dependencia de OTAs. Kora te da motor de reservas directas sin comisión, agente de WhatsApp con IA 24/7 y sincronización con Booking y Airbnb para evitar overbooking.",
+      "Bacalar creció como destino de hospedaje pequeño e independiente —cabañas, hoteles boutique y proyectos ecológicos frente a la laguna— con altísima dependencia de OTAs. Kora te da motor de reservas directas sin comisión y agente de WhatsApp con IA 24/7 para dejar de pagar comisión en cada reserva.",
     cuerpo: [
       "La hotelería de Bacalar es mayoritariamente pequeña y de dueño, y creció rápido apoyada en las plataformas. Eso dejó a muchos hospedajes con casi todo su volumen entrando por OTA: buena ocupación, margen delgado y ninguna relación propia con el huésped que ya vino.",
       "Al ser un destino de estancias cortas y alta rotación entre semana, el WhatsApp se vuelve el canal donde se decide todo: disponibilidad de esta noche, si queda cabaña para dos, si aceptan mascotas. Cuando el mensaje llega a las once de la noche y nadie contesta, el viajero reserva en la app.",
@@ -309,7 +310,7 @@ export const ciudades: Ciudad[] = [
       },
       {
         q: "¿Cómo evito el overbooking con Booking y Airbnb?",
-        a: "Kora sincroniza el calendario con las OTAs, así una reserva directa bloquea esa fecha en todos los canales.",
+        a: "Dentro de Kora no hay overbooking posible: tu página, Camila y tu panel leen el mismo inventario, así que una reserva directa cierra la fecha en los tres. Con Booking y Airbnb todavía no hay sincronía automática, así que esas reservas se registran en el panel —son segundos— y bloquean igual.",
       },
       {
         q: "¿Cuánto tarda el arranque?",
@@ -408,7 +409,7 @@ export const ciudades: Ciudad[] = [
     cuerpo: [
       "El perfil de Sayulita es de hospedaje boutique pequeño con temporada marcada por el invierno norteamericano y por los meses de surf. Una parte grande de la demanda es extranjera y llega por plataformas internacionales.",
       "Eso deja dos costos: la comisión de cada noche y la barrera del idioma cuando el huésped escribe directo. Contestar en inglés a deshoras, con precios correctos, no es algo que un hospedaje de dueño pueda sostener a mano.",
-      "Con Kora la conversación se atiende sola: Camila responde en el idioma del huésped, consulta la disponibilidad real y manda un link de pago que acepta tarjetas internacionales. El calendario sigue sincronizado con las OTAs para no sobrevender.",
+      "Con Kora la conversación se atiende sola: Camila responde en el idioma del huésped, consulta la disponibilidad real y manda un link de pago que acepta tarjetas internacionales. Y la disponibilidad que consulta es la misma que ve tu página y tu panel, así que no se sobrevende.",
     ],
     faqs: [
       {

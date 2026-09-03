@@ -1,64 +1,10 @@
 import { Reveal } from "@/components/shared/Reveal";
+import { INTEGRACIONES } from "@/lib/integraciones";
 
-// Logos reales en /public/integraciones (color de marca oficial).
-// Conekta no tiene logo en la librería: usa insignia de color (abbr).
-// Duplicated for seamless CSS marquee loop
-type Integracion = {
-  name: string;
-  status: "active" | "soon";
-  logo?: string;
-  color?: string;
-  abbr?: string;
-};
-
-const integraciones: Integracion[] = [
-  {
-    name: "WhatsApp Business",
-    status: "active",
-    logo: "/integraciones/whatsapp.svg",
-  },
-  {
-    name: "Booking.com",
-    status: "soon",
-    logo: "/integraciones/bookingdotcom.svg",
-  },
-  {
-    name: "Airbnb",
-    status: "active",
-    logo: "/integraciones/airbnb.svg",
-  },
-  {
-    name: "Expedia",
-    status: "active",
-    logo: "/integraciones/expedia.svg",
-  },
-  {
-    name: "Stripe",
-    status: "active",
-    logo: "/integraciones/stripe.svg",
-  },
-  {
-    name: "Mercado Pago",
-    status: "soon",
-    logo: "/integraciones/mercadopago.svg",
-  },
-  {
-    name: "Conekta",
-    status: "soon",
-    color: "#1A1A2E",
-    abbr: "CK",
-  },
-  {
-    name: "Google Calendar",
-    status: "soon",
-    logo: "/integraciones/googlecalendar.svg",
-  },
-  {
-    name: "Gmail",
-    status: "soon",
-    logo: "/integraciones/gmail.svg",
-  },
-];
+// La lista NO vive aquí: vive en `lib/integraciones.ts`, que explica por qué.
+// Hasta el 2 sep 2026 estaba escrita a mano en este archivo y decía «Airbnb —
+// Activo» y «Expedia — Activo» con la pestaña de canales retirada del panel
+// desde el 26 de agosto. Esta sección sólo la pinta.
 
 export function IntegracionesSection() {
   return (
@@ -72,17 +18,21 @@ export function IntegracionesSection() {
             <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-kora-text">
               Se conecta con lo que ya usas
             </h2>
+            {/* Decía «Tus reservas de Booking […] y tu contabilidad fiscal,
+                todo sincronizado». Ninguna de las dos existe: los canales OTA
+                están retirados del panel (CANALES_OTA_DISPONIBLES) y la
+                facturación CFDI no está conectada a ningún PAC. Ahora dice lo
+                que Kora sí hace, que además es lo que la distingue. */}
             <p className="mt-3 text-kora-muted text-sm max-w-xl mx-auto">
-              Kora no reemplaza tus canales: los une en un solo lugar. Tus
-              reservas de Booking, tus mensajes de WhatsApp y tu contabilidad
-              fiscal, todo sincronizado.
+              Kora no te pide cambiar de herramientas: contesta el WhatsApp por
+              el que ya te escriben tus huéspedes y cobra por donde ya cobras.
             </p>
           </div>
         </Reveal>
 
         <div className="marquee-viewport mt-2">
           <div className="marquee-track" aria-hidden="true">
-            {[...integraciones, ...integraciones].map((int, i) => (
+            {[...INTEGRACIONES, ...INTEGRACIONES].map((int, i) => (
               <div
                 key={`${int.name}-${i}`}
                 className={`flex items-center gap-3 px-5 py-3.5 rounded-2xl border flex-shrink-0 ${
@@ -130,7 +80,7 @@ export function IntegracionesSection() {
         </div>
         {/* Accessible static list for screen readers */}
         <ul className="sr-only" aria-label="Integraciones disponibles">
-          {integraciones.map((int) => (
+          {INTEGRACIONES.map((int) => (
             <li key={int.name}>{int.name} — {int.status === "active" ? "Activo" : "Próximamente"}</li>
           ))}
         </ul>

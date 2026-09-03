@@ -98,6 +98,12 @@ cero "A4.3 sin las cifras del caso de estudio"     bash -c 'grep -rnI --include=
 # mejor: fallan en `npm run verificar` y en CI, no sólo cuando alguien se
 # acuerda de correr un script suelto.
 cero "A4.4 las pruebas de cifras y contacto en verde" bash -c 'npx vitest run tests/caso-paraiso-congruente.test.ts tests/contacto-unico.test.ts >/dev/null 2>&1 || echo "fallan las pruebas de cifras/contacto"'
+# 2 sep 2026: la portada anunciaba "Airbnb — Activo" y "Expedia — Activo" con la
+# pestaña de canales retirada del panel desde el 26 de agosto, y Airbnb no había
+# existido NUNCA como canal. Ahora la rejilla sale de `lib/integraciones.ts`; lo
+# que se vigila es que nadie vuelva a escribirla a mano en el componente.
+cero "A4.5 la rejilla de integraciones sale de su fuente única" bash -c '[ -f lib/integraciones.ts ] || echo "falta lib/integraciones.ts"; grep -nE "status:[[:space:]]*\"(active|soon)\"" components/landing/IntegracionesSection.tsx'
+cero "A4.6 la prueba de integraciones en verde" bash -c 'npx vitest run tests/integraciones-congruente.test.ts >/dev/null 2>&1 || echo "falla la prueba de integraciones"'
 
 sec "A5 · Pantallas de error de Next"
 # SON 6, no 5: `app/panel/[slug]/error.tsx` se añadió a propósito con la etapa 4
