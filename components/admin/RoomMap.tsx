@@ -305,6 +305,34 @@ export default function RoomMap({ slug, puedeReservar }: Props) {
                 ))}
               </div>
 
+              {/* 🔴 EL HUECO QUE ESTO TAPA. `room_statuses` es un estado
+                  PUNTUAL —un cuarto, un estado, SIN FECHAS— y `setRoomStatus`
+                  no escribe una sola fila en `blocks`. O sea: marcar aquí
+                  «Mantenimiento» pinta el cuarto de rojo para la camarista y
+                  el motor lo SIGUE VENDIENDO, igual que Camila y que el feed de
+                  las OTAs. El hotelero no tiene forma de saberlo.
+                  Lo correcto es cerrarlo en el calendario, que sí escribe en
+                  `blocks` con fechas. Mientras las dos cosas no se junten, esto
+                  al menos lo dice en voz alta. */}
+              {editModal.estado === 'MANTENIMIENTO' && (
+                <p
+                  style={{
+                    background: 'var(--chip-aviso-bg)',
+                    borderLeft: '3px solid var(--chip-aviso-text)',
+                    padding: '9px 12px',
+                    margin: '0 0 12px',
+                    fontSize: 12.5,
+                    lineHeight: 1.55,
+                    color: 'var(--clay)',
+                  }}
+                >
+                  Esto lo marca para tu equipo, pero{' '}
+                  <strong>el cuarto sigue a la venta</strong>. Para que deje de
+                  venderse, ciérralo en el Calendario con las fechas que estará
+                  fuera de servicio.
+                </p>
+              )}
+
               <label className={styles.fieldLabel}>Nota interna</label>
               <textarea
                 className={styles.textarea}

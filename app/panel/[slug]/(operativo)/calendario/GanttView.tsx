@@ -2,11 +2,12 @@
 
 import { reservaCuenta } from "@/lib/booking/estado-reserva";
 import { hoyHotel } from '@/lib/fecha-hotel';
-import { useMemo, useState, useRef, useEffect } from 'react';
+import { useMemo, useState, useRef, useEffect, useCallback } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { AdminBooking } from '@/lib/admin/sheets-admin';
 import type { BookingRoom } from '@/lib/booking';
 import ReservationModal from '@/components/admin/ReservationModal';
+import { tramosDeCierre } from '@/lib/booking/cierres';
 
 // Paleta base; si el hotel tiene más cuartos que colores, se generan tonos extra
 // por HSL para que cada fila tenga un color distinto.
@@ -34,6 +35,14 @@ const DAYS_VISIBLE = 49;
 interface Props { slug: string; bookings: AdminBooking[]; rooms: string[]; bookingRooms: BookingRoom[]; onRefresh: () => void; /** ¿Ve importes? (`reservas:dinero`). */ verDinero?: boolean }
 
 function toDate(s: string) { return new Date(s + 'T00:00:00'); }
+
+// Cómo se pinta cada cierre. Los mismos colores que la vista de Disponibilidad,
+// para que el hotelero no tenga que aprender dos códigos de color.
+const CIERRE: Record<string, { bg: string; texto: string; etiqueta: string }> = {
+  BLOQUEADO:     { bg: '#E8D6B0', texto: '#633806', etiqueta: 'Cerrada' },
+  MANTENIMIENTO: { bg: '#E3C68A', texto: '#6B4400', etiqueta: 'Mantenimiento' },
+};
+
 // Web bookings store "Suite Jungla (2 personas)" — strip the parenthetical
 function extractRoom(s: string): string { return s.replace(/\s*\([^)]*\)/g, '').trim(); }
 
@@ -43,6 +52,16 @@ export default function GanttView({ slug, bookings, rooms, bookingRooms, onRefre
   const [modal, setModal] = useState<{ booking?: AdminBooking; defaultCheckin?: string } | null>(null);
   const [tooltip, setTooltip] = useState<{ booking: AdminBooking; x: number; y: number } | null>(null);
   const todayStr = hoyHotel();
+  // Record<cuarto, Record<fecha, estado>>; sólo se usan los cierres manuales.
+  const [cierres, setCierres] = useState<Record<string, Record<string, string>>>({});
+
+  const cargarCierres = useCallback(async () => {
+    try {
+      const res = await fetch('/api/admin/disponibilidad');
+      if (res.ok) setCierres(await res.json());
+    } catch { /* el Timeline sigue sirviendo sin los cierres */ }
+  }, []);
+  useEffect(() => { cargarCierres(); }, [cargarCierres]);
 
   // Scroll to "today" on mount
   useEffect(() => {
@@ -221,6 +240,49 @@ export default function GanttView({ slug, bookings, rooms, bookingRooms, onRefre
                       );
                     })}
                   </div>
+
+                  {/* Barras de cierre (bloqueo manual / mantenimiento).
+                      Van ANTES de las reservas y con zIndex menor: si una fecha
+                      tuviera las dos cosas, manda la reserva. */}
+                  {tramosDeCierre(cierres[room] ?? {}).map((t, ti) => {
+                    const start = Math.max(0, dayOffset(t.desde));
+                    const end   = Math.min(DAYS_VISIBLE, dayOffset(t.hasta));
+                    const width = end - start;
+                    if (width <= 0) return null;
+                    const c = CIERRE[t.status];
+                    return (
+                      <div
+                        key={`${room}-cierre-${ti}`}
+                        title={`${c.etiqueta} · ${t.desde} → ${t.hasta}`}
+                        style={{
+                          position: 'absolute',
+                          left: start * CELL_W + 2,
+                          width: width * CELL_W - 4,
+                          top: 6, height: ROW_H - 12,
+                          background: c.bg,
+                          // Rayado diagonal: se distingue de una reserva de un
+                          // vistazo, incluso en blanco y negro o para quien no
+                          // separa bien los colores.
+                          backgroundImage:
+                            'repeating-linear-gradient(45deg, rgba(0,0,0,0.07) 0 5px, transparent 5px 10px)',
+                          border: `1px solid ${c.texto}33`,
+                          borderRadius: 4,
+                          display: 'flex', alignItems: 'center',
+                          padding: '0 8px',
+                          overflow: 'hidden',
+                          zIndex: 0,
+                        }}
+                      >
+                        <span style={{
+                          fontSize: 11, color: c.texto, fontWeight: 500,
+                          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                          fontFamily: 'var(--font-jost, sans-serif)',
+                        }}>
+                          {width > 2 ? c.etiqueta : '—'}
+                        </span>
+                      </div>
+                    );
+                  })}
 
                   {/* Booking bars */}
                   {roomBookings.map(b => {

@@ -515,27 +515,63 @@ export async function recortarBloqueo(
   return { ok: false, falta, detalle: msg };
 }
 
-/** Bloqueo manual de fechas (BLOQUEADO / MANTENIMIENTO) desde el panel. */
+/**
+ * Bloqueo manual de fechas (BLOQUEADO / MANTENIMIENTO) desde el panel.
+ *
+ * `motivo` es por qué está cerrada la unidad ("gotera en el techo"). Vive en
+ * `blocks.motivo`, que añade `sql/kora-bloqueo-mantenimiento.sql`. Si ese SQL
+ * todavía no se ha corrido, el insert falla con 42703/PGRST204 y se REINTENTA
+ * sin la columna: el bloqueo se guarda igual —que es lo que de verdad importa,
+ * porque si no queda, la noche se sigue vendiendo— y la pérdida del motivo se
+ * dice en el log en vez de disimularse. Mismo criterio que `recortarBloqueo`.
+ */
 export async function blockDates(
   hotelId: string,
   roomNames: string[],
   checkin: string,
   checkout: string,
   status: "BLOQUEADO" | "MANTENIMIENTO" = "BLOQUEADO",
+  motivo?: string | null,
 ): Promise<void> {
   if (roomNames.length === 0) return;
   const supabase = createAdminClient();
-  const rows = roomNames.map((habitacion) => ({
+  const base = roomNames.map((habitacion) => ({
     hotel_id: hotelId,
     habitacion,
     checkin,
     checkout,
     status,
   }));
+  const limpio = motivo?.trim() || null;
+
   // LANZA si falla. Es la escritura más cara del repo: si no queda, la noche
   // vendida sigue apareciendo libre en el motor, en el panel y en el feed de las
   // OTAs. Sobreventa silenciosa.
-  await escribir("blocks.bloquear", supabase.from("blocks").insert(rows));
+  if (!limpio) {
+    await escribir("blocks.bloquear", supabase.from("blocks").insert(base));
+    return;
+  }
+
+  const { error } = await supabase
+    .from("blocks")
+    .insert(base.map((r) => ({ ...r, motivo: limpio })));
+  if (!error) return;
+
+  const faltaColumna =
+    error.code === "42703" ||
+    error.code === "PGRST204" ||
+    /motivo/i.test(error.message ?? "");
+  if (!faltaColumna) {
+    // Cualquier otro fallo se comporta como siempre: lanza.
+    await escribir("blocks.bloquear", supabase.from("blocks").insert(base));
+    return;
+  }
+
+  console.error(
+    "[availability] blocks.motivo no existe todavía; el bloqueo se guarda SIN " +
+      "motivo. Falta correr sql/kora-bloqueo-mantenimiento.sql.",
+  );
+  await escribir("blocks.bloquear", supabase.from("blocks").insert(base));
 }
 
 /** Elimina un bloqueo por id (desbloquear desde el panel). */

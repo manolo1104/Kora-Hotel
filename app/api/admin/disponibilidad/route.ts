@@ -22,6 +22,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getActiveHotel } from "@/lib/panel/active-hotel";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { blockDates, recortarBloqueo } from "@/lib/db/availability";
+import { unitNamesOf } from "@/lib/booking";
 
 export const dynamic = "force-dynamic";
 
@@ -59,6 +60,13 @@ function isoToday(): string {
   return new Date().toLocaleDateString("en-CA", { timeZone: "America/Mexico_City" });
 }
 
+/** Noches entre dos fechas ISO, con el rango half-open del motor. */
+function noches(desde: string, hasta: string): number {
+  const a = new Date(`${desde}T00:00:00`).getTime();
+  const b = new Date(`${hasta}T00:00:00`).getTime();
+  return Math.round((b - a) / 86_400_000);
+}
+
 function addDays(iso: string, n: number): string {
   const d = new Date(`${iso}T00:00:00`);
   d.setDate(d.getDate() + n);
@@ -70,6 +78,35 @@ function addDays(iso: string, n: number): string {
 // valida antes de tocarla.
 const FECHA = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "fecha inválida (YYYY-MM-DD)");
 const CUARTO_FECHA = z.object({ room: z.string().min(1).max(200), date: FECHA });
+
+// Cerrar una unidad. Acepta las DOS formas a propósito:
+//
+//   • `{ room, date }`            — una noche, como siempre. Es lo que manda el
+//                                   clic suelto del calendario.
+//   • `{ room, desde, hasta, … }` — un RANGO, que es la forma en que ocurre un
+//                                   mantenimiento de verdad. Hasta el 2 sep 2026
+//                                   sólo existía la primera: para cerrar una
+//                                   cabaña diez días había que dar diez clics, y
+//                                   por eso nadie lo usaba — cerraban la cabaña
+//                                   inventando una RESERVA FALSA, que ensucia la
+//                                   ocupación, el ADR y el CRM para siempre.
+//
+// `tipo` distingue "lo cierro yo porque quiero" de "está roto". Los dos cierran
+// igual la venta; el segundo además es lo que la camarista y el de mantenimiento
+// necesitan ver en el mapa de cuartos.
+const TOPE_NOCHES = 365;
+const BLOQUEO = z
+  .object({
+    room: z.string().min(1).max(200),
+    date: FECHA.optional(),
+    desde: FECHA.optional(),
+    hasta: FECHA.optional(),
+    tipo: z.enum(["manual", "mantenimiento"]).default("manual"),
+    motivo: z.string().max(300).optional(),
+  })
+  .refine((b) => Boolean(b.date) || (Boolean(b.desde) && Boolean(b.hasta)), {
+    message: "hace falta `date`, o `desde` y `hasta`",
+  });
 
 // GET ?from=YYYY-MM-DD&to=YYYY-MM-DD (opcionales) — por defecto los próximos N meses.
 // Devuelve Record<room, Record<dateISO, status>>.
@@ -132,7 +169,9 @@ export async function GET(req: NextRequest) {
   });
 }
 
-// POST { room, date } — bloquea manualmente UNA fecha (1 noche → [date, date+1)).
+// POST { room, date } | { room, desde, hasta, tipo?, motivo? }
+// Cierra la venta de una unidad. Rango half-open [desde, hasta): la noche de
+// `hasta` queda libre, igual que en todo el motor.
 export async function POST(req: NextRequest) {
   return rutaSegura("admin.disponibilidad.post", async () => {
   const ctx = await getActiveHotel();
@@ -140,13 +179,50 @@ export async function POST(req: NextRequest) {
   const no = negar(ctx, "calendario:escribir");
   if (no) return no;
 
-  const cuerpo = CUARTO_FECHA.safeParse(await req.json());
+  const cuerpo = BLOQUEO.safeParse(await req.json());
   if (!cuerpo.success) {
-    return NextResponse.json({ error: "room y date (YYYY-MM-DD) requeridos" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Falta la habitación y la fecha (o el rango desde/hasta), en formato YYYY-MM-DD." },
+      { status: 400 },
+    );
   }
-  const { room, date } = cuerpo.data;
-  await blockDates(ctx.hotelId, [room], date, addDays(date, 1), "BLOQUEADO");
-  return NextResponse.json({ ok: true });
+  const { room, date, tipo, motivo } = cuerpo.data;
+  const desde = cuerpo.data.desde ?? date!;
+  const hasta = cuerpo.data.hasta ?? addDays(date!, 1);
+
+  if (hasta <= desde) {
+    return NextResponse.json(
+      { error: "La fecha de fin tiene que ser posterior a la de inicio." },
+      { status: 400 },
+    );
+  }
+  // Un rango absurdo (un año y pico, casi siempre un año mal tecleado) cierra el
+  // hotel entero sin que nadie lo note hasta que dejan de entrar reservas.
+  if (noches(desde, hasta) > TOPE_NOCHES) {
+    return NextResponse.json(
+      { error: `No se pueden cerrar más de ${TOPE_NOCHES} noches de una vez.` },
+      { status: 400 },
+    );
+  }
+  // La unidad tiene que existir. Sin esto, un nombre mal escrito crea una fila
+  // que no cierra nada y el hotelero se queda creyendo que su cuarto está fuera
+  // de servicio — el peor de los dos fallos posibles, porque falla en silencio.
+  if (!unitNamesOf(ctx.hotel).includes(room)) {
+    return NextResponse.json(
+      { error: "Esa habitación no existe en tu hotel." },
+      { status: 400 },
+    );
+  }
+
+  await blockDates(
+    ctx.hotelId,
+    [room],
+    desde,
+    hasta,
+    tipo === "mantenimiento" ? "MANTENIMIENTO" : "BLOQUEADO",
+    motivo,
+  );
+  return NextResponse.json({ ok: true, noches: noches(desde, hasta) });
   });
 }
 

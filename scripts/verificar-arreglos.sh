@@ -293,6 +293,14 @@ cero "A20.3 extendHold no resucita apartados muertos" bash -c 'grep -A 22 "expor
 cero "A20.4 alguien llama a limpiar_holds_vencidos" bash -c 'grep -rqI "limpiarHoldsVencidos()" app || echo "los apartados vencidos no los borra nadie (K-265)"'
 cero "A20.5 desbloquear una noche es transaccional" bash -c 'grep -qI "recortarBloqueo(" app/api/admin/disponibilidad/route.ts || echo "el DELETE sigue borrando y reinsertando suelto (K-80)"'
 cero "A20.6 getOccupiedRoomNames con tope explícito" bash -c 'grep -A 32 "export async function getOccupiedRoomNames" lib/db/availability.ts | grep -qE "query[.]limit[(]TOPE[)]" || echo "sin tope: un truncamiento de PostgREST sería sobreventa silenciosa"'
+# 2 sep 2026: cerrar un cuarto por mantenimiento. `blocks.status` ya admitía
+# 'MANTENIMIENTO' y las once superficies que leen disponibilidad ya lo
+# respetaban; lo que faltaba era la puerta para escribirlo. Lo que se vigila es
+# que no se cierre otra vez: que la ruta acepte un RANGO (bloquear diez días no
+# puede ser diez clics — por eso nadie lo usaba y cerraban inventando una
+# reserva falsa) y que el Timeline pinte los cierres, donde eran invisibles.
+cero "A20.8 el calendario cierra un rango, no una noche" bash -c 'grep -q "desde: FECHA.optional()" app/api/admin/disponibilidad/route.ts || echo "la ruta de disponibilidad sigue aceptando sólo una noche"'
+cero "A20.9 el Timeline pinta los cierres"              bash -c 'grep -q "tramosDeCierre" "app/panel/[slug]/(operativo)/calendario/GanttView.tsx" || echo "GanttView no pinta bloqueos: un cuarto fuera de servicio es invisible"'
 cero "A20.7 el cupo de experiencias acumula lo propio" bash -c 'grep -qI "validarCupoExperiencias(" "app/api/h/[slug]/checkout/route.ts" || echo "el cupo se compara línea por línea (K-100)"'
 
 printf '\n\033[1m═══ RESULTADO ═══\033[0m\n'

@@ -927,8 +927,18 @@ export async function blockRooms(
 }
 
 /**
- * Desbloquea fechas para uno o varios cuartos (CSV): borra los blocks
- * 'BLOQUEADO' que solapen con el rango pedido.
+ * Desbloquea fechas para uno o varios cuartos (CSV): borra los bloqueos
+ * manuales ('BLOQUEADO' y 'MANTENIMIENTO') que solapen con el rango pedido.
+ *
+ * ⚠️ MANTENIMIENTO entró aquí el 2 sep 2026. Filtraba sólo 'BLOQUEADO', y desde
+ * que el calendario sabe cerrar una unidad por mantenimiento eso significaría
+ * "desbloqueé y sigue cerrado", que es la clase de fallo que el hotelero no
+ * reporta: simplemente deja de confiar en el botón. RESERVADO, HOLD y OTA
+ * siguen intocables — esas se cancelan desde Reservas y desde Canales.
+ *
+ * 📌 Hoy no lo llama nadie (`blockRooms` tampoco): quedan del puerto de
+ * mi-hotel, donde el panel bloqueaba por CSV. Se arreglan igual porque el día
+ * que alguien los resucite, el defecto ya no estará esperando.
  */
 export async function unblockRooms(
   hotelId: string,
@@ -944,7 +954,7 @@ export async function unblockRooms(
     .from("blocks")
     .delete()
     .eq("hotel_id", hotelId)
-    .eq("status", "BLOQUEADO")
+    .in("status", ["BLOQUEADO", "MANTENIMIENTO"])
     .in("habitacion", rooms)
     .lt("checkin", checkout)
     .gt("checkout", checkin));

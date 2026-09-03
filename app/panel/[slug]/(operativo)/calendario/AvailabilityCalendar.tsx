@@ -14,12 +14,35 @@ const DOW = ['D','L','M','M','J','V','S'];
 function pad2(n: number) { return String(n).padStart(2, '0'); }
 function dateStr(y: number, m: number, d: number) { return `${y}-${pad2(m+1)}-${pad2(d)}`; }
 
+function addDaysStr(ds: string, n: number) {
+  const d = new Date(`${ds}T00:00:00`);
+  d.setDate(d.getDate() + n);
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+}
+
 function fmtDay(ds: string) {
   const [, m, d] = ds.split('-');
   return `${parseInt(d)} ${['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'][parseInt(m)-1]}`;
 }
 
-interface DayState { status: 'available' | 'booking' | 'blocked'; booking?: AdminBooking }
+// `blocked` se partió en dos el 2 sep 2026. Antes el calendario colapsaba
+// BLOQUEADO y MANTENIMIENTO en el mismo estado, y el modal decía «bloqueada
+// manualmente» — que era mentira en cuanto el cuarto estaba fuera de servicio.
+interface DayState {
+  status: 'available' | 'booking' | 'blocked' | 'mantenimiento';
+  booking?: AdminBooking;
+}
+
+// El color de cada estado, en UN solo sitio. Antes eran tres cadenas de
+// ternarios repetidas (celda, etiqueta y cabecera del modal): añadir
+// `mantenimiento` obligaba a acertar en las tres, y la que se olvidara lo
+// habría pintado de rojo — indistinguible de una reserva.
+const PALETA: Record<DayState['status'], { bg: string; color: string; etiqueta: string; titulo: string }> = {
+  available:     { bg: '#EAF3DE', color: '#27500A', etiqueta: '● Disponible',    titulo: 'Fecha disponible' },
+  blocked:       { bg: '#FAEEDA', color: '#633806', etiqueta: '● Cerrada',       titulo: 'Fecha cerrada' },
+  mantenimiento: { bg: '#F6E7CE', color: '#8A5A00', etiqueta: '● Mantenimiento', titulo: 'Fuera de servicio' },
+  booking:       { bg: '#FCEBEB', color: '#791F1F', etiqueta: '● Ocupada',       titulo: 'Fecha ocupada' },
+};
 
 interface ClickedDay {
   room: string;
@@ -55,6 +78,12 @@ export default function AvailabilityCalendar({ slug, bookings, rooms, roomPrices
   const [saveError, setSaveError] = useState('');
   const [editBooking, setEditBooking] = useState<AdminBooking | null>(null);
   const [newBookingParams, setNewBookingParams] = useState<{ room: string; date: string } | null>(null);
+  // Formulario de cierre: hasta hoy era un clic = una noche, y cerrar una cabaña
+  // diez días eran diez clics. Por eso nadie lo usaba: cerraban inventando una
+  // reserva falsa, que ensucia la ocupación y el CRM para siempre.
+  const [hasta, setHasta] = useState('');
+  const [tipoBloqueo, setTipoBloqueo] = useState<'manual' | 'mantenimiento'>('manual');
+  const [motivo, setMotivo] = useState('');
 
   const loadSheet = useCallback(async () => {
     setLoadingSheet(true);
@@ -85,7 +114,8 @@ export default function AvailabilityCalendar({ slug, bookings, rooms, roomPrices
 
     const roomSheet = sheetData[room] || {};
     const val = roomSheet[ds]?.toUpperCase();
-    if (val === 'BLOQUEADO' || val === 'MANTENIMIENTO') return { status: 'blocked' };
+    if (val === 'MANTENIMIENTO') return { status: 'mantenimiento' };
+    if (val === 'BLOQUEADO') return { status: 'blocked' };
     if (val === 'RESERVADO' || val === 'OTA') {
       // Reservado/OTA en blocks pero sin booking en admin — puede ser reserva
       // pública o un bloqueo de OTA (Booking/Expedia).
@@ -107,19 +137,36 @@ export default function AvailabilityCalendar({ slug, bookings, rooms, roomPrices
   async function handleBlock() {
     if (!clicked) return;
     setSaving(true); setSaveError('');
+    // `hasta` es la fecha de LIBERACIÓN, igual que el checkout de una reserva:
+    // la noche de `hasta` vuelve a estar a la venta. Vacío = una sola noche.
+    const finExclusivo = hasta || addDaysStr(clicked.date, 1);
     const res = await fetch('/api/admin/disponibilidad', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ room: clicked.room, date: clicked.date }),
+      body: JSON.stringify({
+        room: clicked.room,
+        desde: clicked.date,
+        hasta: finExclusivo,
+        tipo: tipoBloqueo,
+        motivo: motivo.trim() || undefined,
+      }),
     });
     if (res.ok) {
       await loadSheet();
-      setClicked(null);
+      cerrarModal();
     } else {
       const d = await res.json();
       setSaveError(d.error || 'Error al bloquear');
     }
     setSaving(false);
+  }
+
+  function cerrarModal() {
+    setClicked(null);
+    setSaveError('');
+    setHasta('');
+    setTipoBloqueo('manual');
+    setMotivo('');
   }
 
   async function handleUnblock() {
@@ -132,7 +179,7 @@ export default function AvailabilityCalendar({ slug, bookings, rooms, roomPrices
     });
     if (res.ok) {
       await loadSheet();
-      setClicked(null);
+      cerrarModal();
     } else {
       const d = await res.json();
       setSaveError(d.error || 'Error al desbloquear');
@@ -167,6 +214,7 @@ export default function AvailabilityCalendar({ slug, bookings, rooms, roomPrices
             <span style={legendItem}><span style={{ ...dot, background: '#3B6D11' }} />Libre</span>
             <span style={legendItem}><span style={{ ...dot, background: '#A32D2D' }} />Ocupada</span>
             <span style={legendItem}><span style={{ ...dot, background: 'var(--chip-aviso-text)' }} />Bloqueada</span>
+            <span style={legendItem}><span style={{ ...dot, background: '#8A5A00' }} />Mantenimiento</span>
           </div>
           <button
             onClick={() => { loadSheet(); onRefresh(); }}
@@ -215,15 +263,8 @@ export default function AvailabilityCalendar({ slug, bookings, rooms, roomPrices
                   const isToday = ds === todayStr;
                   const state = getDayState(room, ds);
 
-                  const bg = isPast ? 'transparent'
-                    : state.status === 'available' ? '#EAF3DE'
-                    : state.status === 'blocked' ? '#FAEEDA'
-                    : '#FCEBEB';
-
-                  const color = isPast ? '#ccc'
-                    : state.status === 'available' ? '#27500A'
-                    : state.status === 'blocked' ? '#633806'
-                    : '#791F1F';
+                  const bg = isPast ? 'transparent' : PALETA[state.status].bg;
+                  const color = isPast ? '#ccc' : PALETA[state.status].color;
 
                   return (
                     <div
@@ -281,11 +322,9 @@ export default function AvailabilityCalendar({ slug, bookings, rooms, roomPrices
             {/* Modal header */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', borderBottom: '1px solid var(--line)' }}>
               <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', fontFamily: 'var(--font-jost,sans-serif)' }}>
-                {clicked.state.status === 'available' ? 'Fecha disponible'
-                  : clicked.state.status === 'blocked' ? 'Fecha bloqueada'
-                  : 'Fecha ocupada'}
+                {PALETA[clicked.state.status].titulo}
               </span>
-              <button onClick={() => { setClicked(null); setSaveError(''); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--clay)', padding: '2px 6px', fontSize: 18 }}>
+              <button onClick={cerrarModal} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--clay)', padding: '2px 6px', fontSize: 18 }}>
                 <X size={16} />
               </button>
             </div>
@@ -295,11 +334,11 @@ export default function AvailabilityCalendar({ slug, bookings, rooms, roomPrices
               {/* Status tag */}
               <span style={{
                 display: 'inline-block', padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 500, marginBottom: 10,
-                background: clicked.state.status === 'available' ? '#EAF3DE' : clicked.state.status === 'blocked' ? '#FAEEDA' : '#FCEBEB',
-                color: clicked.state.status === 'available' ? '#27500A' : clicked.state.status === 'blocked' ? '#633806' : '#791F1F',
+                background: PALETA[clicked.state.status].bg,
+                color: PALETA[clicked.state.status].color,
                 fontFamily: 'var(--font-jost,sans-serif)',
               }}>
-                {clicked.state.status === 'available' ? '● Disponible' : clicked.state.status === 'blocked' ? '● Bloqueada' : '● Ocupada'}
+                {PALETA[clicked.state.status].etiqueta}
               </span>
 
               {/* Suite + date */}
@@ -335,10 +374,13 @@ export default function AvailabilityCalendar({ slug, bookings, rooms, roomPrices
                 </div>
               )}
 
-              {/* Blocked info */}
-              {clicked.state.status === 'blocked' && (
+              {/* Blocked info. Decía «bloqueada manualmente» para los dos casos,
+                  y eso era falso en cuanto el cuarto estaba fuera de servicio. */}
+              {(clicked.state.status === 'blocked' || clicked.state.status === 'mantenimiento') && (
                 <div style={{ background: 'var(--chip-aviso-bg)', borderLeft: '3px solid var(--sage-text)', padding: '10px 14px', marginBottom: 14, fontSize: 12, color: 'var(--clay)', lineHeight: 1.6, fontFamily: 'var(--font-jost,sans-serif)' }}>
-                  Fecha bloqueada manualmente. Puedes desbloquearla para que vuelva a estar disponible.
+                  {clicked.state.status === 'mantenimiento'
+                    ? 'Fuera de servicio por mantenimiento. Desbloquéala cuando el cuarto vuelva a estar listo.'
+                    : 'Fecha cerrada por ti. Puedes desbloquearla para que vuelva a estar disponible.'}
                 </div>
               )}
 
@@ -363,18 +405,66 @@ export default function AvailabilityCalendar({ slug, bookings, rooms, roomPrices
                       <Plus size={14} /> Nueva Reserva
                     </button>
                     )}
+                    {/* Cerrar la unidad: rango + por qué. La fecha de fin es la
+                        de LIBERACIÓN, igual que el checkout de una reserva. */}
+                    <div style={{ border: '1px solid var(--line)', borderRadius: 6, padding: '10px 12px', marginBottom: 2, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        {(['manual', 'mantenimiento'] as const).map((t) => (
+                          <button
+                            key={t}
+                            type="button"
+                            onClick={() => setTipoBloqueo(t)}
+                            style={{
+                              flex: 1, padding: '7px 8px', borderRadius: 5, cursor: 'pointer',
+                              fontSize: 12, fontFamily: 'var(--font-jost,sans-serif)',
+                              border: tipoBloqueo === t ? '1.5px solid var(--ink)' : '1px solid var(--line)',
+                              background: tipoBloqueo === t ? 'var(--chip-aviso-bg)' : 'transparent',
+                              color: 'var(--clay)', fontWeight: tipoBloqueo === t ? 600 : 400,
+                            }}
+                          >
+                            {t === 'manual' ? 'Cerrar sin más' : 'Mantenimiento'}
+                          </button>
+                        ))}
+                      </div>
+                      <label style={{ fontSize: 11, color: 'var(--clay)', fontFamily: 'var(--font-jost,sans-serif)' }}>
+                        Hasta que vuelva a estar libre (opcional)
+                        <input
+                          type="date"
+                          value={hasta}
+                          min={addDaysStr(clicked.date, 1)}
+                          onChange={(e) => setHasta(e.target.value)}
+                          style={{ width: '100%', marginTop: 4, padding: '7px 8px', border: '1px solid var(--line)', borderRadius: 5, fontSize: 12, fontFamily: 'var(--font-jost,sans-serif)' }}
+                        />
+                        <span style={{ display: 'block', marginTop: 3, fontSize: 10.5, color: 'var(--clay)', opacity: 0.75 }}>
+                          {hasta
+                            ? `Se cierran ${Math.max(1, Math.round((new Date(`${hasta}T00:00:00`).getTime() - new Date(`${clicked.date}T00:00:00`).getTime()) / 86400000))} noche(s): de la del ${fmtDay(clicked.date)} a la del ${fmtDay(addDaysStr(hasta, -1))}. La noche del ${fmtDay(hasta)} sigue a la venta.`
+                            : 'Vacío = sólo esta noche.'}
+                        </span>
+                      </label>
+                      <label style={{ fontSize: 11, color: 'var(--clay)', fontFamily: 'var(--font-jost,sans-serif)' }}>
+                        ¿Por qué? (opcional)
+                        <input
+                          type="text"
+                          value={motivo}
+                          maxLength={300}
+                          onChange={(e) => setMotivo(e.target.value)}
+                          placeholder={tipoBloqueo === 'mantenimiento' ? 'Ej. gotera en el techo' : 'Ej. uso de la familia'}
+                          style={{ width: '100%', marginTop: 4, padding: '7px 8px', border: '1px solid var(--line)', borderRadius: 5, fontSize: 12, fontFamily: 'var(--font-jost,sans-serif)' }}
+                        />
+                      </label>
+                    </div>
                     <button
                       onClick={handleBlock}
                       disabled={saving}
                       style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '10px', background: 'var(--ink)', color: 'var(--cream)', border: 'none', borderRadius: 6, cursor: saving ? 'not-allowed' : 'pointer', fontSize: 13, fontFamily: 'var(--font-jost,sans-serif)', opacity: saving ? 0.6 : 1 }}
                     >
                       {saving ? <Loader2 size={14} style={{ animation: 'spin 0.7s linear infinite' }} /> : <Lock size={14} />}
-                      Bloquear esta fecha
+                      {tipoBloqueo === 'mantenimiento' ? 'Poner fuera de servicio' : 'Cerrar esta fecha'}
                     </button>
                   </>
                 )}
 
-                {clicked.state.status === 'blocked' && (
+                {(clicked.state.status === 'blocked' || clicked.state.status === 'mantenimiento') && (
                   <button
                     onClick={handleUnblock}
                     disabled={saving}
@@ -396,7 +486,7 @@ export default function AvailabilityCalendar({ slug, bookings, rooms, roomPrices
                 )}
 
                 <button
-                  onClick={() => { setClicked(null); setSaveError(''); }}
+                  onClick={cerrarModal}
                   style={{ padding: '9px', background: 'transparent', border: '1px solid var(--line)', borderRadius: 6, cursor: 'pointer', fontSize: 12, color: 'var(--clay)', fontFamily: 'var(--font-jost,sans-serif)' }}
                 >
                   Cancelar
