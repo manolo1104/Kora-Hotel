@@ -13,8 +13,10 @@ export const metadata: Metadata = {
 
 // Continuación RESUMABLE del onboarding (pasos 3-6 de 6; los pasos 1-2 crean el
 // hotel en /panel/onboarding). El progreso vive en extras.onboarding, así que
-// el dueño puede cerrar el navegador y retomar donde iba. Navegar aquí también
-// fija la cookie kora_active_slug (proxy), que /api/panel/connect necesita.
+// el dueño puede cerrar el navegador y retomar donde iba. El paso de cobros
+// (/api/panel/connect) resuelve el hotel por la PESTAÑA —la cabecera
+// x-kora-hotel y el Referer, ambos con este /panel/<slug>/…—; la cookie que
+// antes lo sostenía se retiró el 2 sep 2026.
 export default async function OnboardingHotelPage({
   params,
   searchParams,

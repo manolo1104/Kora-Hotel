@@ -3,8 +3,8 @@
 // Pasos 3-6 del onboarding unificado (los pasos 1-2 crean el hotel en
 // /panel/onboarding). RESUMABLE: cada avance se guarda en extras.onboarding
 // con merge (nunca pisa otras claves del jsonb). El paso de cobros usa
-// /api/panel/connect, que lee la cookie kora_active_slug (ya fijada al navegar
-// aquí) y valida membresía en el servidor.
+// /api/panel/connect, que saca el hotel de la PESTAÑA (cabecera x-kora-hotel
+// que pone HotelActivoFetch, o Referer) y valida membresía en el servidor.
 
 import { PAGO_EN_HOTEL_DISPONIBLE } from "@/lib/booking";
 import { useRef, useState } from "react";

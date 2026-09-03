@@ -2,7 +2,7 @@ import { negar } from "@/lib/panel/permisos";
 import { z } from "zod";
 import { rutaSegura } from "@/lib/api/responder";
 // Canales OTA del hotel activo. Portado de mi-hotel/app/api/admin/canales.
-// El hotel sale de getActiveHotel() (cookie kora_active_slug + sesión); el
+// El hotel sale de getActiveHotel() (la pestaña que pidió + sesión); el
 // hotelId NUNCA viene del body. saveOTACalendar recibe hotelId primero.
 
 import { NextRequest, NextResponse } from "next/server";

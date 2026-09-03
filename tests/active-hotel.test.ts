@@ -1,9 +1,14 @@
 // El aislamiento entre hoteles. `getActiveHotel` es la puerta de TODAS las rutas
-// /api/admin/*: si aceptara una cookie apuntando a un hotel del que el usuario
-// no es miembro, cualquier hotelero podría leer y editar las reservas de otro.
+// /api/admin/*: si aceptara un slug apuntando a un hotel del que el usuario no
+// es miembro, cualquier hotelero podría leer y editar las reservas de otro.
+//
+// Desde el 2 sep 2026 la cookie `kora_active_slug` YA NO EXISTE (paso 5.3). El
+// mock de `cookies` se conserva a propósito: sirve para probar lo contrario de
+// lo que probaba antes —que una cookie que siga en el navegador de alguien ya
+// no abre nada—. Si alguien reintrodujera el respaldo, esos tests se caen.
 //
 // Con mocks y no con una Postgres local sembrada: la decisión que hay que probar
-// vive ENTERA en active-hotel.ts (cookie → membresía → bloqueo), y montar una
+// vive ENTERA en active-hotel.ts (slug → membresía → bloqueo), y montar una
 // base de dos usuarios es medio día de infraestructura en un Mac que va justo de
 // memoria. El test de integración queda anotado como trabajo de otra etapa.
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -46,21 +51,22 @@ beforeEach(() => {
 });
 
 describe("getActiveHotel", () => {
-  it("sin cookie no hay hotel activo", async () => {
+  it("sin cabecera ni Referer no hay hotel activo", async () => {
     await expect(getActiveHotel()).resolves.toBeNull();
   });
 
-  it("cookie de un hotel del que SÍ es miembro → devuelve su contexto", async () => {
+  it("pestaña de un hotel del que SÍ es miembro → devuelve su contexto", async () => {
     membresias["hotel-a"] = ctx("hotel-a");
-    cookieActual.valor = "hotel-a";
+    cabeceras["referer"] = "https://kora-hotel.com/panel/hotel-a/reservas";
     await expect(getActiveHotel()).resolves.toMatchObject({ hotelId: "id-hotel-a" });
   });
 
-  // EL CASO DE AISLAMIENTO: la cookie se puede editar desde el navegador. Lo que
-  // impide leer el hotel de otro no es la cookie, es la membresía.
-  it("cookie manipulada a un hotel ajeno → null (la ruta responde 401)", async () => {
+  // EL CASO DE AISLAMIENTO: el `Referer` y la cabecera los pone el navegador y
+  // se pueden falsificar con curl. Lo que impide leer el hotel de otro no es de
+  // dónde salga el slug, es la membresía contra `hotel_members`.
+  it("Referer apuntando a un hotel ajeno → null (la ruta responde 401)", async () => {
     membresias["hotel-a"] = ctx("hotel-a");
-    cookieActual.valor = "hotel-b"; // no está en `membresias`
+    cabeceras["referer"] = "https://kora-hotel.com/panel/hotel-b/reservas"; // no está en `membresias`
     await expect(getActiveHotel()).resolves.toBeNull();
   });
 
@@ -69,13 +75,13 @@ describe("getActiveHotel", () => {
   // aunque el panel no se le abriera.
   it("hotel bloqueado por Kora → null aunque sea su dueño", async () => {
     membresias["hotel-a"] = ctx("hotel-a", { bloqueo: { activo: true, mensaje: "Falta de pago" } });
-    cookieActual.valor = "hotel-a";
+    cabeceras["x-kora-hotel"] = "hotel-a";
     await expect(getActiveHotel()).resolves.toBeNull();
   });
 
   it("bloqueo desactivado NO cierra el paso", async () => {
     membresias["hotel-a"] = ctx("hotel-a", { bloqueo: { activo: false } });
-    cookieActual.valor = "hotel-a";
+    cabeceras["x-kora-hotel"] = "hotel-a";
     await expect(getActiveHotel()).resolves.toMatchObject({ hotelId: "id-hotel-a" });
   });
 });
@@ -90,7 +96,7 @@ describe("slugActivo — precedencia de fuentes", () => {
     await expect(slugActivo()).resolves.toEqual({ slug: null, fuente: "ninguna" });
   });
 
-  it("la cabecera explícita gana sobre todo", async () => {
+  it("la cabecera explícita gana sobre el Referer", async () => {
     cabeceras["x-kora-hotel"] = "hotel-a";
     cabeceras["referer"] = "https://kora-hotel.com/panel/hotel-b/reservas";
     cookieActual.valor = "hotel-c";
@@ -99,13 +105,17 @@ describe("slugActivo — precedencia de fuentes", () => {
 
   it("sin cabecera, manda la PESTAÑA que hizo la petición (Referer)", async () => {
     cabeceras["referer"] = "https://kora-hotel.com/panel/hotel-b/reservas";
-    cookieActual.valor = "hotel-c"; // la cookie dice OTRO hotel: ya no gana
+    cookieActual.valor = "hotel-c"; // la cookie dice OTRO hotel: ya no la lee nadie
     await expect(slugActivo()).resolves.toEqual({ slug: "hotel-b", fuente: "referer" });
   });
 
-  it("la cookie sólo entra cuando no hay ninguna de las dos", async () => {
+  // LA REGRESIÓN QUE ESTE TEST VIGILA (paso 5.3, 2 sep 2026): la cookie
+  // `kora_active_slug` se retiró. Una que siga viva en el navegador de alguien
+  // —caducan a las 12 h— no debe abrir absolutamente nada. Si alguien
+  // reintroduce el respaldo "por compatibilidad", este test se cae.
+  it("una cookie kora_active_slug ya no aporta slug", async () => {
     cookieActual.valor = "hotel-c";
-    await expect(slugActivo()).resolves.toEqual({ slug: "hotel-c", fuente: "cookie" });
+    await expect(slugActivo()).resolves.toEqual({ slug: null, fuente: "ninguna" });
   });
 
   it("un Referer que no es del panel no aporta slug", async () => {
@@ -115,8 +125,8 @@ describe("slugActivo — precedencia de fuentes", () => {
 
   it("un Referer basura no revienta: se ignora", async () => {
     cabeceras["referer"] = "no-es-una-url";
-    cookieActual.valor = "hotel-c";
-    await expect(slugActivo()).resolves.toEqual({ slug: "hotel-c", fuente: "cookie" });
+    cookieActual.valor = "hotel-c"; // y la cookie tampoco lo rescata
+    await expect(slugActivo()).resolves.toEqual({ slug: null, fuente: "ninguna" });
   });
 
   // K-352: entrar a /panel/onboarding guardaba "onboarding" como si fuera el
@@ -144,6 +154,15 @@ describe("getActiveHotel con las fuentes nuevas", () => {
     cabeceras["referer"] = "https://kora-hotel.com/panel/hotel-a/reservas";
     // Antes esto devolvía hotel-b y la reserva se creaba en el hotel equivocado.
     await expect(getActiveHotel()).resolves.toMatchObject({ hotelId: "id-hotel-a" });
+  });
+
+  // Con la cookie retirada, una petición que llega SIN cabecera y SIN Referer ya
+  // no resuelve hotel aunque el navegador arrastre la cookie: 401, no el hotel
+  // que se tocó por última vez. Es el efecto aceptado a sabiendas.
+  it("cookie sola, sin cabecera ni Referer → null (antes devolvía el hotel)", async () => {
+    membresias["hotel-b"] = ctx("hotel-b");
+    cookieActual.valor = "hotel-b";
+    await expect(getActiveHotel()).resolves.toBeNull();
   });
 
   it("la cabecera del panel manda aunque el Referer diga otra cosa", async () => {

@@ -1,8 +1,9 @@
 "use client";
 
 // Pasos 1-2 de 6 del onboarding unificado: crear el hotel. Al crearse redirige
-// (navegación completa, para que el proxy fije la cookie kora_active_slug) a
-// /panel/[slug]/onboarding, donde viven los pasos 3-6 resumables.
+// a /panel/[slug]/onboarding, donde viven los pasos 3-6 resumables. Esta
+// pantalla vive FUERA de /panel/[slug], así que no tiene hotel activo: por eso
+// /api/panel/crear-hotel no lo pide, devuelve el slug y aquí se navega a él.
 
 import { useState } from "react";
 import { Loader2, Plus, Trash2, ArrowRight, ArrowLeft, Lightbulb } from "lucide-react";
@@ -85,9 +86,10 @@ export function OnboardingClient() {
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.ok && data.slug) {
-        // Navegación COMPLETA (no router.push): el proxy fija la cookie
-        // kora_active_slug al pasar por /panel/[slug], y el paso de cobros
-        // (Stripe Connect) la necesita. Se mantiene `enviando` para no
+        // Navegación COMPLETA (no router.push): al aterrizar en
+        // /panel/[slug]/onboarding se monta HotelActivoFetch, que es quien
+        // marca cada petición con el hotel de esta pestaña; el paso de cobros
+        // (Stripe Connect) lo necesita. Se mantiene `enviando` para no
         // rehabilitar el botón mientras el navegador cambia de página.
         // Sin `?nuevo=1`: lo ponía desde siempre y NADIE lo leía (ni esta
         // pantalla ni la de destino). Un parámetro huérfano en la URL invita a
