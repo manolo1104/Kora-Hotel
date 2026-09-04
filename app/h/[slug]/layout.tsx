@@ -1,6 +1,30 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { resolveHotel } from "@/lib/tenant";
 import { bloqueoDelHotel } from "@/lib/suscripcion";
+import { TENANTS_PRUEBA } from "@/lib/seo";
+
+/**
+ * Los hoteles semilla (`hotel-grande`, `hotel-demo-huasteca`, `manolo`…) llevan
+ * tiempo fuera del sitemap, pero seguían devolviendo 200 y Google los indexó
+ * igual: el 4 sep 2026 aparecían en los resultados de `kora-hotel.com` como
+ * "Sin título". Quien buscaba Kora podía aterrizar en un hotel que no existe.
+ *
+ * Se marcan `noindex` en vez de darles 404 a propósito: siguen sirviendo para
+ * enseñar el producto en una demo, sólo dejan de competir por las búsquedas de
+ * Kora. Va en el LAYOUT porque cubre de una vez la ficha, las habitaciones, el
+ * motor, el blog y las páginas propias del hotel — las páginas hijas no definen
+ * `robots`, así que lo heredan.
+ */
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  if (!TENANTS_PRUEBA.has(slug)) return {};
+  return { robots: { index: false, follow: false } };
+}
 
 // A propósito SIN `dynamic = "force-dynamic"`. Estaba, y como la configuración
 // de un layout arrastra a todo lo que cuelga de él, anulaba el `revalidate =

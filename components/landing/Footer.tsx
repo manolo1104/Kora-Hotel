@@ -13,8 +13,11 @@ const navLinks = [
   { label: "Agente de WhatsApp con IA", href: "/whatsapp" },
   { label: "Características", href: "/caracteristicas" },
   { label: "Precios", href: "/precios" },
-  { label: "Para hoteles boutique", href: "/para/hoteles-boutique" },
-  { label: "Para hoteles pequeños", href: "/para/hoteles-pequenos" },
+  // Un enlace al ÍNDICE, no dos sueltos: el pie enlazaba a mano sólo
+  // `hoteles-boutique` y `hoteles-pequenos`, y las otras 7 páginas de la sección
+  // se quedaban sin un solo enlace entrante en todo el sitio. Desde /para se
+  // llega a las 9 con un clic, y las dos de antes no pierden nada.
+  { label: "Para tu tipo de hotel", href: "/para" },
   { label: "Reservas directas por ciudad", href: "/hoteles-en" },
   { label: "Comparativas", href: "/comparativas" },
   { label: "Glosario hotelero", href: "/glosario" },

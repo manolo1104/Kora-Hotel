@@ -30,13 +30,24 @@ const nextConfig = {
     imageSizes: [56, 96, 200],
   },
 
-  // 301 del dominio de Vercel duplicado → dominio canónico (evita contenido duplicado en SEO).
-  // Solo afecta el alias de producción; las URLs de preview (con hash de rama) no se tocan.
+  // 301 de los hosts duplicados → dominio canónico (evita contenido duplicado en SEO).
+  // Solo afecta los alias de producción; las URLs de preview (con hash de rama) no se tocan.
   async redirects() {
     return [
       {
         source: "/:path*",
         has: [{ type: "host", value: "kora-hotel.vercel.app" }],
+        destination: "https://kora-hotel.com/:path*",
+        permanent: true,
+      },
+      {
+        // `www` servía el sitio ENTERO con 200, no redirigía. El canonical de
+        // cada página apunta al apex y eso evitó lo peor, pero al 4 sep 2026
+        // Google ya tenía indexadas URLs bajo `www.kora-hotel.com` — dos
+        // direcciones para la misma página, repartiéndose la autoridad. El 301
+        // deja una sola puerta.
+        source: "/:path*",
+        has: [{ type: "host", value: "www.kora-hotel.com" }],
         destination: "https://kora-hotel.com/:path*",
         permanent: true,
       },

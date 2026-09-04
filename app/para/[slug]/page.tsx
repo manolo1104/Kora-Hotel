@@ -57,7 +57,10 @@ export default async function PersonaPage({ params }: Props) {
         "@type": "BreadcrumbList",
         itemListElement: [
           { "@type": "ListItem", position: 1, name: "Inicio", item: SITE_URL },
-          { "@type": "ListItem", position: 2, name: p.titulo, item: url },
+          // La sección ya tiene índice propio (`/para`), así que la miga deja de
+          // saltar de la portada a la página suelta.
+          { "@type": "ListItem", position: 2, name: "Por tipo de hotel", item: `${SITE_URL}/para` },
+          { "@type": "ListItem", position: 3, name: p.titulo, item: url },
         ],
       },
     ],
@@ -164,6 +167,37 @@ export default async function PersonaPage({ params }: Props) {
             </div>
           </section>
         )}
+
+        {/* Otros tipos de hotel. Cada página de la sección enlaza a las demás:
+            antes eran 9 islas y Google sólo encontró las 2 que colgaban del pie. */}
+        <section className="py-14 sm:py-20 bg-white">
+          <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 className="text-2xl sm:text-3xl font-bold text-kora-text tracking-tight mb-6">
+              ¿Tu hotel es de otro tipo?
+            </h2>
+            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {personas
+                .filter((otra) => otra.slug !== p.slug)
+                .map((otra) => (
+                  <li key={otra.slug}>
+                    <Link
+                      href={`/para/${otra.slug}`}
+                      className="block rounded-xl border border-gray-100 bg-kora-bg px-4 py-3 text-sm font-semibold text-kora-text hover:border-kora-primary/20 hover:text-kora-primary transition-colors"
+                    >
+                      {otra.titulo}
+                    </Link>
+                  </li>
+                ))}
+            </ul>
+            <p className="mt-6 text-sm text-kora-muted">
+              O mira{" "}
+              <Link href="/para" className="font-semibold text-kora-primary underline">
+                todos los tipos de hotel
+              </Link>
+              .
+            </p>
+          </div>
+        </section>
 
         <BarraCTA />
       </main>

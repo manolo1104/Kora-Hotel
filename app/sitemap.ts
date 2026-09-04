@@ -11,6 +11,7 @@ import { ciudades } from "@/lib/ciudades";
 import { AYUDA } from "@/lib/ayuda";
 import { resolverPaginas, type MiniExtras } from "@/lib/mini";
 import { TENANTS_PRUEBA } from "@/lib/seo";
+import { bloqueoDelHotel } from "@/lib/suscripcion";
 import { SUPABASE_URL, SUPABASE_ANON_KEY, supabaseEnvReady } from "@/lib/supabase/env";
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
@@ -32,7 +33,14 @@ async function miniPaginas(): Promise<MetadataRoute.Sitemap> {
     );
     if (!data) return [];
     return data
+      // `publicado` NO basta: una cuenta que Kora bloquea a mano sigue publicada
+      // en la base, pero `app/h/[slug]/layout.tsx` la apaga con un 404. El
+      // sitemap la seguía anunciando, así que le mandábamos a Google la ficha y
+      // TODAS las habitaciones de un hotel muerto (14 URLs rotas medidas el 4
+      // sep 2026) y nos gastábamos en 404 el poco rastreo que tiene un dominio
+      // nuevo. El bloqueo se lee del MISMO sitio que el layout: `extras.bloqueo`.
       .filter((h) => h.slug && !TENANTS_PRUEBA.has(h.slug))
+      .filter((h) => !bloqueoDelHotel(h.extras as Record<string, unknown> | null))
       .flatMap((h) => {
         const lastModified = h.updated_at ? new Date(h.updated_at) : SITE_UPDATED;
         const hotel: MetadataRoute.Sitemap = [
@@ -85,7 +93,7 @@ async function blogsHoteles(): Promise<MetadataRoute.Sitemap> {
       "sitemap.blog",
       supabase
         .from("hotel_blog_posts")
-        .select("slug, updated_at, publicado_at, hoteles:hotel_id (slug, publicado)")
+        .select("slug, updated_at, publicado_at, hoteles:hotel_id (slug, publicado, extras)")
         .eq("publicado", true),
     );
     if (!data) return [];
@@ -95,10 +103,13 @@ async function blogsHoteles(): Promise<MetadataRoute.Sitemap> {
       slug: string;
       updated_at: string | null;
       publicado_at: string | null;
-      hoteles: { slug: string; publicado: boolean } | null;
+      hoteles: { slug: string; publicado: boolean; extras: unknown } | null;
     }[]) {
       const h = row.hoteles;
       if (!h?.publicado || !h.slug || TENANTS_PRUEBA.has(h.slug)) continue;
+      // Mismo motivo que en miniPaginas(): el blog de un hotel bloqueado también
+      // devuelve 404 por el layout, así que tampoco se anuncia.
+      if (bloqueoDelHotel(h.extras as Record<string, unknown> | null)) continue;
       const lastModified = new Date(row.updated_at || row.publicado_at || SITE_UPDATED);
       if (!indicesVistos.has(h.slug)) {
         indicesVistos.add(h.slug);
@@ -272,6 +283,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
     {
       url: `${BASE_URL}/comparativas`,
+      lastModified: SITE_UPDATED,
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
+    {
+      // Índice de las 9 páginas por tipo de hotel. Faltaba: la sección tenía
+      // hijas en el sitemap pero ninguna puerta de entrada.
+      url: `${BASE_URL}/para`,
       lastModified: SITE_UPDATED,
       changeFrequency: "monthly",
       priority: 0.7,
