@@ -8,6 +8,7 @@ import {
   PANTALLAS,
   pantallasDelRol,
   pantallasPermitidas,
+  soloDelDueno,
   type PantallaId,
 } from '@/lib/panel/pantallas';
 import { postJson, mensajeDeError } from '@/lib/ui/api';
@@ -103,17 +104,24 @@ function SelectorPantallas({
       <div className={styles.pantallasGrid}>
         {PANTALLAS.map((p) => {
           const dePuesto = plantilla.has(p.id);
+          // Pantallas que sólo abre el dueño (Pagos, Quién trabaja aquí): la
+          // casilla se bloquea en vez de ofrecer algo que no se entrega. Antes
+          // marcarlas concedía sus permisos de verdad; desde el arreglo de la
+          // escalada ya no, así que dejarla marcable sería prometer una
+          // delegación que al abrir la pantalla se cierra sola.
+          const soloDueno = soloDelDueno(p.id);
+          const bloqueada = esDueno || soloDueno;
           const marcada = esDueno || activas.has(p.id);
           return (
             <label
               key={p.id}
-              className={`${styles.pantallaItem} ${esDueno ? styles.pantallaItemBloqueada : ''}`}
+              className={`${styles.pantallaItem} ${bloqueada ? styles.pantallaItemBloqueada : ''}`}
             >
               <input
                 type="checkbox"
                 className={styles.pantallaCheck}
                 checked={marcada}
-                disabled={esDueno}
+                disabled={bloqueada}
                 onChange={() => alternar(p.id)}
               />
               <span className={styles.pantallaTexto}>
@@ -124,7 +132,10 @@ function SelectorPantallas({
                   )}
                 </span>
                 <span className={styles.pantallaQue}>{p.que}</span>
-                {p.aviso && marcada && !esDueno && (
+                {soloDueno && !esDueno && (
+                  <span className={styles.pantallaAviso}>Sólo tú entras aquí.</span>
+                )}
+                {p.aviso && marcada && !esDueno && !soloDueno && (
                   <span className={styles.pantallaAviso}>{p.aviso}</span>
                 )}
               </span>

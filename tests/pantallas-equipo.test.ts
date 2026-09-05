@@ -32,13 +32,22 @@ const TODAS = PANTALLAS.map((p) => p.id);
 
 describe("marcar una pestaña la abre ENTERA", () => {
   it("cada pantalla concede todos los permisos que necesita", () => {
+    // Dos matices que antes no estaban, y que son el arreglo de la escalada
+    // (ver tests/pantallas-no-escalan.test.ts):
+    //   · si la pantalla YA viene en la plantilla del puesto, marcarla no añade
+    //     nada — lo que vale entonces es lo que dice el puesto;
+    //   · lo que es SOLO del dueño no se entrega marcando una casilla.
+    const delRol = new Set(pantallasDelRol("limpieza"));
+    const esDelDueno = (x: Permiso) => PERMISOS[x].length === 1 && PERMISOS[x][0] === "dueno";
     for (const p of PANTALLAS) {
       // Una camarista con SÓLO esa pestaña marcada tiene que poder usarla.
+      expect(verPantalla("limpieza", [p.id], p.id)).toBe(true);
+      if (delRol.has(p.id)) continue;
       const permisos = permisosDe("limpieza", [p.id]);
       for (const necesario of p.permisos) {
+        if (esDelDueno(necesario)) continue;
         expect(permisos.has(necesario), `${p.id} necesita ${necesario}`).toBe(true);
       }
-      expect(verPantalla("limpieza", [p.id], p.id)).toBe(true);
     }
   });
 
@@ -200,13 +209,18 @@ describe("el catálogo está sano", () => {
     }
   });
 
-  it("con TODAS marcadas se llega a todo lo que da el puesto de encargada", () => {
-    // Red contra una pantalla que se quede sin declarar un permiso suyo: si algo
-    // que la encargada puede hacer no lo concede ninguna pestaña, es que hay una
-    // pantalla incompleta en el catálogo.
-    const conTodo = permisosDe("limpieza", TODAS);
+  it("ninguna pantalla se queda sin declarar un permiso que alguien necesita", () => {
+    // Red contra una pantalla incompleta en el catálogo. Se comprueba sobre el
+    // CATÁLOGO y no sobre `permisosDe`, porque desde el arreglo de la escalada
+    // una pestaña ya no puede conceder lo que el puesto no da: preguntarle a
+    // `permisosDe` sólo diría que las reglas nuevas funcionan, no que el
+    // catálogo esté completo.
+    const declarados = new Set(PANTALLAS.flatMap((p) => p.permisos));
+    const esDelDueno = (x: Permiso) => PERMISOS[x].length === 1 && PERMISOS[x][0] === "dueno";
     for (const p of Object.keys(PERMISOS) as Permiso[]) {
-      if (puede("encargada", p)) expect(conTodo.has(p), `ninguna pestaña concede ${p}`).toBe(true);
+      if (!puede("encargada", p)) continue;
+      if (esDelDueno(p)) continue;
+      expect(declarados.has(p), `ninguna pantalla declara ${p}`).toBe(true);
     }
   });
 });

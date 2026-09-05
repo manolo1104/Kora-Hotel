@@ -74,8 +74,12 @@ export const PANTALLAS: Pantalla[] = [
     label: "Camila (bot)",
     permisos: ["bot:leer", "bot:entrenar", "bot:configurar", "bot:vincular"],
     que: "El bot de WhatsApp: sus respuestas, su tono y las conversaciones.",
+    // El aviso decía que la pantalla "incluye la cuenta de banco y el QR". Desde
+    // el arreglo de la escalada ya no los incluye para nadie más que el dueño,
+    // así que decirlo sería asustar con algo que no pasa — y antes era al revés:
+    // el texto avisaba de lo que sí ocurría y aun así se entregaba por defecto.
     aviso:
-      "Incluye la cuenta de banco que Camila le dicta a los huéspedes y el QR para vincular el WhatsApp del hotel.",
+      "Puede entrenar a Camila y leer lo que contesta. La cuenta de banco que dicta a los huéspedes y el QR para vincular el WhatsApp siguen siendo sólo tuyos.",
   },
   {
     id: "calendario",
@@ -193,15 +197,61 @@ export function verPantalla(
 }
 
 /**
+ * Un permiso es del DUEÑO cuando la matriz no se lo da a nadie más. Se deriva
+ * de `PERMISOS`, no se escribe a mano: el día que se añada uno nuevo queda
+ * protegido solo, sin que nadie se acuerde de venir aquí.
+ */
+function esDelDueno(p: Permiso): boolean {
+  const roles = PERMISOS[p];
+  return roles.length === 1 && roles[0] === "dueno";
+}
+
+/**
+ * ¿Esta pantalla es del dueño y de nadie más?
+ *
+ * Lo es cuando su ABRIDOR —el permiso que decide si se puede entrar— sólo lo
+ * tiene el dueño. Marcársela a un empleado no le sirve de nada: la pantalla
+ * aparecería en su menú y se cerraría al abrirla, porque su guarda de servidor
+ * pregunta por ese mismo permiso. La UI de "Quién trabaja aquí" la usa para
+ * bloquear la casilla en vez de ofrecer algo que no entrega.
+ */
+export function soloDelDueno(id: PantallaId): boolean {
+  const p = POR_ID.get(id);
+  return p ? esDelDueno(p.permisos[0]) : false;
+}
+
+/**
  * TODO lo que esta persona puede hacer: lo de su puesto MÁS lo que abren las
- * pestañas que le marcaron.
+ * pestañas EXTRA que le marcaron.
  *
- * Es la función que consultan `negar()` y `puedeCtx()` en las 47 rutas del
- * panel. Sin ella, dar una pestaña sería darla a medias: la pantalla abriría y
- * su API contestaría 403.
+ * Es la función que consultan `negar()` y `puedeCtx()` en las 72 guardas de las
+ * rutas del panel. Sin ella, dar una pestaña sería darla a medias: la pantalla
+ * abriría y su API contestaría 403.
  *
- * NUNCA concede `datos:exportar` ni `hotel:eliminar`: no son pantallas de este
- * panel, y siguen siendo del dueño en la matriz.
+ * Dos reglas, y las dos existen por lo mismo: una casilla no puede ascender a
+ * nadie de puesto.
+ *
+ * 1. LA PLANTILLA NO CONCEDE NADA EXTRA. Antes se volcaba la lista entera de
+ *    toda pantalla visible, y la visibilidad la decide `pantallasDelRol`, que
+ *    sólo compara el PRIMER permiso de esa lista contra la matriz. Así, toda
+ *    pantalla cuyo abridor fuera más permisivo que el resto de su lista escalaba
+ *    sola, sin que nadie marcara una casilla y con `elegidas === null` — el caso
+ *    por defecto y el de todas las filas anteriores al 1 sep 2026. `calendario`
+ *    y `reservas` abren con `reservas:leer`, que es de TODOS, y conceden
+ *    `reservas:dinero`, `reservas:escribir`, `reservas:cancelar`: limpieza y
+ *    cocina veían el importe de cada reserva y podían cancelarlas. Es
+ *    exactamente la queja del hotel de Nealtican citada en `permisos.ts:60-67`,
+ *    la que motivó todo este sistema.
+ *
+ * 2. LO QUE ES DEL DUEÑO NO SE ENTREGA MARCANDO UNA CASILLA. `bot:vincular` (el
+ *    QR con el que cualquiera se lleva el WhatsApp del hotel), `bot:configurar`
+ *    (la CLABE a la que los huéspedes transfieren), `pagos:*` y
+ *    `equipo:gestionar` son SOLO_DUENO en la matriz y ahora también aquí. Antes
+ *    esto sólo lo protegía un comentario y una lista de dos nombres escrita a
+ *    mano en la prueba (`datos:exportar`, `hotel:eliminar`).
+ *
+ * Lo que NO cambia: marcarle a alguien una pantalla que su puesto no trae sigue
+ * abriéndola entera. Ése es el sentido de la función y sigue vivo.
  */
 export function permisosDe(
   rol: RolHotel,
@@ -215,8 +265,14 @@ export function permisosDe(
   }
   if (rol === "dueno") return fuera;
 
+  const dePlantilla = new Set(pantallasDelRol(rol));
   for (const id of pantallasPermitidas(rol, elegidas)) {
-    for (const p of POR_ID.get(id)?.permisos ?? []) fuera.add(p);
+    // Regla 1: si su puesto ya la trae, lo que vale es lo que dice su puesto.
+    if (dePlantilla.has(id)) continue;
+    for (const p of POR_ID.get(id)?.permisos ?? []) {
+      if (esDelDueno(p)) continue; // regla 2
+      fuera.add(p);
+    }
   }
   return fuera;
 }
