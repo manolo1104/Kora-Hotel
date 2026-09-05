@@ -1560,7 +1560,16 @@ export async function getBotStatus(hotelId: string): Promise<boolean> {
 }
 
 /** Enciende/apaga el bot escribiendo en config.bot_enabled del hotel. */
-export async function setBotStatus(hotelId: string, enabled: boolean): Promise<void> {
+/**
+ * Devuelve `true` sólo si el cambio quedó GUARDADO.
+ *
+ * Antes era `Promise<void>` y se tragaba los dos errores con un `console.error`:
+ * quien la llamaba no tenía forma de saber si había pasado algo. El dueño
+ * mandaba "apagar" por WhatsApp, la escritura fallaba, y Camila le contestaba
+ * "🔕 Camila apagada" igual — y seguía atendiendo huéspedes. El acuse es la
+ * única señal que tiene el dueño, así que mentir ahí es peor que no contestar.
+ */
+export async function setBotStatus(hotelId: string, enabled: boolean): Promise<boolean> {
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("hoteles")
@@ -1569,7 +1578,7 @@ export async function setBotStatus(hotelId: string, enabled: boolean): Promise<v
     .maybeSingle();
   if (error) {
     console.error("setBotStatus read error:", error.message);
-    return;
+    return false;
   }
   const current = ((data as { config: Record<string, unknown> | null } | null)?.config) ?? {};
   const next = { ...current, bot_enabled: enabled };
@@ -1577,7 +1586,11 @@ export async function setBotStatus(hotelId: string, enabled: boolean): Promise<v
     .from("hoteles")
     .update({ config: next })
     .eq("id", hotelId);
-  if (updErr) console.error("setBotStatus write error:", updErr.message);
+  if (updErr) {
+    console.error("setBotStatus write error:", updErr.message);
+    return false;
+  }
+  return true;
 }
 
 /** Entrenamiento de Camila que el hotel edita en el panel (vive en extras.bot). */

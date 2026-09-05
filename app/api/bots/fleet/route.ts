@@ -27,8 +27,17 @@ export async function GET(req: Request) {
   if (!secret || req.headers.get("authorization") !== `Bearer ${secret}`) {
     return NextResponse.json({ error: "No autorizado." }, { status: 401 });
   }
+  // 503, NO 200. El runtime distingue "la lista vino vacía de verdad" (apagar a
+  // los que sobran) de "no pude leer la lista" (conservar) SÓLO por el código
+  // HTTP: `agentes/camila/fleet.js:49-51` mira `res.ok` y nunca el `ok:false`
+  // del cuerpo. Con un 200 y `hotels: []` concluía "vacío legítimo" y en la
+  // siguiente pasada destruía la sesión de WhatsApp de TODOS los hoteles, uno
+  // por uno, dejando un "apagado (fuera del fleet)" por cada uno en el log,
+  // como si fuera lo correcto. Un fallo de configuración de Vercel apagaba a
+  // todas las Camilas a la vez y sin una sola alerta.
   if (!adminEnvReady) {
-    return NextResponse.json({ ok: false, motivo: "Sin BD.", hotels: [] });
+    console.error("[bots/fleet] sin envs de service-role: no puedo leer la flota");
+    return NextResponse.json({ ok: false, error: "fleet-ilegible", hotels: [] }, { status: 503 });
   }
 
   const admin = createAdminClient();

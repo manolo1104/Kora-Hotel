@@ -54,7 +54,23 @@ export async function POST(req: Request) {
   if (!ctx) return NextResponse.json({ error: "no-auth" }, { status: 401 });
   const no = negar(ctx, "bot:entrenar");
   if (no) return no;
-  const { enabled } = await req.json();
-  await setBotStatus(ctx.hotelId, Boolean(enabled));
-  return NextResponse.json({ ok: true });
+  // `Boolean(enabled)` convertía un campo AUSENTE en `false`: un POST con el
+  // cuerpo vacío —una prueba, un cliente que se olvide del campo, un reintento
+  // que perdió el body— APAGABA a Camila y contestaba `ok:true`. El valor por
+  // defecto de un interruptor no puede caer del lado peligroso. Y si el JSON no
+  // se puede leer, tampoco: 400 antes de tocar nada.
+  let enabled: unknown;
+  try {
+    ({ enabled } = await req.json());
+  } catch {
+    return NextResponse.json({ error: "bad-request" }, { status: 400 });
+  }
+  if (typeof enabled !== "boolean") {
+    return NextResponse.json({ error: "enabled-requerido" }, { status: 400 });
+  }
+  const guardado = await setBotStatus(ctx.hotelId, enabled);
+  if (!guardado) {
+    return NextResponse.json({ error: "no-guardado" }, { status: 503 });
+  }
+  return NextResponse.json({ ok: true, enabled });
 }

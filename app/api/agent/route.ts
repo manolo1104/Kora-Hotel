@@ -20,8 +20,14 @@ import { limitado } from "@/lib/api/rate-limit";
 
 export const dynamic = "force-dynamic";
 
-/** Las acciones que APAGAN el bot o TOCAN inventario y dinero. */
-const ACCIONES_PROTEGIDAS = new Set(["set-status", "reservar"]);
+/** Las acciones que APAGAN el bot, TOCAN inventario y dinero, o ESCRIBEN en la base. */
+// `log-conv` entra aquí desde el paso 1.2. Escribe en `camila_conversaciones`
+// (texto libre, hasta 300 turnos por hilo) y era la ÚNICA acción que se saltaba
+// las dos defensas a la vez: ni segundo factor ni tope. Con el token del hotel
+// —que es una sola credencial— cualquiera podía llenarle la tabla de basura al
+// hotel y envenenar lo que su dueño lee en el panel. El runtime siempre manda
+// el secreto (`agentes/camila/kora.js:_post`), así que exigirlo no lo rompe.
+const ACCIONES_PROTEGIDAS = new Set(["set-status", "reservar", "log-conv"]);
 
 // El token ya no se busca dentro de `hoteles.config` —esa columna se puede leer
 // desde internet con la llave anónima— sino en `hotel_bot_tokens`, que sólo ve la
@@ -156,16 +162,15 @@ export async function POST(req: Request) {
     if (typeof body.enabled !== "boolean") {
       return NextResponse.json({ ok: false, error: "enabled-requerido" }, { status: 400 });
     }
-    await setBotStatus(hotel.id, body.enabled);
+    // Si no se guardó, se dice. `kora.setEnabled()` mira este `ok` para decidir
+    // el acuse que le manda al dueño por WhatsApp: con un `ok:true` de mentira
+    // le confirmaba "🔕 Camila apagada" mientras Camila seguía contestando.
+    const guardado = await setBotStatus(hotel.id, body.enabled);
+    if (!guardado) {
+      console.error(`[agent] set-status no se pudo guardar en ${hotel.slug}`);
+      return NextResponse.json({ ok: false, error: "no-guardado" }, { status: 503 });
+    }
     return NextResponse.json({ ok: true, enabled: body.enabled });
-  }
-
-  // Guardar el texto de un turno de conversación (huésped + Camila) para poder
-  // analizarlo después. No cuenta como métrica (retorna antes de logAgentActivity).
-  // FAIL-SAFE: si la tabla no existe o falla, no afecta la respuesta al bot.
-  if (body.action === "log-conv") {
-    await logCamilaConversacion(hotel.id, body.conv ?? "", body.turnos ?? []);
-    return NextResponse.json({ ok: true });
   }
 
   // ─── Tope por HOTEL, no por IP ──────────────────────────────────────────
@@ -192,6 +197,17 @@ export async function POST(req: Request) {
   if (await limitado("agent.hotel", hotel.id, { max: 600, ventanaMs: 10 * 60_000 })) {
     console.error(`[agent] tope alcanzado por el hotel ${hotel.slug}`);
     return NextResponse.json({ error: "demasiadas-consultas" }, { status: 429 });
+  }
+
+  // Guardar el texto de un turno de conversación (huésped + Camila) para poder
+  // analizarlo después. Va DESPUÉS del tope de arriba —antes se colaba entre
+  // `set-status` y el rate limit, así que no lo topaba nadie— y ANTES de
+  // `logAgentActivity`, para seguir sin contar como conversación en las
+  // métricas: guardar el texto de un turno no es un turno nuevo.
+  // FAIL-SAFE: si la tabla no existe o falla, no afecta la respuesta al bot.
+  if (body.action === "log-conv") {
+    await logCamilaConversacion(hotel.id, body.conv ?? "", body.turnos ?? []);
+    return NextResponse.json({ ok: true });
   }
 
   // Métricas del foso (dashboard "Agentes"): cada consulta del bot cuenta. Si
