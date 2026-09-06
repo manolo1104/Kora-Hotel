@@ -9,7 +9,7 @@
 // Regla al tocar este archivo: nada de fetch, nada de `await`, nada de env vars.
 // Si necesita un dato, se agrega a MiniDatos y lo llena quien lo llama.
 
-import { politicaDe, textoPolitica } from "@/lib/politica";
+import { politicaDe, partesPolitica } from "@/lib/politica";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -402,11 +402,11 @@ export function MiniRender({
   const politicas = extras.politicas ?? {};
   // 🔴 La cancelación ya no sale del campo libre: se deriva de la política
   // estructurada, que es la misma que decide el reembolso si el huésped
-  // cancela. El campo libre queda dentro como nota (lo añade `textoPolitica`).
+  // cancela. El campo libre del hotelero se enseña APARTE, como nota.
   // Antes esta página podía decir «7 días 100 %, 3 días 50 %» mientras el
   // sistema aplicaba «gratis hasta 2 días»: el huésped que reclamaba tenía la
   // política del hotel por escrito a su favor.
-  const textoCancelacion = textoPolitica(politicaDe({
+  const { regla: textoCancelacion, nota: notaCancelacion } = partesPolitica(politicaDe({
     escalones: (extras.politica as { escalones?: unknown } | undefined)?.escalones,
     noShowPct: (extras.politica as { noShowPct?: unknown } | undefined)?.noShowPct,
     nota: politicas.cancelacion,
@@ -717,6 +717,14 @@ export function MiniRender({
                   <span className="font-semibold">Cancelación:</span> {textoCancelacion}
                 </span>
               </p>
+            )}
+            {/* La nota del hotel va APARTE, no pegada a la regla. Cuando el
+                texto libre describe otra política —lo normal, porque se escribió
+                antes de que existieran los escalones— juntarlos producía una
+                frase que se contradecía sola sobre el mismo día. Separadas, se
+                ve cuál es la regla y cuál el comentario. */}
+            {notaCancelacion && (
+              <p className="text-xs text-kora-muted pl-6">{notaCancelacion}</p>
             )}
             {politicas.mascotas && (
               <p className="text-kora-text">

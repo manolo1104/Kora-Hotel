@@ -266,3 +266,27 @@ export function textoPolitica(politica: Politica, lang: "es" | "en" = "es"): str
   const texto = en ? base : base.charAt(0).toUpperCase() + base.slice(1);
   return politica.nota ? `${texto} ${politica.nota}` : texto;
 }
+
+/**
+ * La política partida en dos: la REGLA que se aplica y la NOTA del hotel.
+ *
+ * `textoPolitica` las pega en el mismo párrafo, y cuando la nota describe otra
+ * política —cosa frecuente, porque es texto libre que el hotelero escribió antes
+ * de que existieran los escalones— el huésped lee una frase que se contradice
+ * sola: «Cancelación gratis hasta 3 días antes; después, sin devolución.
+ * Cancelaciones con 3 días de anticipación (50%)». Las dos cosas a la vez, sobre
+ * el mismo día. Eso es justo lo que este archivo vino a evitar, sólo que dentro
+ * de una misma línea.
+ *
+ * Separarlas no borra lo que escribió el hotel —puede tener información útil que
+ * no contradice nada— pero deja ver cuál manda. Quien pinta esto para un huésped
+ * debería usar esta función y no la de arriba.
+ */
+export function partesPolitica(
+  politica: Politica,
+  lang: "es" | "en" = "es",
+): { regla: string; nota: string } {
+  const nota = (politica.nota ?? "").trim();
+  const regla = textoPolitica({ ...politica, nota: undefined }, lang);
+  return { regla, nota };
+}

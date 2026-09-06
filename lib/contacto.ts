@@ -58,6 +58,31 @@ export const WHATSAPP =
   process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ||
   "524891251458";
 
+/**
+ * Normaliza un teléfono a lo que WhatsApp entiende, o `null` si no es usable.
+ *
+ * El hotelero teclea su número como lo dice en voz alta —"489 122 2835"— y wa.me
+ * necesita clave de país. Sin esto, el enlace salía `wa.me/4891222835`: WhatsApp
+ * lo lee como un prefijo internacional que no existe, no abre chat con nadie, y
+ * el huésped hace tap y no pasa nada. Le ocurría a un hotel real cuyo motor
+ * además estaba pausado, así que ése era su ÚNICO canal de venta.
+ *
+ * Devolver `null` es parte del contrato: más vale no pintar el botón que pintar
+ * uno muerto. Sólo se asume México para 10 dígitos exactos — un número
+ * extranjero legítimo ya trae más y no se toca.
+ */
+export function waNumero(raw: string | null | undefined): string | null {
+  let d = (raw ?? "").replace(/\D/g, "");
+  if (!d) return null;
+  // 521XXXXXXXXXX: el formato viejo de México, con el "1" de móvil que WhatsApp
+  // ya no usa. Se normaliza a 52 + los 10 dígitos.
+  if (d.startsWith("521") && d.length === 13) d = `52${d.slice(3)}`;
+  // 10 dígitos = mexicano sin clave de país, que es como lo escribe casi todo el
+  // mundo aquí.
+  if (d.length === 10) d = `52${d}`;
+  return d.length >= 11 && d.length <= 15 ? d : null;
+}
+
 /** Enlace de WhatsApp con mensaje ya escrito. Devuelve "" si no hay número. */
 export function waLink(texto: string): string {
   const n = WHATSAPP.replace(/\D/g, "");

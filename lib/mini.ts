@@ -2,6 +2,8 @@
 // y la mini-página pública (/h/[slug]). Todo lo nuevo vive dentro del jsonb
 // `extras` del hotel para no requerir migraciones de columnas.
 
+import { waNumero } from "@/lib/contacto";
+
 export interface Resena {
   autor: string;
   texto: string;
@@ -852,7 +854,10 @@ export function hrefBoton(b: Boton, ctx: BotonCtx): string | null {
 }
 
 function waHref(whatsapp: string | null | undefined, mensaje: string): string | null {
-  const num = (whatsapp ?? "").replace(/\D/g, "");
+  // `waNumero` añade la clave de país que el hotelero casi nunca escribe, y
+  // devuelve null si el número no es usable: entonces el botón no se pinta, que
+  // es mejor que uno que no abre chat con nadie.
+  const num = waNumero(whatsapp);
   if (!num) return null;
   return `https://wa.me/${num}?text=${encodeURIComponent(mensaje)}`;
 }

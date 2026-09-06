@@ -35,6 +35,10 @@ export interface CoberturaTemporadas {
 export interface DiagnosticoHotel {
   habitaciones: DiagnosticoItem;
   precios: DiagnosticoItem;
+  /** Un cuarto llamado "prueba"/"test"/"demo" publicado con su precio. */
+  cuartosDePrueba: DiagnosticoItem;
+  /** La nota libre de cancelación describe otra política que la que se aplica. */
+  politicaCoherente: DiagnosticoItem;
   camas: DiagnosticoItem;
   fotos: DiagnosticoItem;
   amenidades: DiagnosticoItem;
@@ -192,6 +196,19 @@ export function coberturaTemporadas(hotel: HotelRow): CoberturaTemporadas {
 export function diagnosticarHotel(hotel: HotelRow): DiagnosticoHotel {
   const extras = (hotel.extras ?? {}) as Record<string, unknown>;
   const rooms = hotelRooms(hotel);
+  // Un cuarto que se llama "prueba"/"test"/"demo" y está publicado: pasó en un
+  // hotel real, que ofrecía una «Habitación de prueba» a $10 la noche en su
+  // página pública.
+  const cuartosPrueba = rooms
+    .map((r) => r.name)
+    .filter((n) => /\b(prueba|test|demo|ejemplo|borrar)\b/i.test(n ?? ""));
+  // La nota libre de cancelación que menciona días o porcentajes está
+  // describiendo OTRA política que la que aplica el sistema.
+  const notaCancelacion = String(
+    ((hotel.extras as { politicas?: { cancelacion?: unknown } } | null)?.politicas?.cancelacion) ?? "",
+  );
+  const notaContradice =
+    notaCancelacion.trim().length > 0 && /\d\s*%|\d+\s*d[ií]as?|\d+\s*horas?/i.test(notaCancelacion);
   const conPrecio = rooms.filter((r) => r.price > 0);
   const conCamas = rooms.filter((r) => Array.isArray(r.camas) && r.camas.length > 0);
   const amenidades = Array.isArray(extras.amenidades) ? (extras.amenidades as unknown[]) : [];
@@ -228,6 +245,24 @@ export function diagnosticarHotel(hotel: HotelRow): DiagnosticoHotel {
           ? "Hay habitaciones sin precio: Camila no las puede cotizar."
           : undefined,
       tab: "habitaciones",
+    },
+    // Dos cosas que salieron de revisar hoteles reales en producción y que
+    // nadie le decía al hotelero, aunque las estuviera enseñando a sus huéspedes.
+    cuartosDePrueba: {
+      ok: cuartosPrueba.length === 0,
+      label: "Sin habitaciones de prueba publicadas",
+      aviso: cuartosPrueba.length
+        ? `«${cuartosPrueba[0]}» parece una habitación de prueba y se está ofreciendo a tus huéspedes, con su precio. Bórrala o cámbiale el nombre.`
+        : undefined,
+      tab: "habitaciones",
+    },
+    politicaCoherente: {
+      ok: !notaContradice,
+      label: "Tu política de cancelación no se contradice",
+      aviso: notaContradice
+        ? "El texto que escribiste de cancelación menciona días o porcentajes distintos de los que aplica el sistema. Tu huésped lee los dos y el que vale es el del sistema: si reclama, tiene tu texto por escrito a su favor."
+        : undefined,
+      tab: "politicas",
     },
     camas: {
       ok: conCamas.length > 0,

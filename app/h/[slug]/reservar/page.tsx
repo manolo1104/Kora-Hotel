@@ -1,4 +1,5 @@
 import { textoPolitica } from "@/lib/politica";
+import { waNumero } from "@/lib/contacto";
 import { politicaDelHotel } from "@/lib/booking";
 import { notFound } from "next/navigation";
 import { MessageCircle } from "lucide-react";
@@ -75,7 +76,11 @@ export default async function ReservarPage({
   // choca contra una pared: se le deja el contacto directo del hotel.
   const acceso = await accesoDelHotel(hotel);
   if (!acceso.puedeCobrar) {
-    const whatsappNum = (hotel.whatsapp ?? "").replace(/\D/g, "");
+    // Con el motor pausado, este botón es la ÚNICA salida que le queda al
+    // huésped: si el número va sin clave de país, wa.me no abre chat con nadie
+    // y la página se convierte en un callejón sin salida. `waNumero` devuelve
+    // null cuando no es usable, y abajo el botón no se pinta.
+    const whatsappNum = waNumero(hotel.whatsapp) ?? "";
     return (
       <div className="min-h-screen w-full bg-kora-bg flex items-center justify-center px-4">
         <div className="max-w-md w-full rounded-2xl border border-gray-100 bg-white p-8 text-center shadow-sm">

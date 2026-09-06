@@ -17,6 +17,7 @@
 // SOLO servidor (genera strings; no toca BD ni env).
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { waNumero } from "@/lib/contacto";
 export type Lang = "es" | "en";
 
 // ── Tokens ───────────────────────────────────────────────────────────────────
@@ -376,7 +377,7 @@ export function contacto({
   if (whatsapp) {
     filas.push(
       linea(
-        `💬 <a href="https://wa.me/${whatsapp.replace(/\D/g, "")}" style="color:${T.cuerpo};text-decoration:none;">WhatsApp</a>`,
+        `💬 <a href="https://wa.me/${waNumero(whatsapp) ?? ""}" style="color:${T.cuerpo};text-decoration:none;">WhatsApp</a>`,
       ),
     );
   }
@@ -408,10 +409,15 @@ export function pieKora(nota?: string): string {
 /** Aire al final del cuerpo, antes del pie. */
 export const respiro = `<tr><td style="padding:20px 0 0;"></td></tr>`;
 
-/** Link de WhatsApp con mensaje prellenado. Devuelve "" si no hay número. */
+/**
+ * Link de WhatsApp con mensaje prellenado. Devuelve "" si no hay número usable.
+ *
+ * Antes esta función normalizaba los 10 dígitos por su cuenta y la fila de
+ * contacto de dos bloques más arriba no lo hacía: el mismo correo podía llevar
+ * un enlace bueno y otro muerto. Ahora las dos pasan por `waNumero`.
+ */
 export function waLink(whatsapp: string | undefined, texto: string): string {
-  const digitos = (whatsapp || "").replace(/\D/g, "");
-  if (!digitos) return "";
-  const numero = digitos.length === 10 ? `52${digitos}` : digitos;
+  const numero = waNumero(whatsapp);
+  if (!numero) return "";
   return `https://wa.me/${numero}?text=${encodeURIComponent(texto)}`;
 }
