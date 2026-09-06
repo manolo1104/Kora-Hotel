@@ -107,7 +107,22 @@ function fmtPrecio(p?: string): string | null {
   return "$" + n.toLocaleString("es-MX") + " MXN";
 }
 function precioDesde(h: MiniHabitacion): { texto: string | null; desde: boolean } {
-  const validas = (h.tarifas ?? []).filter((t) => aNumero(t.precio) > 0);
+  // El "desde" tiene que ser un precio que alguien pueda pagar de verdad.
+  //
+  // Se tomaba el MÍNIMO de la tabla de tarifas sin mirar la capacidad del
+  // cuarto, así que un escalón por encima del máximo de huéspedes —una fila de
+  // 5 personas en una suite que duerme 4, que el editor deja guardar— salía
+  // anunciado en la página. El huésped leía "desde $1,500", entraba al motor y
+  // le cobraban $1,900: dos números distintos para el mismo cuarto en dos
+  // pantallas seguidas, y el barato era inalcanzable.
+  const capacidad = aNumero(h.capacidad);
+  const validas = (h.tarifas ?? []).filter((t) => {
+    if (aNumero(t.precio) <= 0) return false;
+    const personas = aNumero(t.personas);
+    // Sin capacidad declarada no se filtra nada: es preferible el
+    // comportamiento de antes a esconder el precio de un hotel bien puesto.
+    return !capacidad || !personas || personas <= capacidad;
+  });
   if (validas.length > 0) {
     const min = Math.min(...validas.map((t) => aNumero(t.precio)));
     return { texto: "$" + min.toLocaleString("es-MX") + " MXN", desde: true };

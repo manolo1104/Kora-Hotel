@@ -37,6 +37,8 @@ export interface DiagnosticoHotel {
   precios: DiagnosticoItem;
   /** Un cuarto llamado "prueba"/"test"/"demo" publicado con su precio. */
   cuartosDePrueba: DiagnosticoItem;
+  /** Escalones por encima de la capacidad, o que abaratan al subir personas. */
+  tarifasCoherentes: DiagnosticoItem;
   /** La nota libre de cancelación describe otra política que la que se aplica. */
   politicaCoherente: DiagnosticoItem;
   camas: DiagnosticoItem;
@@ -207,6 +209,21 @@ export function diagnosticarHotel(hotel: HotelRow): DiagnosticoHotel {
   const notaCancelacion = String(
     ((hotel.extras as { politicas?: { cancelacion?: unknown } } | null)?.politicas?.cancelacion) ?? "",
   );
+  // Un escalón por encima de la capacidad del cuarto, o un precio que BAJA al
+  // subir huéspedes: los dos hacen que la página anuncie un "desde" que el motor
+  // no cobra. Le pasa al Paraíso con una suite de 4 que tiene fila de 5.
+  const tarifasRaras = rooms
+    .filter((r) => {
+      const tiers = Object.entries(r.priceTiers ?? {})
+        .map(([p, v]) => [Number(p), Number(v)] as [number, number])
+        .filter(([p, v]) => p > 0 && v > 0)
+        .sort((a, b) => a[0] - b[0]);
+      if (tiers.length < 2) return false;
+      const fueraDeCapacidad = tiers.some(([p]) => r.maxGuests > 0 && p > r.maxGuests);
+      const abarataAlSubir = tiers.some(([, v], i) => i > 0 && v < tiers[i - 1][1]);
+      return fueraDeCapacidad || abarataAlSubir;
+    })
+    .map((r) => r.name);
   const notaContradice =
     notaCancelacion.trim().length > 0 && /\d\s*%|\d+\s*d[ií]as?|\d+\s*horas?/i.test(notaCancelacion);
   const conPrecio = rooms.filter((r) => r.price > 0);
@@ -253,6 +270,14 @@ export function diagnosticarHotel(hotel: HotelRow): DiagnosticoHotel {
       label: "Sin habitaciones de prueba publicadas",
       aviso: cuartosPrueba.length
         ? `«${cuartosPrueba[0]}» parece una habitación de prueba y se está ofreciendo a tus huéspedes, con su precio. Bórrala o cámbiale el nombre.`
+        : undefined,
+      tab: "habitaciones",
+    },
+    tarifasCoherentes: {
+      ok: tarifasRaras.length === 0,
+      label: "Tus precios por número de personas son coherentes",
+      aviso: tarifasRaras.length
+        ? `En «${tarifasRaras[0]}» hay un precio para más personas de las que caben, o uno que BAJA al subir huéspedes. Tu página anuncia el más barato de esa tabla y el motor cobra otro: el huésped ve dos precios distintos para el mismo cuarto.`
         : undefined,
       tab: "habitaciones",
     },
