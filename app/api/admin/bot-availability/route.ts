@@ -18,6 +18,11 @@ export const dynamic = "force-dynamic";
 const CONSULTA_SCHEMA = z.object({
   checkin: zFecha,
   checkout: zFecha,
+  // El verificador del panel es lo que el hotelero usa para comprobar "qué
+  // precios ofrecería Camila". Sin este campo cotizaba siempre para 2, así que
+  // en un hotel con tarifas por persona le enseñaba un número y el bot vivo
+  // daba otro — y el hotelero no tenía dónde verlo.
+  huespedes: z.coerce.number().int().min(1).max(20).optional(),
 });
 
 export async function POST(req: Request) {
@@ -28,14 +33,14 @@ export async function POST(req: Request) {
 
   const c = await leerCuerpo(req, CONSULTA_SCHEMA);
   if (!c.ok) return c.respuesta;
-  const { checkin, checkout } = c.datos;
+  const { checkin, checkout, huespedes } = c.datos;
   // El formato lo comprueba `zFecha`; aquí sólo queda el orden.
   if (checkout <= checkin) {
     return NextResponse.json({ error: "fechas-invalidas" }, { status: 400 });
   }
 
   try {
-    const disp = await botAvailability(ctx.hotel, checkin, checkout);
+    const disp = await botAvailability(ctx.hotel, checkin, checkout, huespedes ?? 2);
     return NextResponse.json({ ok: true, ...disp });
   } catch (e) {
     console.error("bot-availability error:", e);

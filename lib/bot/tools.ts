@@ -8,6 +8,11 @@ import type { HotelRow } from "@/lib/tenant";
 const SITE = (process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com").replace(/\/$/, "");
 const FECHA = /^\d{4}-\d{2}-\d{2}$/;
 
+/** Hoy en México, en el mismo formato que las fechas de la herramienta. */
+function hoyMexico(): string {
+  return new Date().toLocaleDateString("en-CA", { timeZone: "America/Mexico_City" });
+}
+
 export interface BotAvailability {
   hotel: string;
   checkin: string;
@@ -53,7 +58,17 @@ export async function botAvailability(
   // Una fecha que no se entendió NO es un hotel lleno. Antes las dos cosas
   // acababan en `hayDisponibilidad:false` y Camila le decía al huésped que no
   // había cuartos cuando lo que pasaba es que no entendió lo que escribió.
+  //
+  // Una fecha YA PASADA también es inválida, y no se comprobaba: se validaba que
+  // la salida fuera posterior a la entrada, pero no que la entrada fuera futura.
+  // Camila confirmaba precio y lugar para unas fechas que `reservar` iba a
+  // rechazar siempre (`fecha-pasada`, agent-booking.ts:149). Muerde de verdad a
+  // las 00:0x, cuando el «hoy» del prompt puede venir cacheado del día anterior
+  // y el huésped varado pregunta «¿tienen algo para hoy?».
   if (!FECHA.test(checkin) || !FECHA.test(checkout) || checkout <= checkin) {
+    return { ...base, hayDisponibilidad: false, disponibles: [], error: "fechas-invalidas" };
+  }
+  if (checkin < hoyMexico()) {
     return { ...base, hayDisponibilidad: false, disponibles: [], error: "fechas-invalidas" };
   }
 
@@ -74,6 +89,14 @@ export async function botAvailability(
     if (!r) return []; // no debería pasar: ambos salen de hotelRooms(hotel)
     const ocupacion = Math.max(1, Math.min(r.maxGuests, Math.floor(huespedes) || 2));
     const total = calcRoomStayTotal(r, ocupacion, checkin, checkout, opts);
+    // Un cuarto SIN PRECIO no se ofrece. Aquí sólo se filtraba por
+    // disponibilidad, así que un tipo recién dado de alta y todavía sin tarifa
+    // salía anunciado como «$0 MXN»: el huésped decía que sí y sólo entonces
+    // reventaba, con `monto-invalido` (agent-booking.ts), un código que el
+    // prompt no sabía traducir. El panel ya le promete al hotelero justo esto
+    // —«Hay habitaciones sin precio: Camila no las puede cotizar»,
+    // lib/panel/diagnostico.ts:228—; con esta línea la promesa se vuelve cierta.
+    if (total <= 0) return [];
     return [
       {
         id: t.id,

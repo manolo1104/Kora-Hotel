@@ -30,7 +30,7 @@ import {
   asignarUnidades,
   candidatasPorTipo,
 } from "@/lib/booking";
-import { freeUnitsByType, apartarUnidades, releaseHold } from "@/lib/db/availability";
+import { freeUnitsByTypeResult, apartarUnidades, releaseHold } from "@/lib/db/availability";
 import { getConnectState } from "@/lib/stripe/connect";
 import { getStripe, stripeEnvReady } from "@/lib/stripe/server";
 import type { HotelRow } from "@/lib/tenant";
@@ -104,6 +104,7 @@ export type AgentBookingResult =
         | "fecha-pasada"
         | "cuarto-no-encontrado"
         | "capacidad-insuficiente"
+        | "demasiadas-unidades"
         | "min-noches"
         | "no-disponible"
         | "sin-pago"
@@ -113,6 +114,7 @@ export type AgentBookingResult =
       detalle?: string;
       minNoches?: number;
       maxHuespedes?: number;
+      maxUnidades?: number;
     };
 
 function hoyMexico(): string {
@@ -157,9 +159,26 @@ export async function crearLinkReservaAgente(
   if (!room) return { ok: false, error: "cuarto-no-encontrado" };
 
   // Huéspedes y unidades.
-  const adults = Math.max(1, Math.floor(Number(input.huespedes) || 1));
+  //
+  // `huespedes` cae a 2 y no a 1 a propósito: es el MISMO supuesto que usa
+  // `botAvailability` cuando el bot no manda el dato (lib/bot/tools.ts:49). Con
+  // defaults distintos, cotizar y cobrar salían de dos ocupaciones distintas en
+  // los hoteles con tarifa por persona, que es justo lo que este archivo existe
+  // para evitar.
+  const adults = Math.max(1, Math.floor(Number(input.huespedes) || 2));
   const children = Math.max(0, Math.floor(Number(input.ninos) || 0));
-  const quantity = Math.max(1, Math.min(Math.floor(Number(input.unidades) || 1), MAX_UNIDADES));
+  // RECHAZAR, no recortar. `Math.min(unidades, MAX_UNIDADES)` convertía «7
+  // cabañas» en 5 y devolvía `ok:true`: se apartaban 5, se cobraban 5, y nada en
+  // la respuesta decía que se había recortado. Camila mandaba el link con el
+  // total de 5 creyendo que pedía 7, el huésped pagaba, y el día del viaje
+  // llegaban 20 personas a cinco cabañas. El comentario de MAX_UNIDADES ya
+  // declaraba la intención correcta —«el bot cierra reservas chicas; grupos
+  // grandes van a la web»—; sólo faltaba cumplirla en vez de mutilar la petición.
+  const pedidas = Math.max(1, Math.floor(Number(input.unidades) || 1));
+  if (pedidas > MAX_UNIDADES) {
+    return { ok: false, error: "demasiadas-unidades", maxUnidades: MAX_UNIDADES };
+  }
+  const quantity = pedidas;
   // La MISMA función que la caja del motor web: si no, los dos canales aceptan
   // reservas distintas por la misma estancia. El reparto de adultos entre
   // unidades lo hace este archivo más abajo, así que la ocupación pagada ya
@@ -182,8 +201,21 @@ export async function crearLinkReservaAgente(
 
   // Disponibilidad + asignación de UNIDADES concretas (mismo mecanismo que el
   // motor web: reservar nombres de unidad concretos hace que el candado atómico
-  // impida sobreventa). Fail-closed dentro de freeUnitsByType.
-  const typesAvail = await freeUnitsByType(hotel.id, hotel, input.checkin, input.checkout);
+  // impida sobreventa).
+  //
+  // La variante `Result` distingue "no hay lugar" de "no pude preguntarlo". La
+  // sorda —`freeUnitsByType`— devuelve ceros en los DOS casos, así que un hipo
+  // de Supabase acababa en `no-disponible` y Camila le decía «ya no hay ese
+  // cuarto» a alguien que acababa de darle nombre, correo y teléfono, en el
+  // momento exacto de máxima intención de compra. Ese arreglo ya se había hecho
+  // en el camino de CONSULTAR (lib/bot/tools.ts:64-67) y nunca se propagó al de
+  // COBRAR, que es donde duele.
+  const disp = await freeUnitsByTypeResult(hotel.id, hotel, input.checkin, input.checkout);
+  if (!disp.ok) {
+    console.error(`[agent-booking] no pude leer disponibilidad de ${hotel.slug}`);
+    return { ok: false, error: "servicio-no-disponible", detalle: "disponibilidad-ilegible" };
+  }
+  const typesAvail = disp.types;
   // Precio SIEMPRE server-side. Los adultos se REPARTEN entre las unidades: la
   // base a cada una y una persona más a las primeras `resto`.
   //

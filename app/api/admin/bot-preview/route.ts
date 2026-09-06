@@ -134,10 +134,18 @@ export async function POST(req: Request) {
         for (const tu of toolUses) {
           let out: unknown;
           if (tu.name === "checar_disponibilidad") {
-            const inp = (tu.input ?? {}) as { checkin?: string; checkout?: string };
-            out = await botAvailability(ctx.hotel, inp.checkin ?? "", inp.checkout ?? "").catch(
-              () => ({ error: "servicio-no-disponible" }),
-            );
+            // `huespedes` viaja hasta el precio: en un hotel con tarifas por
+            // número de personas, el total de 2 no es el de 5. Sin esto el chat
+            // de prueba cotizaba SIEMPRE para 2, así que el hotelero no tenía
+            // forma de detectar el desfase desde el panel — la pantalla donde
+            // justamente se le promete que verá "lo mismo que diría en vivo".
+            const inp = (tu.input ?? {}) as { checkin?: string; checkout?: string; huespedes?: number };
+            out = await botAvailability(
+              ctx.hotel,
+              inp.checkin ?? "",
+              inp.checkout ?? "",
+              Math.max(1, Math.floor(Number(inp.huespedes) || 2)),
+            ).catch(() => ({ error: "servicio-no-disponible" }));
           } else if (tu.name === "reservar") {
             out = {
               ok: false,

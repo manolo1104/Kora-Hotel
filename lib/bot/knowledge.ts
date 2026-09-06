@@ -70,8 +70,12 @@ export function buildHotelKnowledge(hotel: HotelRow): BotKnowledge {
     habitaciones: rooms.map((r) => ({
       nombre: r.name,
       descripcion: r.description ?? "",
+      // Un cuarto sin tarifa configurada vale 0, y "desde $0 MXN/noche" en el
+      // cerebro de Camila es una invitación a regalarlo. Se manda vacío para que
+      // el prompt diga "consultar precio" en vez de un número que no existe;
+      // `botAvailability` además ya no lo ofrece en la disponibilidad.
       desde: getRoomBasePrice(r, 2),
-      desdeTexto: formatMXN(getRoomBasePrice(r, 2)),
+      desdeTexto: getRoomBasePrice(r, 2) > 0 ? formatMXN(getRoomBasePrice(r, 2)) : "",
       maxHuespedes: r.maxGuests,
       camas: Array.isArray(r.camas) ? r.camas.map((c) => `${c.cantidad} ${c.tipo}`) : [],
       caracteristicas: Array.isArray(r.features) ? r.features : [],

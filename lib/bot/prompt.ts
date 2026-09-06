@@ -398,7 +398,12 @@ ${reglasLineas.join("\n")}\n`;
               ? ` Incluye: ${r.caracteristicas.join(", ")}.`
               : "";
           const acceso = r.accesibilidad ? ` Accesibilidad: ${r.accesibilidad}.` : "";
-          return `- ${r.nombre} (hasta ${r.maxHuespedes} huéspedes) — desde ${r.desdeTexto || `$${r.desde} MXN`}/noche.${camas}${caract}${acceso} ${r.descripcion || ""}`.trim();
+          // Sin tarifa configurada no se inventa un número: `desdeTexto` viene
+          // vacío y `desde` es 0, así que "desde $0 MXN/noche" era lo que leía
+          // Camila. Se dice que hay que consultarlo, que es la verdad.
+          const precio = r.desdeTexto || (r.desde ? `$${r.desde} MXN` : "");
+          const desde = precio ? `desde ${precio}/noche.` : "precio por consultar (usa checar_disponibilidad).";
+          return `- ${r.nombre} (hasta ${r.maxHuespedes} huéspedes) — ${desde}${camas}${caract}${acceso} ${r.descripcion || ""}`.trim();
         })
         .join("\n")
     : "(sin cuartos configurados)";
@@ -413,7 +418,12 @@ ${reglasLineas.join("\n")}\n`;
     : `- Cuando "reservar" devuelva ok:true, manda el link de pago (campo url) TAL CUAL, y resume en pocas líneas: cuarto, fechas, total, anticipo a pagar ahora y resto al llegar. Aclara que al pagar recibe su confirmación automática por correo.
 - Si "reservar" devuelve ok:false, traduce el error al huésped con amabilidad:
   · min-noches → esas fechas piden mínimo N noches.
-  · no-disponible / capacidad-insuficiente → ya no hay ese cuarto para esas fechas; ofrece otro tipo u otras fechas.
+  · no-disponible → ya no hay ese cuarto para esas fechas; ofrece otro tipo u otras fechas.
+  · capacidad-insuficiente → NO es que esté lleno: ese cuarto SÍ está libre, pero no le caben tantas personas. El error trae maxHuespedes: dile cuántas caben y ofrécele DOS unidades de ese tipo o un cuarto más grande. Nunca le digas que no hay lugar.
+  · demasiadas-unidades → puedes cerrar hasta maxUnidades cuartos por WhatsApp. Para un grupo más grande, dile que le pasas con una persona del hotel para armárselo bien.
+  · cuarto-no-encontrado → NO es que esté lleno. Ese nombre no existe como TIPO de cuarto; puede que te haya dado el nombre de la unidad física ("Cabaña 2") y el tipo se llame "Cabaña". Vuelve a intentarlo con el id que devolvió checar_disponibilidad; si aun así falla, pregúntale con naturalidad cuál de los tipos que le ofreciste quiere.
+  · fecha-pasada / fechas-invalidas → esas fechas ya pasaron o no se entendieron. Repregúntaselas con amabilidad y confirma el día de la semana.
+  · monto-invalido → ese cuarto todavía no tiene tarifa cargada. NO le des un precio ni le digas que es gratis: dile que lo confirmas con el hotel y ofrécele otro tipo de cuarto.
   · datos-incompletos → pide el dato que falta.
   · sin-pago / stripe-error → NO digas que hay un "problema técnico". Ofrece directamente las FORMAS DE PAGO de abajo (el link de reserva en línea con sus fechas y/o los datos de transferencia).
   · servicio-no-disponible → no se pudo apartar el cuarto en este momento. NUNCA digas que está lleno: ofrécele las FORMAS DE PAGO o el link de reserva en línea para que él mismo vea el calendario.`;
