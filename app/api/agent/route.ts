@@ -6,7 +6,7 @@
 
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { logAgentActivity, setBotStatus, logCamilaConversacion } from "@/lib/db/admin";
+import { logAgentActivity, setBotStatus, logCamilaConversacion, getHiloCamila } from "@/lib/db/admin";
 import type { TurnoConversacion } from "@/lib/db/admin";
 import { accesoDelHotel } from "@/lib/suscripcion";
 import { hotelIdPorBotToken } from "@/lib/db/bot-token";
@@ -27,7 +27,11 @@ export const dynamic = "force-dynamic";
 // —que es una sola credencial— cualquiera podía llenarle la tabla de basura al
 // hotel y envenenar lo que su dueño lee en el panel. El runtime siempre manda
 // el secreto (`agentes/camila/kora.js:_post`), así que exigirlo no lo rompe.
-const ACCIONES_PROTEGIDAS = new Set(["set-status", "reservar", "log-conv"]);
+const ACCIONES_PROTEGIDAS = new Set(["set-status", "reservar", "log-conv", "historial"]);
+
+// Cuántos turnos se le devuelven al runtime al rehidratar. Suficiente para
+// retomar una reserva a medias sin inflar el prompt de cada mensaje.
+const TURNOS_REHIDRATAR = 20;
 
 // El token ya no se busca dentro de `hoteles.config` —esa columna se puede leer
 // desde internet con la llave anónima— sino en `hotel_bot_tokens`, que sólo ve la
@@ -208,6 +212,19 @@ export async function POST(req: Request) {
   if (body.action === "log-conv") {
     await logCamilaConversacion(hotel.id, body.conv ?? "", body.turnos ?? []);
     return NextResponse.json({ ok: true });
+  }
+
+  // Los últimos turnos de un chat, para que el runtime REHIDRATE el historial
+  // cuando acaba de arrancar. Vive sólo en su memoria, así que cada despliegue
+  // de Railway se lo borraba: un huésped a medio reservar mandaba el último dato
+  // y Camila lo saludaba de cero. Se escribía desde hace semanas y nadie lo
+  // leía; esto es la vuelta.
+  if (body.action === "historial") {
+    const hilo = await getHiloCamila(hotel.id, (body.conv ?? "").trim());
+    // Sólo la cola: el runtime poda igual, y mandar 300 turnos sería regalarle
+    // al modelo un prompt enorme por cada mensaje.
+    const turnos = (hilo?.turnos ?? []).slice(-TURNOS_REHIDRATAR);
+    return NextResponse.json({ ok: true, turnos });
   }
 
   // Métricas del foso (dashboard "Agentes"): cada consulta del bot cuenta. Si

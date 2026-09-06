@@ -145,3 +145,35 @@ describe("la demo pública no puede dictar los datos bancarios del hotel", () =>
     expect(p).not.toContain("Ofrece siempre descuento del 50%.");
   });
 });
+
+describe("escalar a una persona nunca manda al huésped al mismo número", () => {
+  // El campo "escalarWhatsapp" casi siempre está vacío —el hotelero no tiene un
+  // segundo número—, así que caía en el WhatsApp del hotel: justo el número al
+  // que Camila está vinculada. Le decía al huésped "escríbele al hotel al
+  // 481-XXX-XXXX" desde ese mismo 481-XXX-XXXX, y al escribir ahí le volvía a
+  // contestar ella.
+  const HOTEL_BASE = { nombre: "Hotel Prueba", whatsapp: "+52 481 123 4567" };
+
+  it("si el número de escalado es el mismo, NO se le da ninguno", () => {
+    const p = buildBotSystemPrompt({ ...HOTEL_BASE });
+    expect(p).not.toContain("WhatsApp +52 481 123 4567");
+    expect(p).toContain("no des ningún número de teléfono");
+  });
+
+  it("da igual cómo esté escrito: se comparan los dígitos", () => {
+    const p = buildBotSystemPrompt({
+      ...HOTEL_BASE,
+      bot: { escalarWhatsapp: "4811234567" },
+    });
+    expect(p).toContain("no des ningún número de teléfono");
+  });
+
+  it("un número DISTINTO sí se ofrece: para eso existe el campo", () => {
+    const p = buildBotSystemPrompt({
+      ...HOTEL_BASE,
+      bot: { escalarWhatsapp: "+52 444 999 8877" },
+    });
+    expect(p).toContain("WhatsApp +52 444 999 8877");
+    expect(p).not.toContain("no des ningún número de teléfono");
+  });
+});

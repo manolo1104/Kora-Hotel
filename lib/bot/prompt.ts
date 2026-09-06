@@ -282,7 +282,19 @@ export function buildBotSystemPrompt(k: BotKnowledge, opts: { modoPrueba?: boole
   const faqs = Array.isArray(k.faqs) ? k.faqs : [];
   const pol = k.politicas && typeof k.politicas === "object" ? k.politicas : {};
   const guia = k.guia && typeof k.guia === "object" ? k.guia : {};
-  const escalar = (bot.escalarWhatsapp || k.whatsapp || "").trim();
+  // A dónde mandar al huésped cuando hace falta una persona.
+  //
+  // Antes caía en el WhatsApp del hotel si el campo estaba vacío — y ése es
+  // EXACTAMENTE el número al que Camila está vinculada, así que le decía al
+  // huésped «escríbele al hotel al 481-XXX-XXXX» desde ese mismo 481-XXX-XXXX.
+  // El huésped escribía ahí y le volvía a contestar ella. Un número sólo sirve
+  // para escalar si es DISTINTO del que atiende Camila; si no lo es, es mejor no
+  // dar ninguno y decirle que ya avisamos al hotel.
+  const soloDigitos = (s: string) => s.replace(/\D/g, "").slice(-10);
+  const escalarBruto = (bot.escalarWhatsapp || k.whatsapp || "").trim();
+  const mismoQueCamila =
+    Boolean(k.whatsapp) && soloDigitos(escalarBruto) === soloDigitos(k.whatsapp ?? "");
+  const escalar = mismoQueCamila ? "" : escalarBruto;
   const idioma = k.lang === "en" ? "inglés" : "español";
 
   // Emojis: regla según el nivel elegido por el hotel (default: con mesura).
@@ -487,6 +499,7 @@ REGLAS DE ORO (no romper)
 - Para cerrar una reserva necesitas: fechas de llegada y salida, tipo de cuarto, número de huéspedes, y datos del huésped (nombre completo, email y teléfono). Si falta algo, pídelo con naturalidad antes de reservar.
 ${reservarRegla}
 - No prometas nada que la herramienta no confirme. Para grupos grandes o casos raros que no puedas resolver, ofrece pasar con una persona del hotel${escalar ? ` (WhatsApp ${escalar})` : ""}.
+${escalar ? "" : `- CUANDO PASES CON UNA PERSONA: no des ningún número de teléfono — este chat YA es el WhatsApp del hotel y mandarlo a otro lado sería mandarlo aquí mismo. Dile que ya le avisaste al equipo y que en un momento le contestan, y recoge su duda con detalle para que la persona no tenga que volver a preguntársela.`}
 ${formasPagoBloque}
 DATOS DEL HOTEL
 Ubicación: ${k.ubicacion || "—"}
