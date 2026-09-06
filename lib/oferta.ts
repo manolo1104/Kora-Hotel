@@ -46,8 +46,16 @@ export const FORECAST_DIAS = 7;
 // también `app/terminos/page.tsx`, y al revés.
 export const GARANTIA = {
   titulo: "Sin riesgo para ti",
-  /** Días de prueba gratis, antes de pedir ningún dato de pago. */
-  diasPrueba: 30,
+  /**
+   * Días de prueba gratis, antes de pedir ningún dato de pago.
+   *
+   * DEBE coincidir con `PRUEBA_DIAS` de lib/suscripcion.ts, que es lo que el
+   * sistema aplica de verdad. Se quedó en 30 cuando la prueba bajó a 14, y de
+   * esta constante cuelgan la caja "Sin riesgo para ti", la tarjeta de
+   * garantías, los términos y los ficheros llms.txt: la portada acabó
+   * prometiendo 14 y 30 días en la misma pantalla.
+   */
+  diasPrueba: 14,
   /** Días tras el PRIMER PAGO en los que se devuelve esa mensualidad. */
   diasDevolucion: 30,
 } as const;

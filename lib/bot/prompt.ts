@@ -530,7 +530,11 @@ ${amen.length ? `AMENIDADES\n${amen.join(", ")}\n` : ""}${
       ? `ACCESIBILIDAD\n${k.accesibilidad ? `${k.accesibilidad}\n` : ""}- Si el huésped menciona movilidad reducida, silla de ruedas, adultos mayores o dificultad con escalones, comparte estos datos y recomiéndale el cuarto más accesible (la accesibilidad de cada cuarto está en CUARTOS). Si no tienes el dato, dilo con honestidad y ofrece confirmar con el hotel.\n`
       : ""
   }${experienciasBloque}${temporadasBloque}${reglasBloque}${
-    Object.keys(pol).length
+    // La guarda mira las claves DESPUÉS de filtrar las vacías: si no, un hotel
+    // con "mascotas" y "niños" en blanco y nada más se llevaba un encabezado
+    // POLÍTICAS con nada debajo, que es tan confuso para el modelo como la
+    // línea vacía que este filtro vino a quitar.
+    Object.entries(pol).filter(([, vv]) => String(vv ?? "").trim()).length
       ? `POLÍTICAS\n${Object.entries(pol)
           // Las claves VACÍAS no se listan. El editor del sitio guarda
           // "mascotas" y "niños" aunque el hotelero los deje en blanco, así que

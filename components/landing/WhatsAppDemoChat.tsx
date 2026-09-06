@@ -13,8 +13,13 @@ const SALUDO =
 // link de pago; decirlo así vende mejor que prometerlo y quedarse corto.
   "¡Hola! 👋 Soy Camila, la asistente del hotel. Pregúntame lo que quieras: precios, qué incluye, si aceptamos mascotas… lo que un huésped te preguntaría. (Con tu hotel conectado también consulto disponibilidad real y mando el link de pago.)";
 
+// Las tres preguntas de un clic. La primera era "¿tienen disponibilidad este
+// fin de semana?" — justo lo único que este chat NO puede hacer, porque corre
+// sin herramientas: el saludo lo advierte y el primer botón invitaba a
+// desmentirlo. Se cambia por algo que Camila responde bien aquí y que además
+// enseña lo que de verdad vende.
 const SUGERENCIAS = [
-  "¿Tienen disponibilidad este fin de semana?",
+  "¿Qué incluye la habitación?",
   "¿Cuánto cuesta la habitación más económica?",
   "¿Aceptan mascotas?",
 ];

@@ -41,6 +41,7 @@ export default async function ReservasPage({ params }: { params: Promise<{ slug:
       verDinero={puedeCtx(ctx, 'reservas:dinero')}
       verTotalPeriodo={puedeCtx(ctx, 'ingresos:ver')}
       verAcciones={puedeCtx(ctx, 'reservas:escribir')}
+      puedeCancelar={puedeCtx(ctx, 'reservas:cancelar')}
     />
   );
 }

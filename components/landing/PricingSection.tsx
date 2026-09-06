@@ -34,7 +34,7 @@ const garantias = [
     icon: ShieldCheck,
     titulo: "14 días gratis, sin tarjeta",
     texto:
-      "Carga tu hotel y usa Kora completo un mes sin dar ningún dato de pago. Activas tu plan solo si te convence.",
+      "Carga tu hotel y usa Kora completo dos semanas sin dar ningún dato de pago. Activas tu plan solo si te convence.",
   },
   {
     icon: BadgeCheck,

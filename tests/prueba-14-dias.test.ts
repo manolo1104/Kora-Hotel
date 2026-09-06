@@ -71,3 +71,14 @@ describe("lo que no cambia", () => {
     expect(p!.fin.getTime()).toBe(Date.parse("2026-07-10T00:00:00-06:00") + 30 * DIA);
   });
 });
+
+describe("una sola verdad sobre cuántos días dura la prueba", () => {
+  // Esto es lo que falló al desplegar: `PRUEBA_DIAS` bajó a 14 y `GARANTIA.diasPrueba`
+  // se quedó en 30, así que la portada prometía 14 arriba y 30 tres párrafos más
+  // abajo, en la misma pantalla. De esa constante cuelgan además la tarjeta de
+  // garantías, los términos y los ficheros llms.txt que leen ChatGPT y Perplexity.
+  it("la constante de marketing dice lo mismo que la que aplica el sistema", async () => {
+    const { GARANTIA } = await import("@/lib/oferta");
+    expect(GARANTIA.diasPrueba).toBe(PRUEBA_DIAS);
+  });
+});

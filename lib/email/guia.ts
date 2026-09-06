@@ -259,7 +259,7 @@ function guia14({ nombre, token }: DatosGuia) {
       "Los correos automáticos al huésped: confirmación, llegada y reseña",
     ]) +
     caja(
-      `<strong>$550 MXN al mes.</strong> Fijo. Sin comisión por reserva, sin contrato y sin costo de instalación. Los primeros 30 días no se cobran. Si con una reserva directa al mes ya lo pagaste, el resto del año es tuyo.`,
+      `<strong>$550 MXN al mes.</strong> Fijo. Sin comisión por reserva, sin contrato y sin costo de instalación. Los primeros 14 días no se cobran. Si con una reserva directa al mes ya lo pagaste, el resto del año es tuyo.`,
       "exito",
     ) +
     boton(`${SITE}/precios`, "Ver cómo funciona") +
@@ -278,7 +278,7 @@ function guia14({ nombre, token }: DatosGuia) {
     subject: `${first}, el último correo (y una invitación)`,
     html: doc(
       "La invitación — Kora",
-      "$550 al mes, 30 días sin cobro y sin contrato. O quédate con la guía y armalo tú.",
+      "$550 al mes, 14 días sin cobro y sin contrato. O quédate con la guía y armalo tú.",
       inner,
     ),
   };

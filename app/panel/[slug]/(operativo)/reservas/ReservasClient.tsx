@@ -92,6 +92,8 @@ interface Props {
    * cerrada se lee como que el panel se descompuso.
    */
   verAcciones?: boolean;
+  /** `reservas:cancelar` es de MANDO: recepción registra y edita, pero no cancela. */
+  puedeCancelar?: boolean;
 }
 
 export default function ReservasClient({
@@ -102,6 +104,7 @@ export default function ReservasClient({
   verDinero = true,
   verTotalPeriodo = true,
   verAcciones = true,
+  puedeCancelar = true,
 }: Props) {
   // slug se usa para resolver el catálogo de tours/paquetes por hotel en el modal.
   const SUITES = useMemo(() => rooms.map(r => r.name), [rooms]);
@@ -676,6 +679,7 @@ export default function ReservasClient({
 
       {modal && (
         <ReservationModal
+          puedeCancelar={puedeCancelar}
           booking={modal.mode === 'edit' ? modal.booking : undefined}
           rooms={rooms}
           nightOpts={nightOpts}

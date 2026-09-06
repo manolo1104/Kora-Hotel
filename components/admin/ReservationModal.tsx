@@ -188,11 +188,19 @@ interface Props {
    * aquí" marcada, para que registrar y ocupar el cuarto sea un solo gesto.
    */
   walkin?: boolean;
+  /**
+   * ¿Esta persona puede CANCELAR? Es un permiso de mando (`reservas:cancelar`),
+   * distinto del de escribir. Recepción registra y edita reservas, pero no las
+   * cancela — y hasta ahora veía el botón igual y se llevaba un "Error al
+   * cancelar" al pulsarlo, porque la API sí se lo niega. Un botón que existe y
+   * no funciona es peor que uno que no está.
+   */
+  puedeCancelar?: boolean;
   onClose: () => void;
   onSaved: () => void;
 }
 
-export default function ReservationModal({ booking, rooms, nightOpts = {}, slug, defaultCheckin, defaultRoom, walkin = false, onClose, onSaved }: Props) {
+export default function ReservationModal({ booking, rooms, nightOpts = {}, slug, defaultCheckin, defaultRoom, walkin = false, puedeCancelar = true, onClose, onSaved }: Props) {
   const isEdit = !!booking;
   // Lista las UNIDADES físicas (no los tipos): un tipo con cantidad N aporta sus
   // N unidades. Así el hotelero elige la unidad exacta y no sobrevende un tipo.
@@ -675,7 +683,7 @@ export default function ReservationModal({ booking, rooms, nightOpts = {}, slug,
             verDinero
             puedeEditar
             onEditar={() => setEditando(true)}
-            onCancelarReserva={handleCancel}
+            onCancelarReserva={puedeCancelar ? handleCancel : undefined}
             onClose={onClose}
           />
         </div>
@@ -1032,7 +1040,7 @@ export default function ReservationModal({ booking, rooms, nightOpts = {}, slug,
           </div>
 
           <div className={styles.actions}>
-            {isEdit && (
+            {isEdit && puedeCancelar && (
               <button type="button" className={styles.dangerBtn} onClick={handleCancel} disabled={loading}>
                 Cancelar reserva
               </button>

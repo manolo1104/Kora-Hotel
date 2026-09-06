@@ -51,7 +51,12 @@ interface Props {
   /** ¿Puede editar y cancelar? */
   puedeEditar: boolean;
   onEditar: () => void;
-  onCancelarReserva: () => void;
+  /**
+   * Opcional: sin permiso de cancelar (recepción), no se pasa y el botón no se
+   * pinta. Antes se pintaba siempre y al pulsarlo salía "Error al cancelar",
+   * porque la API sí mira el permiso.
+   */
+  onCancelarReserva?: () => void;
   onClose: () => void;
 }
 
@@ -135,7 +140,7 @@ export default function FichaReserva({
       </div>
 
       <div className={styles.actions}>
-        {puedeEditar && (
+        {puedeEditar && onCancelarReserva && (
           <button type="button" className={styles.dangerBtn} onClick={onCancelarReserva}>
             Cancelar reserva
           </button>

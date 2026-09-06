@@ -1,4 +1,4 @@
-import { negar } from "@/lib/panel/permisos";
+import { negar, puedeCtx } from "@/lib/panel/permisos";
 // Configuración + entrenamiento de Camila para el hotel de la cuenta activa.
 // GET: estado (on/off, idioma), entrenamiento actual (extras.bot) y un resumen de
 // "lo que Camila ya sabe" (sacado ESTRICTAMENTE de los datos de este hotel).
@@ -22,6 +22,14 @@ export async function GET() {
   const noLee = negar(ctx, "bot:leer");
   if (noLee) return noLee;
 
+  // La CLABE y el número admin son del DUEÑO. `bot:leer` es de mando, así que
+  // la encargada abre esta pantalla — y hasta ahora se llevaba la cuenta de
+  // banco entera en la respuesta. Poder verla es media fuga: el aviso de la
+  // pantalla de equipo le promete al dueño que esos datos son sólo suyos.
+  // Se le mandan vacíos, y el POST de abajo ignora lo que devuelva, así que
+  // reenviar el formulario no los borra.
+  const puedeConfigurar = puedeCtx(ctx, "bot:configurar");
+
   const hotel = ctx.hotel;
   const cfg = (hotel.config ?? {}) as Record<string, unknown>;
   const extras = (hotel.extras ?? {}) as Record<string, unknown>;
@@ -34,20 +42,24 @@ export async function GET() {
     enabled: cfg.bot_enabled === undefined ? true : cfg.bot_enabled !== false,
     lang: cfg.bot_lang === "en" ? "en" : "es",
     whatsapp: hotel.whatsapp, // default para "escalar a humano"
-    adminPhone: str(cfg.bot_admin_phone, 40) ?? "", // número que puede apagar/encender por WhatsApp
+    adminPhone: puedeConfigurar ? (str(cfg.bot_admin_phone, 40) ?? "") : "",
+    // Para que el panel sepa esconder esos campos en vez de enseñarlos vacíos.
+    puedeConfigurar,
     bot: {
       nombre: str(bot.nombre) ?? "",
       tono: str(bot.tono) ?? "",
       saludo: str(bot.saludo) ?? "",
       instrucciones: str(bot.instrucciones) ?? "",
       escalarWhatsapp: str(bot.escalarWhatsapp) ?? "",
-      pago: {
-        titular: str(pago.titular) ?? "",
-        banco: str(pago.banco) ?? "",
-        clabe: str(pago.clabe) ?? "",
-        cuenta: str(pago.cuenta) ?? "",
-        notas: str(pago.notas) ?? "",
-      },
+      pago: puedeConfigurar
+        ? {
+            titular: str(pago.titular) ?? "",
+            banco: str(pago.banco) ?? "",
+            clabe: str(pago.clabe) ?? "",
+            cuenta: str(pago.cuenta) ?? "",
+            notas: str(pago.notas) ?? "",
+          }
+        : { titular: "", banco: "", clabe: "", cuenta: "", notas: "" },
       emojis: {
         nivel: ["nada", "bajo", "medio", "alto"].includes(emojis.nivel as string)
           ? (emojis.nivel as string)
@@ -99,12 +111,25 @@ export async function POST(req: Request) {
   //
   // Antes ninguna de las seis rutas `bot-*` miraba el rol: bastaba ser miembro,
   // así que recepción, cocina o limpieza podían hacer las dos cosas.
-  const tocaPago =
-    !!body.bot && typeof body.bot === "object" && "pago" in (body.bot as Record<string, unknown>);
-  const tocaAdminPhone = typeof body.adminPhone === "string";
-  if (tocaPago || tocaAdminPhone) {
-    const noEsDueno = negar(ctx, "bot:configurar");
-    if (noEsDueno) return noEsDueno;
+  // SE DESCARTA LO PROTEGIDO, NO SE RECHAZA TODO.
+  //
+  // Antes bastaba con que la clave `pago` VINIERA en el cuerpo para exigir
+  // `bot:configurar`, y el autoguardado del panel manda siempre el objeto `bot`
+  // entero — pago incluido, aunque el hotelero sólo haya tocado el saludo. Al
+  // cerrar la escalada de permisos, la encargada dejó de tener ese permiso y con
+  // él perdió la capacidad de guardar NADA: cada tecla acababa en un 403 que el
+  // panel enseñaba como un fallo de conexión.
+  //
+  // Lo que protege la CLABE no es rechazar la petición entera: es no escribirla.
+  // Quien no puede configurar guarda su entrenamiento y los campos del dueño se
+  // quedan como estaban. Y como el GET tampoco se los manda, reenviar el
+  // formulario no los borra.
+  const puedeConfigurar = puedeCtx(ctx, "bot:configurar");
+  if (!puedeConfigurar) {
+    if (body.bot && typeof body.bot === "object") {
+      delete (body.bot as Record<string, unknown>).pago;
+    }
+    delete body.adminPhone;
   }
 
   const input: {
