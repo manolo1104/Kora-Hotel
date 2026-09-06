@@ -7,7 +7,11 @@ import { WindowFrame } from "@/components/landing/ProductMockups";
 type Msg = { from: "guest" | "bot"; text: string };
 
 const SALUDO =
-  "¡Hola! 👋 Soy Camila, la asistente del hotel. Pregúntame lo que quieras: disponibilidad, precios, si aceptamos mascotas… lo que un huésped te preguntaría.";
+  // Este chat corre SIN herramientas a propósito (es la landing pública, no puede
+// tocar el calendario de un hotel real), así que el saludo no invita a lo que
+// aquí no se puede hacer. En vivo sí consulta disponibilidad real y manda el
+// link de pago; decirlo así vende mejor que prometerlo y quedarse corto.
+  "¡Hola! 👋 Soy Camila, la asistente del hotel. Pregúntame lo que quieras: precios, qué incluye, si aceptamos mascotas… lo que un huésped te preguntaría. (Con tu hotel conectado también consulto disponibilidad real y mando el link de pago.)";
 
 const SUGERENCIAS = [
   "¿Tienen disponibilidad este fin de semana?",

@@ -1629,7 +1629,7 @@ export async function saveBotConfig(
     prueba?: boolean; // una interacción de prueba exitosa: incrementa extras.bot.pruebas
     bot?: BotTrainingInput;
   },
-): Promise<void> {
+): Promise<boolean> {
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("hoteles")
@@ -1638,7 +1638,7 @@ export async function saveBotConfig(
     .maybeSingle();
   if (error) {
     console.error("saveBotConfig read error:", error.message);
-    return;
+    return false;
   }
   const row = data as {
     config: Record<string, unknown> | null;
@@ -1668,7 +1668,16 @@ export async function saveBotConfig(
     .from("hoteles")
     .update({ config, extras })
     .eq("id", hotelId);
-  if (updErr) console.error("saveBotConfig write error:", updErr.message);
+  // Devuelve si de verdad se guardó. Antes se tragaba el error con un
+  // console.error y la ruta contestaba "ok" igual: el panel enseñaba "Guardado ✓"
+  // y movía el interruptor aunque en la base no hubiera cambiado nada. El
+  // hotelero se iba creyendo que había apagado a Camila, o que su entrenamiento
+  // estaba puesto, y no lo estaba.
+  if (updErr) {
+    console.error("saveBotConfig write error:", updErr.message);
+    return false;
+  }
+  return true;
 }
 
 // ── AGENT METRICS (tabla agent_activity — sql/kora-agent-activity.sql) ────────

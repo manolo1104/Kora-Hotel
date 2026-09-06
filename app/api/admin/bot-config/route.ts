@@ -159,6 +159,17 @@ export async function POST(req: Request) {
     };
   }
 
-  await saveBotConfig(ctx.hotelId, input);
-  return NextResponse.json({ ok: true });
+  // Si no se guardó, se dice: el panel enseña "Guardado ✓" y mueve el
+  // interruptor con este `ok`, así que un ok:true de mentira le hacía creer al
+  // hotelero que había apagado a Camila (o que su entrenamiento estaba puesto)
+  // cuando en la base no había cambiado nada.
+  const guardado = await saveBotConfig(ctx.hotelId, input);
+  if (!guardado) {
+    return NextResponse.json({ ok: false, error: "no-guardado" }, { status: 503 });
+  }
+  // Lo que de VERDAD quedó guardado, no lo que se mandó: los textos se recortan
+  // al guardar (tono 2000, instrucciones 4000…) y el panel seguía enseñando el
+  // texto completo con un "Guardado" al lado. Devolverlo deja que la pantalla
+  // muestre lo que existe.
+  return NextResponse.json({ ok: true, bot: input.bot ?? null });
 }

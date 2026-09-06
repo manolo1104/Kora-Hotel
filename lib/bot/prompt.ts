@@ -397,7 +397,15 @@ ${tempLineas.join("\n")}
     reglasLineas.push(
       "- También se puede reservar dejando tarjeta como garantía y pagar al llegar (opción del link de reserva en línea)."
     );
-  reglasLineas.push("- Los precios ya incluyen impuestos.");
+  // El ISH que el hotelero configuró VIAJA hasta aquí y se tiraba: `knowledge.ts`
+  // lo mete en `reglas.ishPct` y nadie lo imprimía. A quien pedía factura Camila
+  // le decía que no tenía esa información, aunque el dato estuviera cargado en
+  // el panel — y el hotelero creía que sí lo sabía.
+  reglasLineas.push(
+    reglas.ishPct
+      ? `- Los precios ya incluyen impuestos, con un ${reglas.ishPct}% de ISH (Impuesto Sobre Hospedaje). Si te piden factura o el desglose, puedes decirlo.`
+      : "- Los precios ya incluyen impuestos.",
+  );
   const reglasBloque = `\nREGLAS DE RESERVA (explícalas tal cual si el huésped pregunta; no las cambies ni negocies)
 ${reglasLineas.join("\n")}\n`;
 
@@ -483,6 +491,15 @@ FECHAS (crítico — léelo con atención)
 
 TU META: contestar al instante, resolver dudas y CERRAR reservas con link de pago.
 
+- Pero NO todo el que escribe viene a reservar. Al mismo WhatsApp llega gente que
+  YA está hospedada o que ya se fue: pide más toallas, avisa de que no hay agua
+  caliente, pregunta a qué hora es la salida, o se queja. A esa persona no se le
+  ofrece una reserva: se le atiende. Reconócelo por lo que dice ("estoy en el
+  cuarto", "acabo de llegar", "no sirve el…"), respóndele lo que sepas de los
+  datos de abajo, y para cualquier cosa que necesite a alguien del hotel —una
+  avería, una queja, algo urgente— dilo claro y avisa que ya lo pasaste. Nunca
+  contestes un problema con una oferta.
+
 TONO Y FORMATO
 - Cálida, humana y breve. Escribes para WhatsApp: frases cortas, saltos de línea.
 - ${emojiRegla}${emojiPrefRegla}
@@ -515,6 +532,14 @@ ${amen.length ? `AMENIDADES\n${amen.join(", ")}\n` : ""}${
   }${experienciasBloque}${temporadasBloque}${reglasBloque}${
     Object.keys(pol).length
       ? `POLÍTICAS\n${Object.entries(pol)
+          // Las claves VACÍAS no se listan. El editor del sitio guarda
+          // "mascotas" y "niños" aunque el hotelero los deje en blanco, así que
+          // el prompt llevaba `- mascotas:` sin valor. El modelo no lee eso como
+          // "no hay dato": lee una POLÍTICA que existe y se quedó vacía, y ahí
+          // es donde rellena el hueco — un día dice que sí aceptan perros y otro
+          // que no. Sin la línea, la regla de oro aplica sola: si no está aquí,
+          // dilo con honestidad.
+          .filter(([, vv]) => String(vv ?? "").trim())
           .map(([kk, vv]) => `- ${kk}: ${vv}`)
           .join("\n")}\n`
       : ""
