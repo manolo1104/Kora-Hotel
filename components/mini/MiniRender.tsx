@@ -516,7 +516,16 @@ export function MiniRender({
           <div className="space-y-4">
             {habitaciones.map((h, i) => {
               const precio = precioDesde(h);
-              const tarifas = (h.tarifas ?? []).filter((t) => aNumero(t.precio) > 0);
+              // Mismo filtro que el "desde": un escalón para más gente de la que
+              // cabe no se enseña. El Paraíso tiene una suite de 4 con una fila
+              // de "5p $1,500" — un precio que nadie puede pedir, junto a otro
+              // más caro para menos personas. Confunde y parece un error.
+              const capChip = aNumero(h.capacidad);
+              const tarifas = (h.tarifas ?? []).filter(
+                (t) =>
+                  aNumero(t.precio) > 0 &&
+                  (!capChip || !aNumero(t.personas) || aNumero(t.personas) <= capChip),
+              );
               const fotosHab = h.fotos ?? [];
               const reservarHab: Boton = {
                 id: `hab-${i}`,
