@@ -39,7 +39,12 @@ const SIN_PENSAR_ES_SEGURO =
 // vez que no cabía el turno salía cortado a media frase. Subirlo no encarece los
 // turnos normales —se paga lo que se genera, no el tope— y aleja el corte.
 const MAX_TOKENS = Number(process.env.CAMILA_MAX_TOKENS || 2000);
-const MAX_HISTORY = Number(process.env.CAMILA_MAX_HISTORY || 20); // pares de turnos
+// MENSAJES, no "pares de turnos" como decía este comentario. Con herramientas,
+// un solo intercambio ocupa hasta cuatro entradas (user, assistant+tool_use,
+// user+tool_result, assistant), así que 20 son ~5 intercambios reales y no 20:
+// la memoria efectiva de Camila era mucho más corta de lo que parecía, y en una
+// reserva larga se le olvidaba lo que el huésped había dicho al principio.
+const MAX_HISTORY = Number(process.env.CAMILA_MAX_HISTORY || 40); // MENSAJES
 const MAX_TOOL_ITERS = 6; // tope de vueltas de herramientas por turno
 
 const HERRAMIENTAS = [
@@ -285,5 +290,11 @@ function recortarHistorial(messages) {
     if (m.role === "user" && !esToolResult) break; // arranca limpio en un user normal
     start++;
   }
-  return start >= messages.length ? messages.slice(-2) : messages.slice(start);
+  // Si no quedó ningún `user` limpio donde empezar, se devuelve VACÍO.
+  //
+  // Antes se devolvían los dos últimos mensajes, y ésa era la única rama que
+  // podía dejar el historial empezando por un `tool_result` huérfano — justo lo
+  // que la función existe para evitar, y lo que la API rechaza. Perder el
+  // contexto es malo; dejar el chat inservible para siempre lo es más.
+  return start >= messages.length ? [] : messages.slice(start);
 }

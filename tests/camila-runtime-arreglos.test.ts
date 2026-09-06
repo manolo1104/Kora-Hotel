@@ -3,12 +3,11 @@
 // directamente— porque son la mitad que habla con los huéspedes y la que menos
 // cobertura tenía.
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-// @ts-expect-error — el runtime es JS sin tipos, a propósito (corre en Railway).
 import { KoraHotel } from "../agentes/camila/kora.js";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-const HOTEL = { id: "h1", slug: "hotel-prueba", nombre: "Hotel", token: "tok", lang: "es" };
+const HOTEL = { id: "h1", slug: "hotel-prueba", nombre: "Hotel", token: "tok", lang: "es" } as const;
 
 function respuesta(body: unknown, ok = true) {
   return { ok, status: ok ? 200 : 500, json: async () => body };

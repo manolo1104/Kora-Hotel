@@ -43,8 +43,10 @@ npm run check             # verifica sintaxis de todos los módulos
 npm start                 # abre http://localhost:3001 y escanea el QR
 ```
 
-Con `KORA_FLEET` puedes probar contra un hotel real de Kora sin exponer el
-secreto de plataforma:
+Con `KORA_FLEET` puedes probar contra un hotel real de Kora sin el secreto de
+plataforma — **pero ojo**: `/api/agent` sí exige `BOT_FLEET_SECRET` para
+`reservar`, `set-status`, `log-conv` e `historial`, así que sin él Camila
+conversa y cotiza en local, y todo lo que escribe o cobra responde 403:
 
 ```
 KORA_FLEET=[{"slug":"mi-hotel","nombre":"Mi Hotel","token":"kora_...","lang":"es"}]
@@ -59,7 +61,10 @@ KORA_FLEET=[{"slug":"mi-hotel","nombre":"Mi Hotel","token":"kora_...","lang":"es
    para no re-escanear el QR en cada redeploy.
 3. Variables: `ANTHROPIC_API_KEY`, `KORA_BASE_URL`, `BOT_FLEET_SECRET`
    (igual que en Vercel), opcional `CAMILA_MODEL`.
-4. Abre la URL pública del servicio: verás el estado de cada hotel y el QR pendiente.
+4. **No abras la URL pública esperando una pantalla**: la página de estado se
+   borró (servía el QR de vinculación de cualquier hotel sin pedir nada) y todo
+   lo que no sea `/health` exige el secreto de flota. El estado y el QR se ven
+   en el panel de Kora, en la pantalla de Camila del hotel.
 
 ## Notas y límites (honestas)
 
@@ -72,8 +77,13 @@ KORA_FLEET=[{"slug":"mi-hotel","nombre":"Mi Hotel","token":"kora_...","lang":"es
   requiere `CAMILA_HUMAN_TAKEOVER=1`. Está apagada a propósito: con el formato
   `@lid`, whatsapp-web.js reporta mal `fromMe` en mensajes ENTRANTES y pausaba
   chats sin razón, dejando a Camila muda sin causa aparente.
-- **Costo de IA:** por defecto `claude-sonnet-5` (`brain.js:15`). Para volumen, pon
-  `CAMILA_MODEL=claude-sonnet-5` (o `claude-haiku-4-5`).
+- **Costo de IA:** por defecto `claude-sonnet-5` ($2/$10 por millón de tokens).
+  El consejo que había aquí era un no-op: decía "para bajar costo pon
+  `claude-sonnet-5`", que es exactamente el modelo por defecto. El que baja el
+  costo a la mitad es `CAMILA_MODEL=claude-haiku-4-5` ($1/$5) — a cambio de
+  menos criterio razonando fechas y disponibilidad, que es justo lo que hace
+  este bot. Antes de bajar de modelo conviene mirar la caché del prompt, que sale
+  gratis.
 - **RAM:** cada hotel = un Chromium (~250–400 MB). Para muchas sesiones en un solo
   contenedor conviene subir el plan o repartir en varios servicios.
 - **Historial** de conversación es en memoria (se pierde al reiniciar). Suficiente

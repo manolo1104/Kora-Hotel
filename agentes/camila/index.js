@@ -86,7 +86,13 @@ function purgarChatsInactivos() {
     if (at > corte) continue;
     // Un turno a medias NO se purga: se acabaría borrando su historial debajo.
     if (enCurso.has(key)) continue;
+    // Ni un mensaje ESPERANDO su debounce. `ultimaActividad` sólo se toca al
+    // empezar a procesar un turno, así que un huésped que escribe justo cuando
+    // toca la purga —o que vuelve tras 6 h de silencio— tenía su mensaje en la
+    // cola con el temporizador armado, y la purga lo cancelaba y lo borraba.
+    // Ese mensaje se perdía sin respuesta y sin dejar rastro en ningún log.
     const pend = pendientes.get(key);
+    if (pend && pend.textos && pend.textos.length) continue;
     if (pend && pend.timer) clearTimeout(pend.timer);
     historiales.delete(key);
     pendientes.delete(key);
@@ -669,6 +675,24 @@ async function sincronizarFleet() {
       return;
     }
     const enFleet = new Map(hotels.map((h) => [h.slug, h]));
+
+    // APAGAR PRIMERO, ARRANCAR DESPUÉS.
+    //
+    // El orden estaba al revés y por eso cambiar el slug de un hotel levantaba
+    // un SEGUNDO Chromium sobre la misma carpeta de sesión antes de cerrar el
+    // primero: `clientes` se indexa por slug, pero la sesión en disco se llama
+    // por el uuid del hotel, así que el runtime veía "un hotel nuevo que
+    // arrancar" y "uno viejo que apagar" — el mismo, con el mismo perfil de
+    // Chromium abierto dos veces. Dos navegadores sobre el mismo LevelDB pueden
+    // corromper las credenciales y obligar a re-escanear el QR.
+    //
+    // `pararHotel` hace `await client.destroy()`, así que ahora el perfil queda
+    // libre antes de que nadie lo vuelva a abrir. Es el mismo patrón que la rama
+    // de reintento ya usaba bien.
+    for (const slug of [...clientes.keys()]) {
+      if (!enFleet.has(slug)) await pararHotel(slug);
+    }
+
     // Arrancar los que están en el fleet y aún no corren.
     for (const hotel of hotels) {
       const st = estado.get(hotel.slug);
@@ -737,10 +761,6 @@ async function sincronizarFleet() {
         // arrancado no volvía a mirar su token nunca más.
         clientes.get(hotel.slug).kora.actualizar(hotel);
       }
-    }
-    // Apagar los que corren pero ya NO están en el fleet.
-    for (const slug of [...clientes.keys()]) {
-      if (!enFleet.has(slug)) await pararHotel(slug);
     }
     purgarChatsInactivos();
   } catch (e) {
