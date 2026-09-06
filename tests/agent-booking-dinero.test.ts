@@ -14,11 +14,12 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const freeUnitsByTypeResult = vi.fn();
 const apartarUnidades = vi.fn();
 const getConnectState = vi.fn();
+const releaseHold = vi.fn(async () => true);
 
 vi.mock("@/lib/db/availability", () => ({
   freeUnitsByTypeResult: (...a: unknown[]) => freeUnitsByTypeResult(...(a as [])),
   apartarUnidades: (...a: unknown[]) => apartarUnidades(...(a as [])),
-  releaseHold: async () => {},
+  releaseHold: (...a: unknown[]) => releaseHold(...(a as [])),
 }));
 vi.mock("@/lib/stripe/connect", () => ({ getConnectState: (...a: unknown[]) => getConnectState(...(a as [])) }));
 vi.mock("@/lib/stripe/server", () => ({
@@ -141,5 +142,36 @@ describe("cotizar y cobrar parten del mismo supuesto de ocupación", () => {
     expect(dos.ok && cuatro.ok).toBe(true);
     if (!dos.ok || !cuatro.ok) return;
     expect(cuatro.total).toBeGreaterThan(dos.total);
+  });
+});
+
+describe("un apartado por conversación, no uno por cambio de opinión", () => {
+  // Antes cada llamada creaba un `bot_<uuid>` nuevo y nada soltaba el anterior:
+  // «mejor una noche más» + «mejor la otra cabaña» dejaba tres cuartos
+  // bloqueados 45 minutos en un hotel que quizá sólo tiene tres.
+  it("el mismo teléfono reusa su apartado, y suelta el anterior antes de pedir otro", async () => {
+    await crearLinkReservaAgente(HOTEL, { ...RESERVA, huespedes: 2, conv: "5214811234567" }, "https://kora.test");
+    expect(releaseHold).toHaveBeenCalledWith("h1", "bot_c_5214811234567");
+    const sesion = apartarUnidades.mock.calls[0][4];
+    expect(sesion).toBe("bot_c_5214811234567");
+  });
+
+  it("dos peticiones seguidas del mismo huésped usan el MISMO apartado", async () => {
+    await crearLinkReservaAgente(HOTEL, { ...RESERVA, huespedes: 2, conv: "5214811234567" }, "https://kora.test");
+    await crearLinkReservaAgente(HOTEL, { ...RESERVA, huespedes: 4, conv: "5214811234567" }, "https://kora.test");
+    expect(apartarUnidades.mock.calls[0][4]).toBe(apartarUnidades.mock.calls[1][4]);
+  });
+
+  it("huéspedes distintos NO comparten apartado", async () => {
+    await crearLinkReservaAgente(HOTEL, { ...RESERVA, huespedes: 2, conv: "5214811111111" }, "https://kora.test");
+    await crearLinkReservaAgente(HOTEL, { ...RESERVA, huespedes: 2, conv: "5214812222222" }, "https://kora.test");
+    expect(apartarUnidades.mock.calls[0][4]).not.toBe(apartarUnidades.mock.calls[1][4]);
+  });
+
+  // Sin `conv` (el motor viejo, o una llamada sin teléfono) todo sigue como antes.
+  it("sin conversación se comporta como siempre: id único y sin liberar nada", async () => {
+    await crearLinkReservaAgente(HOTEL, { ...RESERVA, huespedes: 2 }, "https://kora.test");
+    expect(releaseHold).not.toHaveBeenCalled();
+    expect(String(apartarUnidades.mock.calls[0][4])).toMatch(/^bot_[0-9a-f-]{36}$/);
   });
 });

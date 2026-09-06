@@ -268,6 +268,9 @@ export async function POST(req: Request) {
         email: body.email ?? null,
         telefono: body.telefono ?? null,
         lang: body.lang,
+        // El teléfono del chat, para que este huésped reuse SU apartado en vez
+        // de bloquear un cuarto más cada vez que cambia de opinión.
+        conv,
       },
       origin,
     );

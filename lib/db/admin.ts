@@ -1821,6 +1821,104 @@ export async function logCamilaConversacion(
   }
 }
 
+/** Un hilo de WhatsApp entre un huésped y Camila, tal como lo lee el panel. */
+export interface HiloCamila {
+  chatId: string;
+  /** El teléfono en bonito: "+52 481 123 4567" cuando se puede. */
+  telefono: string;
+  ultimoAt: string;
+  mensajes: number;
+  /** Sólo en el listado: las primeras palabras del último mensaje. */
+  ultimoTexto?: string;
+  /** Sólo al abrir un hilo. */
+  turnos?: TurnoConversacion[];
+}
+
+/** Tope del listado. Es un panel para leer, no un exportador. */
+const CAMILA_HILOS_MAX = 200;
+
+/** El teléfono de un chat_id de WhatsApp (`5214811234567@c.us` → +52 481 123 4567). */
+function telefonoLegible(chatId: string): string {
+  const d = chatId.split("@")[0].replace(/\D/g, "");
+  if (d.length < 10) return chatId.split("@")[0] || chatId;
+  const n = d.slice(-10);
+  const lada = d.length > 10 ? `+${d.slice(0, d.length - 10).replace(/^521$/, "52")} ` : "";
+  return `${lada}${n.slice(0, 3)} ${n.slice(3, 6)} ${n.slice(6)}`;
+}
+
+/**
+ * Los hilos de un hotel, del más reciente al más viejo.
+ *
+ * La tabla `camila_conversaciones` llevaba semanas llenándose y NADIE la leía —
+ * no existía una sola función de lectura en todo el repo—, mientras la página de
+ * venta le promete al hotelero que «todas las conversaciones quedan en tu panel
+ * y puedes leerlas» (lib/whatsapp.ts:499). Esto es esa lectura.
+ *
+ * FAIL-SAFE como el resto de este archivo: sin tabla (el SQL no corrido) → [].
+ * El aislamiento por hotel es el `.eq("hotel_id")`, igual que en `getAgentMetrics`:
+ * la tabla tiene RLS sin políticas, así que sólo la ve la service-role.
+ */
+export async function getHilosCamila(hotelId: string): Promise<HiloCamila[]> {
+  try {
+    const supabase = createAdminClient();
+    const { data, error } = await supabase
+      .from("camila_conversaciones")
+      .select("chat_id, mensajes, ultimo_at")
+      .eq("hotel_id", hotelId)
+      .order("ultimo_at", { ascending: false }) // usa camila_conv_hotel_ultimo_idx
+      .limit(CAMILA_HILOS_MAX);
+    if (error) {
+      console.error("getHilosCamila:", error.message);
+      return [];
+    }
+    return (data ?? []).map((r) => {
+      const fila = r as { chat_id: string; mensajes: unknown; ultimo_at: string };
+      const turnos = Array.isArray(fila.mensajes) ? (fila.mensajes as TurnoConversacion[]) : [];
+      const ultimo = turnos[turnos.length - 1];
+      return {
+        chatId: fila.chat_id,
+        telefono: telefonoLegible(fila.chat_id),
+        ultimoAt: fila.ultimo_at,
+        mensajes: turnos.length,
+        ultimoTexto: ultimo?.texto?.slice(0, 140) ?? "",
+      };
+    });
+  } catch (e) {
+    console.error("getHilosCamila:", e);
+    return [];
+  }
+}
+
+/** Un hilo completo. `null` si ese teléfono no tiene conversación en ESTE hotel. */
+export async function getHiloCamila(hotelId: string, chatId: string): Promise<HiloCamila | null> {
+  try {
+    const supabase = createAdminClient();
+    const { data, error } = await supabase
+      .from("camila_conversaciones")
+      .select("chat_id, mensajes, ultimo_at")
+      .eq("hotel_id", hotelId)
+      .eq("chat_id", chatId.slice(0, 80))
+      .maybeSingle();
+    if (error) {
+      console.error("getHiloCamila:", error.message);
+      return null;
+    }
+    if (!data) return null;
+    const fila = data as { chat_id: string; mensajes: unknown; ultimo_at: string };
+    const turnos = Array.isArray(fila.mensajes) ? (fila.mensajes as TurnoConversacion[]) : [];
+    return {
+      chatId: fila.chat_id,
+      telefono: telefonoLegible(fila.chat_id),
+      ultimoAt: fila.ultimo_at,
+      mensajes: turnos.length,
+      turnos,
+    };
+  } catch (e) {
+    console.error("getHiloCamila:", e);
+    return null;
+  }
+}
+
 // ── MÉTRICAS REDES (sin tabla aún) ─────────────────────────────────────────────
 
 export interface RedMetrica {

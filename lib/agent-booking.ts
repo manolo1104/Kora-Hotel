@@ -74,12 +74,18 @@ export interface AgentBookingInput {
   checkin: string; // YYYY-MM-DD
   checkout: string;
   unidades?: number; // cuántas unidades del tipo (default 1)
-  huespedes?: number; // adultos (default 1)
+  huespedes?: number; // adultos (default 2, igual que botAvailability)
   ninos?: number; // menores (default 0)
   nombre?: string | null;
   email?: string | null;
   telefono?: string | null;
   lang?: "es" | "en";
+  /**
+   * La conversación de WhatsApp (el teléfono del huésped). Sirve para que un
+   * mismo huésped reuse SU apartado en vez de ir acumulando uno por cada vez que
+   * cambia de opinión. Opcional: sin él todo se comporta como antes.
+   */
+  conv?: string | null;
 }
 
 export type AgentBookingResult =
@@ -281,7 +287,19 @@ export async function crearLinkReservaAgente(
   // Hold de 45 min. El id lleva prefijo `bot_` para distinguir en BD/métricas los
   // apartados del bot de los del motor web (`web_`). Lo libera el webhook al
   // confirmar/expirar; si el huésped no paga, expira solo.
-  const sessionId = `bot_${crypto.randomUUID()}`;
+  //
+  // UN APARTADO POR CONVERSACIÓN. Antes cada llamada creaba un `bot_<uuid>`
+  // nuevo y nada soltaba el anterior, así que un solo huésped indeciso —«mejor
+  // una noche más», «mejor la otra cabaña»— dejaba tres cuartos bloqueados 45
+  // minutos: para los demás huéspedes y para él mismo si quería volver a su
+  // primera idea. El hotelero veía cuartos apartados sin entender por qué.
+  //
+  // Con el id atado al teléfono, pedir otro link libera el anterior. El pagado
+  // no corre peligro: `releaseHold` sólo borra filas en estado HOLD, y el
+  // webhook ya convirtió la del huésped que pagó.
+  const conv = (input.conv ?? "").replace(/[^a-zA-Z0-9]/g, "").slice(0, 32);
+  const sessionId = conv ? `bot_c_${conv}` : `bot_${crypto.randomUUID()}`;
+  if (conv) await releaseHold(hotel.id, sessionId);
   const apartado = await apartarUnidades(hotel.id, candidatas, input.checkin, input.checkout, sessionId, {
     minutos: HOLD_MIN,
     // El bot ya tiene su tope por hotel (MAX_HOLDS_BOT, arriba) y nunca pide más

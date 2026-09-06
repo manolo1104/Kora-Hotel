@@ -20,6 +20,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
+import Conversaciones from "./Conversaciones";
 import type { DiagnosticoHotel, DiagnosticoItem } from "@/lib/panel/diagnostico";
 import type { BotAvailability } from "@/lib/bot/tools";
 import { waLink } from "@/lib/contacto";
@@ -159,6 +160,11 @@ export default function CamilaClient({
   // Paso activo del asistente (0..TOTAL_PASOS-1).
   const [paso, setPaso] = useState(0);
 
+  // Configurar (el asistente) vs. leer lo que ya contestó. Se configura una vez
+  // y se leen las conversaciones a diario, así que no puede estar enterrado al
+  // final de seis pasos.
+  const [vista, setVista] = useState<"config" | "conversaciones">("config");
+
   const [entrenando, setEntrenando] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [guardado, setGuardado] = useState(false);
@@ -292,6 +298,19 @@ export default function CamilaClient({
   }
 
   async function entrenarIA() {
+    // Pedir permiso antes de pisar lo escrito a mano. La propuesta sobrescribe
+    // personalidad, saludo e instrucciones, y el autoguardado la persiste ~1.2 s
+    // después: sin confirmación, un clic de curiosidad borraba para siempre lo
+    // que el hotelero había redactado, sin deshacer y sin que se notara.
+    const hayTrabajo = [bot.tono, bot.saludo, bot.instrucciones].some((t) => t.trim().length > 0);
+    if (
+      hayTrabajo &&
+      !window.confirm(
+        "Camila va a reescribir la personalidad, el saludo y las instrucciones con una propuesta nueva.\n\nLo que escribiste a mano se reemplaza y no se puede deshacer. ¿Seguimos?",
+      )
+    ) {
+      return;
+    }
     setEntrenando(true);
     setAviso(null);
     try {
@@ -525,6 +544,30 @@ export default function CamilaClient({
         </div>
       </header>
 
+      {/* Configurar / Conversaciones */}
+      <div className="inline-flex rounded-xl border border-panel-contrast/10 bg-panel-surface p-1">
+        {([
+          { id: "config", label: "Configurar" },
+          { id: "conversaciones", label: "Conversaciones" },
+        ] as const).map((t) => (
+          <button
+            key={t.id}
+            onClick={() => setVista(t.id)}
+            className={`btn-press px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
+              vista === t.id
+                ? "bg-kora-primary text-white"
+                : "text-kora-muted hover:text-kora-text"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {vista === "conversaciones" && <Conversaciones nombreBot={nombreBot} />}
+
+      {vista === "config" && (
+      <>
       {/* Progreso + navegación por pasos (cabecera del asistente) */}
       <div className="rounded-2xl border border-panel-contrast/10 bg-panel-surface p-4 space-y-3">
         <div className="flex items-center justify-between">
@@ -921,7 +964,8 @@ export default function CamilaClient({
           <>
             <p className="text-sm text-kora-muted">
               Platica con ella aquí mismo (sin WhatsApp) para ver cómo responde con tus datos.
-              Tus cambios se guardan solos: lo que conteste aquí es exactamente lo que diría en vivo.
+              Tus cambios se guardan solos. Responde con los datos reales de tu hotel; lo único
+              que cambia es que aquí no manda links de pago — eso sólo lo hace en WhatsApp.
             </p>
             <span
               className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${
@@ -1000,7 +1044,8 @@ export default function CamilaClient({
                 </p>
               </div>
               <p className="text-xs text-kora-muted">
-                Elige unas fechas y confirma con tus ojos qué cuartos y precios cotizaría (es exactamente lo que usa el bot en vivo).
+                Elige unas fechas y confirma con tus ojos qué cuartos y precios cotizaría: es el
+                mismo cálculo que usa el bot en vivo y el mismo que cobrará el link de pago.
               </p>
               <div className="flex flex-wrap items-end gap-2">
                 <label className="text-xs font-semibold text-kora-muted">
@@ -1115,9 +1160,14 @@ export default function CamilaClient({
               // le pedía esperar por algo que no iba a pasar solo.
               <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">
                 <p className="font-semibold">Tu conexión de WhatsApp no pudo arrancar</p>
+                {/* Decía "y ya quedó registrado". No era cierto: nada en este
+                    camino avisa a nadie —el motivo del fallo muere en los logs—
+                    así que el hotelero se quedaba esperando una reacción que no
+                    iba a llegar, sin escribirnos. Mientras no haya una alerta de
+                    verdad, lo honesto es pedirle que nos avise él. */}
                 <p className="mt-1 text-red-800">
-                  Tu hotel está bien configurado — el problema es de nuestro lado y ya
-                  quedó registrado. Escríbenos y lo levantamos hoy mismo.
+                  Tu hotel está bien configurado — el problema es de nuestro lado. Avísanos y lo
+                  levantamos hoy mismo.
                 </p>
                 <a
                   href={waLink("Hola, mi Camila no pudo arrancar y no me sale el código QR")}
@@ -1129,10 +1179,51 @@ export default function CamilaClient({
                 </a>
               </div>
             ) : qrStatus === "sin-servicio" || qrStatus === "desconocido" ? (
-              <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                <p className="font-semibold">Estamos preparando tu conexión.</p>
+              // "sin-servicio" NO es "está arrancando": es que no se pudo hablar
+              // con el servicio de WhatsApp (caído, sin responder, o sin
+              // configurar). Decirle al hotelero que espere un QR que puede no
+              // llegar nunca lo deja mirando la pantalla sin saber que hay algo
+              // que arreglar — y sin pedir ayuda, que es lo que sí destraba esto.
+              <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 space-y-1">
+                <p className="font-semibold">No estamos pudiendo conectar con WhatsApp.</p>
                 <p>
-                  Tu hotel ya cumple todo lo necesario; el bot está arrancando. En cuanto esté arriba, aquí aparecerá el código QR para escanear.
+                  Tu hotel ya cumple todo lo necesario, así que esto es de nuestro lado. Si en unos
+                  minutos sigue igual, avísanos y lo levantamos.
+                </p>
+                <a
+                  href={waLink(`Hola, la pantalla de ${nombreBot} dice que no conecta con WhatsApp`)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-press inline-block font-semibold underline underline-offset-2 pt-1"
+                >
+                  Avisar por WhatsApp
+                </a>
+              </div>
+            ) : qrStatus === "auth_failure" ? (
+              // Antes caía al `else` de abajo, que pide escanear un QR — pero el
+              // runtime sólo publica el QR cuando el estado es "qr", así que el
+              // hotelero se quedaba mirando un "Preparando el código…" eterno.
+              <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900 space-y-1">
+                <p className="font-semibold">La vinculación con WhatsApp se cayó.</p>
+                <p>
+                  El teléfono desvinculó el dispositivo, o la sesión caducó. Hay que volver a
+                  escanear el código: avísanos y lo preparamos para ti en unos minutos.
+                </p>
+                <a
+                  href={waLink(`Hola, ${nombreBot} perdió la vinculación con WhatsApp y necesito escanear de nuevo`)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-press inline-block font-semibold underline underline-offset-2 pt-1"
+                >
+                  Avisar por WhatsApp
+                </a>
+              </div>
+            ) : qrStatus === "disconnected" ? (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                <p className="font-semibold">{nombreBot} se desconectó de WhatsApp.</p>
+                <p>
+                  Suele reconectarse sola en unos minutos. Si sigue así en un rato, avísanos —
+                  mientras tanto tus huéspedes no la tienen contestando.
                 </p>
               </div>
             ) : (
@@ -1220,6 +1311,8 @@ export default function CamilaClient({
           Siguiente <ChevronRight size={16} />
         </button>
       </div>
+      </>
+      )}
     </div>
   );
 }
