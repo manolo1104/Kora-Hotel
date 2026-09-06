@@ -38,6 +38,9 @@ const pendientes = new Map();
 const pausados = new Map();
 // Ventana para no confundir el envío del propio bot con una respuesta humana.
 const botEnvioAt = new Map();
+// Y el TEXTO de ese último envío: la ventana de tiempo sola falla si WhatsApp
+// tarda en confirmar, y entonces Camila se pausaba a sí misma.
+const ultimoEnvioBot = new Map();
 // Clientes de WhatsApp VIVOS por hotel: slug -> Client. Fuente de verdad de qué
 // hoteles está atendiendo Camila ahora mismo (para arrancar/apagar en caliente).
 // slug -> { client, kora }. Guarda TAMBIÉN el KoraHotel para poder refrescarle
@@ -53,6 +56,11 @@ const FLEET_POLL_MS = Number(process.env.FLEET_POLL_MS || 5 * 60 * 1000); // 5 m
 // Con el poll de 5 min son ~25 minutos de reintentos: cubre de sobra un fallo
 // pasajero de recursos, y evita quemar CPU con un hotel roto de verdad.
 const MAX_REINTENTOS_ARRANQUE = 5;
+
+// Pausa entre arrancar un hotel y el siguiente: cada uno abre su propio
+// Chromium y lanzarlos todos a la vez es lo que tumba los arranques.
+const ARRANQUE_ESCALON_MS = Number(process.env.ARRANQUE_ESCALON_MS || 8000);
+const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // Turnos EN CURSO por chat: `${slug}::${chatId}` -> Promise.
 //
@@ -84,6 +92,8 @@ function purgarChatsInactivos() {
     pendientes.delete(key);
     pausados.delete(key);
     botEnvioAt.delete(key);
+    ultimoEnvioBot.delete(key);
+    acusesNoTexto.delete(key);
     ultimaActividad.delete(key);
     n += 1;
   }
@@ -201,6 +211,13 @@ function arrancarHotel(hotel) {
       st.status = "ready";
       st.qr = null;
       st.err = null;
+      // Volver a estar arriba BORRA el historial de intentos. Sin esto, ahora
+      // que también se reintenta tras una desconexión, un hotel que se cayera
+      // cinco veces a lo largo de meses —cada una recuperada sin problema— se
+      // quedaría marcado para siempre y a la sexta ya nadie lo levantaría.
+      // El tope es para un hotel que no consigue arrancar, no para uno que vive.
+      st.intentos = 0;
+      st.avisado = false;
     }
   });
 
@@ -229,25 +246,51 @@ function arrancarHotel(hotel) {
     }
   });
 
-  // Detecta "toma humana": si alguien del hotel responde a mano desde el
-  // teléfono, pausamos el bot en ese chat 1 hora. (Los envíos del propio bot se
-  // ignoran vía la ventana botEnvioAt.)
-  // APAGADO por defecto: con el formato @lid, whatsapp-web.js reporta mal
-  // `fromMe` en mensajes entrantes y esto pausaba el chat sin razón, silenciando
-  // a Camila. Se activa con CAMILA_HUMAN_TAKEOVER=1 cuando la detección sea fiable.
+  // TOMA HUMANA: si alguien del hotel contesta a mano, Camila se calla en ese
+  // chat y deja hablar a la persona.
+  //
+  // Estaba APAGADA porque `fromMe` no es fiable: con el formato @lid,
+  // whatsapp-web.js marca como propios mensajes ENTRANTES, así que el mensaje de
+  // un huésped pausaba su propio chat y Camila se quedaba muda sin causa
+  // aparente. La consecuencia de tenerla apagada también es mala: la
+  // recepcionista contesta "te lo dejo en $1,800" y Camila responde encima con
+  // el precio de sistema — dos precios distintos del mismo hotel en el mismo
+  // minuto.
+  //
+  // No se reactiva la señal rota: se cruza con dos que sí lo son.
+  //   1. `msg.to` tiene que ser el HUÉSPED, no nosotros. En un saliente de
+  //      verdad el destino es el chat del huésped; en un entrante mal
+  //      etiquetado, el destino somos nosotros. Es lo que distingue los dos
+  //      casos que `fromMe` confunde.
+  //   2. El texto no puede ser el que Camila acaba de mandar (además de la
+  //      ventana de tiempo, que sola falla si el envío tarda).
+  //
+  // Y falla hacia el lado seguro: si no sabemos cuál es nuestro propio número
+  // —`client.info` aún no está listo— NO se pausa. En el peor caso se comporta
+  // como hasta ahora, que es el comportamiento que hoy está en producción.
   client.on("message_create", (msg) => {
-    if (process.env.CAMILA_HUMAN_TAKEOVER !== "1") return;
+    if (process.env.CAMILA_HUMAN_TAKEOVER === "0") return; // válvula de escape
     if (!msg.fromMe) return;
     const chatId = msg.to;
     if (!chatId || chatId.endsWith("@g.us") || chatId.endsWith("@broadcast")) return;
+
+    const propio = client.info && client.info.wid && client.info.wid._serialized;
+    if (!propio) return; // sin saber quiénes somos, no se pausa nada
+    if (chatId === propio) return; // entrante mal etiquetado como propio
+
     // Evita pausar por mensajes VIEJOS que WhatsApp reproduce al sincronizar
     // cuando se vincula el dispositivo (si no, arranca en pausa sin razón).
     if (msg.timestamp && Date.now() / 1000 - msg.timestamp > 120) return;
+
     const key = `${slug}::${chatId}`;
-    const reciénBot = Date.now() - (botEnvioAt.get(key) || 0) < 4000;
-    if (reciénBot) return; // fue el bot, no un humano
+    const reciénBot = Date.now() - (botEnvioAt.get(key) || 0) < 8000;
+    const mismoTexto = (msg.body || "").trim() === (ultimoEnvioBot.get(key) || "");
+    if (reciénBot || mismoTexto) return; // lo mandó Camila, no una persona
+
     pausados.set(key, Date.now() + HUMAN_TAKEOVER_MS);
-    console.log(`[${slug}] toma humana en ${chatId} — bot en pausa 1 h.`);
+    console.log(
+      `[${slug}] toma humana en ${chatId} — Camila en pausa ${Math.round(HUMAN_TAKEOVER_MS / 60000)} min.`,
+    );
   });
 
   client.initialize().catch((e) => {
@@ -263,6 +306,34 @@ function arrancarHotel(hotel) {
   return { client, kora };
 }
 
+// Cuándo se acusó por última vez un mensaje que no es texto, por chat. Evita
+// seis avisos idénticos si alguien manda seis fotos seguidas.
+const acusesNoTexto = new Map();
+const ACUSE_NO_TEXTO_MS = 30 * 60 * 1000; // 30 min
+
+/**
+ * Qué contestar a un mensaje que no es texto. `null` = no merece acuse.
+ *
+ * El tono es el de alguien que no puede hacer algo y lo dice sin drama, dejando
+ * clara la salida. Nada de "no soporto ese formato".
+ */
+function respuestaPorTipo(tipo) {
+  switch (tipo) {
+    case "ptt": // nota de voz
+    case "audio":
+      return "¡Hola! Todavía no puedo escuchar notas de voz 🙈 ¿Me lo escribes y te contesto enseguida?";
+    case "image":
+    case "document":
+      return "Recibí tu archivo 📎 Todavía no puedo abrirlo, pero ya queda en la conversación del hotel. Si es un comprobante de pago, cuéntame por aquí a nombre de quién es la reserva y qué fechas, y le doy seguimiento.";
+    case "video":
+      return "Recibí tu video 🎥 Todavía no puedo verlo. ¿Me cuentas por aquí en qué te ayudo?";
+    case "location":
+      return "¡Gracias por la ubicación! 📍 Si quieres saber cómo llegar al hotel o si tenemos lugar para tus fechas, dime y te ayudo.";
+    default:
+      return null; // stickers, reacciones, contactos y demás: no hace falta acusar
+  }
+}
+
 async function onMensaje(client, slug, kora, msg) {
   const chatId = msg.from;
   // Solo chats individuales: descarta grupos (@g.us) y difusión de estado.
@@ -272,7 +343,38 @@ async function onMensaje(client, slug, kora, msg) {
   if (chatId.endsWith("@g.us") || chatId.endsWith("@broadcast")) return;
   if (msg.fromMe) return;
   console.log(`[${slug}] 📩 mensaje de ${chatId} (tipo ${msg.type})`);
-  if (msg.type !== "chat") return; // solo texto por ahora
+
+  // NADA SE DESCARTA EN SILENCIO.
+  //
+  // Antes, todo lo que no fuera texto se tiraba aquí sin contestar: audio, foto,
+  // ubicación, documento, sticker. En México media clientela pregunta por nota
+  // de voz, y el propio prompt le pide al huésped que mande la FOTO de su
+  // comprobante de transferencia — o sea que el flujo de pago que Camila
+  // propone terminaba en un silencio absoluto. Para el huésped, el hotel
+  // simplemente no contestó.
+  //
+  // Camila todavía no oye ni ve, y decirlo es mucho mejor que callar: mantiene
+  // viva la conversación y le dice qué hacer para seguir.
+  if (msg.type !== "chat") {
+    const st = await kora.status();
+    if (!st.enabled) return;
+    const respuesta = respuestaPorTipo(msg.type);
+    if (!respuesta) return; // sin acuse para lo que no lo merece (stickers, etc.)
+    const key = `${slug}::${chatId}`;
+    // Una vez por chat cada media hora: si alguien manda seis fotos seguidas no
+    // recibe seis avisos idénticos.
+    const ultimo = acusesNoTexto.get(key) || 0;
+    if (Date.now() - ultimo < ACUSE_NO_TEXTO_MS) return;
+    acusesNoTexto.set(key, Date.now());
+    ultimaActividad.set(key, Date.now());
+    botEnvioAt.set(key, Date.now());
+    ultimoEnvioBot.set(key, respuesta);
+    await client
+      .sendMessage(chatId, respuesta)
+      .catch((e) => console.error(`[${slug}] no pude acusar un ${msg.type}:`, e && e.message));
+    return;
+  }
+
   const texto = (msg.body || "").trim();
   if (!texto) return;
 
@@ -290,7 +392,12 @@ async function onMensaje(client, slug, kora, msg) {
       const resp = ok
         ? encender
           ? "✅ Camila encendida. Vuelvo a responder a tus huéspedes."
-          : "🔕 Camila apagada. No responderé a tus huéspedes hasta que la enciendas (escribe *encender*)."
+          : // "escribe *encender*" era imposible de cumplir: apagar el bot lo
+            // saca del fleet, y en la siguiente pasada (≤5 min) el runtime
+            // destruye su sesión de WhatsApp. A partir de ahí nadie escucha ese
+            // número, así que el mensaje del dueño no llega a ninguna parte. Se
+            // le dice la verdad: hay una ventana corta, y después el panel.
+            "🔕 Camila apagada. No responderé a tus huéspedes hasta que la enciendas de nuevo desde tu panel, en la pantalla de Camila."
         : "No pude cambiar el estado ahora, inténtalo de nuevo.";
       botEnvioAt.set(key, Date.now());
       // Si el acuse no sale, el dueño no sabe si su "apagar" surtió efecto (el
@@ -361,10 +468,48 @@ async function procesarTurno(client, slug, kora, chatId, userText) {
   // un fallo masivo se note en Railway, pero no ensucian el log normal.
   if (chat) chat.sendStateTyping().catch((e) => console.warn(`[${slug}] sendStateTyping:`, e && e.message));
 
-  const history = historiales.get(key) || [];
   const conv = chatId.split("@")[0]; // teléfono → métrica sin doble conteo
 
-  const { reply, history: nuevo } = await handleTurn({ hotel, kora, history, userText, conv });
+  // Si no hay historial en memoria, se intenta recuperar el de Kora antes de
+  // contestar. Pasa después de cada despliegue y tras la purga de 6 h: sin esto,
+  // Camila saludaba de cero a alguien que llevaba media reserva hecha.
+  let history = historiales.get(key);
+  if (!history) {
+    history = await kora.historial({ conv });
+    if (history.length) {
+      console.log(`[${slug}] historial de ${conv} recuperado (${history.length} mensajes)`);
+    }
+    historiales.set(key, history);
+  }
+
+  // EL HUÉSPED NUNCA SE QUEDA EN SILENCIO.
+  //
+  // Si la llamada al modelo reventaba —sobrecarga de la API, corte de red, cuota
+  // agotada— el error subía hasta un `console.error` y ahí moría. El mensaje del
+  // huésped ya se había sacado de la cola, así que tampoco se reintentaba. Y
+  // como el "escribiendo…" se apaga DESPUÉS de la llamada, se quedaba encendido
+  // hasta que WhatsApp lo tiraba solo: el huésped veía "Camila está
+  // escribiendo…", esperaba, y no llegaba nada. Es peor que un error — parece
+  // que lo están ignorando a propósito.
+  let reply = "";
+  let nuevo = history;
+  try {
+    ({ reply, history: nuevo } = await handleTurn({ hotel, kora, history, userText, conv }));
+  } catch (e) {
+    console.error(`[${slug}] el turno de ${conv} falló:`, e && e.message);
+    if (chat) chat.clearState().catch(() => {});
+    // La misma frase honesta que ya se usa cuando no se puede leer el cerebro:
+    // no promete nada y deja una salida humana si el hotel tiene WhatsApp.
+    const tel = (kora.whatsapp || "").trim();
+    const disculpa = tel
+      ? `Perdón, se me complicó responderte. Escríbele al hotel al ${tel} y te atienden enseguida.`
+      : "Perdón, se me complicó responderte. ¿Me escribes de nuevo en un minuto?";
+    botEnvioAt.set(key, Date.now());
+    await client
+      .sendMessage(chatId, disculpa)
+      .catch((err) => console.error(`[${slug}] tampoco pude disculparme:`, err && err.message));
+    return; // el historial NO se guarda: el turno no llegó a existir
+  }
   historiales.set(key, nuevo);
 
   if (chat) chat.clearState().catch((e) => console.warn(`[${slug}] clearState:`, e && e.message));
@@ -372,6 +517,7 @@ async function procesarTurno(client, slug, kora, chatId, userText) {
   const salida = (reply || "").trim();
   if (!salida) return;
   botEnvioAt.set(key, Date.now());
+  ultimoEnvioBot.set(key, salida);
   await client.sendMessage(chatId, salida);
 
   // Guarda el turno (mensaje del huésped + respuesta) para analizarlo después.
@@ -394,8 +540,24 @@ async function procesarTurno(client, slug, kora, chatId, userText) {
 function servidorEstado() {
   createServer((req, res) => {
     if (req.url === "/health") {
-      res.writeHead(200, { "content-type": "text/plain" });
-      res.end("ok");
+      // UN HEALTHCHECK QUE MIRA LOS HOTELES.
+      //
+      // Antes respondía "ok" siempre, sin mirar ninguno: bastaba con que el
+      // proceso de Node estuviera vivo. O sea que el reinicio automático de
+      // Railway —la red de seguridad que el resto del código daba por hecha
+      // ("si no, Railway reinicia el proceso")— no se disparaba nunca, ni con
+      // todas las sesiones de WhatsApp caídas. El servicio se veía sano
+      // mientras ningún huésped recibía respuesta.
+      //
+      // Con hoteles en la flota, "sano" es que al menos uno esté atendiendo. La
+      // flota vacía sí es 200: es el estado legítimo de un despliegue nuevo o de
+      // un momento sin hoteles elegibles, y tumbar el servicio por eso lo
+      // dejaría reiniciándose en bucle sin arreglar nada.
+      const hoteles = [...estado.values()];
+      const listos = hoteles.filter((h) => h.status === "ready").length;
+      const sano = hoteles.length === 0 || listos > 0;
+      res.writeHead(sano ? 200 : 503, { "content-type": "application/json" });
+      res.end(JSON.stringify({ ok: sano, hoteles: hoteles.length, listos }));
       return;
     }
 
@@ -473,7 +635,7 @@ async function pararHotel(slug) {
   clientes.delete(slug);
   estado.delete(slug);
   // Limpia el estado por-chat de ese hotel (claves `${slug}::chatId`).
-  for (const mapa of [historiales, pendientes, pausados, botEnvioAt, ultimaActividad, enCurso]) {
+  for (const mapa of [historiales, pendientes, pausados, botEnvioAt, ultimoEnvioBot, acusesNoTexto, ultimaActividad, enCurso]) {
     for (const k of [...mapa.keys()]) {
       if (!k.startsWith(`${slug}::`)) continue;
       const v = mapa.get(k);
@@ -521,7 +683,23 @@ async function sincronizarFleet() {
       // que alguien reiniciara el servicio entero, y su dueño veía «estamos
       // preparando tu conexión» indefinidamente. Le pasó a un alta real el 31 de
       // agosto de 2026.
-      if (st && st.status === "error" && clientes.has(hotel.slug)) {
+      // `disconnected` y `auth_failure` cuentan igual que `error`.
+      //
+      // El reintento sólo miraba `error`, que es el fallo de `initialize()`. Pero
+      // un hotel también se cae DESPUÉS de estar arriba: WhatsApp tira la sesión,
+      // o alguien desvincula el dispositivo desde el teléfono. En esos dos casos
+      // el slug seguía en `clientes`, así que cada pasada del fleet caía en el
+      // `else` de abajo y se limitaba a refrescarle el token: nadie lo volvía a
+      // levantar nunca. El hotel quedaba mudo hasta que una persona reiniciara el
+      // servicio entero, y su dueño veía en el panel un mensaje de "preparando".
+      //
+      // El comentario de `client.on("disconnected")` prometía dos redes de
+      // seguridad —que la librería reconecta sola, y que "si no, Railway
+      // reinicia el proceso"— y la segunda no existía: `/health` respondía `ok`
+      // sin mirar un solo hotel, así que Railway nunca reiniciaba nada. Aquí se
+      // arregla la primera; el `/health` honesto, más abajo.
+      const CAIDO = new Set(["error", "disconnected", "auth_failure"]);
+      if (st && CAIDO.has(st.status) && clientes.has(hotel.slug)) {
         const intentos = (st.intentos || 0) + 1;
         if (intentos <= MAX_REINTENTOS_ARRANQUE) {
           console.warn(
@@ -545,6 +723,14 @@ async function sincronizarFleet() {
       if (!clientes.has(hotel.slug)) {
         console.log(`[camila] + arrancando ${hotel.slug}`);
         clientes.set(hotel.slug, arrancarHotel(hotel));
+        // ESCALONAR EL ARRANQUE. Cada hotel levanta su propio Chromium (250-400
+        // MB), y este bucle los lanzaba TODOS en el mismo tick. El comentario de
+        // aquí arriba ya identifica esa estampida como causa de los arranques
+        // fallidos ("Chromium sin memoria porque otro hotel estaba arrancando a
+        // la vez") — y los reintentos la repetían igual, así que el remedio
+        // reproducía la enfermedad. Unos segundos entre uno y otro no retrasan
+        // nada que a un hotelero le importe.
+        await esperar(ARRANQUE_ESCALON_MS);
       } else {
         // Ya corre: se le refrescan los datos por si el token se rotó (o
         // cambió el nombre o el idioma del hotel). Sin este `else`, un bot

@@ -10,6 +10,9 @@ const KNOWLEDGE_TTL_MS = Number(process.env.KORA_KNOWLEDGE_TTL_MS || 15 * 60 * 1
 // Estado on/off del bot: caché corta para que "apagar" (panel o comando) surta
 // efecto en vivo sin golpear la API en cada mensaje.
 const STATUS_TTL_MS = Number(process.env.KORA_BOT_STATUS_TTL_MS || 45 * 1000); // 45 s
+// Techo de cada llamada a Kora. Sin él, un turno colgado bloquea el chat de ese
+// huésped indefinidamente por el candado de index.js.
+const TIMEOUT_MS = Number(process.env.KORA_TIMEOUT_MS || 20_000);
 
 export class KoraHotel {
   /** @param {{ id?: string, slug: string, nombre: string, token: string, whatsapp?: string|null, lang?: "es"|"en" }} hotel */
@@ -25,6 +28,7 @@ export class KoraHotel {
     this.lang = hotel.lang === "en" ? "en" : "es";
     this._knowledge = null;
     this._knowledgeAt = 0;
+    this._knowledgeDia = ""; // día (México) con el que se cacheó el cerebro
     this._status = null; // { enabled, adminPhone }
     this._statusAt = 0;
   }
@@ -54,6 +58,7 @@ export class KoraHotel {
     if (cambio) {
       this._knowledge = null;
       this._knowledgeAt = 0;
+      this._knowledgeDia = "";
       this._status = null;
       this._statusAt = 0;
       console.log(`[${this.slug}] token rotado, cachés invalidadas`);
@@ -63,8 +68,49 @@ export class KoraHotel {
   // POST base a /api/agent. `conv` (teléfono/chat) alimenta las métricas del
   // panel sin doble conteo. Devuelve el JSON o lanza si la red/servidor falla.
   async _post(body) {
-    const res = await fetch(`${KORA_BASE}/api/agent`, {
+    // TIEMPO LÍMITE. Ninguna llamada lo tenía: si Vercel tardaba, el `await` se
+    // quedaba esperando sin techo. Y como cada chat tiene un candado que
+    // serializa sus turnos (index.js), un solo turno colgado bloqueaba TODO lo
+    // que ese huésped escribiera después — sin error, sin log, sin recuperación.
+    // 20 s es de sobra: `reservar` es lo más lento y habla con Stripe.
+    const ctrl = new AbortController();
+    const reloj = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
+    let res;
+    try {
+      res = await this._fetch(body, ctrl.signal);
+    } catch (e) {
+      // Un abort es un timeout, no un fallo raro: se etiqueta para que quien lo
+      // reciba pueda distinguirlo (brain.js lo trata como transitorio).
+      if (e && e.name === "AbortError") {
+        const err = new Error(`kora timeout tras ${Math.round(TIMEOUT_MS / 1000)}s`);
+        err.status = 504;
+        throw err;
+      }
+      throw e;
+    } finally {
+      clearTimeout(reloj);
+    }
+    let data = null;
+    try {
+      data = await res.json();
+    } catch {
+      /* respuesta no-JSON */
+    }
+    if (!res.ok) {
+      // 401 (token inválido) / 4xx-5xx: lo propagamos con el código para diagnóstico.
+      const err = new Error(`kora ${res.status}: ${(data && data.error) || "error"}`);
+      err.status = res.status;
+      err.data = data;
+      throw err;
+    }
+    return data ?? {};
+  }
+
+  /** El fetch en crudo. Separado para que `_post` se lea de un vistazo. */
+  async _fetch(body, signal) {
+    return fetch(`${KORA_BASE}/api/agent`, {
       method: "POST",
+      signal,
       headers: {
         "content-type": "application/json",
         // SEGUNDO FACTOR. El `agent_token` identifica al hotel, pero es una sola
@@ -82,30 +128,30 @@ export class KoraHotel {
       },
       body: JSON.stringify({ token: this.token, ...body }),
     });
-    let data = null;
-    try {
-      data = await res.json();
-    } catch {
-      /* respuesta no-JSON */
-    }
-    if (!res.ok) {
-      // 401 (token inválido) / 4xx-5xx: lo propagamos con el código para diagnóstico.
-      const err = new Error(`kora ${res.status}: ${(data && data.error) || "error"}`);
-      err.status = res.status;
-      err.data = data;
-      throw err;
-    }
-    return data ?? {};
   }
 
   /** Conocimiento del hotel (cuartos, precios "desde", amenidades, FAQs, guía).
    *  Se cachea `KNOWLEDGE_TTL_MS` para no golpear la API en cada mensaje. */
   async knowledge({ conv } = {}) {
-    const fresh = this._knowledge && Date.now() - this._knowledgeAt < KNOWLEDGE_TTL_MS;
+    // La caché caduca también cuando CAMBIA EL DÍA, no sólo cuando pasan 15 min.
+    //
+    // El prompt lleva dentro la fecha de hoy ("Hoy es viernes 5 de septiembre")
+    // porque Camila la necesita para entender "este finde" o "mañana". Al
+    // cachearlo, entre las 00:00 y las 00:15 seguía diciendo que hoy es ayer si
+    // algún huésped de ese hotel había escrito justo antes de medianoche. Y el
+    // mensaje que llega a esa hora es el más caliente que recibe un hotel de
+    // carretera: "¿tienen algo para hoy?". Camila cotizaba la noche de AYER y al
+    // cerrar el servidor la cortaba con `fecha-pasada`.
+    const hoy = new Date().toLocaleDateString("en-CA", { timeZone: "America/Mexico_City" });
+    const fresh =
+      this._knowledge &&
+      this._knowledgeDia === hoy &&
+      Date.now() - this._knowledgeAt < KNOWLEDGE_TTL_MS;
     if (fresh) return this._knowledge;
     const data = await this._post(conv ? { conv } : {});
     this._knowledge = data;
     this._knowledgeAt = Date.now();
+    this._knowledgeDia = hoy;
     return data;
   }
 
@@ -160,8 +206,50 @@ export class KoraHotel {
 
   /** Disponibilidad real por fechas (YYYY-MM-DD). Devuelve cuartos con id,
    *  nombre, capacidad y total de la estancia. */
-  async availability(checkin, checkout, { conv } = {}) {
-    return this._post({ action: "availability", checkin, checkout, ...(conv ? { conv } : {}) });
+  async availability(checkin, checkout, { conv, huespedes } = {}) {
+    // `huespedes` no estaba ni en la firma: aunque brain.js lo hubiera pasado,
+    // no habría llegado. La ruta del servidor lleva meses preparada para
+    // recibirlo (`app/api/agent/route.ts`, que si no lo ve asume 2), así que
+    // este parámetro es lo único que separaba el precio que dice Camila del que
+    // cobra Stripe en los hoteles con tarifa por número de personas.
+    const n = Math.floor(Number(huespedes));
+    return this._post({
+      action: "availability",
+      checkin,
+      checkout,
+      ...(Number.isFinite(n) && n > 0 ? { huespedes: n } : {}),
+      ...(conv ? { conv } : {}),
+    });
+  }
+
+  /**
+   * Los últimos turnos guardados de un chat, para rehidratar el historial
+   * cuando el proceso acaba de arrancar.
+   *
+   * El historial vive sólo en la memoria del runtime, así que CUALQUIER
+   * reinicio de Railway —un despliegue, un fallo, una migración de máquina— lo
+   * borraba entero. Un huésped que llevaba ocho mensajes (fechas, cuarto,
+   * nombre; sólo faltaba el correo) mandaba el correo y Camila le contestaba
+   * «¡Hola! ¿Para qué fechas te gustaría?». La venta se caía ahí.
+   *
+   * Devuelve `[]` si no hay nada o si algo falla: rehidratar es una mejora, no
+   * puede impedir que se conteste.
+   */
+  async historial({ conv } = {}) {
+    if (!conv) return [];
+    try {
+      const data = await this._post({ action: "historial", conv });
+      const turnos = Array.isArray(data && data.turnos) ? data.turnos : [];
+      return turnos
+        .filter((t) => t && typeof t.texto === "string" && t.texto.trim())
+        .map((t) => ({
+          role: t.rol === "assistant" ? "assistant" : "user",
+          content: t.texto,
+        }));
+    } catch (e) {
+      console.warn(`[${this.slug}] no pude recuperar el historial de ${conv}:`, e && e.message);
+      return [];
+    }
   }
 
   /** Guarda el texto de un turno (mensaje del huésped + respuesta de Camila) en

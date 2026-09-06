@@ -34,7 +34,11 @@ const MODELO_CON_EFFORT = !/haiku|claude-3|claude-2/.test(MODEL);
 // En los dos casos basta con el esfuerzo bajo, que da casi la misma latencia.
 const SIN_PENSAR_ES_SEGURO =
   MODELO_CON_EFFORT && !/claude-(opus-5|fable|mythos)/.test(MODEL);
-const MAX_TOKENS = Number(process.env.CAMILA_MAX_TOKENS || 1024);
+// 2000 y no 1024: con el tope viejo, un resumen de reserva (cuarto, fechas,
+// total, anticipo y link) más una llamada a herramienta cabía apretado, y cada
+// vez que no cabía el turno salía cortado a media frase. Subirlo no encarece los
+// turnos normales —se paga lo que se genera, no el tope— y aleja el corte.
+const MAX_TOKENS = Number(process.env.CAMILA_MAX_TOKENS || 2000);
 const MAX_HISTORY = Number(process.env.CAMILA_MAX_HISTORY || 20); // pares de turnos
 const MAX_TOOL_ITERS = 6; // tope de vueltas de herramientas por turno
 
@@ -116,7 +120,19 @@ function mensajeEscalada(hotel) {
 async function correrHerramienta(kora, conv, name, input) {
   try {
     if (name === "checar_disponibilidad") {
-      return await kora.availability(input.checkin, input.checkout, { conv });
+      // `huespedes` VIAJA. Se tiraba aquí, y ése era el defecto más caro de
+      // Camila: la herramienta le promete al modelo que el número de personas
+      // cambia el total y que "es el mismo que cobrará el link de pago" (ver el
+      // esquema de arriba), el modelo lo mandaba, y esta línea lo descartaba. El
+      // servidor caía entonces a su default de 2, así que en un hotel con
+      // tarifas por número de personas Camila cotizaba para dos, cerraba, y el
+      // link de pago cobraba lo de cinco. El arreglo estaba hecho de la mitad
+      // del servidor para adentro (lib/bot/tools.ts) desde hacía meses; sólo
+      // faltaba este eslabón, el que habla con los huéspedes de verdad.
+      return await kora.availability(input.checkin, input.checkout, {
+        conv,
+        huespedes: input.huespedes,
+      });
     }
     if (name === "reservar") {
       return await kora.reservar(
@@ -196,6 +212,31 @@ export async function handleTurn({ hotel, kora, history, userText, conv }) {
       ...(MODELO_CON_EFFORT ? { output_config: { effort: "low" } } : {}),
       ...(SIN_PENSAR_ES_SEGURO ? { thinking: { type: "disabled" } } : {}),
     });
+
+    // UN TURNO CORTADO NO SE GUARDA.
+    //
+    // Sólo se comprobaba `tool_use`, así que todo lo demás —incluido un turno
+    // cortado por llegar al tope de tokens— se trataba como turno terminado. Si
+    // el corte caía mientras se escribía la llamada a una herramienta, el
+    // historial se quedaba con un `tool_use` sin su `tool_result`, y ésa es una
+    // combinación que la API rechaza: a partir de ahí CADA mensaje de ese
+    // huésped reenviaba el historial roto y fallaba igual. El chat quedaba
+    // muerto mientras insistiera (el historial sólo se purga tras 6 h de
+    // silencio), y él sólo veía que el hotel había dejado de contestarle.
+    //
+    // Se descarta el turno y se contesta con lo que hubiera de texto; si no hay
+    // nada legible, `procesar()` no manda nada y el huésped puede repreguntar
+    // sobre un hilo sano.
+    if (res.stop_reason === "max_tokens" || res.stop_reason === "refusal") {
+      console.warn(`[${hotel.slug}] turno descartado (${res.stop_reason}): no lo guardo en el historial.`);
+      const texto = res.content
+        .filter((b) => b.type === "text")
+        .map((b) => b.text)
+        .join("\n")
+        .trim();
+      // El historial se devuelve SIN este turno: vuelve a quedar cerrado y sano.
+      return { reply: texto, history: recortarHistorial(messages) };
+    }
 
     // Guarda el turno del asistente (bloques crudos: texto + tool_use).
     messages.push({ role: "assistant", content: res.content });
