@@ -212,7 +212,7 @@ export default function WhatsAppPage() {
                       ctaName="whatsapp_pilar_onboarding"
                       className="btn-press btn-arrow btn-fill inline-flex items-center justify-center gap-2 px-7 py-4 rounded-full bg-kora-accent text-kora-primary font-bold text-sm hover:bg-kora-accent-dark transition-colors"
                     >
-                      Probar gratis 30 días — sin tarjeta
+                      Probar gratis 14 días — sin tarjeta
                       <ArrowRight size={16} aria-hidden="true" />
                     </CtaLink>
                     <Link

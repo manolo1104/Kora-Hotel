@@ -1,4 +1,4 @@
-// Correos del ciclo de la prueba de 30 días sin tarjeta. SOLO servidor.
+// Correos del ciclo de la prueba gratis sin tarjeta. SOLO servidor.
 //  - Bienvenida el día que el hotelero crea su hotel (antes NO existía: el
 //    primer correo de Kora le llegaba el día 20 de la prueba).
 //  - Recordatorios en los días 10 / 3 / 1 restantes (cron /api/cron/prueba).

@@ -146,7 +146,7 @@ export default async function MiniPagina({
     extras.premium?.marcaOculta === true && (await ownerTienePlanActivo(hotel.owner_id));
 
   // Destino de los CTAs de reserva según el plan del hotel:
-  //  - prueba activa (dentro de 30 días) o suscripción pagada → motor de reservas.
+  //  - prueba activa o suscripción pagada → motor de reservas.
   //  - gratis (prueba vencida sin pago) → WhatsApp.
   // Es la MISMA condición que gatea /reservar, así que nunca enlazamos a un motor pausado.
   const acceso = await accesoDelHotel({

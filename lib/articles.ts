@@ -505,7 +505,7 @@ export const articles: Article[] = [
 
 <div class="callout-cta">
   <strong>¿Cuánto le pagas tú a Booking al año?</strong>
-  <p>Montamos tu motor de reservas directas y tu recepcionista de IA en 24 horas. Pruébalo 30 días gratis, sin tarjeta.</p>
+  <p>Montamos tu motor de reservas directas y tu recepcionista de IA en 24 horas. Pruébalo 14 días gratis, sin tarjeta.</p>
   <a href="/contacto">Quiero recuperar mis comisiones →</a>
 </div>
 `,
@@ -559,7 +559,7 @@ export const articles: Article[] = [
 
 <div class="callout-cta">
   <strong>Llena tu temporada baja sin regalar tu tarifa.</strong>
-  <p>Motor de reservas directas, WhatsApp con IA y CRM para reactivar huéspedes. Pruébalo 30 días gratis, sin tarjeta.</p>
+  <p>Motor de reservas directas, WhatsApp con IA y CRM para reactivar huéspedes. Pruébalo 14 días gratis, sin tarjeta.</p>
   <a href="/contacto">Quiero más reservas directas →</a>
 </div>
 `,

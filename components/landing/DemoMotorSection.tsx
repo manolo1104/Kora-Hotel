@@ -91,7 +91,7 @@ export function DemoMotorSection() {
               </CtaLink>
             </div>
             <p className="mt-3 text-center text-xs text-kora-muted">
-              Gratis 30 días y sin tarjeta: cargas tus cuartos y fotos en unos 5 minutos.
+              Gratis 14 días y sin tarjeta: cargas tus cuartos y fotos en unos 5 minutos.
             </p>
           </div>
         </Reveal>

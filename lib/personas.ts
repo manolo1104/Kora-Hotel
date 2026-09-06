@@ -97,7 +97,7 @@ export const personas: Persona[] = [
       },
       {
         q: "¿Cuánto cuesta para un hotel pequeño?",
-        a: "Hay un solo plan de $550 MXN/mes, mes a mes y sin permanencia, con habitaciones ilimitadas y todo incluido: el motor de reservas directo (0% de comisión), el PMS, Camila (agente de WhatsApp con IA 24/7), el dashboard y el CRM. Lo pruebas 30 días gratis. Además, si quieres, te creamos tu sitio web profesional con motor de reservas como servicio aparte.",
+        a: "Hay un solo plan de $550 MXN/mes, mes a mes y sin permanencia, con habitaciones ilimitadas y todo incluido: el motor de reservas directo (0% de comisión), el PMS, Camila (agente de WhatsApp con IA 24/7), el dashboard y el CRM. Lo pruebas 14 días gratis. Además, si quieres, te creamos tu sitio web profesional con motor de reservas como servicio aparte.",
       },
     ],
   },
@@ -267,7 +267,7 @@ export const personas: Persona[] = [
       },
       {
         q: "¿Cuánto cuesta?",
-        a: "Plan único de $550 MXN al mes con habitaciones ilimitadas, sin permanencia y con 30 días gratis.",
+        a: "Plan único de $550 MXN al mes con habitaciones ilimitadas, sin permanencia y con 14 días gratis.",
       },
     ],
   },

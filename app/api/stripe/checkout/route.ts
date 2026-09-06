@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient, adminEnvReady } from "@/lib/supabase/admin";
 import { getStripe, stripeEnvReady } from "@/lib/stripe/server";
 import { planPorClave } from "@/lib/oferta";
-import { pruebaDelHotel, trialEndParaStripe } from "@/lib/suscripcion";
+import { pruebaDelHotel, trialEndParaStripe, PRUEBA_DIAS } from "@/lib/suscripcion";
 import { inicioPruebaDelDueno } from "@/lib/db/prueba-dueno";
 
 export const runtime = "nodejs";
@@ -100,13 +100,13 @@ export async function POST(req: Request) {
     const puedeEmbebido =
       body.embedded === true && Boolean(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
 
-    // La prueba de 30 días vive en el PRODUCTO (corre desde que creó su primer
-    // hotel, sin tarjeta). Al activar el plan se respeta el tiempo que le QUEDE:
-    // ni 30 días extra encima de su prueba, ni cobrarle antes de tiempo. Sin
-    // hotel aún (paga primero, carga después) → 30 días desde hoy. Prueba
+    // La prueba vive en el PRODUCTO (corre desde que creó su primer hotel, sin
+    // tarjeta). Al activar el plan se respeta el tiempo que le QUEDE: ni días
+    // extra encima de su prueba, ni cobrarle antes de tiempo. Sin hotel aún
+    // (paga primero, carga después) → una prueba entera desde hoy. Prueba
     // vencida (o a <48 h, mínimo de Stripe) → el cobro corre desde hoy.
-    // Lanza si falla: sin este dato la prueba se recalcula como 30 días desde
-    // hoy, y a un hotelero que lleva 28 días de prueba se le regalarían otros 30.
+    // Lanza si falla: sin este dato la prueba se recalcularía desde hoy, y a un
+    // hotelero que lleva casi toda la suya se le regalaría otra completa.
     const primerHotel = await leer<{ created_at: string | null; extras: Record<string, unknown> | null }>(
       "checkout.primerHotel",
       admin
@@ -132,7 +132,10 @@ export async function POST(req: Request) {
     // rechazaba: el hotelero NO PODÍA PAGAR en las últimas 24-48 h de su prueba.
     const trialEnd = trialEndParaStripe(prueba);
     const subscriptionData = !primerHotel
-      ? { trial_period_days: 30, metadata: subMeta }
+      // PRUEBA_DIAS, no un 30 escrito a mano: es un alta NUEVA (aún no tiene
+      // hotel), así que le tocan los días vigentes. Atarlo a la constante evita
+      // que la web anuncie un número y Stripe cobre según otro.
+      ? { trial_period_days: PRUEBA_DIAS, metadata: subMeta }
       : trialEnd !== null
         ? { trial_end: trialEnd, metadata: subMeta }
         : { metadata: subMeta };

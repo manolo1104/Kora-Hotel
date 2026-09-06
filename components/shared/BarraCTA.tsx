@@ -11,7 +11,7 @@ export function BarraCTA() {
             ¿Listo para transformar tu hotel?
           </h2>
           <p className="mt-3 text-kora-accent text-base leading-relaxed">
-            Empieza con 30 días gratis. Un solo plan de $550/mes con
+            Empieza con 14 días gratis. Un solo plan de $550/mes con
             habitaciones ilimitadas, sin permanencia; cancela cuando quieras.
           </p>
           <CtaLink
@@ -19,7 +19,7 @@ export function BarraCTA() {
             ctaName="barra_onboarding"
             className="btn-press btn-arrow mt-6 inline-flex items-center gap-2 px-6 py-3.5 rounded-full bg-white text-kora-primary font-bold text-sm hover:bg-gray-50 transition-colors"
           >
-            Empezar 30 días gratis — sin tarjeta
+            Empezar 14 días gratis — sin tarjeta
             <ArrowRight size={16} aria-hidden="true" />
           </CtaLink>
           <div className="mt-4">

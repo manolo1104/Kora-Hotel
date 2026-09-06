@@ -71,7 +71,7 @@ export default async function ReservarPage({
   const color = diseno.color || COLOR_DEFAULT;
   const acento = diseno.acento || color; // si no hay acento, usa el color de marca
 
-  // Prueba de 30 días vencida y sin plan → el motor se pausa. El huésped nunca
+  // Prueba vencida y sin plan → el motor se pausa. El huésped nunca
   // choca contra una pared: se le deja el contacto directo del hotel.
   const acceso = await accesoDelHotel(hotel);
   if (!acceso.puedeCobrar) {

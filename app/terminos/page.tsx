@@ -71,8 +71,10 @@ export default function TerminosPage() {
                 MXN/mes (IVA incluido), con habitaciones ilimitadas y todo incluido:
                 motor de reservas, PMS, Camila (WhatsApp con IA), dashboard y
                 CRM. El precio se mantiene vigente mientras la
-                suscripción esté activa. El plan incluye 30 días de prueba
-                gratis; el primer cargo se realiza al finalizar la prueba.
+                suscripción esté activa. El plan incluye 14 días de prueba
+                gratis, sin tarjeta; el primer cargo se realiza al finalizar la
+                prueba. Las cuentas creadas antes del 6 de septiembre de 2026
+                conservan los 30 días de prueba con los que se registraron.
               </p>
               <ul className="mt-3 space-y-1.5 list-disc list-inside text-kora-muted">
                 <li>

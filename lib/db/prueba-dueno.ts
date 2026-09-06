@@ -2,7 +2,7 @@
 //
 // La prueba se derivaba de `hoteles.created_at`. Como el panel deja borrar un
 // hotel y volver a crearlo, eso era una prueba INFINITA: borras, recreas, y
-// vuelves a tener 30 días gratis, indefinidamente y sin tocar nada raro
+// vuelves a tener la prueba entera, indefinidamente y sin tocar nada raro
 // (K-108, K-258, K-315). El ancla no puede vivir en algo que el propio usuario
 // puede destruir, así que vive en una tabla aparte que sólo se escribe la
 // PRIMERA vez y nunca se borra.

@@ -89,14 +89,39 @@ export async function ownerTienePlanActivo(ownerId: string): Promise<boolean> {
   return tienePlanActivo(await getSuscripcion(ownerId));
 }
 
-// ─── Prueba de 30 días SIN tarjeta ───────────────────────────────────────────
+// ─── Prueba SIN tarjeta ──────────────────────────────────────────────────────
 // La prueba se DERIVA del created_at del hotel (sin columnas nuevas ni
-// migraciones): 30 días desde su creación. Para hoteles creados antes del
-// lanzamiento de la prueba, corre desde el lanzamiento — nadie amanece pausado
-// por un cambio de reglas retroactivo.
+// migraciones). Para hoteles creados antes del lanzamiento de la prueba, corre
+// desde el lanzamiento — nadie amanece pausado por un cambio de reglas
+// retroactivo.
 
-export const PRUEBA_DIAS = 30;
+/** Lo que dura la prueba de quien se da de alta HOY. Es el número de la web. */
+export const PRUEBA_DIAS = 14;
+
+/**
+ * Lo que duraba antes, y lo que siguen teniendo quienes ya estaban dentro.
+ *
+ * Esto NO es un residuo: es la única forma de bajar la prueba sin quitarle días
+ * a nadie. Como la fecha de fin no se guarda en ninguna parte —se recalcula a
+ * partir del alta cada vez que alguien la consulta—, cambiar el número a secas
+ * habría reescrito el pasado: un hotel con 20 días de antigüedad pasaba de 10
+ * días restantes a −6, o sea VENCIDO de golpe, con su motor de reservas pausado
+ * y su Camila apagada de un día para otro. Es el mismo motivo por el que existe
+ * `LANZAMIENTO_PRUEBA` desde el primer día.
+ *
+ * El corte va al día SIGUIENTE del despliegue, no al mismo: alguien que se dio
+ * de alta esta madrugada lo hizo leyendo "30 días gratis" en la web, y esa
+ * promesa se le respeta entera.
+ */
+const PRUEBA_DIAS_ANTES = 30;
+const CAMBIO_A_14 = Date.parse("2026-09-06T00:00:00-06:00");
+
 const LANZAMIENTO_PRUEBA = Date.parse("2026-07-10T00:00:00-06:00");
+
+/** Cuántos días de prueba le tocan a quien empezó en `inicio`. */
+function diasDePrueba(inicio: number): number {
+  return inicio < CAMBIO_A_14 ? PRUEBA_DIAS_ANTES : PRUEBA_DIAS;
+}
 
 export interface PruebaHotel {
   fin: Date;
@@ -122,13 +147,15 @@ export function pruebaDelHotel(
   const delDueno = inicioDelDueno ? Date.parse(inicioDelDueno) : NaN;
   // El ancla es la primera vez que este DUEÑO dio de alta un hotel, no la de
   // ESTE hotel. Anclarla al hotel hacía la prueba infinita: el panel deja
-  // borrarlo y volver a crearlo, y con eso arrancaban otros 30 días gratis, una
-  // y otra vez. Se toma la MÁS ANTIGUA de las dos fechas, para que sembrar el
+  // borrarlo y volver a crearlo, y con eso arrancaban otros días gratis, una y
+  // otra vez. Se toma la MÁS ANTIGUA de las dos fechas, para que sembrar el
   // ancla tarde nunca le quite días a nadie.
   const fechas = [creado, delDueno].filter((n) => !Number.isNaN(n));
   const base = fechas.length ? Math.min(...fechas) : NaN;
   const inicio = Number.isNaN(base) ? LANZAMIENTO_PRUEBA : Math.max(base, LANZAMIENTO_PRUEBA);
-  const fin = new Date(inicio + PRUEBA_DIAS * 86_400_000);
+  // Los días se deciden por CUÁNDO empezó, no por cuándo se pregunta: quien
+  // entró con 30 los conserva hasta el final.
+  const fin = new Date(inicio + diasDePrueba(inicio) * 86_400_000);
   const msRestantes = fin.getTime() - Date.now();
   return {
     fin,

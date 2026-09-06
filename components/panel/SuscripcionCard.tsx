@@ -82,8 +82,8 @@ export function SuscripcionCard({
             <span className="font-bold">Prueba gratis.</span>{" "}
             <span className="text-kora-muted">
               {sinHoteles
-                ? "Tus 30 días empiezan cuando crees tu hotel, aquí abajo. No te pedimos tarjeta para empezar: el plan ($550/mes) lo activas después, desde esta misma barra."
-                : "Cada hotel nuevo incluye 30 días completos sin tarjeta; al vencer, su motor se pausa hasta que actives tu plan ($550/mes)."}
+                ? "Tus 14 días empiezan cuando crees tu hotel, aquí abajo. No te pedimos tarjeta para empezar: el plan ($550/mes) lo activas después, desde esta misma barra."
+                : "Cada hotel nuevo incluye 14 días completos sin tarjeta; al vencer, su motor se pausa hasta que actives tu plan ($550/mes)."}
             </span>
           </p>
         </div>

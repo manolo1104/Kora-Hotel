@@ -95,7 +95,7 @@ export function emailHotelNuevo({
       ...(whatsapp ? [{ k: "WhatsApp", v: esc(whatsapp) }] : []),
       { k: "Hotel", v: esc(hotel) },
       ...(ubicacion ? [{ k: "Ubicación", v: esc(ubicacion) }] : []),
-      { k: "Plan", v: "Prueba gratis · 30 días" },
+      { k: "Plan", v: "Prueba gratis · 14 días" },
     ]) +
     `<tr><td style="padding:20px 40px 0;">
       <div style="background:${TOK.panel};border:1px solid ${TOK.borde};border-radius:12px;padding:16px 18px;">
@@ -262,18 +262,18 @@ export function emailLeadDay7({ nombre }: { nombre: string; hotel?: string }) {
       `Es mi último correo, no te quiero llenar la bandeja. Si ahora no es el momento, con toda confianza ignóralo.`,
     ) +
     parrafo(
-      `Si en algún momento quieres probarlo: son <strong style="color:${TOK.tinta};">30 días gratis, sin tarjeta</strong>. Dejas tu hotel montado, ves si te entran reservas y decides.`,
+      `Si en algún momento quieres probarlo: son <strong style="color:${TOK.tinta};">14 días gratis, sin tarjeta</strong>. Dejas tu hotel montado, ves si te entran reservas y decides.`,
     ) +
     parrafo(
       `Y si lo que necesitas es otra cosa, respóndeme igual y te digo con honestidad si Kora te sirve o no. Prefiero eso a venderte algo que no te toca.`,
     ) +
-    ctaKora("Probar 30 días gratis", first) +
+    ctaKora("Probar 14 días gratis", first) +
     respiro +
     pieKora("Este es el último correo de esta secuencia. No recibirás más recordatorios.");
 
   return {
     subject: `${first}, ¿lo dejamos para después?`,
-    html: doc("Último correo — Kora", "30 días gratis sin tarjeta, cuando tú quieras.", inner),
+    html: doc("Último correo — Kora", "14 días gratis sin tarjeta, cuando tú quieras.", inner),
   };
 }
 

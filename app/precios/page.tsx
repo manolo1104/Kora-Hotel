@@ -11,7 +11,7 @@ import { JsonLd } from "@/components/shared/JsonLd";
 export const metadata: Metadata = {
   title: "Precios de Kora — $550 MXN/mes, todo incluido",
   description:
-    "Un solo plan de $550 MXN/mes, todo incluido y con habitaciones ilimitadas: motor de reservas 0% comisión, Camila (WhatsApp con IA), PMS y CRM. Prueba 30 días gratis.",
+    "Un solo plan de $550 MXN/mes, todo incluido y con habitaciones ilimitadas: motor de reservas 0% comisión, Camila (WhatsApp con IA), PMS y CRM. Prueba 14 días gratis.",
   alternates: {
     canonical: "/precios",
   },

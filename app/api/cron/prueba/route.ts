@@ -11,10 +11,10 @@ import { sendRecordatorioPrueba, sendPruebaPausada } from "@/lib/email/prueba";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// ── CRON de la prueba de 30 días (corre 1 vez al día, ver vercel.json) ───────
+// ── CRON de la prueba (corre 1 vez al día, ver vercel.json) ─────────────────
 // Recorre los hoteles cuyo dueño NO tiene plan activo y, según los días que le
 // queden a su prueba (derivada de created_at, ver lib/suscripcion):
-//   - día 10 / 3 / 1 restantes → recordatorio con CTA de activar el plan
+//   - día 7 / 3 / 1 restantes → recordatorio con CTA de activar el plan
 //   - recién vencida (primeras 24 h) → aviso de motor pausado
 // El umbral ya avisado se PERSISTE en `extras.prueba.avisos`. "Corre una vez al
 // día" describe el cron de Vercel, no lo que le puede pasar a la ruta: un `curl`
@@ -22,7 +22,15 @@ export const dynamic = "force-dynamic";
 // marca el hotelero recibía el mismo "te quedan 3 días" dos veces. No hace falta
 // tabla nueva: la marca vive en el propio hotel.
 
-const DIAS_RECORDATORIO = new Set([10, 3, 1]);
+// 7 y no 10 desde que la prueba dura 14 días: con el umbral viejo, el primer
+// recordatorio caía el día 4: un hotelero que todavía está subiendo fotos y
+// cargando cuartos recibía un "se te acaba la prueba" antes de haber visto
+// funcionar nada. A mitad de camino el aviso ya significa algo.
+//
+// Los hoteles que conservan sus 30 días (alta anterior al 6 sep 2026) también
+// pasan por 7, 3 y 1: son avisos por días RESTANTES, no por días transcurridos,
+// así que siguen llegando cuando toca — sólo que el primero les llega más tarde.
+const DIAS_RECORDATORIO = new Set([7, 3, 1]);
 
 export async function GET(req: Request) {
   return rutaSegura("cron.prueba", async () => {

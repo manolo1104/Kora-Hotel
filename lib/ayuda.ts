@@ -29,7 +29,7 @@ export const AYUDA: ArticuloAyuda[] = [
     contenido: [
       "Hay un solo plan de $550 MXN/mes, mes a mes y sin permanencia, con habitaciones ilimitadas.",
       "Incluye todo: el motor de reservas directo (0% de comisión), el PMS completo, Camila (agente de WhatsApp con IA 24/7), el dashboard con métricas y el CRM de huéspedes con emails automáticos.",
-      "Lo pruebas 30 días gratis: no se cobra nada hasta el día 31 y cancelas antes sin pagar.",
+      "Lo pruebas 14 días gratis: no se cobra nada hasta el día 15 y cancelas antes sin pagar.",
       "La mini-página de reservas es gratis para siempre, con o sin plan.",
       "Pagas con tarjeta desde la página de precios; el cobro es mensual y automático. Puedes cambiar de tarjeta, descargar recibos o cancelar tú mismo desde tu panel, en “Administrar mi pago”.",
     ],

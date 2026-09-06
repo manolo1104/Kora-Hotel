@@ -28,14 +28,14 @@ export default async function EntrarPage({
   // activar la prueba (pago), cargar su hotel (onboarding) o entrar al panel.
   const vaAlOnboarding = next.startsWith("/panel/onboarding");
   const titulo = plan
-    ? "Activa tus 30 días gratis"
+    ? "Activa tus 14 días gratis"
     : vaAlOnboarding
       ? "Empieza a cargar tu hotel"
       : "Entra a tu panel";
   const detalle = plan
     ? `Crea tu cuenta o entra para activar tu ${plan.nombre} ($${plan.precio.toLocaleString("es-MX")} MXN/mes). Se respeta el tiempo que te quede de tu prueba gratis, y cancelas cuando quieras desde tu panel.`
     : vaAlOnboarding
-      ? "Crea tu cuenta o entra para cargar tus cuartos, precios y fotos. Te toma unos 5 minutos y no necesitas tarjeta: tu prueba de 30 días empieza al crear tu hotel."
+      ? "Crea tu cuenta o entra para cargar tus cuartos, precios y fotos. Te toma unos 5 minutos y no necesitas tarjeta: tu prueba de 14 días empieza al crear tu hotel."
       : "Entra o crea tu cuenta para administrar tu hotel y tu página de reservas directas.";
 
   return (

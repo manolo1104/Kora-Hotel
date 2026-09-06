@@ -32,7 +32,7 @@ const featuresKora = [
 const garantias = [
   {
     icon: ShieldCheck,
-    titulo: "30 días gratis, sin tarjeta",
+    titulo: "14 días gratis, sin tarjeta",
     texto:
       "Carga tu hotel y usa Kora completo un mes sin dar ningún dato de pago. Activas tu plan solo si te convence.",
   },
@@ -98,7 +98,7 @@ export function PricingSection() {
               </span>
             </p>
             <p className="mt-2 text-sm text-kora-muted">
-              Pruébalo 30 días gratis, <span className="font-semibold text-kora-text">sin tarjeta</span>:
+              Pruébalo 14 días gratis, <span className="font-semibold text-kora-text">sin tarjeta</span>:
               cargas tu hotel y lo usas todo. Activas tu plan solo si te convence.
             </p>
             {/* Urgencia REAL (capacidad de acompañamiento, no falso countdown) */}
@@ -326,7 +326,7 @@ export function PricingSection() {
                   Empezar gratis — sin tarjeta
                 </CtaLink>
                 <p className="mt-2 text-center text-[11px] text-kora-muted">
-                  30 días completos · cancelas tú mismo en un clic, desde tu panel
+                  14 días completos · cancelas tú mismo en un clic, desde tu panel
                 </p>
                 {/* Social proof real: el sistema opera un hotel de verdad hoy */}
                 <p className="mt-3 text-center text-[11px] text-kora-muted">

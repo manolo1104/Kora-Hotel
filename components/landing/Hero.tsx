@@ -18,7 +18,7 @@ const EASE = [0.23, 1, 0.32, 1] as const;
 const DATOS_CLAVE = [
   { label: "Precio mensual", valor: "$550", nota: "MXN/mes, todo incluido" },
   { label: "Comisión por reserva", valor: "0%", nota: "comisión por reserva" },
-  { label: "Prueba gratis", valor: "30 días", nota: "gratis, sin tarjeta" },
+  { label: "Prueba gratis", valor: "14 días", nota: "gratis, sin tarjeta" },
   { label: "Habitaciones", valor: "Ilimitadas", nota: "habitaciones, un solo plan" },
 ];
 

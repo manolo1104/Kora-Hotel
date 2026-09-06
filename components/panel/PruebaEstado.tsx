@@ -3,7 +3,7 @@ import { Clock, Lock, ArrowRight, Database } from "lucide-react";
 import type { PruebaHotel } from "@/lib/suscripcion";
 import { EMAIL_CONTACTO } from "@/lib/contacto";
 
-// Estado de la prueba de 30 días en el panel operativo (server components).
+// Estado de la prueba gratis en el panel operativo (server components).
 // - Banner: cuenta regresiva discreta pero visible, con CTA a activar el plan.
 // - Pantalla vencida: firme pero honesta — los datos están a salvo, nada se borra.
 

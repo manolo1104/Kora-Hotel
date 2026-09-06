@@ -648,7 +648,7 @@ export const paginasWhatsApp: PaginaWhatsApp[] = [
       },
       {
         q: "¿Puedo probarlo antes de pagar?",
-        a: "Sí, hay 30 días gratis sin tarjeta.",
+        a: "Sí, hay 14 días gratis sin tarjeta.",
       },
     ],
     relacionados: [

@@ -79,7 +79,7 @@ export function Navbar() {
           {/* Prueba gratis: gancho honesto y consistente con el alta self-service */}
           <span className="hidden lg:inline-flex items-center gap-1.5 text-[11px] font-semibold text-kora-primary">
             <span className="w-1.5 h-1.5 rounded-full bg-kora-accent animate-pulse" aria-hidden="true" />
-            30 días gratis
+            14 días gratis
           </span>
           <a
             href="/entrar"
