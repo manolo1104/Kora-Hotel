@@ -34,6 +34,7 @@ export type Permiso =
   | "canales:leer"
   | "canales:escribir"
   | "bot:leer"
+  | "bot:responder"
   | "bot:entrenar"
   | "bot:configurar"
   | "bot:vincular"
@@ -83,6 +84,11 @@ export const PERMISOS: Record<Permiso, RolHotel[]> = {
   "canales:leer": MANDO,
   "canales:escribir": MANDO,
   "bot:leer": MANDO,
+  // Contestar por WhatsApp desde la bandeja, etiquetar un hilo y callar a Camila
+  // en un chat. Va con `bot:leer` y no más abajo: quien no puede ni LEER las
+  // conversaciones de los huéspedes tampoco puede escribirles con el número del
+  // hotel. Y escribir por el WhatsApp del hotel es hablar EN NOMBRE del hotel.
+  "bot:responder": MANDO,
   // Entrenar a Camila (FAQs, tono, encendido) NO es lo mismo que tocar su
   // dinero. La encargada debe poder afinar cómo responde el bot sin poder
   // cambiar la cuenta a la que un huésped va a transferir.

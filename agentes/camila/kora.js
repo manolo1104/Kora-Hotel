@@ -176,6 +176,55 @@ export class KoraHotel {
     }
   }
 
+  /**
+   * Los últimos turnos guardados de un chat, para RETOMAR la conversación.
+   *
+   * El historial de Camila vive en la memoria del proceso, así que cada
+   * despliegue de Railway —varios al día— lo borraba: un huésped a medio
+   * reservar mandaba su último dato y Camila lo saludaba de cero. La acción
+   * `historial` existía en Kora desde hace semanas y NADIE la llamaba; esto es
+   * el llamador que faltaba.
+   *
+   * Devuelve [] ante cualquier fallo: retomar es una mejora, no un requisito, y
+   * quedarse callado porque no se pudo leer el pasado sería mucho peor.
+   */
+  async historial(conv) {
+    if (!conv) return [];
+    try {
+      const data = await this._post({ action: "historial", conv });
+      return Array.isArray(data && data.turnos) ? data.turnos : [];
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Lo que hay que saber de ESTE chat antes de contestarlo:
+   *
+   *  - `hasta`: hasta cuándo lo atiende una persona (ms; 0 = nadie). Lo escribe
+   *    el panel cuando el hotelero dice «yo contesto».
+   *  - `huesped`: quién es el que escribe, según las reservas y las notas del
+   *    CRM de este hotel. Viaja aquí y NO dentro del conocimiento porque el
+   *    conocimiento se cachea 15 min por HOTEL: meterlo ahí le enseñaría a un
+   *    huésped los datos de otro.
+   *
+   * Fail-open: si no se puede leer, Camila sigue atendiendo sin reconocerlo —
+   * callarla por un hipo de red es más caro que una respuesta impersonal.
+   */
+  async chatEstado(conv) {
+    if (!conv) return { hasta: 0, huesped: "" };
+    try {
+      const data = await this._post({ action: "chat-estado", conv });
+      const t = data && data.pausadoHasta ? Date.parse(data.pausadoHasta) : 0;
+      return {
+        hasta: Number.isFinite(t) ? t : 0,
+        huesped: typeof (data && data.huesped) === "string" ? data.huesped : "",
+      };
+    } catch {
+      return { hasta: 0, huesped: "" };
+    }
+  }
+
   /** Cierra la reserva: aparta el cuarto y genera link de pago. `ok:false` trae
    *  un código de error de negocio que el cerebro traduce al huésped. */
   async reservar(params, { conv } = {}) {

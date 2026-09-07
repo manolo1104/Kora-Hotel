@@ -13,7 +13,8 @@ import pkg from "whatsapp-web.js";
 const { Client, LocalAuth } = pkg;
 import qrcodeTerminal from "qrcode-terminal";
 import QRCode from "qrcode";
-import { createServer } from "node:http";
+import { arrancarServidor } from "./servidor.js";
+import { aMensajes } from "./historial.js";
 import path from "node:path";
 import { rmSync, existsSync, renameSync } from "node:fs";
 import { loadFleet } from "./fleet.js";
@@ -38,6 +39,17 @@ const pendientes = new Map();
 const pausados = new Map();
 // Ventana para no confundir el envío del propio bot con una respuesta humana.
 const botEnvioAt = new Map();
+// Lo que Kora sabe de ESTE chat: si lo atiende una persona, y quién es el que
+// escribe (sus reservas y las notas del hotel). `${slug}::${chatId}` -> { at,
+// hasta, huesped }.
+//
+// 60 s y no 15: la pausa no depende de esta caché para ser inmediata —el panel
+// se la manda al runtime por `POST /pausa` en cuanto se pulsa—, así que esto es
+// sólo el respaldo que sobrevive a los reinicios. Y lo otro que trae, quién es
+// el huésped, cuesta dos consultas a la base: no vale la pena repetirlas cada
+// vez que alguien escribe dos mensajes seguidos.
+const chatConsultado = new Map();
+const CHAT_TTL_CONSULTA_MS = 60_000;
 // Clientes de WhatsApp VIVOS por hotel: slug -> Client. Fuente de verdad de qué
 // hoteles está atendiendo Camila ahora mismo (para arrancar/apagar en caliente).
 // slug -> { client, kora }. Guarda TAMBIÉN el KoraHotel para poder refrescarle
@@ -84,6 +96,7 @@ function purgarChatsInactivos() {
     pendientes.delete(key);
     pausados.delete(key);
     botEnvioAt.delete(key);
+    chatConsultado.delete(key);
     ultimaActividad.delete(key);
     n += 1;
   }
@@ -236,16 +249,38 @@ function arrancarHotel(hotel) {
   // `fromMe` en mensajes entrantes y esto pausaba el chat sin razón, silenciando
   // a Camila. Se activa con CAMILA_HUMAN_TAKEOVER=1 cuando la detección sea fiable.
   client.on("message_create", (msg) => {
-    if (process.env.CAMILA_HUMAN_TAKEOVER !== "1") return;
     if (!msg.fromMe) return;
     const chatId = msg.to;
     if (!chatId || chatId.endsWith("@g.us") || chatId.endsWith("@broadcast")) return;
-    // Evita pausar por mensajes VIEJOS que WhatsApp reproduce al sincronizar
-    // cuando se vincula el dispositivo (si no, arranca en pausa sin razón).
+    // Evita reaccionar a mensajes VIEJOS que WhatsApp reproduce al sincronizar
+    // cuando se vincula el dispositivo.
     if (msg.timestamp && Date.now() / 1000 - msg.timestamp > 120) return;
     const key = `${slug}::${chatId}`;
     const reciénBot = Date.now() - (botEnvioAt.get(key) || 0) < 4000;
-    if (reciénBot) return; // fue el bot, no un humano
+    if (reciénBot) return; // fue el bot (o el panel), no alguien tecleando
+
+    // GUARDARLO es lo primero, y va SIEMPRE. La bandeja del panel enseña esta
+    // conversación, y hasta hoy los mensajes que el hotelero escribía desde su
+    // propio teléfono se tiraban: el hotelero leía media conversación y no
+    // entendía por qué Camila «no había contestado» algo que él ya contestó.
+    // Se guarda con rol `assistant` y `por:"hotel"` — el rol es lo que hace que
+    // Camila lo vea como suyo al rehidratar y no lo contradiga; el `por` es lo
+    // que hace que la burbuja se pinte distinta.
+    const dicho = (msg.body || "").trim();
+    if (dicho) {
+      kora
+        .logConversacion({
+          conv: chatId.split("@")[0],
+          turnos: [{ rol: "assistant", texto: dicho, por: "hotel" }],
+        })
+        .catch((e) => console.error(`[${slug}] no se guardó lo que escribió el hotel:`, e && e.message));
+    }
+
+    // Y la PAUSA automática sigue apagada por defecto: con el formato @lid,
+    // whatsapp-web.js reporta mal `fromMe` en mensajes entrantes y esto callaba
+    // a Camila sin razón. Guardar es seguro; pausar no. Desde la bandeja del
+    // panel la pausa es un botón explícito, que es como debe ser.
+    if (process.env.CAMILA_HUMAN_TAKEOVER !== "1") return;
     pausados.set(key, Date.now() + HUMAN_TAKEOVER_MS);
     console.log(`[${slug}] toma humana en ${chatId} — bot en pausa 1 h.`);
   });
@@ -308,10 +343,22 @@ async function onMensaje(client, slug, kora, msg) {
   // aunque siga conectada. Fail-open lo maneja kora.status().
   if (!st.enabled) return;
 
-  // ¿Chat en pausa por toma humana? Ignora hasta que expire.
-  const pausadoHasta = pausados.get(key) || 0;
-  if (Date.now() < pausadoHasta) return;
-  if (pausadoHasta) pausados.delete(key);
+  // ¿Este chat lo está atendiendo una persona? Dos fuentes:
+  //
+  //  - `pausados`: memoria del proceso (toma humana, u orden recién llegada del
+  //    panel). Es la rápida.
+  //  - La BASE: es la que SOBREVIVE. Hasta hoy la pausa sólo vivía en memoria y
+  //    cada despliegue de Railway —varios al día— la borraba: el hotelero decía
+  //    «yo contesto», y media hora después Camila volvía a escribirle al huésped
+  //    encima sin que nadie hubiera tocado nada.
+  const hastaMemoria = pausados.get(key) || 0;
+  if (hastaMemoria && Date.now() >= hastaMemoria) pausados.delete(key);
+  const delChat = await estadoDelChat(kora, key, chatId);
+  const pausadoHasta = Math.max(hastaMemoria, delChat.hasta);
+  if (Date.now() < pausadoHasta) {
+    console.log(`[${slug}] ${chatId}: lo atiende una persona, Camila no contesta`);
+    return;
+  }
 
   // Debounce: agrupa mensajes seguidos para tener el contexto completo.
   const p = pendientes.get(key) || { textos: [] };
@@ -324,6 +371,22 @@ async function onMensaje(client, slug, kora, msg) {
     );
   }, MESSAGE_WAIT_MS);
   pendientes.set(key, p);
+}
+
+/**
+ * Lo que Kora sabe de este chat: quién lo atiende y quién escribe.
+ *
+ * FAIL-OPEN, igual que `kora.status()`: si Kora no contesta, Camila sigue
+ * atendiendo (sin reconocer al huésped). Callarla ante un hipo de red dejaría
+ * muda la Camila de un hotel que paga, que es mucho más caro.
+ */
+async function estadoDelChat(kora, key, chatId) {
+  const hit = chatConsultado.get(key);
+  if (hit && Date.now() - hit.at < CHAT_TTL_CONSULTA_MS) return hit;
+  const r = await kora.chatEstado(chatId.split("@")[0]);
+  const fresco = { at: Date.now(), hasta: r.hasta, huesped: r.huesped };
+  chatConsultado.set(key, fresco);
+  return fresco;
 }
 
 // Silencio DECLARADO, no error tragado: el fallo del turno anterior ya se
@@ -361,10 +424,28 @@ async function procesarTurno(client, slug, kora, chatId, userText) {
   // un fallo masivo se note en Railway, pero no ensucian el log normal.
   if (chat) chat.sendStateTyping().catch((e) => console.warn(`[${slug}] sendStateTyping:`, e && e.message));
 
-  const history = historiales.get(key) || [];
   const conv = chatId.split("@")[0]; // teléfono → métrica sin doble conteo
 
-  const { reply, history: nuevo } = await handleTurn({ hotel, kora, history, userText, conv });
+  // RETOMAR la conversación tras un reinicio. El historial vive en la memoria de
+  // este proceso, así que cada despliegue de Railway lo borraba: un huésped a
+  // medio reservar mandaba su último dato y Camila lo saludaba de cero. La
+  // acción `historial` existía en Kora desde hace semanas y nadie la llamaba.
+  //
+  // Sólo cuando NO hay nada en memoria: si ya se está conversando, la memoria es
+  // más fiel (trae los bloques de herramienta) y pisarla con el resumen guardado
+  // sería perder contexto del turno en curso.
+  let history = historiales.get(key);
+  if (!history) {
+    history = aMensajes(await kora.historial(conv));
+    if (history.length) console.log(`[${slug}] ${conv}: retomo ${history.length} turno(s) guardados`);
+    historiales.set(key, history);
+  }
+
+  // Quién escribe: reservas y notas de ESTE hotel para ESTE teléfono. Va por
+  // turno y no dentro del conocimiento cacheado, para que un huésped no vea
+  // nunca los datos de otro.
+  const { huesped } = await estadoDelChat(kora, key, chatId);
+  const { reply, history: nuevo } = await handleTurn({ hotel, kora, history, userText, conv, huesped });
   historiales.set(key, nuevo);
 
   if (chat) chat.clearState().catch((e) => console.warn(`[${slug}] clearState:`, e && e.message));
@@ -390,68 +471,56 @@ async function procesarTurno(client, slug, kora, chatId, userText) {
     .catch((e) => console.error(`[${slug}] no se guardó la conversación de ${conv}:`, e && e.message));
 }
 
-// ── Servidor de estado/QR + health (Railway hace healthcheck a /health) ──
+// ── Servidor: estado/QR, salud, y mandar/pausar desde el panel ──
+//
+// El router vive en `servidor.js` para poder probarlo sin Chromium. Aquí sólo se
+// le entregan las cuatro cosas que necesita del proceso: el secreto, el mapa de
+// estado, cómo mandar un mensaje y cómo pausar un chat.
+
+/**
+ * Manda un mensaje que escribió una PERSONA desde el panel.
+ *
+ * Marca `botEnvioAt` ANTES de mandar: si no, el `message_create` de abajo vería
+ * su propio eco como «alguien escribiendo desde el teléfono» y lo guardaría dos
+ * veces en el hilo.
+ */
+async function enviarDesdePanel(slug, chatId, texto) {
+  const vivo = clientes.get(slug);
+  if (!vivo || !vivo.client) return { ok: false, error: "hotel-sin-sesion" };
+  const key = `${slug}::${chatId}`;
+  botEnvioAt.set(key, Date.now());
+  ultimaActividad.set(key, Date.now());
+  try {
+    await vivo.client.sendMessage(chatId, texto);
+    console.log(`[${slug}] ✍️  mensaje del hotelero enviado a ${chatId}`);
+    return { ok: true };
+  } catch (e) {
+    console.error(`[${slug}] no se pudo enviar el mensaje del panel:`, e && e.message);
+    return { ok: false, error: "no-enviado" };
+  }
+}
+
+/** Refleja en memoria la pausa que el panel acaba de guardar en la base. */
+function pausarChat(slug, chatId, hasta) {
+  const key = `${slug}::${chatId}`;
+  if (hasta > Date.now()) {
+    pausados.set(key, hasta);
+    chatConsultado.delete(key); // que no gane la caché a la orden recién dada
+    console.log(`[${slug}] ${chatId}: lo atiende una persona hasta ${new Date(hasta).toISOString()}`);
+  } else {
+    pausados.delete(key);
+    chatConsultado.delete(key);
+    console.log(`[${slug}] ${chatId}: Camila vuelve a contestar`);
+  }
+}
+
 function servidorEstado() {
-  createServer((req, res) => {
-    if (req.url === "/health") {
-      res.writeHead(200, { "content-type": "text/plain" });
-      res.end("ok");
-      return;
-    }
-
-    // El candado va ANTES del router: todo lo que no sea /health exige el secreto
-    // de flota. Antes vivía dentro de la rama /estado, así que cualquier otra URL
-    // (incluida la raíz) caía en la página HTML del final y servía el QR de
-    // vinculación de WhatsApp de cada hotel sin pedir nada. El runtime es público
-    // por diseño —Vercel le pega desde fuera— y el subdominio de Railway aparece
-    // en los registros de certificados, así que no conocerlo no era protección.
-    const auth = req.headers["authorization"] || "";
-    if (!FLEET_SECRET || auth !== `Bearer ${FLEET_SECRET}`) {
-      res.writeHead(401, { "content-type": "application/json" });
-      res.end(JSON.stringify({ error: "no-autorizado" }));
-      return;
-    }
-
-    // API JSON para que el panel de Kora muestre el QR/estado de un hotel.
-    // GET /estado            → { hotels: [{ slug, nombre, status, qr }] }
-    // GET /estado?slug=xxx   → { slug, nombre, status, qr } (o 404)
-    if (req.url && req.url.startsWith("/estado")) {
-      const url = new URL(req.url, "http://localhost");
-      const slug = url.searchParams.get("slug");
-      // El QR (dataURL) solo se expone cuando de verdad hay uno que escanear.
-      // `err` viaja SÓLO cuando el arranque falló. Sin esto, un hotel cuyo
-      // `client.initialize()` reventaba se quedaba en `status:"error"` y el
-      // motivo moría en los logs de Railway: el panel decía "estamos preparando
-      // tu conexión" y nadie —ni el hotelero ni Kora— sabía qué había pasado.
-      // Pasó con un alta real el 31 ago 2026 y costó media hora de logs
-      // averiguarlo. Este endpoint ya exige el secreto de flota, así que el
-      // detalle no queda expuesto a nadie más.
-      const publico = (h) => ({
-        slug: h.slug,
-        nombre: h.nombre,
-        status: h.status,
-        qr: h.status === "qr" ? h.qr : null,
-        ...(h.status === "error" && h.err ? { err: String(h.err).slice(0, 300) } : {}),
-      });
-      res.writeHead(200, { "content-type": "application/json" });
-      if (slug) {
-        const h = estado.get(slug);
-        res.end(JSON.stringify(h ? publico(h) : { slug, status: "desconocido", qr: null }));
-      } else {
-        res.end(JSON.stringify({ hotels: [...estado.values()].map(publico) }));
-      }
-      return;
-    }
-    // Aquí vivía una página HTML que listaba toda la flota —nombre y slug de cada
-    // hotel— e incrustaba el QR de vinculación de WhatsApp como imagen. Está
-    // borrada, no sólo protegida: ese QR es la credencial de emparejamiento, y
-    // quien lo escaneara quedaba como dispositivo enlazado del número del hotel,
-    // leyendo y contestando a sus huéspedes. Nadie la consumía: el panel de Kora
-    // habla con /estado?slug=… (bot-status y bot-qr) y Railway sólo necesita
-    // /health. Sin página no hay superficie que proteger.
-    res.writeHead(404, { "content-type": "application/json" });
-    res.end(JSON.stringify({ error: "no-encontrado" }));
-  }).listen(PORT, () => console.log(`[camila] estado/health en :${PORT}`));
+  arrancarServidor(PORT, {
+    secreto: FLEET_SECRET,
+    estado,
+    enviar: enviarDesdePanel,
+    pausar: pausarChat,
+  });
 }
 
 // Apaga y limpia por completo a un hotel que salió del fleet (prueba vencida sin
@@ -473,7 +542,7 @@ async function pararHotel(slug) {
   clientes.delete(slug);
   estado.delete(slug);
   // Limpia el estado por-chat de ese hotel (claves `${slug}::chatId`).
-  for (const mapa of [historiales, pendientes, pausados, botEnvioAt, ultimaActividad, enCurso]) {
+  for (const mapa of [historiales, pendientes, pausados, botEnvioAt, chatConsultado, ultimaActividad, enCurso]) {
     for (const k of [...mapa.keys()]) {
       if (!k.startsWith(`${slug}::`)) continue;
       const v = mapa.get(k);

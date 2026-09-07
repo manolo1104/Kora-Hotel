@@ -1773,6 +1773,16 @@ export interface TurnoConversacion {
   rol: "user" | "assistant";
   texto: string;
   ts?: string; // ISO; lo pone el servidor si no viene
+  /**
+   * Quién escribió el turno de `assistant`. Ausente = Camila.
+   *
+   * `"hotel"` es una PERSONA del hotel: contestó desde el panel, o desde su
+   * propio teléfono. Se guarda con rol `assistant` a propósito y no con un rol
+   * nuevo: al rehidratar el historial, el modelo tiene que ver esa respuesta
+   * como suya para no contradecirla en el mensaje siguiente. `por` sólo cambia
+   * cómo se PINTA la burbuja en el panel.
+   */
+  por?: "hotel";
 }
 
 const CAMILA_MAX_TURNOS = 300; // tope de mensajes guardados por hilo
@@ -1795,6 +1805,9 @@ export async function logCamilaConversacion(
         rol: t.rol,
         texto: t.texto.trim().slice(0, CAMILA_MAX_CHARS),
         ts: t.ts || new Date().toISOString(),
+        // Sin esto, la respuesta que escribe el hotelero se guardaba como si la
+        // hubiera dicho Camila y la bandeja no podía distinguirlas.
+        ...(t.por === "hotel" ? { por: "hotel" as const } : {}),
       }))
       .filter((t) => t.texto.length > 0);
     if (!id || nuevos.length === 0) return;
@@ -1841,6 +1854,48 @@ export interface HiloCamila {
   ultimoTexto?: string;
   /** Sólo al abrir un hilo. */
   turnos?: TurnoConversacion[];
+  /** Etiquetas de trabajo del hotelero. `[]` mientras el SQL no esté corrido. */
+  etiquetas: string[];
+  /** Hasta cuándo Camila no contesta en este chat (ISO), o `null`. */
+  pausadoHasta: string | null;
+  /** Cuándo lo abrió el hotelero por última vez (ISO), o `null`. */
+  vistoAt: string | null;
+  /** Mensajes del huésped posteriores a `vistoAt`. */
+  noLeidos: number;
+}
+
+/** El juego CERRADO de etiquetas. Texto libre convierte el filtro en basura. */
+export const ETIQUETAS_CHAT = ["Nueva", "Cotizando", "Reservó", "Perdida", "Atender yo"] as const;
+export type EtiquetaChat = (typeof ETIQUETAS_CHAT)[number];
+
+/** Sólo las que están en el juego, sin repetir y con tope. */
+export function limpiarEtiquetas(v: unknown): string[] {
+  if (!Array.isArray(v)) return [];
+  return [...new Set(v.filter((x): x is string => typeof x === "string"))]
+    .filter((x) => (ETIQUETAS_CHAT as readonly string[]).includes(x))
+    .slice(0, ETIQUETAS_CHAT.length);
+}
+
+/** Cuántos mensajes del HUÉSPED llegaron después de que el hotelero mirara. */
+function contarNoLeidos(turnos: TurnoConversacion[], vistoAt: string | null): number {
+  const corte = vistoAt ? Date.parse(vistoAt) : NaN;
+  return turnos.filter((t) => {
+    if (t.rol !== "user") return false;
+    if (!Number.isFinite(corte)) return true; // nunca lo ha abierto
+    const ts = t.ts ? Date.parse(t.ts) : NaN;
+    return !Number.isFinite(ts) || ts > corte;
+  }).length;
+}
+
+/** Los campos de bandeja de una fila, tolerando que las columnas no existan. */
+function bandejaDe(fila: Record<string, unknown>, turnos: TurnoConversacion[]) {
+  const vistoAt = typeof fila.visto_at === "string" ? fila.visto_at : null;
+  return {
+    etiquetas: limpiarEtiquetas(fila.etiquetas),
+    pausadoHasta: typeof fila.pausado_hasta === "string" ? fila.pausado_hasta : null,
+    vistoAt,
+    noLeidos: contarNoLeidos(turnos, vistoAt),
+  };
 }
 
 /** Tope del listado. Es un panel para leer, no un exportador. */
@@ -1872,7 +1927,11 @@ export async function getHilosCamila(hotelId: string): Promise<HiloCamila[]> {
     const supabase = createAdminClient();
     const { data, error } = await supabase
       .from("camila_conversaciones")
-      .select("chat_id, mensajes, ultimo_at")
+      // `select("*")` a propósito: las columnas de bandeja (etiquetas, pausa,
+      // visto) son NUEVAS. Pedirlas por nombre haría fallar la consulta entera
+      // mientras el SQL no esté corrido, y la pantalla que hoy funciona se
+      // quedaría vacía. Con `*`, lo que falta simplemente no viene.
+      .select("*")
       .eq("hotel_id", hotelId)
       .order("ultimo_at", { ascending: false }) // usa camila_conv_hotel_ultimo_idx
       .limit(CAMILA_HILOS_MAX);
@@ -1881,7 +1940,7 @@ export async function getHilosCamila(hotelId: string): Promise<HiloCamila[]> {
       return [];
     }
     return (data ?? []).map((r) => {
-      const fila = r as { chat_id: string; mensajes: unknown; ultimo_at: string };
+      const fila = r as Record<string, unknown> & { chat_id: string; mensajes: unknown; ultimo_at: string };
       const turnos = Array.isArray(fila.mensajes) ? (fila.mensajes as TurnoConversacion[]) : [];
       const ultimo = turnos[turnos.length - 1];
       return {
@@ -1890,6 +1949,7 @@ export async function getHilosCamila(hotelId: string): Promise<HiloCamila[]> {
         ultimoAt: fila.ultimo_at,
         mensajes: turnos.length,
         ultimoTexto: ultimo?.texto?.slice(0, 140) ?? "",
+        ...bandejaDe(fila, turnos),
       };
     });
   } catch (e) {
@@ -1904,7 +1964,7 @@ export async function getHiloCamila(hotelId: string, chatId: string): Promise<Hi
     const supabase = createAdminClient();
     const { data, error } = await supabase
       .from("camila_conversaciones")
-      .select("chat_id, mensajes, ultimo_at")
+      .select("*")
       .eq("hotel_id", hotelId)
       .eq("chat_id", chatId.slice(0, 80))
       .maybeSingle();
@@ -1913,7 +1973,7 @@ export async function getHiloCamila(hotelId: string, chatId: string): Promise<Hi
       return null;
     }
     if (!data) return null;
-    const fila = data as { chat_id: string; mensajes: unknown; ultimo_at: string };
+    const fila = data as Record<string, unknown> & { chat_id: string; mensajes: unknown; ultimo_at: string };
     const turnos = Array.isArray(fila.mensajes) ? (fila.mensajes as TurnoConversacion[]) : [];
     return {
       chatId: fila.chat_id,
@@ -1921,9 +1981,145 @@ export async function getHiloCamila(hotelId: string, chatId: string): Promise<Hi
       ultimoAt: fila.ultimo_at,
       mensajes: turnos.length,
       turnos,
+      ...bandejaDe(fila, turnos),
     };
   } catch (e) {
     console.error("getHiloCamila:", e);
+    return null;
+  }
+}
+
+/** Tope de FAQs del bot. El prompt ya recorta a 40; esto evita llegar con 500. */
+const MAX_FAQS_BOT = 40;
+
+/**
+ * Añade (o reemplaza) una pregunta frecuente del bot desde la bandeja.
+ *
+ * Es el bucle de aprendizaje real de Camila: el hotelero lee lo que contestó,
+ * ve que estuvo mal y escribe lo que DEBIÓ contestar. Eso queda en la misma
+ * lista `extras.bot.faqs` que ya usa el entrenamiento, así que llega al cerebro
+ * en el siguiente mensaje sin tocar Railway (el prompt se arma en el servidor).
+ *
+ * Lectura-modificación-escritura, igual que `saveBotConfig`: pasarle sólo las
+ * FAQs nuevas a `saveBotConfig` REEMPLAZARÍA la lista entera (hace
+ * `Object.assign`), y el hotelero perdería su entrenamiento por corregir un
+ * mensaje.
+ *
+ * Dedupe por pregunta, con la NUEVA ganando: es la misma regla que
+ * `normalizeFaqs` aplica al armar el prompt. Si no, corregir dos veces la misma
+ * pregunta dejaría a Camila con dos respuestas contradictorias.
+ */
+export async function agregarFaqBot(hotelId: string, q: string, a: string): Promise<boolean> {
+  const pregunta = (q ?? "").trim().slice(0, 200);
+  const respuesta = (a ?? "").trim().slice(0, 1000);
+  if (!pregunta || !respuesta) return false;
+  try {
+    const supabase = createAdminClient();
+    const { data, error } = await supabase
+      .from("hoteles")
+      .select("extras")
+      .eq("id", hotelId)
+      .maybeSingle();
+    if (error) {
+      console.error("agregarFaqBot lectura:", error.message);
+      return false;
+    }
+    const extras = { ...(((data as { extras?: Record<string, unknown> } | null)?.extras) ?? {}) };
+    const bot = { ...((extras.bot as Record<string, unknown>) ?? {}) };
+    const previas = Array.isArray(bot.faqs) ? (bot.faqs as { q?: unknown; a?: unknown }[]) : [];
+    const limpias = previas
+      .map((f) => ({ q: String(f?.q ?? "").trim(), a: String(f?.a ?? "").trim() }))
+      .filter((f) => f.q && f.a && f.q.toLowerCase() !== pregunta.toLowerCase());
+    bot.faqs = [...limpias, { q: pregunta, a: respuesta }].slice(-MAX_FAQS_BOT);
+    extras.bot = bot;
+    const { error: updErr } = await supabase.from("hoteles").update({ extras }).eq("id", hotelId);
+    if (updErr) {
+      console.error("agregarFaqBot escritura:", updErr.message);
+      return false;
+    }
+    return true;
+  } catch (e) {
+    console.error("agregarFaqBot:", e);
+    return false;
+  }
+}
+
+/** Lo que el panel puede cambiar de un hilo. Sólo lo que pase se toca. */
+export interface CambioChat {
+  etiquetas?: string[];
+  /** ISO hasta cuándo calla Camila, o `null` para reanudarla. */
+  pausadoHasta?: string | null;
+  /** ISO de cuándo lo miró el hotelero. */
+  vistoAt?: string | null;
+}
+
+/**
+ * Guarda el estado de trabajo de un hilo. Devuelve `false` si NO se guardó.
+ *
+ * Aquí el fail-safe sería mentir: si las columnas todavía no existen —el SQL sin
+ * correr— y esto devolviera `true`, el panel pintaría «Camila pausada» y Camila
+ * seguiría contestando encima del hotelero. Se dice que no se pudo.
+ */
+export async function guardarEstadoChat(
+  hotelId: string,
+  chatId: string,
+  cambio: CambioChat,
+): Promise<boolean> {
+  const id = (chatId ?? "").trim().slice(0, 80);
+  if (!id) return false;
+  const patch: Record<string, unknown> = {};
+  if (cambio.etiquetas !== undefined) patch.etiquetas = limpiarEtiquetas(cambio.etiquetas);
+  if (cambio.pausadoHasta !== undefined) patch.pausado_hasta = cambio.pausadoHasta;
+  if (cambio.vistoAt !== undefined) patch.visto_at = cambio.vistoAt;
+  if (!Object.keys(patch).length) return true;
+  try {
+    const supabase = createAdminClient();
+    // `update` y no `upsert`: un hilo existe porque alguien escribió en él. Si
+    // no hay fila, no hay conversación que etiquetar — y crear una vacía dejaría
+    // basura en la bandeja.
+    const { data, error } = await supabase
+      .from("camila_conversaciones")
+      .update(patch)
+      .eq("hotel_id", hotelId)
+      .eq("chat_id", id)
+      .select("chat_id");
+    if (error) {
+      console.error("guardarEstadoChat:", error.message);
+      return false;
+    }
+    return Array.isArray(data) && data.length > 0;
+  } catch (e) {
+    console.error("guardarEstadoChat:", e);
+    return false;
+  }
+}
+
+/**
+ * Hasta cuándo Camila NO debe contestar en este chat. `null` = puede contestar.
+ *
+ * FAIL-OPEN a propósito, igual que `kora.status()`: si la base tiene un hipo, es
+ * preferible que Camila conteste de más (el hotelero la vuelve a pausar) a que
+ * se quede muda para todos los huéspedes de un hotel que paga.
+ */
+export async function pausaDeChat(hotelId: string, chatId: string): Promise<string | null> {
+  const id = (chatId ?? "").trim().slice(0, 80);
+  if (!id) return null;
+  try {
+    const supabase = createAdminClient();
+    const { data, error } = await supabase
+      .from("camila_conversaciones")
+      .select("*")
+      .eq("hotel_id", hotelId)
+      .eq("chat_id", id)
+      .maybeSingle();
+    if (error) {
+      console.error("pausaDeChat:", error.message);
+      return null;
+    }
+    const v = (data as Record<string, unknown> | null)?.pausado_hasta;
+    return typeof v === "string" ? v : null;
+  } catch (e) {
+    console.error("pausaDeChat:", e);
     return null;
   }
 }

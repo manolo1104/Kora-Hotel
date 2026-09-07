@@ -3,7 +3,7 @@
 // para que ambos vean exactamente lo mismo. SOLO servidor.
 
 import { textoPolitica } from "@/lib/politica";
-import { hotelRooms, getRoomBasePrice, formatMXN, bookingRules, temporadasDe, politicaDelHotel } from "@/lib/booking";
+import { hotelRooms, getRoomBasePrice, formatMXN, bookingRules, temporadasDe, politicaDelHotel, nightOpts } from "@/lib/booking";
 import { normalizeFaqs, type BotKnowledge } from "@/lib/bot/prompt";
 import type { HotelRow } from "@/lib/tenant";
 import type { Addon, Experiencia, ExperienciasBundle } from "@/lib/mini";
@@ -54,6 +54,50 @@ export function buildHotelKnowledge(hotel: HotelRow): BotKnowledge {
   // ("¿cuánto es el anticipo?", "¿hasta cuándo cancelo gratis?", "¿por qué
   // sube el precio en diciembre?") en vez de quedarse callada.
   const reglas = bookingRules(hotel);
+
+  // Los códigos de descuento que el hotelero dio de alta. `bookingRules` ya los
+  // calculaba y aquí se TIRABAN: el hotel mandaba «VUELVE10» por correo (el de
+  // +30 días lo hace), el huésped se lo decía a Camila por WhatsApp y ella
+  // contestaba que no tenía esa información — mientras el motor sí lo aceptaba.
+  const promos = (reglas.promos ?? []).map((p) => ({
+    code: p.code,
+    descripcion:
+      p.tipo === "porcentaje"
+        ? `${p.valor}% de descuento`
+        : p.tipo === "monto"
+          ? `${formatMXN(p.valor)} de descuento`
+          : `${p.valor} ${p.valor === 1 ? "noche gratis" : "noches gratis"}`,
+    ...(p.minNoches ? { minNoches: p.minNoches } : {}),
+  }));
+
+  // El precio también cambia por el DÍA de la semana, y el prompt no lo decía.
+  // Se APLICA al cobrar (`nightOpts`), así que el huésped veía dos precios del
+  // mismo cuarto y Camila no sabía explicarle por qué.
+  const DIAS = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
+  const opts = nightOpts(hotel);
+  const recargo = opts.recargoFinDeSemana;
+  const ajustesDia: {
+    finDeSemana?: { dias: string; texto: string };
+    entreSemana?: { texto: string; hasta?: string };
+  } = {};
+  if (recargo) {
+    const a = recargo.ajuste;
+    ajustesDia.finDeSemana = {
+      dias: recargo.dias.map((d) => DIAS[d]).join(" y "),
+      texto:
+        a.tipo === "porcentaje"
+          ? a.valor >= 0
+            ? `la tarifa sube ${a.valor}%`
+            : `la tarifa baja ${Math.abs(a.valor)}%`
+          : `tarifa de ${formatMXN(a.valor)} por noche`,
+    };
+  }
+  if (opts.weekdayDiscount && opts.weekdayDiscount > 0) {
+    ajustesDia.entreSemana = {
+      texto: `${opts.weekdayDiscount}% de descuento de lunes a jueves`,
+      ...(opts.weekdayDiscountUntil ? { hasta: opts.weekdayDiscountUntil } : {}),
+    };
+  }
   const temporadas = temporadasDe(hotel).map((t) => ({
     nombre: t.nombre,
     desde: t.desde,
@@ -109,8 +153,10 @@ export function buildHotelKnowledge(hotel: HotelRow): BotKnowledge {
       cancelacionDias: reglas.cancelacionDias,
       pagoEnHotel: reglas.pagoEnHotel,
       ishPct: reglas.ishPct,
+      promos,
     },
     temporadas,
+    ...(ajustesDia.finDeSemana || ajustesDia.entreSemana ? { ajustesDia } : {}),
     bot: {
       nombre: str(bot.nombre),
       tono: str(bot.tono),

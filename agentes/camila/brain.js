@@ -147,7 +147,7 @@ async function correrHerramienta(kora, conv, name, input) {
  *
  * @returns {Promise<{ reply: string, history: any[] }>}
  */
-export async function handleTurn({ hotel, kora, history, userText, conv }) {
+export async function handleTurn({ hotel, kora, history, userText, conv, huesped }) {
   // Sin cerebro no hay conversación (K-287, K-185). Antes esto era un
   // `.catch(() => ({ nombre: hotel.nombre }))`: ante CUALQUIER fallo se armaba un
   // prompt hueco y Camila seguía hablando, inventando el hotel.
@@ -188,7 +188,16 @@ export async function handleTurn({ hotel, kora, history, userText, conv }) {
       // todos los mensajes de una conversación Y en cada vuelta de herramienta
       // del mismo turno. Con 50 conversaciones al día de 6 mensajes, se estaba
       // reenviando el mismo prompt unas 600 veces diarias POR HOTEL.
-      system: [{ type: "text", text: system, cache_control: { type: "ephemeral" } }],
+      // DOS bloques, y el orden importa. El primero es el cerebro del hotel:
+      // idéntico en todos los mensajes de todos los huéspedes, así que es el que
+      // lleva la marca de caché. El segundo es quién escribe —sus reservas, sus
+      // notas—, distinto en cada chat: si fuera dentro del primero rompería la
+      // caché en cada conversación, y si se cacheara le enseñaría a un huésped
+      // los datos del anterior.
+      system: [
+        { type: "text", text: system, cache_control: { type: "ephemeral" } },
+        ...(typeof huesped === "string" && huesped.trim() ? [{ type: "text", text: huesped }] : []),
+      ],
       tools: HERRAMIENTAS,
       messages,
       // Chat: prioriza latencia. En Haiku 4.5 y anteriores estos parámetros no

@@ -72,14 +72,14 @@ export const PANTALLAS: Pantalla[] = [
   {
     id: "camila",
     label: "Camila (bot)",
-    permisos: ["bot:leer", "bot:entrenar", "bot:configurar", "bot:vincular"],
-    que: "El bot de WhatsApp: sus respuestas, su tono y las conversaciones.",
+    permisos: ["bot:leer", "bot:responder", "bot:entrenar", "bot:configurar", "bot:vincular"],
+    que: "El bot de WhatsApp: sus respuestas, su tono, y contestar tú los chats.",
     // El aviso decía que la pantalla "incluye la cuenta de banco y el QR". Desde
     // el arreglo de la escalada ya no los incluye para nadie más que el dueño,
     // así que decirlo sería asustar con algo que no pasa — y antes era al revés:
     // el texto avisaba de lo que sí ocurría y aun así se entregaba por defecto.
     aviso:
-      "Puede entrenar a Camila y leer lo que contesta. La cuenta de banco que dicta a los huéspedes y el QR para vincular el WhatsApp siguen siendo sólo tuyos.",
+      "Puede entrenar a Camila, leer las conversaciones y contestarle a los huéspedes por el WhatsApp del hotel. La cuenta de banco que dicta a los huéspedes y el QR para vincular el WhatsApp siguen siendo sólo tuyos.",
   },
   {
     id: "calendario",

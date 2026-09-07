@@ -6,15 +6,16 @@
 
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { logAgentActivity, setBotStatus, logCamilaConversacion, getHiloCamila } from "@/lib/db/admin";
+import { logAgentActivity, setBotStatus, logCamilaConversacion, getHiloCamila, pausaDeChat } from "@/lib/db/admin";
 import type { TurnoConversacion } from "@/lib/db/admin";
 import { accesoDelHotel } from "@/lib/suscripcion";
 import { hotelIdPorBotToken } from "@/lib/db/bot-token";
 import { leer } from "@/lib/db/result";
 import { crearLinkReservaAgente } from "@/lib/agent-booking";
-import { buildBotSystemPrompt } from "@/lib/bot/prompt";
+import { buildBotSystemPrompt, ABRE_DATOS, CIERRA_DATOS } from "@/lib/bot/prompt";
 import { buildHotelKnowledge } from "@/lib/bot/knowledge";
 import { botAvailability } from "@/lib/bot/tools";
+import { contextoHuesped } from "@/lib/bot/huesped";
 import type { HotelRow } from "@/lib/tenant";
 import { limitado } from "@/lib/api/rate-limit";
 
@@ -225,6 +226,34 @@ export async function POST(req: Request) {
     // al modelo un prompt enorme por cada mensaje.
     const turnos = (hilo?.turnos ?? []).slice(-TURNOS_REHIDRATAR);
     return NextResponse.json({ ok: true, turnos });
+  }
+
+  // ¿Está este chat en manos de una persona? El hotelero puede callar a Camila
+  // en UN chat desde la bandeja del panel, y hasta ahora esa pausa vivía sólo en
+  // la memoria del runtime: cada despliegue de Railway —y son varios al día— la
+  // borraba sin avisar, así que Camila volvía a contestar encima del hotelero.
+  //
+  // Es de LECTURA y no lleva el secreto de flota a propósito: el runtime la
+  // consulta en cada mensaje entrante, y un 403 la dejaría inservible. Lo que
+  // devuelve —una fecha— no es un dato del que se saque nada con el token.
+  //
+  // Devuelve TAMBIÉN quién escribe. Ese bloque es POR CHAT y por eso viaja
+  // aquí y no dentro de `systemPrompt`: el runtime cachea el conocimiento del
+  // hotel 15 minutos, así que meterlo ahí le habría enseñado a un huésped las
+  // notas y las reservas de OTRO.
+  if (body.action === "chat-estado") {
+    const conv = (body.conv ?? "").trim();
+    const [hasta, quien] = await Promise.all([
+      pausaDeChat(hotel.id, conv),
+      contextoHuesped(hotel.id, conv),
+    ]);
+    return NextResponse.json({
+      ok: true,
+      pausadoHasta: hasta,
+      // Lo teclean personas (el nombre, la habitación, las notas del hotel), así
+      // que va delimitado como DATOS igual que el resto.
+      huesped: quien ? `${ABRE_DATOS}\n${quien}\n${CIERRA_DATOS}` : "",
+    });
   }
 
   // Métricas del foso (dashboard "Agentes"): cada consulta del bot cuenta. Si
