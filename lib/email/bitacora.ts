@@ -20,8 +20,17 @@
 import { createAdminClient, adminEnvReady } from "@/lib/supabase/admin";
 import type { ResultadoEmail } from "@/lib/email/resend";
 
-/** Tipos que esta bitácora registra. Los de las secuencias tienen los suyos. */
-export type TipoCorreo = "confirmacion_reserva";
+/**
+ * Tipos que esta bitácora registra. Los de las secuencias tienen los suyos.
+ *
+ * `manual_*` son los que ESCRIBE el hotelero desde la ficha de un cliente (una
+ * variante por plantilla). No se pueden reconstruir —el HTML no se guarda y lo
+ * redactó una persona—, así que quedan fuera del reintento de más abajo.
+ */
+export type TipoCorreo = "confirmacion_reserva" | `manual_${string}`;
+
+/** El único tipo que el reintento sabe rearmar desde la reserva. */
+export const TIPO_REINTENTABLE = "confirmacion_reserva";
 
 /** Después de este número de intentos se deja de reintentar y se dice. */
 export const MAX_INTENTOS = 3;
@@ -47,6 +56,8 @@ export async function registrarCorreo(args: {
   tipo: TipoCorreo;
   destino: string;
   resultado: ResultadoEmail;
+  /** El asunto tal como salió. Sólo se guarda si la columna existe. */
+  asunto?: string;
 }): Promise<void> {
   if (!adminEnvReady) return;
   const ok = args.resultado.ok;
@@ -62,6 +73,7 @@ export async function registrarCorreo(args: {
         estado: ok ? "enviado" : "fallido",
         ultimo_error: ok ? null : args.resultado.error,
         ultimo_intento_at: new Date().toISOString(),
+        ...(args.asunto ? { asunto: args.asunto.slice(0, 300) } : {}),
       },
       { onConflict: "hotel_id,confirmacion,email_type" },
     );
@@ -83,6 +95,12 @@ export async function correosFallidos(): Promise<FilaFallida[]> {
       .from("email_log")
       .select("id, hotel_id, confirmacion, email_type, email_destino, intentos, ultimo_error")
       .eq("estado", "fallido")
+      // SÓLO las confirmaciones de reserva. El reintento (app/api/cron/digest)
+      // no reenvía un HTML guardado: lo RECONSTRUYE desde la reserva, y es lo
+      // único que sabe rearmar. Sin este filtro, un correo manual del hotelero
+      // que fallara volvería al huésped convertido en una confirmación de
+      // reserva que nadie escribió.
+      .eq("email_type", TIPO_REINTENTABLE)
       .lt("intentos", MAX_INTENTOS)
       // Sin `resend_id` NO llegó a Resend. Con él, el fallo fue del lado de acá
       // (un timeout leyendo la respuesta) y el correo pudo haber salido: se deja
@@ -120,5 +138,54 @@ export async function anotarReintento(fila: FilaFallida, resultado: ResultadoEma
       .eq("id", fila.id);
   } catch (e) {
     console.error("[bitacora] error anotando reintento:", e);
+  }
+}
+
+/** Un correo ya mandado a este huésped, como lo lee la ficha del cliente. */
+export interface CorreoEnviado {
+  tipo: string;
+  asunto: string;
+  cuando: string;
+  ok: boolean;
+}
+
+/**
+ * Los últimos correos que ESTE hotel le mandó a ESTE huésped.
+ *
+ * `select("*")` a propósito: la columna `asunto` es nueva y, mientras el SQL no
+ * esté corrido, pedirla por nombre haría fallar la consulta entera y la ficha
+ * del cliente enseñaría un error en vez de una lista vacía. Con `*` la columna
+ * que falta simplemente no viene.
+ */
+export async function correosDeHuesped(hotelId: string, email: string): Promise<CorreoEnviado[]> {
+  const destino = (email ?? "").trim().toLowerCase();
+  if (!adminEnvReady || !destino) return [];
+  try {
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from("email_log")
+      .select("*")
+      .eq("hotel_id", hotelId)
+      .ilike("email_destino", destino)
+      .order("enviado_at", { ascending: false })
+      .limit(10);
+    if (error) {
+      console.error("[bitacora] no se pudieron leer los correos del huésped:", error.message);
+      return [];
+    }
+    return (data ?? []).map((r) => {
+      const f = r as Record<string, unknown>;
+      return {
+        tipo: String(f.email_type ?? ""),
+        asunto: typeof f.asunto === "string" ? f.asunto : "",
+        cuando: String(f.ultimo_intento_at || f.enviado_at || ""),
+        // Sin la columna `estado` (SQL viejo) se asume enviado: la fila existe
+        // porque algo se mandó.
+        ok: f.estado === undefined || f.estado === null || f.estado === "enviado",
+      };
+    });
+  } catch (e) {
+    console.error("[bitacora] error leyendo los correos del huésped:", e);
+    return [];
   }
 }

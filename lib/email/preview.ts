@@ -54,6 +54,8 @@ import {
 } from "@/lib/email-sequences";
 import { buildCotizacionDoc, buildReservaDoc } from "@/lib/docs/documento-branded";
 import type { BookingBrand } from "@/lib/email/booking-branded";
+import { PLANTILLAS, type DatosCorreo } from "@/lib/email/plantillas-hotelero";
+import { buildCorreoHotelero } from "@/lib/email/hotelero";
 
 export type Lang = "es" | "en";
 
@@ -186,6 +188,77 @@ const CONCEPTOS = [
     importe: "$1,300.00",
   },
 ];
+
+/**
+ * El huésped de ejemplo para los correos que ESCRIBE el hotelero. Trae de todo
+ * —reserva próxima, anticipo pendiente, estancia pasada— para que las cinco
+ * plantillas se puedan ver sin cambiar de huésped.
+ */
+const HUESPED_CORREO: DatosCorreo = {
+  hotelNombre: MARCA.nombre,
+  huesped: CLIENTE,
+  ubicacion: MARCA.ubicacion,
+  checkin: CHECKIN,
+  checkout: CHECKOUT,
+  noches: 3,
+  huespedes: 2,
+  habitacion: HABS[0],
+  confirmacion: CONFIRMACION,
+  total: 8800,
+  anticipoPagado: 2500,
+  anticipoPorPagar: 2640,
+  pendiente: 6300,
+  checkinHora: "3:00 PM",
+  checkoutHora: "12:00 PM",
+  politicaCancelacion: MARCA.politicaCancelacion,
+  ultimaEstancia: dia(-40),
+  totalReservas: 3,
+};
+
+/** La marca del hotel, también con el juego sucio (cabecera, contacto y pie). */
+const MARCA_SEQ_SUCIA = {
+  ...HOTEL_SEQ,
+  nombre: MARCA_SUCIA.nombre,
+  ubicacion: MARCA_SUCIA.ubicacion,
+  email: MARCA_SUCIA.email,
+};
+
+/** El mismo, con el juego sucio dentro de cada dato que teclea una persona. */
+const HUESPED_CORREO_SUCIO: DatosCorreo = {
+  ...HUESPED_CORREO,
+  hotelNombre: MARCA_SUCIA.nombre,
+  huesped: CLIENTE_SUCIO,
+  ubicacion: MARCA_SUCIA.ubicacion,
+  habitacion: 'Suite "Jungla" & <i>Ceiba</i>',
+};
+
+/** Cómo se ve una plantilla del hotelero, sin mandarla. */
+function correoDelHotelero(id: string, d: DatosCorreo, marca: typeof HOTEL_SEQ) {
+  const p = PLANTILLAS.find((x) => x.id === id)!;
+  const b = p.armar(d);
+  const cta =
+    p.ctaTexto && p.cta === "resena"
+      ? { texto: p.ctaTexto, url: marca.reviewUrl }
+      : p.ctaTexto && p.cta === "maps"
+        ? { texto: p.ctaTexto, url: marca.mapsUrl ?? "" }
+        : p.ctaTexto && p.cta === "motor"
+          ? { texto: p.ctaTexto, url: `${marca.baseUrl}/reservar` }
+          : p.ctaTexto && p.cta === "reserva"
+            ? { texto: p.ctaTexto, url: PORTAL }
+            : undefined;
+  return {
+    subject: b.asunto,
+    html: buildCorreoHotelero({
+      hotel: marca,
+      huesped: d.huesped,
+      titulo: b.asunto,
+      parrafos: b.parrafos,
+      datos: b.datos,
+      nota: b.nota,
+      cta,
+    }),
+  };
+}
 
 // ─── El catálogo ─────────────────────────────────────────────────────────────
 
@@ -1005,6 +1078,28 @@ export const GRUPOS: GrupoPreview[] = [
             fecha_pago: dia(0),
           }),
         }),
+      },
+    ],
+  },
+  {
+    titulo: "Los que ESCRIBE el hotelero",
+    nota: "No los manda ningún cron: los redacta una persona desde la ficha de un cliente (Clientes → pestaña Correo) y los revisa antes de enviarlos. La plantilla sólo rellena el borrador con los datos reales de ese huésped.",
+    entradas: [
+      ...PLANTILLAS.filter((p) => p.id !== "blanco").map((p) => ({
+        id: `hotelero-${p.id}`,
+        nombre: p.nombre,
+        quien: "Huésped" as const,
+        cuando: `Lo manda el hotelero a mano. ${p.cuando}`,
+        origen: "app/api/admin/enviar-correo/route.ts",
+        render: () => correoDelHotelero(p.id, HUESPED_CORREO, HOTEL_SEQ),
+      })),
+      {
+        id: "hotelero-sucio",
+        nombre: "Escrito por el hotelero · juego sucio",
+        quien: "Huésped",
+        cuando: "El mismo correo con comillas, & y etiquetas HTML en el hotel, el huésped y la habitación. Nada debe renderizarse como marcado, y no debe verse ningún &amp; suelto.",
+        origen: "app/api/admin/enviar-correo/route.ts",
+        render: () => correoDelHotelero("llegada", HUESPED_CORREO_SUCIO, MARCA_SEQ_SUCIA),
       },
     ],
   },

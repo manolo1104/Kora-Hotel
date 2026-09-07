@@ -29,5 +29,8 @@ export default async function ClientesPage({
     );
   }
   const crm = await buildCRM(ctx.hotelId);
-  return <ClientesClient initialClientes={crm} slug={slug} />;
+  // El nombre real del hotel: el botón de WhatsApp de la ficha llevaba escrito
+  // "te contactamos desde tu hotel" porque este dato nunca bajó, aunque el
+  // contexto del tenant lo tenía aquí mismo.
+  return <ClientesClient initialClientes={crm} slug={slug} hotelNombre={ctx.hotel.nombre} />;
 }

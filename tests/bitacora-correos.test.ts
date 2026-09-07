@@ -14,6 +14,9 @@ interface Fila {
   intentos: number;
   resend_id: string | null;
   email_type: string;
+  email_destino?: string;
+  asunto?: string;
+  ultimo_intento_at?: string;
 }
 
 let tabla: Fila[] = [];
@@ -32,6 +35,8 @@ function fake(): any {
     eq(col: string, val: unknown) { filtros[col] = val; return b; },
     lt(col: string, val: unknown) { filtros[`lt_${col}`] = val; return b; },
     is(col: string, val: unknown) { filtros[`is_${col}`] = val; return b; },
+    ilike(col: string, val: unknown) { filtros[`ilike_${col}`] = val; return b; },
+    order() { return b; },
     limit() { return b; },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     then(res: (v: unknown) => any) {
@@ -40,7 +45,11 @@ function fake(): any {
         (f) =>
           (filtros.estado === undefined || f.estado === filtros.estado) &&
           (filtros.lt_intentos === undefined || f.intentos < Number(filtros.lt_intentos)) &&
-          (filtros.is_resend_id === undefined || f.resend_id === filtros.is_resend_id),
+          (filtros.is_resend_id === undefined || f.resend_id === filtros.is_resend_id) &&
+          // El filtro que impide que un correo MANUAL del hotelero entre al
+          // reintento, que sólo sabe rearmar confirmaciones de reserva.
+          (filtros.email_type === undefined || f.email_type === filtros.email_type) &&
+          (filtros.ilike_email_destino === undefined || f.email_destino === filtros.ilike_email_destino),
       );
       return res({ data: out, error: null });
     },
@@ -53,7 +62,7 @@ vi.mock("@/lib/supabase/admin", () => ({
   createAdminClient: () => ({ from: () => fake() }),
 }));
 
-const { registrarCorreo, correosFallidos, anotarReintento, MAX_INTENTOS } =
+const { registrarCorreo, correosFallidos, anotarReintento, MAX_INTENTOS, correosDeHuesped } =
   await import("@/lib/email/bitacora");
 
 beforeEach(() => {
@@ -121,5 +130,67 @@ describe("anotarReintento", () => {
   it("al último intento se da por agotado y deja de reintentarse", async () => {
     await anotarReintento({ ...fila, intentos: MAX_INTENTOS - 1 }, { ok: false, error: "no existe" });
     expect(ultimoUpdate).toMatchObject({ estado: "agotado", intentos: MAX_INTENTOS });
+  });
+});
+
+// ─── Los correos que ESCRIBE el hotelero ─────────────────────────────────────
+// Comparten tabla con las confirmaciones, y ahí estaba el peligro: el reintento
+// del digest no reenvía un HTML guardado, lo RECONSTRUYE desde la reserva. Un
+// correo manual fallido que entrara ahí le llegaría al huésped convertido en una
+// confirmación de reserva que nadie escribió.
+describe("un correo manual no entra al reintento", () => {
+  it("correosFallidos sólo devuelve confirmaciones de reserva", async () => {
+    tabla = [
+      { id: "1", estado: "fallido", intentos: 1, resend_id: null, email_type: "confirmacion_reserva" },
+      { id: "2", estado: "fallido", intentos: 1, resend_id: null, email_type: "manual_llegada" },
+    ];
+    const filas = await correosFallidos();
+    expect(filas.map((f) => f.id)).toEqual(["1"]);
+  });
+
+  it("registrarCorreo guarda el asunto tal como salió", async () => {
+    await registrarCorreo({
+      hotelId: "h1",
+      confirmacion: "man-abcd1234",
+      tipo: "manual_llegada",
+      destino: "maria@ejemplo.test",
+      resultado: { ok: true, id: "re_1" },
+      asunto: "Tu llegada a Hotel de Ejemplo",
+    });
+    expect(ultimoUpsert.email_type).toBe("manual_llegada");
+    expect(ultimoUpsert.asunto).toBe("Tu llegada a Hotel de Ejemplo");
+  });
+
+  it("sin asunto no se manda la columna (el SQL puede no estar corrido)", async () => {
+    await registrarCorreo({
+      hotelId: "h1",
+      confirmacion: "KORA-1",
+      tipo: "confirmacion_reserva",
+      destino: "maria@ejemplo.test",
+      resultado: { ok: true, id: "re_2" },
+    });
+    expect("asunto" in ultimoUpsert).toBe(false);
+  });
+
+  it("la ficha del cliente ve lo que se le mandó, y si falló lo dice", async () => {
+    tabla = [
+      {
+        id: "1", estado: "enviado", intentos: 1, resend_id: "re_1",
+        email_type: "manual_llegada", email_destino: "maria@ejemplo.test",
+        asunto: "Tu llegada", ultimo_intento_at: "2026-09-05T10:00:00Z",
+      },
+      {
+        id: "2", estado: "fallido", intentos: 1, resend_id: null,
+        email_type: "manual_gracias", email_destino: "maria@ejemplo.test",
+        asunto: "Gracias por tu visita", ultimo_intento_at: "2026-09-06T10:00:00Z",
+      },
+      {
+        id: "3", estado: "enviado", intentos: 1, resend_id: "re_3",
+        email_type: "manual_llegada", email_destino: "otro@ejemplo.test", asunto: "De otro",
+      },
+    ];
+    const correos = await correosDeHuesped("h1", "Maria@Ejemplo.test");
+    expect(correos.map((c) => c.asunto)).toEqual(["Tu llegada", "Gracias por tu visita"]);
+    expect(correos[1].ok).toBe(false);
   });
 });

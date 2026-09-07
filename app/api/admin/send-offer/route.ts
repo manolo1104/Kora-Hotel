@@ -1,15 +1,14 @@
 import { negar } from "@/lib/panel/permisos";
-import { promosDe } from "@/lib/booking/rooms";
 import { NextResponse } from "next/server";
 import { getActiveHotel } from "@/lib/panel/active-hotel";
 import { enviarEmail, resendEnvReady } from "@/lib/email/resend";
 import { buildPersonalOfferEmailHtml } from "@/lib/email-sequences";
 import type { HotelBrand } from "@/lib/email-sequences";
 import { draftOfferEmail } from "@/lib/offers";
-import type { HotelRow } from "@/lib/tenant";
+import { brandFromHotel, fromForHotel } from "@/lib/email/marca-hotel";
+import { limitado } from "@/lib/api/rate-limit";
 import { leerCuerpo, zEmail, zTextoCorto, zTextoLargo } from "@/lib/api/cuerpo";
 import { z } from "zod";
-import { EMAIL_FROM } from "@/lib/contacto";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,46 +18,6 @@ export const dynamic = "force-dynamic";
 // historial del huésped; se envuelve en el shell de marca del hotel y se envía
 // por Resend con el remitente del hotel. Devuelve status != 200 en error para
 // que el cliente distinga (antes marcaba "enviado" con cualquier 200).
-
-// Fila `hoteles` → HotelBrand (espejo de brandFromHotel del cron email-sequences).
-function brandFromHotel(h: HotelRow): HotelBrand {
-  const config = (h.config ?? {}) as Record<string, unknown>;
-  // reviewUrl/mapsUrl: primero lo editable del panel (extras); config.* legado.
-  const extras = (h.extras ?? {}) as Record<string, unknown>;
-  const str = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : undefined);
-  return {
-    nombre: h.nombre || "el hotel",
-    baseUrl: str(config.base_url) || (h.slug ? `https://kora-hotel.com/h/${h.slug}` : undefined),
-    ubicacion: h.ubicacion || str(config.ubicacion),
-    telefono: str(config.telefono) || (h.whatsapp ?? undefined),
-    whatsapp: (h.whatsapp ?? undefined) || str(config.whatsapp),
-    email: str(config.email_from) || str(config.email),
-    reviewUrl: str(extras.reviewUrl) || str(config.review_url),
-    mapsUrl: str(extras.mapsUrl) || str(config.maps_url),
-    // Misma fuente que el motor y que el correo de +30 días: si el hotelero no
-    // encendió su promo en el panel, esta oferta no reparte un código muerto.
-    ...promoParaCorreo(h),
-  };
-}
-
-function promoParaCorreo(h: HotelRow): { promoCode?: string; promoDiscount?: string } {
-  const promo = promosDe(h as Parameters<typeof promosDe>[0])[0];
-  if (!promo) return {};
-  return {
-    promoCode: promo.code,
-    promoDiscount:
-      promo.tipo === "porcentaje"
-        ? `${promo.valor}%`
-        : `$${Math.round(promo.valor).toLocaleString("es-MX")} MXN`,
-  };
-}
-
-/** Remitente del hotel: config.email_from → RESEND_FROM → default Kora. */
-function fromForHotel(h: HotelRow): string {
-  const config = (h.config ?? {}) as Record<string, unknown>;
-  const fromCfg = typeof config.email_from === "string" ? config.email_from : "";
-  return fromCfg || process.env.RESEND_FROM || EMAIL_FROM;
-}
 
 // Esto MANDA UN CORREO desde el dominio de Kora a la dirección que venga en el
 // cuerpo. Antes se comprobaba que llevara una arroba; ahora el correo tiene que
@@ -79,6 +38,18 @@ export async function POST(req: Request) {
   if (!ctx) return NextResponse.json({ ok: false, error: "no-auth" }, { status: 401 });
   const no = negar(ctx, "marketing:enviar");
   if (no) return no;
+
+  // 1.5) Tope por HOTEL. Esta ruta llama a Anthropic Y manda un correo, y era la
+  // única de `admin` que hacía las dos cosas sin ningún límite: un botón con el
+  // clic pegado, o un empleado probando, gastaba cuota de IA y quemaba
+  // reputación del dominio de correo sin que nadie se enterara. La clave es el
+  // hotel, no la IP: el panel entero sale por las mismas máquinas de Vercel.
+  if (await limitado("correo.oferta", ctx.hotelId, { max: 20, ventanaMs: 60 * 60_000 })) {
+    return NextResponse.json(
+      { ok: false, error: "Has mandado muchas ofertas seguidas. Espera un rato e intenta de nuevo." },
+      { status: 429 },
+    );
+  }
 
   // 2) Dependencias de infraestructura (fallan con status != 200, no 200/ok:false).
   if (!process.env.ANTHROPIC_API_KEY) {
