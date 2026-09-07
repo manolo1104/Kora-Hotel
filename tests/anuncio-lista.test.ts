@@ -34,6 +34,29 @@ describe("el nombre lo teclea un desconocido", () => {
   });
 });
 
+// Las dos versiones del mismo correo. Lo que se prueba es que no se crucen: un
+// cliente que paga no puede recibir un botón a la página de precios, y alguien
+// de la lista de captación no puede recibir un correo comercial sin baja.
+describe("hotelero y suscriptor no reciben lo mismo", () => {
+  it("al HOTELERO se le manda a su panel, no a precios", () => {
+    const { html } = emailAnuncio({ nombre: "Luis" });
+    expect(html).toContain("Abrir mi panel");
+    expect(html).not.toContain("Ver Kora");
+    expect(html).toContain("tienes un hotel en Kora");
+  });
+
+  it("al hotelero NO se le pone una baja que no le corresponde", () => {
+    expect(emailAnuncio({ nombre: "Luis" }).html).not.toContain("Darme de baja");
+  });
+
+  it("al SUSCRIPTOR se le manda a precios y con baja", () => {
+    const { html } = emailAnuncio({ nombre: "Luis", token: "tok-9" });
+    expect(html).toContain("Ver Kora");
+    expect(html).toContain("Darme de baja");
+    expect(html).not.toContain("Abrir mi panel");
+  });
+});
+
 describe("el contenido", () => {
   it("no promete nada que no exista y no deja variables sin resolver", () => {
     const { subject, html } = emailAnuncio({ nombre: "Luis", token: "t" });
