@@ -78,6 +78,20 @@ export async function resolver(peticion, deps) {
     if (chatId.endsWith("@g.us") || chatId.endsWith("@broadcast")) {
       return { status: 400, json: { error: "chat-no-permitido" } };
     }
+    // El hotel tiene que estar CONECTADO, no sólo arrancado.
+    //
+    // `clientes` guarda el Client desde que empieza a levantarse, así que un
+    // hotel en `starting`, `qr` o `error` también estaba ahí — y mandarle un
+    // `sendMessage` a un Chromium que aún no ha terminado de abrir WhatsApp se
+    // queda colgado los 120 s del protocolTimeout y devuelve un error confuso.
+    // Pasó en producción con hotel-magico el día del despliegue. Con esto, el
+    // panel recibe 409 al instante y dice lo que de verdad ocurre: que no hay
+    // WhatsApp conectado.
+    const st = deps.estado.get(slug);
+    if (!st || st.status !== "ready") {
+      return { status: 409, json: { error: "hotel-sin-sesion", estado: (st && st.status) || "desconocido" } };
+    }
+
     const r = await deps.enviar(slug, chatId, mensaje);
     if (!r || !r.ok) {
       // 409 = «este hotel no tiene su WhatsApp levantado aquí». Es distinto de

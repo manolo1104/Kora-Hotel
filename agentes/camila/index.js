@@ -27,6 +27,8 @@ const FLEET_SECRET = process.env.BOT_FLEET_SECRET || "";
 const MESSAGE_WAIT_MS = Number(process.env.MESSAGE_DEBOUNCE_MS || 2500);
 const HUMAN_TAKEOVER_MS = Number(process.env.HUMAN_TAKEOVER_MS || 60 * 60 * 1000); // 1 h
 const CHROMIUM = process.env.PUPPETEER_EXECUTABLE_PATH || undefined;
+// Cuánto se espera a que WhatsApp acepte un mensaje escrito desde el panel.
+const ENVIO_TIMEOUT_MS = Number(process.env.CAMILA_ENVIO_TIMEOUT_MS || 20_000);
 
 // Estado por hotel para la página de estado/QR.
 /** @type {Map<string, {slug:string,nombre:string,status:string,qr:string|null,err:string|null}>} */
@@ -491,7 +493,14 @@ async function enviarDesdePanel(slug, chatId, texto) {
   botEnvioAt.set(key, Date.now());
   ultimaActividad.set(key, Date.now());
   try {
-    await vivo.client.sendMessage(chatId, texto);
+    // Tope propio: `sendMessage` sobre un Chromium enfermo se queda colgado los
+    // 120 s del protocolTimeout, y al otro lado hay una persona mirando el panel
+    // con el mensaje escrito. Prefiere decirle en 20 s que no salió —y que lo
+    // revise en su teléfono— a dejarla dos minutos sin saber.
+    await Promise.race([
+      vivo.client.sendMessage(chatId, texto),
+      new Promise((_, rechaza) => setTimeout(() => rechaza(new Error("tardó demasiado")), ENVIO_TIMEOUT_MS)),
+    ]);
     console.log(`[${slug}] ✍️  mensaje del hotelero enviado a ${chatId}`);
     return { ok: true };
   } catch (e) {

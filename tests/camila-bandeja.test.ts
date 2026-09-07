@@ -86,6 +86,34 @@ describe("mandar un mensaje desde el panel", () => {
     expect(d.enviar).toHaveBeenCalledWith("hotel-uno", "5214811234567@c.us", "Ya te aparté el cuarto");
   });
 
+  // El fallo que se coló en el despliegue del 6 sep: `clientes` guarda el Client
+  // desde que EMPIEZA a levantarse, así que un hotel a medio conectar también
+  // estaba ahí. El sendMessage se quedaba colgado los 120 s del protocolTimeout
+  // de Chromium mientras una persona miraba el panel esperando.
+  it("un hotel que aún no está conectado NO recibe el mensaje", async () => {
+    for (const estadoRaro of ["starting", "qr", "error", "disconnected"]) {
+      const d = deps();
+      d.estado.set("a-medias", { slug: "a-medias", nombre: "A medias", status: estadoRaro, qr: null, err: null });
+      const r = await resolver(
+        { method: "POST", url: "/enviar", auth, cuerpo: { slug: "a-medias", chatId: "521481@c.us", texto: "hola" } },
+        d,
+      );
+      expect(r.status, estadoRaro).toBe(409);
+      expect(r.json.error).toBe("hotel-sin-sesion");
+      expect(d.enviar, estadoRaro).not.toHaveBeenCalled();
+    }
+  });
+
+  it("un hotel que el runtime ni conoce tampoco", async () => {
+    const d = deps();
+    const r = await resolver(
+      { method: "POST", url: "/enviar", auth, cuerpo: { slug: "no-existe", chatId: "521481@c.us", texto: "hola" } },
+      d,
+    );
+    expect(r.status).toBe(409);
+    expect(d.enviar).not.toHaveBeenCalled();
+  });
+
   // Es la diferencia entre «no pude» y «no salió», y el panel le dice cosas
   // distintas al hotelero según cuál sea.
   it("un hotel sin sesión de WhatsApp da 409, no un error genérico", async () => {
