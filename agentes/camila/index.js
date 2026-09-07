@@ -47,6 +47,17 @@ const ARRANQUE_ESCALONADO_MS = Number(process.env.CAMILA_ARRANQUE_ESCALONADO_MS 
 // apaga y el sitio queda libre. Antes esos Chromium se quedaban para siempre.
 const VINCULACION_MS = Number(process.env.CAMILA_VINCULACION_MS || 10 * 60_000);
 
+// Cuánto aguanta un hotel enseñando un QR que NADIE está mirando antes de que
+// se le cierre el navegador.
+//
+// Es la regla que de verdad libera sitio. La primera versión miraba si existía
+// la carpeta de sesión en disco, y no servía: `LocalAuth` la crea en cuanto
+// arranca Chromium, escanee alguien o no, así que un hotel que nunca se vinculó
+// contaba igual que uno conectado. Lo que sí distingue es el ESTADO: `ready` es
+// que alguien escaneó; `qr` durante minutos, sin nadie abriendo la pantalla de
+// conectar, es un navegador hablándole a la pared.
+const QR_OCIOSO_MS = Number(process.env.CAMILA_QR_OCIOSO_MS || 3 * 60_000);
+
 // slug -> hasta cuándo se le está dando ventana para escanear (ms epoch).
 const vinculando = new Map();
 
@@ -222,6 +233,10 @@ function arrancarHotel(hotel) {
     qrcodeTerminal.generate(qr, { small: true });
     const st = estado.get(slug);
     if (st) {
+      // `qrDesde` sólo se pone la PRIMERA vez: WhatsApp rota el código cada
+      // pocos segundos, y si se reiniciara en cada rotación el hotel nunca
+      // parecería ocioso y no se liberaría nunca.
+      if (st.status !== "qr") st.qrDesde = Date.now();
       st.status = "qr";
       try {
         st.qr = await QRCode.toDataURL(qr);
@@ -675,7 +690,13 @@ async function sincronizarFleet() {
         // arranca solo quien ya tiene sesión guardada; el que no, cuando su
         // dueño abra el paso «Conecta tu WhatsApp» del panel (`/vincular`).
         const pidioVincular = (vinculando.get(hotel.slug) || 0) > Date.now();
-        if (!tieneSesion(DATA_PATH, hotel.id || hotel.slug) && !pidioVincular) {
+        // Dos motivos para NO abrirle un navegador: nunca ha arrancado (no hay
+        // nada en disco), o se le liberó por estar enseñando un QR que nadie
+        // miraba. Sin lo segundo, la pasada siguiente lo volvía a levantar y la
+        // liberación no servía de nada: la carpeta de sesión sigue ahí, porque
+        // `LocalAuth` la crea al arrancar Chromium y no al escanear.
+        const liberado = estado.get(hotel.slug)?.status === "sin-vincular";
+        if ((liberado || !tieneSesion(DATA_PATH, hotel.id || hotel.slug)) && !pidioVincular) {
           if (!estado.has(hotel.slug)) {
             estado.set(hotel.slug, {
               slug: hotel.slug,
@@ -702,6 +723,24 @@ async function sincronizarFleet() {
     // Apagar los que corren pero ya NO están en el fleet.
     for (const slug of [...clientes.keys()]) {
       if (!enFleet.has(slug)) await pararHotel(slug);
+    }
+
+    // LIBERAR LOS QR QUE NADIE MIRA.
+    //
+    // Un hotel que lleva minutos enseñando un código que nadie va a escanear es
+    // un Chromium entero ocupado para nada, y el contenedor sólo aguanta cuatro:
+    // el 6 sep 2026 estos dejaron sin bot al hotel del cliente que paga. En
+    // cuanto su dueño abra «Conecta tu WhatsApp», el panel pide `/vincular` y
+    // vuelve a levantarse en segundos.
+    //
+    // A un hotel `ready` no le pasa nada: ése ya escaneó.
+    for (const [slug, st] of [...estado.entries()]) {
+      if (st.status !== "qr" || !clientes.has(slug)) continue;
+      if ((vinculando.get(slug) || 0) > Date.now()) continue; // alguien está mirando
+      if (Date.now() - (st.qrDesde || 0) < QR_OCIOSO_MS) continue;
+      console.log(`[camila] 💤 ${slug}: lleva minutos con el QR sin que nadie lo escanee, libero su navegador`);
+      await pararHotel(slug);
+      estado.set(slug, { slug, nombre: st.nombre, status: "sin-vincular", qr: null, err: null });
     }
 
     // Cerrar las ventanas de vinculación vencidas. Si al hotelero se le abrió un
