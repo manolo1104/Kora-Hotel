@@ -109,6 +109,16 @@ const FLEET_POLL_MS = Number(process.env.FLEET_POLL_MS || 5 * 60 * 1000); // 5 m
 // pasajero de recursos, y evita quemar CPU con un hotel roto de verdad.
 const MAX_REINTENTOS_ARRANQUE = 5;
 
+// Cuánto puede tardar un hotel en conectar antes de darlo por colgado.
+//
+// `client.initialize()` no siempre RECHAZA cuando Chromium muere. El 7 sep 2026
+// el navegador del único hotel conectado se suicidó durante el arranque ("GPU
+// process isn't usable. Goodbye.") y la promesa se quedó pendiente: el hotel se
+// quedó en `starting` diez minutos, y nadie lo reintentó — porque el reintento
+// sólo miraba los que están en `error`. Es el mismo agujero que se tapó en
+// agosto (un arranque fallido era definitivo), entrando por otra puerta.
+const ARRANQUE_MAX_MS = Number(process.env.CAMILA_ARRANQUE_MAX_MS || 3 * 60_000);
+
 // Turnos EN CURSO por chat: `${slug}::${chatId}` -> Promise.
 //
 // Sin candado (K-336), dos mensajes separados por más de MESSAGE_DEBOUNCE_MS se
@@ -216,7 +226,7 @@ function migrarSesion(slug, id) {
 function arrancarHotel(hotel) {
   const slug = hotel.slug;
   const kora = new KoraHotel(hotel);
-  estado.set(slug, { slug, nombre: hotel.nombre, status: "starting", qr: null, err: null });
+  estado.set(slug, { slug, nombre: hotel.nombre, status: "starting", qr: null, err: null, desde: Date.now() });
   migrarSesion(slug, hotel.id);
   limpiarLocks(hotel.id || slug);
 
@@ -693,6 +703,17 @@ async function sincronizarFleet() {
     // Arrancar los que están en el fleet y aún no corren.
     for (const hotel of hotels) {
       const st = estado.get(hotel.slug);
+
+      // NI UN ARRANQUE COLGADO. Un hotel que lleva minutos en `starting` sin
+      // llegar a `ready` ni a `qr` no está arrancando: está muerto y nadie se ha
+      // enterado, porque `initialize()` no siempre rechaza cuando Chromium se
+      // cae. Se le llama `error` para que entre por el camino de abajo, que ya
+      // sabe reintentar, contar los intentos y avisar cuando se rinde.
+      if (st && st.status === "starting" && st.desde && Date.now() - st.desde > ARRANQUE_MAX_MS) {
+        console.warn(`[camila] ⌛ ${hotel.slug}: lleva ${Math.round((Date.now() - st.desde) / 60000)} min arrancando sin conectar`);
+        st.status = "error";
+        st.err = "se quedó arrancando sin llegar a conectar";
+      }
 
       // UN ARRANQUE FALLIDO NO PUEDE SER DEFINITIVO.
       //
