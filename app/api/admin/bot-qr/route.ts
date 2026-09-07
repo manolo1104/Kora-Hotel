@@ -49,6 +49,36 @@ export async function GET() {
     return NextResponse.json({ ok: true, status: "sin-servicio", qr: null });
   }
 
+  // «Este hotelero está mirando la pantalla de conectar AHORA MISMO.»
+  //
+  // El runtime ya no le abre un navegador a todo hotel elegible: los que nadie
+  // ha vinculado nunca se quedaban meses con un Chromium vivo regenerando un QR
+  // para nadie, y le quitaban el sitio al hotel que sí lo usa —el 6 de
+  // septiembre de 2026 dejaron sin bot al cliente que paga—. Ahora el navegador
+  // se abre cuando alguien lo pide, y esta ruta es la que lo pide: el panel la
+  // consulta cada 15 s mientras el paso está abierto, así que la ventana se
+  // mantiene sola mientras haga falta y se cierra cuando el hotelero se va.
+  //
+  // Y se ESPERA, aunque el resultado no se use: en Vercel la función se congela
+  // en cuanto responde, así que un `fetch` lanzado sin await no llega a salir.
+  // Tres segundos de tope: si el runtime no contesta, se sigue y se lee el
+  // estado igual — lo peor que pasa es que el QR tarde una pasada en aparecer.
+  const pedir = new AbortController();
+  const topePedir = setTimeout(() => pedir.abort(), 3000);
+  try {
+    await fetch(`${base.replace(/\/$/, "")}/vincular`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${secret}`, "content-type": "application/json" },
+      body: JSON.stringify({ slug: ctx.hotel.slug }),
+      signal: pedir.signal,
+      cache: "no-store",
+    });
+  } catch (e) {
+    console.warn("[bot-qr] no pude pedir la vinculación:", (e as Error)?.message);
+  } finally {
+    clearTimeout(topePedir);
+  }
+
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 6000);
   try {

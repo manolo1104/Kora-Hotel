@@ -38,7 +38,7 @@ const texto = (v) => (typeof v === "string" ? v.trim() : "");
  * Decide qué contestar. PURA: no lee sockets ni escribe respuestas.
  *
  * @param {{ method?:string, url?:string, auth?:string, cuerpo?:Record<string,any> }} peticion
- * @param {{ secreto:string, estado:Map<string,any>, enviar:Function, pausar:Function }} deps
+ * @param {{ secreto:string, estado:Map<string,any>, enviar:Function, pausar:Function, vincular:Function }} deps
  * @returns {Promise<{ status:number, json?:any, texto?:string }>}
  */
 export async function resolver(peticion, deps) {
@@ -100,6 +100,22 @@ export async function resolver(peticion, deps) {
       return { status, json: { error: (r && r.error) || "no-enviado" } };
     }
     return { status: 200, json: { ok: true } };
+  }
+
+  // ── «Quiero vincular mi WhatsApp» ──
+  //
+  // Lo llama el panel cuando el hotelero abre el paso «Conecta tu WhatsApp».
+  // Antes esto no hacía falta porque a TODOS los hoteles se les abría un
+  // Chromium al arrancar, escanearan o no; y esos navegadores, esperando un
+  // código que nadie iba a leer, se comían el sitio del hotel que sí lo usa.
+  //
+  // Es idempotente: el panel lo consulta cada 15 s mientras el hotelero mira la
+  // pantalla, y cada llamada sólo alarga la ventana.
+  if (ruta === "/vincular" && method === "POST") {
+    const slug = texto(cuerpo.slug);
+    if (!slug) return { status: 400, json: { error: "faltan-datos" } };
+    const abierta = deps.vincular(slug);
+    return { status: 200, json: { ok: true, ventanaHasta: abierta } };
   }
 
   // ── Reflejar en memoria una pausa que el panel ya guardó en la base ──

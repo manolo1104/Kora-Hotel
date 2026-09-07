@@ -20,6 +20,7 @@ function deps(over: Record<string, unknown> = {}) {
     estado,
     enviar: vi.fn(async () => ({ ok: true })),
     pausar: vi.fn(),
+    vincular: vi.fn(() => "2099-01-01T00:00:00.000Z"),
     ...over,
   };
 }
@@ -281,5 +282,42 @@ describe("hablarle al runtime desde Kora", () => {
     const { postAlRuntime } = await cargar();
     const r = await postAlRuntime("/enviar", {});
     expect(r.ok).toBe(false);
+  });
+});
+
+// ─── El QR sólo cuando alguien lo pide ───────────────────────────────────────
+// El runtime abría un Chromium a TODOS los hoteles elegibles. Los que nadie
+// había escaneado nunca se quedaban meses con el navegador vivo regenerando un
+// código para nadie — y el 6 sep 2026 le quitaron el sitio al cliente que paga.
+describe("vincular bajo demanda", () => {
+  it("el panel puede pedir la ventana para su hotel", async () => {
+    const d = deps();
+    const r = await resolver({ method: "POST", url: "/vincular", auth, cuerpo: { slug: "hotel-uno" } }, d);
+    expect(r.status).toBe(200);
+    expect(d.vincular).toHaveBeenCalledWith("hotel-uno");
+  });
+
+  // El panel consulta cada 15 s mientras el hotelero mira la pantalla: pedirlo
+  // muchas veces sólo puede ALARGAR la ventana, nunca romper nada.
+  it("pedirlo varias veces no es un problema", async () => {
+    const d = deps();
+    for (let i = 0; i < 5; i++) {
+      const r = await resolver({ method: "POST", url: "/vincular", auth, cuerpo: { slug: "hotel-uno" } }, d);
+      expect(r.status).toBe(200);
+    }
+    expect(d.vincular).toHaveBeenCalledTimes(5);
+  });
+
+  it("sin slug no se abre ninguna ventana", async () => {
+    const d = deps();
+    expect((await resolver({ method: "POST", url: "/vincular", auth, cuerpo: {} }, d)).status).toBe(400);
+    expect(d.vincular).not.toHaveBeenCalled();
+  });
+
+  it("y sin el secreto de flota, tampoco", async () => {
+    const d = deps();
+    const r = await resolver({ method: "POST", url: "/vincular", auth: "Bearer otro", cuerpo: { slug: "x" } }, d);
+    expect(r.status).toBe(401);
+    expect(d.vincular).not.toHaveBeenCalled();
   });
 });

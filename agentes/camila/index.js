@@ -15,6 +15,7 @@ import qrcodeTerminal from "qrcode-terminal";
 import QRCode from "qrcode";
 import { arrancarServidor } from "./servidor.js";
 import { aMensajes } from "./historial.js";
+import { tieneSesion } from "./sesiones.js";
 import path from "node:path";
 import { rmSync, existsSync, renameSync } from "node:fs";
 import { loadFleet } from "./fleet.js";
@@ -38,6 +39,16 @@ const ENVIO_TIMEOUT_MS = Number(process.env.CAMILA_ENVIO_TIMEOUT_MS || 20_000);
 // del cliente que paga. Y como el reintento vive en la misma pasada del fleet,
 // los reintentos volvían a chocar entre ellos: el problema se realimentaba.
 const ARRANQUE_ESCALONADO_MS = Number(process.env.CAMILA_ARRANQUE_ESCALONADO_MS || 20_000);
+
+// Cuánto se le deja el Chromium abierto a un hotel que PIDIÓ vincularse.
+//
+// Un hotel sin sesión guardada ya no arranca solo: sólo cuando el hotelero abre
+// el paso «Conecta tu WhatsApp» del panel. Si en esta ventana no escanea, se le
+// apaga y el sitio queda libre. Antes esos Chromium se quedaban para siempre.
+const VINCULACION_MS = Number(process.env.CAMILA_VINCULACION_MS || 10 * 60_000);
+
+// slug -> hasta cuándo se le está dando ventana para escanear (ms epoch).
+const vinculando = new Map();
 
 const espera = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -534,12 +545,32 @@ function pausarChat(slug, chatId, hasta) {
   }
 }
 
+/**
+ * Abre (o alarga) la ventana para que un hotel enseñe su QR.
+ *
+ * No arranca el navegador aquí mismo a propósito: lo hace `sincronizarFleet`,
+ * que es quien sabe escalonar los arranques y no dejar cinco Chromium abriendo
+ * a la vez. Para que el hotelero no espere hasta cinco minutos a la siguiente
+ * pasada, se le da un empujón inmediato.
+ */
+function abrirVinculacion(slug) {
+  const hasta = Date.now() + VINCULACION_MS;
+  const yaEstaba = (vinculando.get(slug) || 0) > Date.now();
+  vinculando.set(slug, hasta);
+  if (!yaEstaba && !clientes.has(slug)) {
+    console.log(`[camila] 📲 ${slug} pidió vincular su WhatsApp`);
+    sincronizarFleet().catch((e) => console.error("[camila] vincular:", e && e.message));
+  }
+  return new Date(hasta).toISOString();
+}
+
 function servidorEstado() {
   arrancarServidor(PORT, {
     secreto: FLEET_SECRET,
     estado,
     enviar: enviarDesdePanel,
     pausar: pausarChat,
+    vincular: abrirVinculacion,
   });
 }
 
@@ -636,9 +667,29 @@ async function sincronizarFleet() {
       }
 
       if (!clientes.has(hotel.slug)) {
+        // UN CHROMIUM SÓLO PARA QUIEN LO VA A USAR.
+        //
+        // Antes se le abría uno a todo hotel elegible. Los que nadie había
+        // escaneado nunca se quedaban meses con el navegador vivo regenerando
+        // un QR para nadie, y se comían el sitio del que sí lo usa. Ahora
+        // arranca solo quien ya tiene sesión guardada; el que no, cuando su
+        // dueño abra el paso «Conecta tu WhatsApp» del panel (`/vincular`).
+        const pidioVincular = (vinculando.get(hotel.slug) || 0) > Date.now();
+        if (!tieneSesion(DATA_PATH, hotel.id || hotel.slug) && !pidioVincular) {
+          if (!estado.has(hotel.slug)) {
+            estado.set(hotel.slug, {
+              slug: hotel.slug,
+              nombre: hotel.nombre,
+              status: "sin-vincular",
+              qr: null,
+              err: null,
+            });
+          }
+          continue;
+        }
         // Uno detrás de otro, no todos a la vez: cada uno es un Chromium.
         if (arrancados) await espera(ARRANQUE_ESCALONADO_MS);
-        console.log(`[camila] + arrancando ${hotel.slug}`);
+        console.log(`[camila] + arrancando ${hotel.slug}${pidioVincular ? " (lo pidió el panel)" : ""}`);
         clientes.set(hotel.slug, arrancarHotel(hotel));
         arrancados += 1;
       } else {
@@ -651,6 +702,21 @@ async function sincronizarFleet() {
     // Apagar los que corren pero ya NO están en el fleet.
     for (const slug of [...clientes.keys()]) {
       if (!enFleet.has(slug)) await pararHotel(slug);
+    }
+
+    // Cerrar las ventanas de vinculación vencidas. Si al hotelero se le abrió un
+    // Chromium para que escaneara y no escaneó, se apaga: es justo el navegador
+    // que le hace falta al hotel de al lado. Un hotel CONECTADO no se toca — la
+    // ventana ya cumplió y su sesión queda en disco.
+    for (const [slug, hasta] of [...vinculando.entries()]) {
+      if (hasta > Date.now()) continue;
+      vinculando.delete(slug);
+      const st = estado.get(slug);
+      if (st && st.status === "ready") continue;
+      if (!clientes.has(slug)) continue;
+      console.log(`[camila] ⏳ ${slug}: nadie escaneó el QR, libero su navegador`);
+      await pararHotel(slug);
+      estado.set(slug, { slug, nombre: (st && st.nombre) || slug, status: "sin-vincular", qr: null, err: null });
     }
     purgarChatsInactivos();
   } catch (e) {

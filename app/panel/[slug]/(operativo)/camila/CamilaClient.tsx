@@ -1327,6 +1327,9 @@ function BadgeEstado({ status, nombreBot }: { status: string | null; nombreBot: 
     error: { dot: "bg-red-500", txt: "No pudo arrancar" },
     requisitos: { dot: "bg-amber-500", txt: "Falta un paso tuyo" },
     "sin-servicio": { dot: "bg-panel-faint", txt: "Preparando tu conexión" },
+    // Nunca ha vinculado, así que no tenía navegador abierto: se le abre uno al
+    // entrar a este paso. Dura un par de segundos, hasta que sale el QR.
+    "sin-vincular": { dot: "bg-panel-faint", txt: "Abriendo tu conexión…" },
     desconocido: { dot: "bg-panel-faint", txt: "Preparando tu conexión" },
     "sin-permiso": { dot: "bg-panel-faint", txt: "Solo el dueño puede vincular" },
   };
