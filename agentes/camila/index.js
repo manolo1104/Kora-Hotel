@@ -16,6 +16,7 @@ import QRCode from "qrcode";
 import { arrancarServidor } from "./servidor.js";
 import { aMensajes } from "./historial.js";
 import { tieneSesion } from "./sesiones.js";
+import { clasificar, respuestaSinSoporte, comoSeVeEnElPanel } from "./medios.js";
 import path from "node:path";
 import { rmSync, existsSync, renameSync } from "node:fs";
 import { loadFleet } from "./fleet.js";
@@ -57,6 +58,13 @@ const VINCULACION_MS = Number(process.env.CAMILA_VINCULACION_MS || 10 * 60_000);
 // que alguien escaneó; `qr` durante minutos, sin nadie abriendo la pantalla de
 // conectar, es un navegador hablándole a la pared.
 const QR_OCIOSO_MS = Number(process.env.CAMILA_QR_OCIOSO_MS || 3 * 60_000);
+
+// Cada cuánto, como mucho, se le repite a un chat el aviso de «esto no lo puedo
+// leer». Quien manda seis fotos seguidas no necesita seis veces la misma frase:
+// eso deja de ser honestidad y pasa a ser ruido.
+const AVISO_SIN_SOPORTE_MS = Number(process.env.CAMILA_AVISO_MEDIOS_MS || 5 * 60_000);
+// `${slug}::${chatId}` -> cuándo se le dijo por última vez.
+const avisadoSinSoporte = new Map();
 
 // slug -> hasta cuándo se le está dando ventana para escanear (ms epoch).
 const vinculando = new Map();
@@ -132,6 +140,7 @@ function purgarChatsInactivos() {
     pausados.delete(key);
     botEnvioAt.delete(key);
     chatConsultado.delete(key);
+    avisadoSinSoporte.delete(key);
     ultimaActividad.delete(key);
     n += 1;
   }
@@ -346,9 +355,15 @@ async function onMensaje(client, slug, kora, msg) {
   if (chatId.endsWith("@g.us") || chatId.endsWith("@broadcast")) return;
   if (msg.fromMe) return;
   console.log(`[${slug}] 📩 mensaje de ${chatId} (tipo ${msg.type})`);
-  if (msg.type !== "chat") return; // solo texto por ahora
+
+  // NO todo lo que no es texto es basura. Una respuesta a un botón trae la
+  // opción que el huésped tocó, y una foto puede traer pie. Lo que de verdad no
+  // se puede leer —un audio, una ubicación, un contacto— merece una respuesta
+  // honesta y no el silencio: en el primer hotel conectado, 3 de cada 7
+  // mensajes de huéspedes no eran texto y se quedaron sin contestar.
   const texto = (msg.body || "").trim();
-  if (!texto) return;
+  const clase = clasificar(msg.type, texto);
+  if (clase === "ignorar") return; // ruido del propio WhatsApp
 
   const key = `${slug}::${chatId}`;
 
@@ -356,7 +371,7 @@ async function onMensaje(client, slug, kora, msg) {
   const st = await kora.status();
 
   // Comando de control desde el número admin: "apagar" / "encender" por WhatsApp.
-  if (st.adminPhone && mismoNumero(chatId, st.adminPhone)) {
+  if (clase === "texto" && st.adminPhone && mismoNumero(chatId, st.adminPhone)) {
     const cmd = parseComando(texto);
     if (cmd) {
       const encender = cmd === "on";
@@ -396,6 +411,35 @@ async function onMensaje(client, slug, kora, msg) {
   const pausadoHasta = Math.max(hastaMemoria, delChat.hasta);
   if (Date.now() < pausadoHasta) {
     console.log(`[${slug}] ${chatId}: lo atiende una persona, Camila no contesta`);
+    return;
+  }
+
+  // ── Le mandaron algo que no se puede leer ──
+  //
+  // Va AQUÍ y no antes a propósito: pasa por las mismas puertas que un mensaje
+  // normal. Si el dueño apagó a Camila, o si el hotelero dijo «yo contesto» en
+  // este chat, lo último que hace falta es que ella salte con un aviso.
+  if (clase === "sin-soporte") {
+    ultimaActividad.set(key, Date.now());
+    // Que el hotelero VEA en la bandeja que llegó algo, aunque Camila no
+    // pudiera leerlo. Si no, en el panel parece que el huésped no escribió.
+    kora
+      .logConversacion({ conv: chatId.split("@")[0], turnos: [{ rol: "user", texto: comoSeVeEnElPanel(msg.type) }] })
+      .catch((e) => console.error(`[${slug}] no se guardó el mensaje sin texto:`, e && e.message));
+
+    const ultimo = avisadoSinSoporte.get(key) || 0;
+    if (Date.now() - ultimo < AVISO_SIN_SOPORTE_MS) return; // ya se le dijo hace poco
+    avisadoSinSoporte.set(key, Date.now());
+
+    const aviso = respuestaSinSoporte(msg.type);
+    botEnvioAt.set(key, Date.now());
+    await client
+      .sendMessage(chatId, aviso)
+      .catch((e) => console.error(`[${slug}] no pude avisar de un ${msg.type}:`, e && e.message));
+    kora
+      .logConversacion({ conv: chatId.split("@")[0], turnos: [{ rol: "assistant", texto: aviso }] })
+      .catch((e) => console.error(`[${slug}] no se guardó el aviso de ${msg.type}:`, e && e.message));
+    console.log(`[${slug}] ${chatId}: le avisé que no puedo leer un ${msg.type}`);
     return;
   }
 
@@ -608,7 +652,7 @@ async function pararHotel(slug) {
   clientes.delete(slug);
   estado.delete(slug);
   // Limpia el estado por-chat de ese hotel (claves `${slug}::chatId`).
-  for (const mapa of [historiales, pendientes, pausados, botEnvioAt, chatConsultado, ultimaActividad, enCurso]) {
+  for (const mapa of [historiales, pendientes, pausados, botEnvioAt, chatConsultado, avisadoSinSoporte, ultimaActividad, enCurso]) {
     for (const k of [...mapa.keys()]) {
       if (!k.startsWith(`${slug}::`)) continue;
       const v = mapa.get(k);
