@@ -56,6 +56,7 @@ import { buildCotizacionDoc, buildReservaDoc } from "@/lib/docs/documento-brande
 import type { BookingBrand } from "@/lib/email/booking-branded";
 import { PLANTILLAS, type DatosCorreo } from "@/lib/email/plantillas-hotelero";
 import { buildCorreoHotelero } from "@/lib/email/hotelero";
+import { emailAnuncio } from "@/lib/email/anuncio";
 
 export type Lang = "es" | "en";
 
@@ -1093,6 +1094,14 @@ export const GRUPOS: GrupoPreview[] = [
         origen: "app/api/admin/enviar-correo/route.ts",
         render: () => correoDelHotelero(p.id, HUESPED_CORREO, HOTEL_SEQ),
       })),
+      {
+        id: "anuncio-novedades",
+        nombre: "Novedades a la lista de Kora",
+        quien: "Manolo",
+        cuando: "NO lo manda ningún cron. Lo dispara una persona a mano con CRON_SECRET, y sin ?enviar=1 sólo cuenta a cuántos les llegaría.",
+        origen: "app/api/cron/anuncio/route.ts",
+        render: () => emailAnuncio({ nombre: "Luis", token: "TOKEN-DE-EJEMPLO" }),
+      },
       {
         id: "hotelero-sucio",
         nombre: "Escrito por el hotelero · juego sucio",

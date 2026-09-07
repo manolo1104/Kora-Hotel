@@ -30,8 +30,11 @@ import { urlBaja, primerNombre, type ToqueGuia } from "@/lib/suscriptores";
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
 
-/** El pie con la baja de un clic. Obligatorio en todos los de esta secuencia. */
-function pieConBaja(token: string): string {
+/**
+ * El pie con la baja de un clic. Obligatorio en TODO correo comercial de Kora,
+ * no sólo en esta secuencia: lo usa también el de novedades (lib/email/anuncio).
+ */
+export function pieConBaja(token: string): string {
   return pieKora(
     `Recibes esto porque pediste el Plan de 90 días en kora-hotel.com. ` +
       `<a href="${urlBaja(token)}" style="color:#b8aa9a;text-decoration:underline;">Darme de baja</a>.`,
