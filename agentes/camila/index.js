@@ -29,6 +29,17 @@ const HUMAN_TAKEOVER_MS = Number(process.env.HUMAN_TAKEOVER_MS || 60 * 60 * 1000
 const CHROMIUM = process.env.PUPPETEER_EXECUTABLE_PATH || undefined;
 // Cuánto se espera a que WhatsApp acepte un mensaje escrito desde el panel.
 const ENVIO_TIMEOUT_MS = Number(process.env.CAMILA_ENVIO_TIMEOUT_MS || 20_000);
+// Cuánto se espera entre arrancar un hotel y el siguiente.
+//
+// Cada hotel es un Chromium. Arrancarlos todos en el mismo tick funcionaba con
+// uno o dos; con cinco, el contenedor no da y `client.initialize()` revienta con
+// "Runtime.callFunctionOn timed out" en varios a la vez. Pasó en el despliegue
+// del 6 sep 2026: de cinco hoteles, uno conectó y tres se cayeron — incluido el
+// del cliente que paga. Y como el reintento vive en la misma pasada del fleet,
+// los reintentos volvían a chocar entre ellos: el problema se realimentaba.
+const ARRANQUE_ESCALONADO_MS = Number(process.env.CAMILA_ARRANQUE_ESCALONADO_MS || 20_000);
+
+const espera = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // Estado por hotel para la página de estado/QR.
 /** @type {Map<string, {slug:string,nombre:string,status:string,qr:string|null,err:string|null}>} */
@@ -585,6 +596,8 @@ async function sincronizarFleet() {
       return;
     }
     const enFleet = new Map(hotels.map((h) => [h.slug, h]));
+    // Cuántos Chromium se han lanzado en ESTA pasada, para espaciar el siguiente.
+    let arrancados = 0;
     // Arrancar los que están en el fleet y aún no corren.
     for (const hotel of hotels) {
       const st = estado.get(hotel.slug);
@@ -606,7 +619,9 @@ async function sincronizarFleet() {
             `[camila] ↻ reintentando ${hotel.slug} (intento ${intentos}/${MAX_REINTENTOS_ARRANQUE}): ${st.err || "sin motivo"}`,
           );
           await pararHotel(hotel.slug);
+          if (arrancados) await espera(ARRANQUE_ESCALONADO_MS);
           clientes.set(hotel.slug, arrancarHotel(hotel));
+          arrancados += 1;
           const nuevo = estado.get(hotel.slug);
           if (nuevo) nuevo.intentos = intentos;
         } else if (!st.avisado) {
@@ -621,8 +636,11 @@ async function sincronizarFleet() {
       }
 
       if (!clientes.has(hotel.slug)) {
+        // Uno detrás de otro, no todos a la vez: cada uno es un Chromium.
+        if (arrancados) await espera(ARRANQUE_ESCALONADO_MS);
         console.log(`[camila] + arrancando ${hotel.slug}`);
         clientes.set(hotel.slug, arrancarHotel(hotel));
+        arrancados += 1;
       } else {
         // Ya corre: se le refrescan los datos por si el token se rotó (o
         // cambió el nombre o el idioma del hotel). Sin este `else`, un bot
