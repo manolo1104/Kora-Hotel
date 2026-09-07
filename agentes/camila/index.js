@@ -15,7 +15,7 @@ import qrcodeTerminal from "qrcode-terminal";
 import QRCode from "qrcode";
 import { arrancarServidor } from "./servidor.js";
 import { aMensajes } from "./historial.js";
-import { tieneSesion } from "./sesiones.js";
+import { tieneSesion, marcadoSinVincular, marcarSinVincular, limpiarMarcaSinVincular } from "./sesiones.js";
 import { clasificar, respuestaSinSoporte, comoSeVeEnElPanel } from "./medios.js";
 import path from "node:path";
 import { rmSync, existsSync, renameSync } from "node:fs";
@@ -257,6 +257,8 @@ function arrancarHotel(hotel) {
 
   client.on("ready", () => {
     console.log(`[${slug}] ✅ Camila conectada (${hotel.nombre}).`);
+    // Ya está vinculado: que los próximos reinicios lo levanten solo.
+    limpiarMarcaSinVincular(DATA_PATH, hotel.id || slug);
     const st = estado.get(slug);
     if (st) {
       st.status = "ready";
@@ -739,8 +741,13 @@ async function sincronizarFleet() {
         // miraba. Sin lo segundo, la pasada siguiente lo volvía a levantar y la
         // liberación no servía de nada: la carpeta de sesión sigue ahí, porque
         // `LocalAuth` la crea al arrancar Chromium y no al escanear.
-        const liberado = estado.get(hotel.slug)?.status === "sin-vincular";
-        if ((liberado || !tieneSesion(DATA_PATH, hotel.id || hotel.slug)) && !pidioVincular) {
+        const id = hotel.id || hotel.slug;
+        // La marca en disco es la que manda, porque sobrevive al reinicio: sin
+        // ella, cada despliegue volvía a levantar a todos los no vinculados a la
+        // vez y se repetía la tormenta que esto vino a quitar.
+        const liberado =
+          estado.get(hotel.slug)?.status === "sin-vincular" || marcadoSinVincular(DATA_PATH, id);
+        if ((liberado || !tieneSesion(DATA_PATH, id)) && !pidioVincular) {
           if (!estado.has(hotel.slug)) {
             estado.set(hotel.slug, {
               slug: hotel.slug,
@@ -783,6 +790,7 @@ async function sincronizarFleet() {
       if ((vinculando.get(slug) || 0) > Date.now()) continue; // alguien está mirando
       if (Date.now() - (st.qrDesde || 0) < QR_OCIOSO_MS) continue;
       console.log(`[camila] 💤 ${slug}: lleva minutos con el QR sin que nadie lo escanee, libero su navegador`);
+      marcarSinVincular(DATA_PATH, enFleet.get(slug)?.id || slug);
       await pararHotel(slug);
       estado.set(slug, { slug, nombre: st.nombre, status: "sin-vincular", qr: null, err: null });
     }
@@ -798,6 +806,7 @@ async function sincronizarFleet() {
       if (st && st.status === "ready") continue;
       if (!clientes.has(slug)) continue;
       console.log(`[camila] ⏳ ${slug}: nadie escaneó el QR, libero su navegador`);
+      marcarSinVincular(DATA_PATH, enFleet.get(slug)?.id || slug);
       await pararHotel(slug);
       estado.set(slug, { slug, nombre: (st && st.nombre) || slug, status: "sin-vincular", qr: null, err: null });
     }
