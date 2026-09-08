@@ -9,7 +9,8 @@
 //  2. CALLAR SIN MOTIVO — dejar mudo a un hotel porque la base tuvo un hipo.
 //  3. AVISAR DE MÁS — mandarle al hotelero cinco correos idénticos porque cinco
 //     mensajes cruzaron el umbral a la vez.
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { readFileSync } from "node:fs";
 
 // ── El doble de Supabase ─────────────────────────────────────────────────────
 
@@ -59,7 +60,8 @@ vi.mock("@/lib/alertas", () => ({ alertar: (a: string) => { alertas.push(a); ret
 
 const { leerSaldo, sinSaldo, consumirMensaje, SIN_DATO } = await import("@/lib/db/saldo");
 const { cobrable, cobrarMensaje } = await import("@/lib/saldo/cobro");
-const { paquetePorMxn, PAQUETES, diasQueAlcanzan, MINIMO_MXN } = await import("@/lib/saldo/paquetes");
+const { paquetePorMxn, PAQUETES, diasQueAlcanzan, MINIMO_MXN, recargaActiva, bloqueoActivo } =
+  await import("@/lib/saldo/paquetes");
 
 const HOTEL = { id: "h1", slug: "hotel-san-luis", nombre: "Hotel San Luis", owner_id: "u1" };
 
@@ -70,6 +72,17 @@ beforeEach(() => {
   correosMandados.length = 0;
   alertas.length = 0;
   respuestaRpc = () => 299;
+  // Por defecto se prueba el prepago YA ENCENDIDO del todo. La fase de
+  // «próximamente» tiene su propio bloque más abajo.
+  process.env.SALDO_RECARGA = "1";
+  process.env.SALDO_BLOQUEO = "1";
+});
+
+// Estas pruebas encienden y apagan interruptores de verdad. Dejarlos puestos
+// haría que la prueba siguiente midiera otra cosa sin que nadie se enterara.
+afterEach(() => {
+  delete process.env.SALDO_RECARGA;
+  delete process.env.SALDO_BLOQUEO;
 });
 
 // ── 1. QUÉ COBRA Y QUÉ NO ────────────────────────────────────────────────────
@@ -248,5 +261,126 @@ describe("cuántos días le duran", () => {
   });
   it("sin saldo, cero días", () => {
     expect(diasQueAlcanzan(0, 10)).toBe(0);
+  });
+});
+
+// ── 5. LAS TRES FASES DEL ENCENDIDO ──────────────────────────────────────────
+//
+// El prepago se enciende en tres tiempos y cada uno tiene su interruptor. Lo que
+// se prueba aquí es que en cada fase el sistema haga —y DIGA— exactamente lo que
+// toca, porque las dos formas de quedar mal son cobrar antes de tiempo y
+// asustar al hotelero con un corte que todavía no existe.
+
+describe("fase 1 · «próximamente»: se mide, no se cobra, no se calla", () => {
+  beforeEach(() => {
+    delete process.env.SALDO_RECARGA;
+    delete process.env.SALDO_BLOQUEO;
+  });
+
+  it("los dos interruptores están apagados", () => {
+    expect(recargaActiva()).toBe(false);
+    expect(bloqueoActivo()).toBe(false);
+  });
+
+  it("el saldo SÍ baja: es lo que estamos midiendo", async () => {
+    respuestaRpc = () => 299;
+    await cobrarMensaje(HOTEL, "m1");
+    expect(rpcs[0].fn).toBe("saldo_consumir");
+  });
+
+  it("al hotelero NO se le escribe: le diría «recarga» y no hay dónde", async () => {
+    respuestaRpc = (fn) => (fn === "saldo_consumir" ? 59 : true);
+    await cobrarMensaje(HOTEL, "m2");
+    expect(correosMandados).toHaveLength(0);
+  });
+
+  it("pero Kora sí se entera, que para eso se está midiendo", async () => {
+    respuestaRpc = (fn) => (fn === "saldo_consumir" ? 59 : true);
+    await cobrarMensaje(HOTEL, "m3");
+    expect(alertas.join(" ")).toContain("59 mensajes");
+  });
+
+  it("y aun así se reclama la marca, para no repetir el aviso al encender", async () => {
+    respuestaRpc = (fn) => (fn === "saldo_consumir" ? 0 : true);
+    await cobrarMensaje(HOTEL, "m4");
+    expect(rpcs.map((r) => r.fn)).toContain("saldo_reclamar_aviso");
+  });
+});
+
+describe("fase 2 · pago abierto, sin bloqueo", () => {
+  beforeEach(() => {
+    process.env.SALDO_RECARGA = "1";
+    delete process.env.SALDO_BLOQUEO;
+  });
+
+  it("ahora sí se le escribe al hotelero", async () => {
+    respuestaRpc = (fn) => (fn === "saldo_consumir" ? 40 : true);
+    await cobrarMensaje(HOTEL, "m5");
+    expect(correosMandados).toHaveLength(1);
+  });
+
+  it("pero con el bloqueo apagado, cero saldo NO calla a Camila", async () => {
+    saldoDeHotel = 0;
+    // `sinSaldo` describe el saldo; quien decide callar es la ruta, y sólo mira
+    // el saldo cuando `bloqueoActivo()`.
+    expect(sinSaldo(await leerSaldo("h1"))).toBe(true);
+    expect(bloqueoActivo()).toBe(false);
+  });
+});
+
+describe("fase 3 · todo encendido", () => {
+  it("los dos interruptores responden al «1» y a nada más", () => {
+    for (const v of ["1"]) {
+      process.env.SALDO_RECARGA = v;
+      process.env.SALDO_BLOQUEO = v;
+      expect(recargaActiva()).toBe(true);
+      expect(bloqueoActivo()).toBe(true);
+    }
+    // Un valor "casi verdadero" NO enciende nada: encender esto por accidente
+    // deja mudo el WhatsApp de un hotel que paga.
+    for (const v of ["true", "sí", "yes", "0", "", "on"]) {
+      process.env.SALDO_RECARGA = v;
+      process.env.SALDO_BLOQUEO = v;
+      expect(recargaActiva(), v).toBe(false);
+      expect(bloqueoActivo(), v).toBe(false);
+    }
+  });
+});
+
+// ── 6. LA PUERTA DEL COBRO ESTÁ EN EL SERVIDOR ───────────────────────────────
+//
+// Esconder el botón de recargar NO cierra nada: el POST se puede mandar a mano.
+// Mientras el prepago esté anunciado como «próximamente», nadie puede acabar con
+// un cargo real en su tarjeta, y eso tiene que estar en la ruta.
+
+describe("no se puede cobrar aunque el botón esté escondido", () => {
+  const fuente = readFileSync(new URL("../app/api/admin/saldo/route.ts", import.meta.url), "utf8");
+  // Sin los comentarios: aquí se comprueba lo que el código HACE, y los propios
+  // comentarios de la ruta nombran `stripeAccount` para explicar por qué no está.
+  const ruta = fuente
+    .split("\n")
+    .filter((l) => !l.trimStart().startsWith("//") && !l.trimStart().startsWith("*") && !l.trimStart().startsWith("/*"))
+    .join("\n");
+
+  it("el POST comprueba el interruptor ANTES de hablar con Stripe", () => {
+    const corte = ruta.indexOf("if (!recargaActiva())");
+    const stripe = ruta.indexOf("checkout.sessions.create");
+    expect(corte).toBeGreaterThan(-1);
+    expect(stripe).toBeGreaterThan(-1);
+    expect(corte).toBeLessThan(stripe);
+  });
+
+  it("el importe se busca en la lista blanca, no se toma del cuerpo", () => {
+    expect(ruta).toContain("paquetePorMxn(c.datos.mxn)");
+    expect(ruta).toContain("paquete.mxn * 100");
+    // Si alguien cambiara esto por el número del navegador, se compran 3.000
+    // mensajes por un peso.
+    expect(ruta).not.toContain("unit_amount: c.datos.mxn");
+  });
+
+  it("la recarga se cobra a la cuenta de Kora, nunca a la del hotel", () => {
+    // `stripeAccount` es sólo para las reservas del hotel. Aquí metería el pago
+    // del saldo en la cuenta del hotelero, que es justo al revés.
+    expect(ruta).not.toContain("stripeAccount");
   });
 });

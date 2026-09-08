@@ -1,6 +1,7 @@
 import { negar } from "@/lib/panel/permisos";
 import { NextResponse } from "next/server";
 import { leerSaldo, sinSaldo } from "@/lib/db/saldo";
+import { bloqueoActivo } from "@/lib/saldo/paquetes";
 import { getActiveHotel } from "@/lib/panel/active-hotel";
 import { getBotStatus, setBotStatus } from "@/lib/db/admin";
 
@@ -51,8 +52,10 @@ export async function GET() {
   // sidebar necesita distinguirlo: decir «Conectada» mientras no le contesta a
   // nadie es la clase de mentira por la que un hotelero se entera del problema
   // por un huésped enfadado.
-  const saldo = await leerSaldo(ctx.hotelId);
-  return NextResponse.json({ enabled, conexion, sinSaldo: sinSaldo(saldo) });
+  // Sólo mientras el bloqueo esté encendido: con él apagado el saldo baja pero
+  // Camila contesta, y poner «Sin saldo» en el menú sería alarma falsa.
+  const saldo = bloqueoActivo() ? await leerSaldo(ctx.hotelId) : null;
+  return NextResponse.json({ enabled, conexion, sinSaldo: saldo !== null && sinSaldo(saldo) });
 }
 
 export async function POST(req: Request) {

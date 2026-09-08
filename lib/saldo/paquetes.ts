@@ -57,6 +57,38 @@ export const REGALO_BIENVENIDA = 300;
 /** Por debajo de esto se le avisa al hotelero de que se le está acabando. */
 export const UMBRAL_AVISO_BAJO = 60;
 
+/**
+ * ¿Se puede ya recargar de verdad?
+ *
+ * El prepago se enciende en TRES tiempos, y cada uno tiene su interruptor:
+ *
+ *   1. Ahora mismo — se MIDE el consumo, el panel anuncia «próximamente» y
+ *      nadie puede pagar ni se calla nadie. `SALDO_RECARGA` y `SALDO_BLOQUEO`
+ *      sin poner.
+ *   2. `SALDO_RECARGA=1` — se abre el pago. Camila sigue contestando aunque el
+ *      saldo llegue a cero.
+ *   3. `SALDO_BLOQUEO=1` — sin saldo, Camila se calla.
+ *
+ * Son dos interruptores y no uno porque el orden importa: abrir el bloqueo
+ * antes que el pago dejaría a un hotel mudo y sin manera de arreglarlo.
+ *
+ * SOLO SERVIDOR: el navegador lo recibe ya resuelto desde `/api/admin/saldo`.
+ */
+export function recargaActiva(): boolean {
+  return process.env.SALDO_RECARGA === "1";
+}
+
+/**
+ * ¿Un hotel sin saldo se queda mudo?
+ *
+ * Mientras esto esté apagado, el saldo BAJA pero Camila contesta igual. El panel
+ * tiene que decirlo tal cual: enseñar «Camila dejó de contestar» con el bloqueo
+ * apagado sería asustar al hotelero con algo que no está pasando.
+ */
+export function bloqueoActivo(): boolean {
+  return process.env.SALDO_BLOQUEO === "1";
+}
+
 export function paquetePorMxn(mxn: unknown): Paquete | null {
   const n = typeof mxn === "number" ? mxn : Number(mxn);
   if (!Number.isFinite(n)) return null;

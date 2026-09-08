@@ -74,6 +74,10 @@ interface Saldo {
   diasRestantes: number | null;
   umbralBajo: number;
   paquetes: { mxn: number; mensajes: number; destacado?: boolean }[];
+  /** ¿Está abierto el pago ya, para cualquiera? (`SALDO_RECARGA`) */
+  recargaAbierta: boolean;
+  /** ¿Un hotel sin saldo se queda mudo ya? (`SALDO_BLOQUEO`) */
+  bloqueoActivo: boolean;
   /** Recargar es gastar dinero del hotel: sólo el dueño. */
   puedeRecargar: boolean;
 }
@@ -681,41 +685,47 @@ export default function CamilaClient({
       {/* SIN SALDO / CON POCO: va aquí, fuera de los seis pasos, porque no es un
           paso de configuración — es algo que está pasando AHORA y que el
           hotelero tiene que ver entre en la pestaña por donde entre. */}
-      {saldo?.mensajes !== null && saldo !== null && saldo.mensajes <= saldo.umbralBajo && (
-        <div
-          className={`flex flex-wrap items-center justify-between gap-3 rounded-xl border px-4 py-3 text-sm ${
-            saldo.mensajes <= 0
-              ? "border-red-200 bg-red-50 text-red-900"
-              : "border-amber-200 bg-amber-50 text-amber-900"
-          }`}
-        >
-          <div className="flex items-start gap-2">
-            <AlertTriangle size={16} className="mt-0.5 shrink-0" />
-            <span>
-              {saldo.mensajes <= 0 ? (
-                <>
-                  <strong>{nombreBot} dejó de contestar: se acabó el saldo.</strong> A quien escriba se le
-                  avisa una vez de que en un momento lo atiende una persona. Recarga y vuelve sola.
-                </>
-              ) : (
-                <>
-                  Te quedan <strong>{saldo.mensajes} mensajes</strong>
-                  {saldo.diasRestantes !== null && ` (unos ${saldo.diasRestantes} días a tu ritmo)`}. Cuando
-                  lleguen a cero, {nombreBot} deja de contestar.
-                </>
-              )}
-            </span>
+      {/* Sólo se alarma cuando el bloqueo está encendido DE VERDAD. Mientras el
+          prepago se está midiendo, el saldo baja pero Camila contesta igual, y
+          enseñar «dejó de contestar» sería asustar con algo que no pasa. */}
+      {saldo !== null &&
+        saldo.mensajes !== null &&
+        saldo.bloqueoActivo &&
+        saldo.mensajes <= saldo.umbralBajo && (
+          <div
+            className={`flex flex-wrap items-center justify-between gap-3 rounded-xl border px-4 py-3 text-sm ${
+              saldo.mensajes <= 0
+                ? "border-red-200 bg-red-50 text-red-900"
+                : "border-amber-200 bg-amber-50 text-amber-900"
+            }`}
+          >
+            <div className="flex items-start gap-2">
+              <AlertTriangle size={16} className="mt-0.5 shrink-0" />
+              <span>
+                {saldo.mensajes <= 0 ? (
+                  <>
+                    <strong>{nombreBot} dejó de contestar: se acabó el saldo.</strong> A quien escriba se le
+                    avisa una vez de que en un momento lo atiende una persona. Recarga y vuelve sola.
+                  </>
+                ) : (
+                  <>
+                    Te quedan <strong>{saldo.mensajes} mensajes</strong>
+                    {saldo.diasRestantes !== null && ` (unos ${saldo.diasRestantes} días a tu ritmo)`}. Cuando
+                    lleguen a cero, {nombreBot} deja de contestar.
+                  </>
+                )}
+              </span>
+            </div>
+            {saldo.puedeRecargar && saldo.recargaAbierta && (
+              <button
+                onClick={() => setPaso(0)}
+                className="shrink-0 rounded-lg bg-kora-primary px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90"
+              >
+                Recargar
+              </button>
+            )}
           </div>
-          {saldo.puedeRecargar && (
-            <button
-              onClick={() => setPaso(0)}
-              className="shrink-0 rounded-lg bg-kora-primary px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90"
-            >
-              Recargar
-            </button>
-          )}
-        </div>
-      )}
+        )}
 
       {/* Paso activo (uno a la vez, para no abrumar) */}
       <Etapa n={activo.n} titulo={activo.titulo} listo={activo.listo} icon={activo.icon}>
@@ -728,7 +738,7 @@ export default function CamilaClient({
                     se contradicen en la misma pantalla es peor que ninguna. */}
                 {!enabled
                   ? `${nombreBot} está apagada: no responderá aunque esté conectada.`
-                  : saldo?.mensajes === 0
+                  : saldo?.mensajes === 0 && saldo.bloqueoActivo
                     ? `El interruptor está encendido, pero ${nombreBot} no puede contestar hasta que recargues saldo.`
                     : `${nombreBot} está encendida: responde a tus huéspedes cuando el bot esté conectado.`}
               </p>
@@ -773,11 +783,25 @@ export default function CamilaClient({
                 </div>
 
                 <p className="mt-3 text-sm text-kora-muted">
-                  Cada respuesta que {nombreBot} le manda a un huésped descuenta un mensaje. Lo demás —tu
+                  Cada respuesta que {nombreBot} le manda a un huésped cuenta como un mensaje. Lo demás —tu
                   página de reservas, los cobros y los correos— no gasta saldo.
                 </p>
 
-                {saldo.puedeRecargar ? (
+                {!saldo.recargaAbierta ? (
+                  /* PRÓXIMAMENTE. El pago todavía no está abierto: se está
+                     midiendo cuánto usa cada hotel. Se dice tal cual —que el
+                     contador baja pero no se cobra ni se corta— porque un
+                     hotelero que ve bajar un número sin explicación se asusta,
+                     y con razón. */
+                  <div className="mt-3 rounded-lg border border-dashed border-panel-contrast/20 bg-panel-surface px-3 py-3">
+                    <p className="text-sm font-semibold text-kora-text">Próximamente: recarga desde aquí</p>
+                    <p className="mt-1 text-xs text-kora-muted">
+                      Todavía no se cobra nada y {nombreBot} contesta sin límite, aunque veas bajar el
+                      contador. Estamos midiendo cuántos mensajes usa cada hotel para afinar los paquetes.
+                      Te avisaremos por correo antes de que esto cambie.
+                    </p>
+                  </div>
+                ) : saldo.puedeRecargar ? (
                   <>
                     <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
                       {saldo.paquetes.map((pq) => (

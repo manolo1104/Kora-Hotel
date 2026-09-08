@@ -26,7 +26,7 @@
 
 import type { TurnoConversacion } from "@/lib/db/admin";
 import { consumirMensaje, reclamarAviso, consumoDelMes, SIN_DATO } from "@/lib/db/saldo";
-import { UMBRAL_AVISO_BAJO, diasQueAlcanzan } from "@/lib/saldo/paquetes";
+import { UMBRAL_AVISO_BAJO, diasQueAlcanzan, recargaActiva } from "@/lib/saldo/paquetes";
 import { emailSaldoBajo, emailSaldoAgotado } from "@/lib/email/saldo";
 import { enviarEmail } from "@/lib/email/resend";
 import { resolveHotelAvisoEmail } from "@/lib/email/reserva";
@@ -72,6 +72,21 @@ export async function cobrarMensaje(hotel: HotelDelCobro, ref: string): Promise<
     // Reclamar ANTES de enviar. Tres mensajes simultáneos del mismo hotel
     // cruzarían el umbral a la vez; sin esto, el hotelero recibe tres correos.
     if (!(await reclamarAviso(hotel.id, cual))) return;
+
+    // MIENTRAS EL PAGO NO ESTÉ ABIERTO, AL HOTELERO NO SE LE ESCRIBE. Los dos
+    // correos le dicen «recarga aquí» y ahí todavía no hay dónde: sería mandarlo
+    // a una puerta cerrada y preocuparlo por algo que hoy no le corta el
+    // servicio. Pero el dato importa —es el consumo real que estamos midiendo—
+    // así que se avisa a Kora, no al cliente.
+    if (!recargaActiva()) {
+      alertar(
+        `saldo: ${hotel.slug} llegó a ${quedan} mensajes`,
+        `El prepago todavía está en «próximamente», así que NO se le escribió al hotelero. ` +
+          `Es consumo real: ${hotel.slug} ya bajó a ${quedan} de sus 300. ` +
+          `Antes de encender SALDO_BLOQUEO hay que recargarle.`,
+      );
+      return;
+    }
 
     const para = await resolveHotelAvisoEmail(hotel);
     if (!para) {

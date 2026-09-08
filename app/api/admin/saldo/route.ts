@@ -6,7 +6,7 @@ import { leerCuerpo } from "@/lib/api/cuerpo";
 import { limitado } from "@/lib/api/rate-limit";
 import { getStripe, stripeEnvReady } from "@/lib/stripe/server";
 import { leerSaldo, consumoDelMes, SIN_DATO } from "@/lib/db/saldo";
-import { paquetePorMxn, PAQUETES, diasQueAlcanzan, UMBRAL_AVISO_BAJO } from "@/lib/saldo/paquetes";
+import { paquetePorMxn, PAQUETES, diasQueAlcanzan, UMBRAL_AVISO_BAJO, recargaActiva, bloqueoActivo } from "@/lib/saldo/paquetes";
 
 export const dynamic = "force-dynamic";
 
@@ -59,6 +59,12 @@ export async function GET() {
     umbralBajo: UMBRAL_AVISO_BAJO,
     paquetes: PAQUETES,
     // Para que el panel sepa si pintar el botón de recargar o sólo la cifra.
+    // Son DOS cosas distintas: `recargaAbierta` es si la función existe ya para
+    // cualquiera, y `puedeRecargar` es si a ESTA persona le toca (sólo el dueño).
+    recargaAbierta: recargaActiva(),
+    // Con el bloqueo apagado el saldo baja pero Camila NO se calla, y el panel
+    // tiene que contar eso y no otra cosa.
+    bloqueoActivo: bloqueoActivo(),
     puedeRecargar: ctx.permisos.has("saldo:recargar"),
   });
 }
@@ -68,6 +74,16 @@ export async function POST(req: Request) {
   if (!ctx) return NextResponse.json({ ok: false, error: "no-auth" }, { status: 401 });
   const no = negar(ctx, "saldo:recargar");
   if (no) return no;
+
+  // La puerta de verdad está AQUÍ, no en el botón. Esconder el botón no impide
+  // que alguien mande el POST a mano, y mientras el prepago esté anunciado como
+  // «próximamente» no puede cobrarse un peso a nadie.
+  if (!recargaActiva()) {
+    return NextResponse.json(
+      { ok: false, error: "Las recargas todavía no están abiertas." },
+      { status: 503 },
+    );
+  }
 
   if (!stripeEnvReady) {
     return NextResponse.json({ ok: false, error: "Los pagos no están configurados." }, { status: 503 });

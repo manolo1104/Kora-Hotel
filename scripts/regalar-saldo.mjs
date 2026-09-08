@@ -17,12 +17,28 @@
 //   único en `saldo_movimientos`: correrlo diez veces regala una. Eso es a
 //   propósito — es la red que permite volver a correrlo si se cortó a medias.
 // · Se salta a quien ya tenga saldo, para no inflarle la cuenta a un hotel que
-//   ya recargó.
+//   ya recargó. Con `--todos` no se salta a nadie: es lo que hace falta para la
+//   RECARGA DE SEGURIDAD de antes de encender el bloqueo (ver abajo).
 //
 // Uso:
 //   node scripts/regalar-saldo.mjs                 (ensayo: sólo cuenta)
 //   node scripts/regalar-saldo.mjs --enviar        (aplica)
 //   node scripts/regalar-saldo.mjs --enviar --mensajes 500 --etiqueta disculpa-sep
+//   node scripts/regalar-saldo.mjs --enviar --todos --etiqueta antes-del-bloqueo
+//
+// ── LA RECARGA DE SEGURIDAD, Y POR QUÉ NO ES OPCIONAL ────────────────────────
+//
+// Mientras el prepago está en «próximamente» el saldo BAJA pero no se corta a
+// nadie. Eso significa que el día que se encienda `SALDO_BLOQUEO=1`, cualquier
+// hotel que ya se haya gastado sus 300 mensajes se queda mudo EN ESE INSTANTE,
+// sin aviso previo y sin haber podido recargar.
+//
+// Por eso, ANTES de encender el bloqueo:
+//
+//     node scripts/regalar-saldo.mjs --enviar --todos --etiqueta antes-del-bloqueo
+//
+// El `--todos` le suma a todos, incluidos los que ya tienen saldo, y la etiqueta
+// nueva hace que se aplique una sola vez.
 
 import { createClient } from "@supabase/supabase-js";
 import { readFileSync } from "node:fs";
@@ -48,6 +64,7 @@ if (!URL || !KEY) {
 
 const args = process.argv.slice(2);
 const enviar = args.includes("--enviar");
+const todos = args.includes("--todos");
 const valor = (nombre, porDefecto) => {
   const i = args.indexOf(`--${nombre}`);
   return i >= 0 && args[i + 1] ? args[i + 1] : porDefecto;
@@ -75,7 +92,10 @@ if (e2) {
 }
 const yaTiene = new Map((saldos ?? []).map((s) => [s.hotel_id, s.mensajes]));
 
-console.log(`\n${enviar ? "REGALANDO" : "ENSAYO (no escribe nada)"} · ${MENSAJES} mensajes · ref "regalo-${ETIQUETA}"\n`);
+console.log(
+  `\n${enviar ? "REGALANDO" : "ENSAYO (no escribe nada)"} · ${MENSAJES} mensajes · ` +
+    `ref "regalo-${ETIQUETA}"${todos ? " · A TODOS (incluidos los que ya tienen saldo)" : ""}\n`,
+);
 
 let aplicados = 0;
 let saltados = 0;
@@ -83,13 +103,13 @@ let repetidos = 0;
 
 for (const h of hoteles ?? []) {
   const saldo = yaTiene.get(h.id);
-  if (typeof saldo === "number" && saldo > 0) {
+  if (!todos && typeof saldo === "number" && saldo > 0) {
     console.log(`  · ${h.slug.padEnd(28)} ya tiene ${saldo} mensajes — se salta`);
     saltados += 1;
     continue;
   }
   if (!enviar) {
-    console.log(`  + ${h.slug.padEnd(28)} recibiría ${MENSAJES}`);
+    console.log(`  + ${h.slug.padEnd(28)} ${saldo ?? 0} → ${(saldo ?? 0) + MENSAJES}`);
     aplicados += 1;
     continue;
   }
@@ -110,11 +130,16 @@ for (const h of hoteles ?? []) {
     repetidos += 1;
     continue;
   }
-  console.log(`  ✓ ${h.slug.padEnd(28)} saldo: ${data}`);
+  console.log(`  ✓ ${h.slug.padEnd(28)} ${saldo ?? 0} → ${data}`);
   aplicados += 1;
 }
 
 console.log(
   `\n${enviar ? "Aplicados" : "Se aplicarían"}: ${aplicados} · ya tenían saldo: ${saltados} · repetidos: ${repetidos}`,
 );
-if (!enviar) console.log("\nPara aplicarlo de verdad:  node scripts/regalar-saldo.mjs --enviar\n");
+// Se repiten los MISMOS argumentos para que la línea se pueda copiar tal cual:
+// sin esto, un ensayo con `--todos` sugería un envío SIN `--todos`, que es otra
+// operación distinta.
+if (!enviar) {
+  console.log(`\nPara aplicarlo de verdad:  node scripts/regalar-saldo.mjs --enviar ${args.filter((a) => a !== "--enviar").join(" ")}\n`);
+}

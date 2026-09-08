@@ -19,6 +19,7 @@ import { contextoHuesped } from "@/lib/bot/huesped";
 import type { HotelRow } from "@/lib/tenant";
 import { limitado } from "@/lib/api/rate-limit";
 import { leerSaldo, sinSaldo } from "@/lib/db/saldo";
+import { bloqueoActivo } from "@/lib/saldo/paquetes";
 import { cobrable, cobrarMensaje } from "@/lib/saldo/cobro";
 
 export const dynamic = "force-dynamic";
@@ -178,7 +179,7 @@ export async function POST(req: Request) {
     // él se MIDE el consumo sin callar a nadie, que es como se sube esto a
     // producción la primera vez. Se enciende cuando los números cuadran.
     let sin = false;
-    if (process.env.SALDO_BLOQUEO === "1") {
+    if (bloqueoActivo()) {
       sin = sinSaldo(await leerSaldo(hotel.id));
     }
     return NextResponse.json({

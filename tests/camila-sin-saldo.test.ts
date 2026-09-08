@@ -55,6 +55,10 @@ describe("el contrato de «sin-saldo» entre Vercel y Railway", () => {
   });
 
   it("el bloqueo va detrás de un interruptor, para poder desplegar midiendo antes de callar", () => {
-    expect(lee("app/api/agent/route.ts")).toContain('process.env.SALDO_BLOQUEO === "1"');
+    // La ruta pregunta por el helper y el helper es quien lee el entorno, para
+    // que los dos interruptores del prepago vivan en un solo archivo.
+    expect(lee("app/api/agent/route.ts")).toContain("if (bloqueoActivo())");
+    expect(lee("lib/saldo/paquetes.ts")).toContain('process.env.SALDO_BLOQUEO === "1"');
+    expect(lee("lib/saldo/paquetes.ts")).toContain('process.env.SALDO_RECARGA === "1"');
   });
 });
