@@ -100,7 +100,7 @@ export type AgentBookingResult =
       anticipo: number; // lo que paga ahora
       pendiente: number; // lo que paga al llegar
       oxxo: boolean; // si el link acepta OXXO además de tarjeta
-      expiraMin: number; // minutos que dura apartado el cuarto
+      expiraMin: number; // minutos que le quedan al huésped para PAGAR
     }
   | {
       ok: false;
@@ -398,7 +398,10 @@ export async function crearLinkReservaAgente(
       anticipo: deposit,
       pendiente: pending,
       oxxo: conOxxo,
-      expiraMin: HOLD_MIN,
+      // El plazo que se le dice al huésped es el de la SESIÓN DE PAGO, no el
+      // del apartado. Camila decía 45 (el hold) y el link moría a los 40: quien
+      // le hacía caso y pagaba al minuto 42 se encontraba la página muerta.
+      expiraMin: SESSION_MIN,
     };
   } catch (e) {
     // Si Stripe falló, el hold no debe quedarse apartando el cuarto.

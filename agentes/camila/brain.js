@@ -5,6 +5,7 @@
 // cobro salen SIEMPRE de las herramientas.
 
 import Anthropic from "@anthropic-ai/sdk";
+import { conLinkDePago, seCorto } from "./enlace.js";
 
 const anthropic = new Anthropic(); // lee ANTHROPIC_API_KEY del entorno
 
@@ -178,6 +179,8 @@ export async function handleTurn({ hotel, kora, history, userText, conv, huesped
   }
 
   const messages = [...history, { role: "user", content: userText }];
+  // La URL de pago de ESTE turno, si la herramienta `reservar` llegó a crearla.
+  let urlDePago = "";
 
   for (let i = 0; i < MAX_TOOL_ITERS; i++) {
     const res = await anthropic.messages.create({
@@ -214,6 +217,11 @@ export async function handleTurn({ hotel, kora, history, userText, conv, huesped
       const results = [];
       for (const tu of toolUses) {
         const out = await correrHerramienta(kora, conv, tu.name, tu.input || {});
+        // El link de pago se guarda AQUÍ, tal como salió de Stripe. A partir de
+        // este punto el modelo ya no es responsable de transportarlo.
+        if (tu.name === "reservar" && out && out.ok && typeof out.url === "string") {
+          urlDePago = out.url;
+        }
         results.push({
           type: "tool_result",
           tool_use_id: tu.id,
@@ -225,11 +233,25 @@ export async function handleTurn({ hotel, kora, history, userText, conv, huesped
     }
 
     // Turno terminado: junta el texto para mandarlo a WhatsApp.
-    const reply = res.content
+    const crudo = res.content
       .filter((b) => b.type === "text")
       .map((b) => b.text)
       .join("\n")
       .trim();
+
+    // Una respuesta cortada por el tope de tokens se mandaba tal cual, a medias.
+    // Con una URL de Stripe de 700 caracteres dentro, eso es exactamente el
+    // "The link is incomplete" que vio un huésped del Hotel San Luis.
+    if (seCorto(res.stop_reason)) {
+      console.error(
+        `[${hotel.slug}] la respuesta se cortó por el tope de ${MAX_TOKENS} tokens` +
+          (urlDePago ? " (el link de pago se pega aparte, va entero)" : ""),
+      );
+    }
+
+    // El link NO lo transporta el modelo: se le quita del texto lo que haya
+    // copiado —bien o mal— y se pega el bueno.
+    const reply = conLinkDePago(crudo, urlDePago);
 
     return { reply, history: recortarHistorial(messages) };
   }
