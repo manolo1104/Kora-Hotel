@@ -19,6 +19,7 @@ import {
   ArrowRight,
   ChevronLeft,
   ChevronRight,
+  Wallet,
 } from "lucide-react";
 import Conversaciones from "./Conversaciones";
 import type { DiagnosticoHotel, DiagnosticoItem } from "@/lib/panel/diagnostico";
@@ -64,6 +65,19 @@ const NIVELES_EMOJI: { key: EmojiNivel; label: string; hint: string }[] = [
   { key: "medio", label: "Normal", hint: "1 o 2 por mensaje" },
   { key: "alto", label: "Muchos", hint: "2 a 4 por mensaje" },
 ];
+/** Lo que devuelve `GET /api/admin/saldo`. */
+interface Saldo {
+  /** `null` = no hay dato. NO es cero: ver el comentario del estado. */
+  mensajes: number | null;
+  consumo30d: number;
+  /** Días que le duran al ritmo que lleva; `null` si no hay con qué estimarlo. */
+  diasRestantes: number | null;
+  umbralBajo: number;
+  paquetes: { mxn: number; mensajes: number; destacado?: boolean }[];
+  /** Recargar es gastar dinero del hotel: sólo el dueño. */
+  puedeRecargar: boolean;
+}
+
 interface Msg {
   role: "user" | "assistant";
   content: string;
@@ -181,6 +195,15 @@ export default function CamilaClient({
   // lista que aplica el fleet, así que si está vacío es que sí es elegible.
   const [motivos, setMotivos] = useState<{ clave: string; titulo: string; detalle: string }[]>([]);
 
+  // Saldo prepago de mensajes de WhatsApp.
+  //
+  // `mensajes: null` NO es "cero": es "no hay dato" (este hotel no está dado de
+  // alta en el prepago, o no se pudo leer). En ese caso no se pinta nada, que es
+  // lo correcto — decirle "0 mensajes" a un hotel que sí está contestando sería
+  // mentira y le haría recargar sin necesidad.
+  const [saldo, setSaldo] = useState<Saldo | null>(null);
+  const [recargando, setRecargando] = useState(false);
+
   // Chat de prueba
   const [mensajes, setMensajes] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
@@ -251,13 +274,65 @@ export default function CamilaClient({
         if (activo) setQrStatus("sin-servicio");
       }
     }
+    // El saldo va en el MISMO sondeo, y no sólo al cargar: cuando el hotelero
+    // vuelve de pagar, el webhook de Stripe tarda un par de segundos en
+    // acreditar. Sin esto vería su saldo viejo justo después de haber pagado.
+    async function fetchSaldo() {
+      try {
+        const res = await fetch("/api/admin/saldo", { cache: "no-store" });
+        if (!res.ok) return; // 403 = no le toca ver el saldo; se calla, no alarma
+        const d = await res.json().catch(() => null);
+        if (activo && d?.ok) setSaldo(d as Saldo);
+      } catch {
+        /* el saldo es informativo: un fallo aquí no rompe la pantalla */
+      }
+    }
     fetchQr();
-    const id = setInterval(fetchQr, 15000);
+    fetchSaldo();
+    const id = setInterval(() => {
+      fetchQr();
+      fetchSaldo();
+    }, 15000);
     return () => {
       activo = false;
       clearInterval(id);
     };
   }, []);
+
+  // Vuelta del checkout de Stripe.
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search).get("recarga");
+    if (!p) return;
+    setAviso(
+      p === "ok"
+        ? "¡Listo! Tu recarga se está acreditando; el saldo se actualiza solo en unos segundos."
+        : "No se completó el pago. Tu saldo sigue igual.",
+    );
+    // Limpia el parámetro para que recargar la página no repita el aviso.
+    window.history.replaceState({}, "", window.location.pathname);
+  }, []);
+
+  async function recargar(mxn: number) {
+    setRecargando(true);
+    setAviso(null);
+    try {
+      const res = await fetch("/api/admin/saldo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mxn }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (d?.ok && typeof d.url === "string") {
+        window.location.href = d.url;
+        return;
+      }
+      setAviso(typeof d?.error === "string" ? d.error : "No se pudo abrir el pago.");
+    } catch {
+      setAviso("No se pudo abrir el pago.");
+    } finally {
+      setRecargando(false);
+    }
+  }
 
   async function postConfig(body: Record<string, unknown>) {
     const res = await fetch("/api/admin/bot-config", {
@@ -603,15 +678,59 @@ export default function CamilaClient({
         </div>
       )}
 
+      {/* SIN SALDO / CON POCO: va aquí, fuera de los seis pasos, porque no es un
+          paso de configuración — es algo que está pasando AHORA y que el
+          hotelero tiene que ver entre en la pestaña por donde entre. */}
+      {saldo?.mensajes !== null && saldo !== null && saldo.mensajes <= saldo.umbralBajo && (
+        <div
+          className={`flex flex-wrap items-center justify-between gap-3 rounded-xl border px-4 py-3 text-sm ${
+            saldo.mensajes <= 0
+              ? "border-red-200 bg-red-50 text-red-900"
+              : "border-amber-200 bg-amber-50 text-amber-900"
+          }`}
+        >
+          <div className="flex items-start gap-2">
+            <AlertTriangle size={16} className="mt-0.5 shrink-0" />
+            <span>
+              {saldo.mensajes <= 0 ? (
+                <>
+                  <strong>{nombreBot} dejó de contestar: se acabó el saldo.</strong> A quien escriba se le
+                  avisa una vez de que en un momento lo atiende una persona. Recarga y vuelve sola.
+                </>
+              ) : (
+                <>
+                  Te quedan <strong>{saldo.mensajes} mensajes</strong>
+                  {saldo.diasRestantes !== null && ` (unos ${saldo.diasRestantes} días a tu ritmo)`}. Cuando
+                  lleguen a cero, {nombreBot} deja de contestar.
+                </>
+              )}
+            </span>
+          </div>
+          {saldo.puedeRecargar && (
+            <button
+              onClick={() => setPaso(0)}
+              className="shrink-0 rounded-lg bg-kora-primary px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90"
+            >
+              Recargar
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Paso activo (uno a la vez, para no abrumar) */}
       <Etapa n={activo.n} titulo={activo.titulo} listo={activo.listo} icon={activo.icon}>
         {paso === 0 && (
           <>
             <div className="flex items-center justify-between gap-4">
               <p className="text-sm text-kora-muted">
-                {enabled
-                  ? `${nombreBot} está encendida: responde a tus huéspedes cuando el bot esté conectado.`
-                  : `${nombreBot} está apagada: no responderá aunque esté conectada.`}
+                {/* Con el saldo en cero, «responde a tus huéspedes» es falso, y
+                    justo encima el aviso rojo dice lo contrario. Dos frases que
+                    se contradicen en la misma pantalla es peor que ninguna. */}
+                {!enabled
+                  ? `${nombreBot} está apagada: no responderá aunque esté conectada.`
+                  : saldo?.mensajes === 0
+                    ? `El interruptor está encendido, pero ${nombreBot} no puede contestar hasta que recargues saldo.`
+                    : `${nombreBot} está encendida: responde a tus huéspedes cuando el bot esté conectado.`}
               </p>
               <button
                 onClick={toggleEnabled}
@@ -623,6 +742,73 @@ export default function CamilaClient({
                 />
               </button>
             </div>
+
+            {/* SALDO DE MENSAJES.
+                Va en el paso 1, junto al interruptor de encendido, porque son
+                las dos razones por las que Camila puede estar callada y conviene
+                verlas juntas. No se hizo un paso 7: meter uno renumeraría los
+                seis que ya existen y con ellos la barra de progreso. */}
+            {saldo && saldo.mensajes !== null && (
+              <div className="rounded-xl border border-panel-contrast/10 bg-kora-bg/40 p-4">
+                <div className="flex flex-wrap items-end justify-between gap-3">
+                  <div>
+                    <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-kora-muted">
+                      <Wallet size={14} /> Saldo de mensajes
+                    </div>
+                    <p className="mt-1 text-2xl font-semibold text-kora-text">
+                      {saldo.mensajes.toLocaleString("es-MX")}
+                      <span className="ml-1 text-sm font-normal text-kora-muted">mensajes</span>
+                    </p>
+                    <p className="mt-0.5 text-xs text-kora-muted">
+                      {saldo.consumo30d > 0
+                        ? `Gastaste ${saldo.consumo30d.toLocaleString("es-MX")} en los últimos 30 días`
+                        : "Todavía no has gastado mensajes este mes"}
+                      {/* Con el saldo en cero, «te duran unos 0 días» es ruido:
+                          el aviso de arriba ya dijo que se acabó. */}
+                      {saldo.mensajes > 0 &&
+                        saldo.diasRestantes !== null &&
+                        ` · te duran unos ${saldo.diasRestantes} días`}
+                    </p>
+                  </div>
+                </div>
+
+                <p className="mt-3 text-sm text-kora-muted">
+                  Cada respuesta que {nombreBot} le manda a un huésped descuenta un mensaje. Lo demás —tu
+                  página de reservas, los cobros y los correos— no gasta saldo.
+                </p>
+
+                {saldo.puedeRecargar ? (
+                  <>
+                    <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                      {saldo.paquetes.map((pq) => (
+                        <button
+                          key={pq.mxn}
+                          onClick={() => recargar(pq.mxn)}
+                          disabled={recargando}
+                          className={`rounded-lg border px-3 py-2 text-left transition hover:border-kora-primary disabled:opacity-50 ${
+                            pq.destacado ? "border-kora-primary bg-kora-primary/5" : "border-panel-border bg-panel-surface"
+                          }`}
+                        >
+                          <span className="block text-sm font-semibold text-kora-text">
+                            ${pq.mxn.toLocaleString("es-MX")}
+                          </span>
+                          <span className="block text-xs text-kora-muted">
+                            {pq.mensajes.toLocaleString("es-MX")} mensajes
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                    <p className="mt-2 text-xs text-kora-muted">
+                      {recargando ? "Abriendo el pago…" : "El saldo no caduca y se suma al que ya tengas."}
+                    </p>
+                  </>
+                ) : (
+                  <p className="mt-3 text-xs text-kora-muted">
+                    Para recargar, pídeselo a quien administra el hotel.
+                  </p>
+                )}
+              </div>
+            )}
 
             <div className="flex items-center gap-2 text-sm">
               <span className="text-kora-muted">Idioma principal:</span>

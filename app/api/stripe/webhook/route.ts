@@ -6,6 +6,7 @@ import { planPorClave, planPorPriceId } from "@/lib/oferta";
 import { enviarEmail, NOTIFY_EMAIL } from "@/lib/email/resend";
 import { alertar } from "@/lib/alertas";
 import { emailBienvenida } from "@/lib/email/templates";
+import { acreditarMensajes, SIN_DATO } from "@/lib/db/saldo";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -113,6 +114,50 @@ export async function POST(req: Request) {
     switch (event.type) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
+
+        // ── RECARGA DE SALDO DEL BOT ──────────────────────────────────────────
+        //
+        // Es un `mode:"payment"` contra la cuenta de Kora, no una suscripción.
+        // Llega por este mismo endpoint y con el mismo secreto, así que la firma
+        // ya está verificada arriba; lo único que lo distingue es la metadata.
+        //
+        // IDEMPOTENTE DE VERDAD, y aquí no es opcional: este webhook no
+        // deduplica por `event.id` (no existe tabla de eventos), así que una
+        // reentrega de Stripe vuelve a entrar por aquí. La red es el `session.id`
+        // como `ref` en `saldo_movimientos`, que tiene índice único: la segunda
+        // vez no acredita nada. Es la misma reentrega que hoy hace que el correo
+        // de bienvenida de más abajo salga dos veces.
+        if (session.mode === "payment" && session.metadata?.kora === "saldo") {
+          const hotelId = session.metadata?.hotel_id ?? "";
+          const mensajes = Number(session.metadata?.mensajes ?? 0);
+          // `paid` y no `complete`: con OXXO o transferencia la sesión se
+          // completa antes de que el dinero llegue. Acreditar ahí sería regalar
+          // saldo por un pago que puede no cuajar.
+          if (session.payment_status !== "paid") {
+            console.log(`[webhook] recarga de ${hotelId} todavía sin pagar (${session.payment_status})`);
+            break;
+          }
+          if (!hotelId || !Number.isInteger(mensajes) || mensajes < 1) {
+            // Si esto pasa, alguien cobró y no sabemos a quién acreditarle. Es
+            // dinero de un cliente: se grita, no se ignora.
+            await alertar(
+              "recarga de saldo sin destinatario",
+              `La sesión ${session.id} se pagó pero su metadata no dice a qué hotel acreditar (hotel_id="${hotelId}", mensajes="${session.metadata?.mensajes}").`,
+            );
+            break;
+          }
+          // `acreditarMensajes` LANZA si falla, y el catch de abajo devuelve 500
+          // para que Stripe reintente. Perder una recarga que el hotelero ya pagó
+          // es el fallo más caro que hay en este archivo.
+          const nuevo = await acreditarMensajes(hotelId, mensajes, session.id, "recarga");
+          if (nuevo === SIN_DATO) {
+            console.log(`[webhook] recarga ${session.id} ya estaba acreditada (reentrega)`);
+          } else {
+            console.log(`[webhook] +${mensajes} mensajes a ${hotelId} (saldo: ${nuevo})`);
+          }
+          break;
+        }
+
         if (session.mode !== "subscription") break;
         const userId = session.metadata?.user_id;
         const subId =

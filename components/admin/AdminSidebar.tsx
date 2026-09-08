@@ -55,6 +55,8 @@ export default function AdminSidebar({
   // Conexión REAL de WhatsApp (runtime): 'ready' = vinculada. Antes el punto
   // decía "Activo" solo por el flag on/off aunque nunca se hubiera escaneado el QR.
   const [botConexion, setBotConexion] = useState<string | null>(null);
+  // Sin saldo de mensajes: callada aunque el interruptor esté encendido.
+  const [botSinSaldo, setBotSinSaldo] = useState(false);
 
   useEffect(() => {
     fetch('/api/admin/bot-status')
@@ -62,6 +64,7 @@ export default function AdminSidebar({
       .then(d => {
         setBotEnabled(Boolean(d.enabled));
         setBotConexion(typeof d.conexion === 'string' ? d.conexion : 'sin-servicio');
+        setBotSinSaldo(d.sinSaldo === true);
       })
       .catch(() => setBotEnabled(true));
   }, []);
@@ -70,7 +73,9 @@ export default function AdminSidebar({
   const bot =
     botEnabled === null
       ? { dot: '', txt: '...' }
-      : !botEnabled
+      : botSinSaldo
+        ? { dot: styles.botOff, txt: 'Sin saldo' }
+        : !botEnabled
         ? { dot: styles.botOff, txt: 'Pausada' }
         : botConexion === 'ready'
           ? { dot: styles.botOn, txt: 'Conectada' }

@@ -150,6 +150,10 @@ export class KoraHotel {
       this._status = {
         enabled: data.enabled !== false,
         adminPhone: typeof data.adminPhone === "string" ? data.adminPhone : null,
+        // POR QUÉ está apagada, cuando Kora lo dice. Hoy sólo "sin-saldo": sirve
+        // para avisarle al huésped en vez de dejarlo hablando solo. Si Kora no
+        // lo manda (versión vieja), queda `null` y todo se comporta como antes.
+        motivo: typeof data.motivo === "string" ? data.motivo : null,
       };
     } catch (e) {
       // El fail-open se puso para los hipos de RED y los 5xx: no callar al bot
@@ -159,10 +163,10 @@ export class KoraHotel {
       // correcto es callarse — seguir conversando significa inventarle a un
       // huésped precios y disponibilidad de un hotel del que ya no sabemos nada.
       if (e && (e.status === 401 || e.status === 403)) {
-        this._status = { enabled: false, adminPhone: null };
+        this._status = { enabled: false, adminPhone: null, motivo: null };
         console.warn(`[${this.slug}] Kora respondió ${e.status}: me callo hasta que se arregle.`);
       } else {
-        this._status = this._status || { enabled: true, adminPhone: null };
+        this._status = this._status || { enabled: true, adminPhone: null, motivo: null };
       }
     }
     this._statusAt = Date.now();
@@ -176,9 +180,16 @@ export class KoraHotel {
       const data = await this._post({ action: "set-status", enabled: Boolean(enabled) });
       const ok = data && data.ok !== false;
       if (ok) {
+        const motivo = (this._status && this._status.motivo) || null;
         this._status = {
-          enabled: Boolean(enabled),
+          // ENCENDER A MANO NO CREA SALDO. Sin este `&& motivo !== …`, el
+          // runtime se creía encendido durante los 45 s que tarda el siguiente
+          // latido en desmentirlo, y en esa ventana contestaba mensajes que ya
+          // no puede pagar — y el acuse le decía al dueño «vuelvo a responder»,
+          // que es mentira: lo que hace falta es recargar, no encender.
+          enabled: Boolean(enabled) && motivo !== "sin-saldo",
           adminPhone: (this._status && this._status.adminPhone) || null,
+          motivo,
         };
         this._statusAt = Date.now();
       }
@@ -197,10 +208,17 @@ export class KoraHotel {
   /** Guarda el texto de un turno (mensaje del huésped + respuesta de Camila) en
    *  Kora para poder analizarlo después. Fire-and-forget: nunca lanza ni bloquea
    *  la conversación; un fallo de red aquí no debe afectar al huésped. */
-  async logConversacion({ conv, turnos } = {}) {
+  async logConversacion({ conv, turnos, cobrar = false, ref = "" } = {}) {
     if (!conv || !Array.isArray(turnos) || turnos.length === 0) return;
     try {
-      await this._post({ action: "log-conv", conv, turnos });
+      // `cobrar` va EN POSITIVO y sólo lo manda el turno real de Camila. De los
+      // tres sitios que llaman aquí —el turno del modelo, lo que el hotelero
+      // escribe desde su móvil, y el aviso de «no puedo leer audios»— sólo el
+      // primero cuesta dinero, porque es el único que llamó al modelo.
+      //
+      // `ref` es el id del mensaje que WhatsApp devolvió: es lo que impide que
+      // un reintento cobre el mismo mensaje dos veces.
+      await this._post({ action: "log-conv", conv, turnos, ...(cobrar ? { cobrar: true, ref } : {}) });
     } catch {
       /* la captura es best-effort; no rompe la conversación */
     }

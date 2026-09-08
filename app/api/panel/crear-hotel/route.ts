@@ -8,6 +8,8 @@ import { emailHotelNuevo } from "@/lib/email/templates";
 import { alcanzoTopeDeHoteles, MAX_HOTELES_POR_CUENTA, getHotelesDelUsuario } from "@/lib/tenant";
 import { sembrarInicioPrueba } from "@/lib/db/prueba-dueno";
 import { bloqueoDelHotel } from "@/lib/suscripcion";
+import { acreditarMensajes } from "@/lib/db/saldo";
+import { REGALO_BIENVENIDA } from "@/lib/saldo/paquetes";
 
 export const dynamic = "force-dynamic";
 
@@ -238,6 +240,20 @@ export async function POST(req: Request) {
   } catch {
     /* el conteo es opcional (solo el badge) */
   }
+  // SALDO DE BIENVENIDA para el bot de WhatsApp.
+  //
+  // Va aquí y no en un trigger de la base a propósito: la fila de saldo es lo
+  // que distingue «hotel dado de alta en el prepago, ahora mismo en cero» de
+  // «hotel sin fila», y esa diferencia importa — un hotel SIN fila nunca se
+  // bloquea (`lib/db/saldo.ts`), porque un regalo que no se aplicó no puede
+  // dejar mudo a un hotel que paga.
+  //
+  // Best-effort: el hotel ya quedó creado y no se va a tirar el alta por esto.
+  // Si falla, el hotel se comporta como uno sin fila: Camila contesta igual.
+  await acreditarMensajes(creado.id, REGALO_BIENVENIDA, `bienvenida:${creado.id}`, "regalo").catch((e) =>
+    console.error("[panel/crear-hotel] no se pudo dar el saldo de bienvenida:", e),
+  );
+
   // Bienvenida AL HOTELERO el mismo día. Antes su primer correo de Kora llegaba
   // el día 20 de la prueba de 30: veinte días de silencio en el momento donde se
   // decide si activa o abandona. Best-effort: el hotel ya quedó creado.

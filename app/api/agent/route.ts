@@ -18,6 +18,8 @@ import { botAvailability } from "@/lib/bot/tools";
 import { contextoHuesped } from "@/lib/bot/huesped";
 import type { HotelRow } from "@/lib/tenant";
 import { limitado } from "@/lib/api/rate-limit";
+import { leerSaldo, sinSaldo } from "@/lib/db/saldo";
+import { cobrable, cobrarMensaje } from "@/lib/saldo/cobro";
 
 export const dynamic = "force-dynamic";
 
@@ -74,6 +76,10 @@ export async function POST(req: Request) {
     turnos?: TurnoConversacion[];
     /** ISO hasta cuándo atiende una persona este chat (`pausar-chat`). */
     hasta?: string; // acción "log-conv": mensajes del hilo a guardar
+    /** `log-conv`: esta respuesta la generó el modelo y descuenta saldo. */
+    cobrar?: boolean;
+    /** `log-conv`: id del mensaje de WhatsApp, para no cobrarlo dos veces. */
+    ref?: string;
   };
   try {
     body = await req.json();
@@ -132,8 +138,11 @@ export async function POST(req: Request) {
   //
   // `status` es la excepción a propósito, y no es un hueco: es lo que el runtime
   // consulta en vivo cada ~45 s, y contestarle `enabled:false` lo calla de verdad
-  // (`index.js` deja de responder aunque siga conectado a WhatsApp). Un 403 sería
-  // PEOR: `kora.status()` es fail-open ante error y asumiría "encendido".
+  // (`index.js` deja de responder aunque siga conectado a WhatsApp). Un 403
+  // también lo callaría hoy —`kora.status()` trata 401 y 403 como "me callo"
+  // desde que se arregló—, pero un 200 con `enabled:false` es DETERMINISTA: no
+  // depende de cómo el runtime interprete un código de error, y es la misma
+  // puerta por la que se calla el bot sin saldo.
   //
   // `accesoDelHotel` falla ABIERTO si no puede leer la suscripción, y avisa por
   // correo: un hipo de Supabase no puede callar a la Camila de quien sí paga.
@@ -155,10 +164,28 @@ export async function POST(req: Request) {
   // También devuelve el número admin autorizado para el comando por WhatsApp.
   // No cuenta como conversación (no toca métricas).
   if (body.action === "status") {
+    // SALDO PREPAGO. Se calla por la misma puerta que ya existe —contestarle
+    // `enabled:false` al latido de 45 s lo silencia de verdad— y con un `motivo`
+    // para que el panel pueda decir «sin saldo» en vez de «apagada».
+    //
+    // FAIL-OPEN, y aquí importa más que en ningún sitio: `sinSaldo()` sólo
+    // devuelve `true` cuando se leyó BIEN y el hotel está de verdad en cero. Un
+    // hipo de Supabase, el SQL sin correr o un hotel sin fila dejan a Camila
+    // hablando. Regalar unos mensajes cuesta céntimos; dejar mudo el WhatsApp de
+    // un hotel que paga $550/mes cuesta el cliente.
+    //
+    // El interruptor `SALDO_BLOQUEO` existe para desplegar en dos tiempos: sin
+    // él se MIDE el consumo sin callar a nadie, que es como se sube esto a
+    // producción la primera vez. Se enciende cuando los números cuadran.
+    let sin = false;
+    if (process.env.SALDO_BLOQUEO === "1") {
+      sin = sinSaldo(await leerSaldo(hotel.id));
+    }
     return NextResponse.json({
       ok: true,
-      enabled: cfg.bot_enabled !== false,
+      enabled: cfg.bot_enabled !== false && !sin,
       adminPhone: typeof cfg.bot_admin_phone === "string" ? cfg.bot_admin_phone : null,
+      motivo: sin ? "sin-saldo" : null,
     });
   }
 
@@ -214,6 +241,21 @@ export async function POST(req: Request) {
   // FAIL-SAFE: si la tabla no existe o falla, no afecta la respuesta al bot.
   if (body.action === "log-conv") {
     await logCamilaConversacion(hotel.id, body.conv ?? "", body.turnos ?? []);
+
+    // AQUÍ SE COBRA EL MENSAJE, y en ningún otro sitio.
+    //
+    // De las siete llamadas que el runtime hace en un turno, ésta es la ÚNICA
+    // que ocurre DESPUÉS de que el mensaje ya salió por WhatsApp. Las demás no
+    // sirven: `knowledge` está cacheada 15 min en el runtime (veinte mensajes
+    // seguidos generan una sola llamada), `availability` y `reservar` sólo pasan
+    // si el modelo usa la herramienta, y todas ellas ocurren antes de saber si
+    // habrá respuesta —el turno puede acabar en `reply` vacío y no salir nada—.
+    //
+    // `log-conv` está en ACCIONES_PROTEGIDAS, así que exige el secreto de flota:
+    // nadie puede vaciarle el saldo a un hotel desde fuera con sólo el token.
+    if (cobrable(body.cobrar, body.turnos)) {
+      await cobrarMensaje(hotel, (body.ref ?? "").trim());
+    }
     return NextResponse.json({ ok: true });
   }
 

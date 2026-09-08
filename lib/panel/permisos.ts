@@ -38,6 +38,8 @@ export type Permiso =
   | "bot:entrenar"
   | "bot:configurar"
   | "bot:vincular"
+  | "saldo:ver"
+  | "saldo:recargar"
   | "pagos:ver"
   | "pagos:conectar"
   | "facturacion:usar"
@@ -95,6 +97,14 @@ export const PERMISOS: Record<Permiso, RolHotel[]> = {
   "bot:entrenar": MANDO,
   "bot:configurar": SOLO_DUENO, // la CLABE que Camila le dicta a los huéspedes
   "bot:vincular": SOLO_DUENO, // QR de WhatsApp + token del bot
+  // VER el saldo del bot y COMPRARLO son dos cosas distintas a propósito.
+  // Cuando Camila se calla por falta de saldo, la primera que se entera es la
+  // encargada —los huéspedes le escriben a ella— y tiene que poder saber POR QUÉ
+  // sin llamar al dueño. Recargar es gastar dinero del hotel, así que eso sí es
+  // sólo del dueño: la regla de la casa es generosa hacia abajo y estricta hacia
+  // el dinero.
+  "saldo:ver": MANDO,
+  "saldo:recargar": SOLO_DUENO,
   "pagos:ver": SOLO_DUENO, // dashboard de Stripe del dueño
   "pagos:conectar": SOLO_DUENO,
   "facturacion:usar": MANDO,

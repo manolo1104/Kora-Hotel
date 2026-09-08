@@ -72,7 +72,11 @@ export const PANTALLAS: Pantalla[] = [
   {
     id: "camila",
     label: "Camila (bot)",
-    permisos: ["bot:leer", "bot:responder", "bot:entrenar", "bot:configurar", "bot:vincular"],
+    // `bot:leer` va PRIMERO: es el "abridor", el que decide quién puede entrar a
+    // la pantalla. `saldo:recargar` es del dueño, así que marcar esta casilla
+    // para la encargada no se lo concede (Regla 2 de `permisosDe`), igual que ya
+    // pasa con `bot:configurar` y `bot:vincular`.
+    permisos: ["bot:leer", "bot:responder", "bot:entrenar", "saldo:ver", "bot:configurar", "bot:vincular", "saldo:recargar"],
     que: "El bot de WhatsApp: sus respuestas, su tono, y contestar tú los chats.",
     // El aviso decía que la pantalla "incluye la cuenta de banco y el QR". Desde
     // el arreglo de la escalada ya no los incluye para nadie más que el dueño,

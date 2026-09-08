@@ -23,6 +23,7 @@ import { rmSync, existsSync, renameSync } from "node:fs";
 import { loadFleet } from "./fleet.js";
 import { KoraHotel } from "./kora.js";
 import { handleTurn } from "./brain.js";
+import { avisoSinSaldo } from "./saldo.js";
 
 const DATA_PATH = process.env.WWEBJS_DATA_PATH || "./.wwebjs_auth";
 const PORT = Number(process.env.PORT || 3001);
@@ -78,6 +79,11 @@ const QR_OCIOSO_MS = Number(process.env.CAMILA_QR_OCIOSO_MS || 3 * 60_000);
 const AVISO_SIN_SOPORTE_MS = Number(process.env.CAMILA_AVISO_MEDIOS_MS || 5 * 60_000);
 // `${slug}::${chatId}` -> cuándo se le dijo por última vez.
 const avisadoSinSoporte = new Map();
+
+// A quién ya se le avisó de que el hotel se quedó sin saldo. Una vez por chat,
+// no una por mensaje: si el huésped insiste, no se le repite la misma frase.
+// `${slug}::${chatId}` -> true.
+const avisadoSinSaldo = new Map();
 
 // slug -> hasta cuándo se le está dando ventana para escanear (ms epoch).
 const vinculando = new Map();
@@ -164,6 +170,7 @@ function purgarChatsInactivos() {
     botEnvioAt.delete(key);
     chatConsultado.delete(key);
     avisadoSinSoporte.delete(key);
+    avisadoSinSaldo.delete(key);
     ultimaActividad.delete(key);
     n += 1;
   }
@@ -402,17 +409,28 @@ async function onMensaje(client, slug, kora, msg) {
         // Se pregunta SIN caché: si acaba de apagarla desde el panel, quiere la
         // verdad de ahora, no la de hace 45 segundos.
         const ahora = await kora.status({ fresco: true });
+        // Sin saldo NO es lo mismo que apagada, y decir «apagada» mandaba al
+        // hotelero al panel a mirar un interruptor que está encendido.
+        // *encender* no arregla esto: hay que recargar.
         resp = ahora.enabled
           ? "🟢 Estoy encendida y contestándole a tus huéspedes.\n\nEscribe *apagar* si quieres que me calle."
-          : "🔕 Estoy apagada: no le estoy contestando a nadie.\n\nEscribe *encender* para que vuelva.";
+          : ahora.motivo === "sin-saldo"
+            ? "💳 Me quedé sin saldo de mensajes, así que no le estoy contestando a tus huéspedes.\n\nRecarga desde el panel, en la pestaña de Camila, y vuelvo sola en menos de un minuto."
+            : "🔕 Estoy apagada: no le estoy contestando a nadie.\n\nEscribe *encender* para que vuelva.";
       } else {
         const encender = cmd === "on";
         ok = await kora.setEnabled(encender);
-        resp = ok
-          ? encender
-            ? "✅ Camila encendida. Vuelvo a responder a tus huéspedes."
-            : "🔕 Camila apagada. No responderé a tus huéspedes hasta que la enciendas (escribe *encender*)."
-          : "No pude cambiar el estado ahora, inténtalo de nuevo.";
+        // `encender` sin saldo guarda el interruptor pero NO la despierta. Decir
+        // «vuelvo a responder» sería mentira, y el dueño se enteraría por un
+        // huésped enfadado en vez de por este mensaje.
+        const sinSaldoAun = encender && ok && st.motivo === "sin-saldo";
+        resp = !ok
+          ? "No pude cambiar el estado ahora, inténtalo de nuevo."
+          : sinSaldoAun
+            ? "Te dejé el interruptor encendido, pero sigo sin saldo de mensajes: todavía no puedo contestarle a tus huéspedes 💳\n\nRecarga desde el panel, en la pestaña de Camila, y vuelvo sola."
+            : encender
+              ? "✅ Camila encendida. Vuelvo a responder a tus huéspedes."
+              : "🔕 Camila apagada. No responderé a tus huéspedes hasta que la enciendas (escribe *encender*).";
       }
       botEnvioAt.set(key, Date.now());
       // Si el acuse no sale, el dueño no sabe si su "apagar" surtió efecto (el
@@ -428,7 +446,44 @@ async function onMensaje(client, slug, kora, msg) {
 
   // Apagado EN VIVO: si el dueño apagó a Camila (panel o comando), no responde
   // aunque siga conectada. Fail-open lo maneja kora.status().
-  if (!st.enabled) return;
+  if (!st.enabled) {
+    // Apagada a propósito por el hotelero: silencio, que es lo que pidió.
+    if (st.motivo !== "sin-saldo") return;
+
+    // SIN SALDO. Es distinto: al hotelero le pasó sin querer, y el huésped que
+    // escribe a las once de la noche no tiene por qué pagar el despiste.
+    //
+    // Lo PRIMERO es guardar lo que escribió. Es lo más importante de todo este
+    // bloque: sin saldo nadie va a contestarle automáticamente, así que el
+    // hotelero TIENE que ver el mensaje en su bandeja para contestarlo a mano.
+    // Si no se guardara, el hilo se vería vacío y el huésped quedaría en el aire.
+    const loQueDijo = clase === "sin-soporte" ? comoSeVeEnElPanel(msg.type) : texto;
+    ultimaActividad.set(key, Date.now());
+    kora
+      .logConversacion({ conv: chatId.split("@")[0], turnos: [{ rol: "user", texto: loQueDijo }] })
+      .catch((e) => console.error(`[${slug}] no se guardó el mensaje (sin saldo):`, e && e.message));
+
+    // Si una persona ya está atendiendo este chat, no hace falta el aviso.
+    const hastaMem = pausados.get(key) || 0;
+    const est = await estadoDelChat(kora, key, chatId);
+    if (Date.now() < Math.max(hastaMem, est.hasta)) return;
+
+    if (avisadoSinSaldo.get(key)) return; // ya se le dijo en este chat
+    avisadoSinSaldo.set(key, true);
+
+    // El aviso es texto fijo: no llama al modelo, no cuesta nada y por eso puede
+    // mandarse justamente cuando no hay saldo para pagarlo.
+    const aviso = avisoSinSaldo();
+    botEnvioAt.set(key, Date.now());
+    await client
+      .sendMessage(chatId, aviso)
+      .catch((e) => console.error(`[${slug}] no pude avisar de que no hay saldo:`, e && e.message));
+    kora
+      .logConversacion({ conv: chatId.split("@")[0], turnos: [{ rol: "assistant", texto: aviso }] })
+      .catch((e) => console.error(`[${slug}] no se guardó el aviso de saldo:`, e && e.message));
+    console.log(`[${slug}] ${chatId}: sin saldo, avisado y en silencio`);
+    return;
+  }
 
   // ¿Este chat lo está atendiendo una persona? Dos fuentes:
   //
@@ -569,16 +624,35 @@ async function procesarTurno(client, slug, kora, chatId, userText) {
   const salida = (reply || "").trim();
   if (!salida) return;
   botEnvioAt.set(key, Date.now());
-  await client.sendMessage(chatId, salida);
+  const enviado = await client.sendMessage(chatId, salida);
+
+  // AQUÍ, Y SÓLO AQUÍ, SE COBRA UN MENSAJE.
+  //
+  // Es el único punto del turno que ocurre DESPUÉS de que el mensaje salió de
+  // verdad por WhatsApp: dos líneas más arriba puede haberse quedado en un
+  // `reply` vacío, y entonces no se cobra nada. Los otros dos sitios que llaman
+  // a `logConversacion` —lo que el hotelero escribe desde su móvil y el aviso de
+  // «no puedo leer audios»— NO mandan `cobrar`, porque no llaman al modelo.
+  //
+  // El `ref` es el id que WhatsApp devolvió del mensaje enviado. Es lo que hace
+  // que un reintento no cobre dos veces. Si WhatsApp no lo da, se cobra igual
+  // sin red de dedupe: perder un cobro es peor que quedarse sin identificador.
+  const ref = (enviado && enviado.id && enviado.id._serialized) || "";
 
   // Guarda el turno (mensaje del huésped + respuesta) para analizarlo después.
   // Fire-and-forget: no esperamos ni dejamos que un fallo afecte la conversación.
   // Pero "no esperar" NO es "no enterarse": callaba el fallo, y la pantalla de
   // conversaciones del hotelero se habría quedado vacía sin que nadie supiera
   // por qué.
+  //
+  // El cobro viaja en esta misma llamada a propósito: un mensaje que no se pudo
+  // guardar tampoco se cobra, y así no hay forma de que las dos cuentas —lo que
+  // el hotelero ve en su bandeja y lo que se le descuenta— se separen.
   kora
     .logConversacion({
       conv,
+      cobrar: true,
+      ref,
       turnos: [
         { rol: "user", texto: userText },
         { rol: "assistant", texto: salida },
@@ -685,7 +759,7 @@ async function pararHotel(slug) {
   clientes.delete(slug);
   estado.delete(slug);
   // Limpia el estado por-chat de ese hotel (claves `${slug}::chatId`).
-  for (const mapa of [historiales, pendientes, pausados, botEnvioAt, chatConsultado, avisadoSinSoporte, ultimaActividad, enCurso]) {
+  for (const mapa of [historiales, pendientes, pausados, botEnvioAt, chatConsultado, avisadoSinSoporte, avisadoSinSaldo, ultimaActividad, enCurso]) {
     for (const k of [...mapa.keys()]) {
       if (!k.startsWith(`${slug}::`)) continue;
       const v = mapa.get(k);

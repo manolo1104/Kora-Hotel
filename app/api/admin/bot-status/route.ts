@@ -1,5 +1,6 @@
 import { negar } from "@/lib/panel/permisos";
 import { NextResponse } from "next/server";
+import { leerSaldo, sinSaldo } from "@/lib/db/saldo";
 import { getActiveHotel } from "@/lib/panel/active-hotel";
 import { getBotStatus, setBotStatus } from "@/lib/db/admin";
 
@@ -46,7 +47,12 @@ export async function GET() {
   if (no) return no;
   const enabled = await getBotStatus(ctx.hotelId);
   const conexion = await conexionRuntime(ctx.hotel.slug);
-  return NextResponse.json({ enabled, conexion });
+  // Sin saldo Camila está callada aunque su interruptor esté encendido. El
+  // sidebar necesita distinguirlo: decir «Conectada» mientras no le contesta a
+  // nadie es la clase de mentira por la que un hotelero se entera del problema
+  // por un huésped enfadado.
+  const saldo = await leerSaldo(ctx.hotelId);
+  return NextResponse.json({ enabled, conexion, sinSaldo: sinSaldo(saldo) });
 }
 
 export async function POST(req: Request) {
