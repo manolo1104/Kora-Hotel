@@ -6,7 +6,7 @@
 
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { logAgentActivity, setBotStatus, logCamilaConversacion, getHiloCamila, pausaDeChat } from "@/lib/db/admin";
+import { logAgentActivity, setBotStatus, logCamilaConversacion, getHiloCamila, pausaDeChat, guardarEstadoChat } from "@/lib/db/admin";
 import type { TurnoConversacion } from "@/lib/db/admin";
 import { accesoDelHotel } from "@/lib/suscripcion";
 import { hotelIdPorBotToken } from "@/lib/db/bot-token";
@@ -28,7 +28,7 @@ export const dynamic = "force-dynamic";
 // —que es una sola credencial— cualquiera podía llenarle la tabla de basura al
 // hotel y envenenar lo que su dueño lee en el panel. El runtime siempre manda
 // el secreto (`agentes/camila/kora.js:_post`), así que exigirlo no lo rompe.
-const ACCIONES_PROTEGIDAS = new Set(["set-status", "reservar", "log-conv", "historial"]);
+const ACCIONES_PROTEGIDAS = new Set(["set-status", "reservar", "log-conv", "historial", "pausar-chat"]);
 
 // Cuántos turnos se le devuelven al runtime al rehidratar. Suficiente para
 // retomar una reserva a medias sin inflar el prompt de cada mensaje.
@@ -71,7 +71,9 @@ export async function POST(req: Request) {
     telefono?: string;
     lang?: "es" | "en";
     enabled?: boolean; // acción "set-status" (encender/apagar desde el runtime)
-    turnos?: TurnoConversacion[]; // acción "log-conv": mensajes del hilo a guardar
+    turnos?: TurnoConversacion[];
+    /** ISO hasta cuándo atiende una persona este chat (`pausar-chat`). */
+    hasta?: string; // acción "log-conv": mensajes del hilo a guardar
   };
   try {
     body = await req.json();
@@ -254,6 +256,19 @@ export async function POST(req: Request) {
       // que va delimitado como DATOS igual que el resto.
       huesped: quien ? `${ABRE_DATOS}\n${quien}\n${CIERRA_DATOS}` : "",
     });
+  }
+
+  // Una PERSONA del hotel se hizo cargo de este chat: Camila se calla en él.
+  //
+  // Lo manda el runtime cuando detecta que el hotelero escribió desde su propio
+  // teléfono. Se guarda en la misma columna que usa el botón «lo atiendes tú»
+  // del panel, así que las dos vías dicen lo mismo y sobreviven al reinicio.
+  if (body.action === "pausar-chat") {
+    const hasta = typeof body.hasta === "string" ? body.hasta : null;
+    const guardado = await guardarEstadoChat(hotel.id, (body.conv ?? "").trim(), {
+      pausadoHasta: hasta,
+    });
+    return NextResponse.json({ ok: guardado });
   }
 
   // Métricas del foso (dashboard "Agentes"): cada consulta del bot cuenta. Si

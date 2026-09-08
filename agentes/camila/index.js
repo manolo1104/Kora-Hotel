@@ -17,6 +17,7 @@ import { arrancarServidor } from "./servidor.js";
 import { aMensajes } from "./historial.js";
 import { tieneSesion, marcadoSinVincular, marcarSinVincular, limpiarMarcaSinVincular } from "./sesiones.js";
 import { clasificar, respuestaSinSoporte, comoSeVeEnElPanel } from "./medios.js";
+import { mismoNumero, parseComando, textoAyuda } from "./comandos.js";
 import path from "node:path";
 import { rmSync, existsSync, renameSync } from "node:fs";
 import { loadFleet } from "./fleet.js";
@@ -26,8 +27,20 @@ import { handleTurn } from "./brain.js";
 const DATA_PATH = process.env.WWEBJS_DATA_PATH || "./.wwebjs_auth";
 const PORT = Number(process.env.PORT || 3001);
 const FLEET_SECRET = process.env.BOT_FLEET_SECRET || "";
-const MESSAGE_WAIT_MS = Number(process.env.MESSAGE_DEBOUNCE_MS || 2500);
-const HUMAN_TAKEOVER_MS = Number(process.env.HUMAN_TAKEOVER_MS || 60 * 60 * 1000); // 1 h
+// Cuánto espera antes de contestar, para juntar los mensajes que el huésped
+// manda seguidos.
+//
+// La gente escribe en WhatsApp a trozos: "hola" / "quiero 2 noches" / "el 20 y
+// 21" / "somos 4". Con 2,5 s Camila contestaba al primero y luego iba corriendo
+// detrás de los demás, y el huésped recibía cuatro respuestas deshilvanadas.
+// Con 20 s junta todo y contesta UNA vez, con el cuadro completo.
+//
+// El precio es real y hay que decirlo: quien manda UN solo mensaje también
+// espera 20 segundos.
+const MESSAGE_WAIT_MS = Number(process.env.MESSAGE_DEBOUNCE_MS || 20_000);
+// Cuánto se calla Camila en un chat después de que escriba una persona del
+// hotel. Dos horas: lo que dura una conversación de venta atendida a mano.
+const HUMAN_TAKEOVER_MS = Number(process.env.HUMAN_TAKEOVER_MS || 2 * 60 * 60 * 1000);
 const CHROMIUM = process.env.PUPPETEER_EXECUTABLE_PATH || undefined;
 // Cuánto se espera a que WhatsApp acepte un mensaje escrito desde el panel.
 const ENVIO_TIMEOUT_MS = Number(process.env.CAMILA_ENVIO_TIMEOUT_MS || 20_000);
@@ -157,31 +170,7 @@ function purgarChatsInactivos() {
   if (n) console.log(`[camila] purgados ${n} chat(s) sin actividad en ${Math.round(CHAT_TTL_MS / 3600000)} h`);
 }
 
-// ── Comando de control desde el número admin (apagar/encender por WhatsApp) ──
-function soloDigitos(s) {
-  return String(s || "").replace(/\D/g, "");
-}
-// Coincide con el número admin tolerando lada/país (52/521 en MX): compara los
-// últimos 10 dígitos. El admin debe escribir desde un número normal (@c.us);
-// los @lid no exponen el teléfono real de forma fiable.
-function mismoNumero(chatId, adminPhone) {
-  const a = soloDigitos(String(chatId).split("@")[0]);
-  const b = soloDigitos(adminPhone);
-  if (!a || !b || b.length < 10) return false;
-  const n = Math.min(10, a.length, b.length);
-  return a.slice(-n) === b.slice(-n);
-}
-// Reconoce un comando SOLO si el mensaje es esencialmente la orden (con "camila"
-// opcional al inicio). Así el dueño no apaga el bot por escribir texto normal.
-function parseComando(texto) {
-  let t = texto.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim();
-  t = t.replace(/^camila[\s,:-]*/, "").replace(/[.!¡¿?]+$/g, "").trim();
-  const OFF = ["apagar", "apaga", "apagate", "pausar", "pausa", "off", "desactivar", "detente", "detener", "silencio"];
-  const ON = ["encender", "enciende", "prender", "prende", "activar", "activa", "on", "reanudar", "reanuda", "despierta"];
-  if (OFF.includes(t)) return "off";
-  if (ON.includes(t)) return "on";
-  return null;
-}
+// Los comandos del hotelero viven en `comandos.js`, para poder probarlos.
 
 // Borra "candados" viejos del perfil de Chromium (si un contenedor anterior no
 // cerró bien, deja un SingletonLock que impide arrancar: "Code 21"). Auto-recuperable.
@@ -307,7 +296,8 @@ function arrancarHotel(hotel) {
   // ignoran vía la ventana botEnvioAt.)
   // APAGADO por defecto: con el formato @lid, whatsapp-web.js reporta mal
   // `fromMe` en mensajes entrantes y esto pausaba el chat sin razón, silenciando
-  // a Camila. Se activa con CAMILA_HUMAN_TAKEOVER=1 cuando la detección sea fiable.
+  // a Camila. Ya no hace falta activarla: la detección dejó de depender de
+  // `fromMe` y ahora compara contra el propio número de la sesión.
   client.on("message_create", (msg) => {
     if (!msg.fromMe) return;
     const chatId = msg.to;
@@ -336,13 +326,30 @@ function arrancarHotel(hotel) {
         .catch((e) => console.error(`[${slug}] no se guardó lo que escribió el hotel:`, e && e.message));
     }
 
-    // Y la PAUSA automática sigue apagada por defecto: con el formato @lid,
-    // whatsapp-web.js reporta mal `fromMe` en mensajes entrantes y esto callaba
-    // a Camila sin razón. Guardar es seguro; pausar no. Desde la bandeja del
-    // panel la pausa es un botón explícito, que es como debe ser.
-    if (process.env.CAMILA_HUMAN_TAKEOVER !== "1") return;
-    pausados.set(key, Date.now() + HUMAN_TAKEOVER_MS);
-    console.log(`[${slug}] toma humana en ${chatId} — bot en pausa 1 h.`);
+    // SI ESCRIBE EL HOTELERO, CAMILA SE CALLA 2 HORAS EN ESE CHAT.
+    //
+    // Esto estuvo apagado meses por una razón buena: con los chats `@lid`,
+    // whatsapp-web.js reporta mal `fromMe` en mensajes ENTRANTES, y fiarse sólo
+    // de él callaba a Camila con un huésped que acababa de escribir. Callar al
+    // bot por error es peor que no pausarlo.
+    //
+    // Por eso no se enciende confiando en `fromMe`, sino comprobando que el
+    // mensaje SALIÓ DE NUESTRO PROPIO NÚMERO: `client.info.wid` es la identidad
+    // con la que está vinculada esta sesión. Si `msg.from` no es esa, no lo
+    // escribió el hotel — venga como venga `fromMe`.
+    const yo = client.info && client.info.wid && client.info.wid._serialized;
+    if (!yo || msg.from !== yo) return;
+
+    const hasta = Date.now() + HUMAN_TAKEOVER_MS;
+    pausados.set(key, hasta);
+    chatConsultado.delete(key); // que la caché no resucite a Camila
+    console.log(`[${slug}] ✋ escribió el hotel en ${chatId}: Camila se calla ${Math.round(HUMAN_TAKEOVER_MS / 60000)} min`);
+
+    // Y se guarda en Kora, para que sobreviva al próximo despliegue y para que
+    // la bandeja del panel lo enseñe igual que si hubiera pulsado el botón.
+    kora
+      .pausarChat(chatId.split("@")[0], new Date(hasta).toISOString())
+      .catch((e) => console.error(`[${slug}] no se guardó la pausa de ${chatId}:`, e && e.message));
   });
 
   client.initialize().catch((e) => {
@@ -386,13 +393,27 @@ async function onMensaje(client, slug, kora, msg) {
   if (clase === "texto" && st.adminPhone && mismoNumero(chatId, st.adminPhone)) {
     const cmd = parseComando(texto);
     if (cmd) {
-      const encender = cmd === "on";
-      const ok = await kora.setEnabled(encender);
-      const resp = ok
-        ? encender
-          ? "✅ Camila encendida. Vuelvo a responder a tus huéspedes."
-          : "🔕 Camila apagada. No responderé a tus huéspedes hasta que la enciendas (escribe *encender*)."
-        : "No pude cambiar el estado ahora, inténtalo de nuevo.";
+      let resp;
+      let ok = true;
+      if (cmd === "ayuda") {
+        // La chuleta, para que no tenga que acordarse ni buscarla en el panel.
+        resp = textoAyuda(kora.nombreBot || "Camila");
+      } else if (cmd === "estado") {
+        // Se pregunta SIN caché: si acaba de apagarla desde el panel, quiere la
+        // verdad de ahora, no la de hace 45 segundos.
+        const ahora = await kora.status({ fresco: true });
+        resp = ahora.enabled
+          ? "🟢 Estoy encendida y contestándole a tus huéspedes.\n\nEscribe *apagar* si quieres que me calle."
+          : "🔕 Estoy apagada: no le estoy contestando a nadie.\n\nEscribe *encender* para que vuelva.";
+      } else {
+        const encender = cmd === "on";
+        ok = await kora.setEnabled(encender);
+        resp = ok
+          ? encender
+            ? "✅ Camila encendida. Vuelvo a responder a tus huéspedes."
+            : "🔕 Camila apagada. No responderé a tus huéspedes hasta que la enciendas (escribe *encender*)."
+          : "No pude cambiar el estado ahora, inténtalo de nuevo.";
+      }
       botEnvioAt.set(key, Date.now());
       // Si el acuse no sale, el dueño no sabe si su "apagar" surtió efecto (el
       // estado SÍ cambió arriba). Tragarse el fallo dejaba al dueño creyendo

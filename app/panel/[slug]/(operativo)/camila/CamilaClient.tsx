@@ -644,8 +644,8 @@ export default function CamilaClient({
                 Apágala o enciéndela por WhatsApp
               </div>
               <p className="text-xs text-kora-muted">
-                Pon aquí tu WhatsApp personal. Desde ese número podrás mandarle <strong>&ldquo;apagar&rdquo;</strong> o{" "}
-                <strong>&ldquo;encender&rdquo;</strong> al número del hotel y Camila obedecerá. (Opcional.)
+                Pon aquí tu WhatsApp personal. Desde ese número podrás manejar a {nombreBot} escribiéndole
+                al WhatsApp del hotel, sin entrar al panel. (Opcional.)
               </p>
               <div className="flex items-center gap-2">
                 <input
@@ -663,6 +663,32 @@ export default function CamilaClient({
                   {adminGuardado ? <Check size={15} /> : null}
                   {adminGuardado ? "Guardado" : "Guardar"}
                 </button>
+              </div>
+
+              {/* La chuleta de comandos. Va aquí y no en un manual aparte porque
+                  es justo donde el hotelero acaba de poner su número: si tiene
+                  que buscarla en otro sitio, no la usa nadie. */}
+              <div className="rounded-xl border border-panel-contrast/10 bg-kora-bg/50 p-3 space-y-2">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-kora-muted">
+                  Lo que le puedes escribir desde ese número
+                </p>
+                <ul className="space-y-1.5 text-xs text-kora-text">
+                  <li><code className="font-semibold">apagar</code> — deja de contestarle a tus huéspedes</li>
+                  <li><code className="font-semibold">encender</code> — vuelve a contestar</li>
+                  <li><code className="font-semibold">estado</code> — te dice si está encendida o apagada</li>
+                  <li><code className="font-semibold">ayuda</code> — te manda esta misma lista por WhatsApp</li>
+                </ul>
+                <p className="text-[11px] text-kora-muted leading-relaxed">
+                  Se escriben <strong>al WhatsApp del hotel</strong>, no aquí. Tiene que ser{" "}
+                  <strong>la palabra sola</strong> —así no la apagas sin querer al escribir
+                  &ldquo;hay que pausar las reservas del sábado&rdquo;—, aunque acepta
+                  &ldquo;{nombreBot}&rdquo; delante, acentos y signos.
+                </p>
+                <p className="text-[11px] text-kora-muted leading-relaxed">
+                  Y hay algo más que hace sola: <strong>si tú le contestas a un huésped desde tu
+                  teléfono, {nombreBot} se calla 2 horas en esa conversación</strong> para no
+                  escribir encima de ti. Vuelve sola, o antes si se lo dices desde la bandeja.
+                </p>
               </div>
             </div>
           </>

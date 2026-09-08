@@ -98,6 +98,33 @@ export class KoraHotel {
     return data ?? {};
   }
 
+  /**
+   * Cómo se llama la asistente en ESTE hotel ("Selva", "Lupita"…), del
+   * entrenamiento. Sale del conocimiento ya cacheado; si aún no se ha pedido,
+   * cae a "Camila", que es el nombre de fábrica.
+   */
+  get nombreBot() {
+    const n = this._knowledge && this._knowledge.bot && this._knowledge.bot.nombre;
+    return (typeof n === "string" && n.trim()) || "Camila";
+  }
+
+  /**
+   * Deja constancia en Kora de que una PERSONA se hizo cargo de este chat.
+   *
+   * Va a la base y no sólo a la memoria del proceso: los despliegues de Railway
+   * son varios al día y borraban la pausa, así que el hotelero decía "yo sigo" y
+   * al rato Camila volvía a escribirle al huésped por encima.
+   */
+  async pausarChat(conv, hasta) {
+    if (!conv) return false;
+    try {
+      const d = await this._post({ action: "pausar-chat", conv, hasta });
+      return Boolean(d && d.ok);
+    } catch {
+      return false;
+    }
+  }
+
   /** Conocimiento del hotel (cuartos, precios "desde", amenidades, FAQs, guía).
    *  Se cachea `KNOWLEDGE_TTL_MS` para no golpear la API en cada mensaje. */
   async knowledge({ conv } = {}) {
@@ -112,8 +139,11 @@ export class KoraHotel {
   /** Estado on/off del bot + número admin autorizado. Se cachea STATUS_TTL_MS.
    *  Fail-open: si la API falla, se asume encendido (un hipo de red no debe
    *  silenciar a Camila). Devuelve { enabled:boolean, adminPhone:string|null }. */
-  async status() {
-    const fresh = this._status && Date.now() - this._statusAt < STATUS_TTL_MS;
+  async status({ fresco = false } = {}) {
+    // `fresco` se salta la caché de 45 s. Lo usa el comando "estado": si el
+    // dueño acaba de apagarla desde el panel y pregunta, quiere la verdad de
+    // ahora, no la de hace tres cuartos de minuto.
+    const fresh = !fresco && this._status && Date.now() - this._statusAt < STATUS_TTL_MS;
     if (fresh) return this._status;
     try {
       const data = await this._post({ action: "status" });
