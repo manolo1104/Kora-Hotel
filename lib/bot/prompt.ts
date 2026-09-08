@@ -497,9 +497,32 @@ ${reglasLineas.join("\n")}\n`;
     .filter(Boolean)
     .join("\n\n");
 
+  // LINKS DE RESERVA, YA ARMADOS AQUÍ. Uno por cuarto, con el nombre ya
+  // codificado para la URL.
+  //
+  // El motor acepta `habitacion` y compara contra el NOMBRE del cuarto en
+  // minúsculas (app/h/[slug]/reservar/ReservarClient.tsx:689); cuando viene,
+  // busca y mete el cuarto al carrito solo. Así el huésped cae en el formulario
+  // con su cuarto puesto.
+  //
+  // Se arma AQUÍ y no se le pide al modelo que lo escriba porque un nombre con
+  // espacios o con ñ hay que codificarlo, y pedirle a un modelo que codifique
+  // una URL es exactamente el error que le rompió el link de pago a un huésped
+  // del Hotel San Luis: lo que el modelo tiene que añadir son sólo fechas y un
+  // número, que no llevan nada raro.
+  const linksPorCuarto = k.reservaUrl
+    ? habs
+        .filter((r) => r.nombre && r.nombre.trim())
+        .slice(0, 12)
+        .map((r) => `   · ${r.nombre}: ${k.reservaUrl}?habitacion=${encodeURIComponent(r.nombre.trim().toLowerCase())}`)
+        .join("\n")
+    : "";
+
   const reservarRegla = opts.modoPrueba
-    ? `- MODO PRUEBA: la herramienta "reservar" está desactivada. Si el huésped quiere cerrar, dile con naturalidad que en la versión en vivo le mandarías el link de pago aquí mismo, y explícale el resumen (cuarto, fechas, total).`
-    : `- Cuando "reservar" devuelva ok:true, manda el link de pago (campo url) TAL CUAL, y resume en pocas líneas: cuarto, fechas, total, anticipo a pagar ahora y resto al llegar. Aclara que al pagar recibe su confirmación automática por correo.
+    ? `- MODO PRUEBA: la herramienta "reservar" está desactivada. Si el huésped quiere cerrar, dile con naturalidad que en la versión en vivo le mandarías el link de reserva aquí mismo, y explícale el resumen (cuarto, fechas, total).`
+    : `- PARA CERRAR, LO NORMAL ES MANDARLE SU LINK DE RESERVA (ver CÓMO SE CIERRA, abajo). Ahí elige extras, códigos de descuento y forma de pago, el link no caduca y no le bloquea el cuarto a nadie.
+- La herramienta "reservar" es la EXCEPCIÓN: úsala sólo si el huésped pide pagar YA por aquí, o si te dice que no quiere llenar un formulario. Antes de llamarla necesitas su nombre completo, correo y teléfono; si no los tienes, es más rápido mandarle su link de reserva que pedírselos uno por uno.
+- Cuando "reservar" devuelva ok:true, manda el link de pago (campo url) TAL CUAL, y resume en pocas líneas: cuarto, fechas, total, anticipo a pagar ahora y resto al llegar. Aclara que al pagar recibe su confirmación automática por correo, y que ese link caduca en unos minutos.
 - Si "reservar" devuelve ok:false, traduce el error al huésped con amabilidad:
   · min-noches → esas fechas piden mínimo N noches.
   · no-disponible → ya no hay ese cuarto para esas fechas; ofrece otro tipo u otras fechas.
@@ -526,10 +549,7 @@ ${reglasLineas.join("\n")}\n`;
     .join("\n");
   const opcionesPago = [
     k.reservaUrl
-      ? `1) EN LÍNEA (tarjeta u OXXO): arma y manda este link con SUS fechas ya cargadas para que reserve y pague:
-   ${k.reservaUrl}?checkin=AAAA-MM-DD&checkout=AAAA-MM-DD&adults=N
-   Sustituye AAAA-MM-DD por las fechas reales (formato de máquina) y N por el número de adultos; manda el link ya armado, no la plantilla.
-   IMPORTANTE: antes de mandar este link, VERIFICA esas fechas con checar_disponibilidad. Nunca mandes un link a fechas que no comprobaste que tienen lugar; si no hay, ofrece otras fechas u otro cuarto.`
+      ? `1) EN LÍNEA (tarjeta u OXXO), y es la vía normal: mándale SU link de reserva, ver CÓMO SE CIERRA UNA RESERVA.`
       : "",
     pagoTransfer
       ? `2) TRANSFERENCIA / DEPÓSITO / OXXO a la cuenta del hotel:\n${pagoTransfer}\n   Pídele que te mande el comprobante para confirmar la reserva.`
@@ -537,6 +557,20 @@ ${reglasLineas.join("\n")}\n`;
   ]
     .filter(Boolean)
     .join("\n");
+  // El bloque que explica el cierre normal. Va aparte de FORMAS DE PAGO porque
+  // es lo primero que tiene que hacer, no una alternativa cuando algo falla.
+  const cierreBloque = k.reservaUrl
+    ? `\nCÓMO SE CIERRA UNA RESERVA (esto es lo normal)
+- Cuando el huésped ya eligió cuarto y fechas, mándale su LINK DE RESERVA: el de su cuarto, con sus fechas pegadas al final.
+${linksPorCuarto || `   · ${k.reservaUrl}`}
+- A ese link le añades tal cual: &checkin=AAAA-MM-DD&checkout=AAAA-MM-DD&adults=N
+  (las fechas en formato de máquina y N el número de adultos). Manda el link YA ARMADO, en un renglón aparte y sin nada pegado ni antes ni después.
+- Si todavía no eligió cuarto, mándale ${k.reservaUrl} con sus fechas y que elija ahí.
+- ANTES de mandarlo, VERIFICA esas fechas con checar_disponibilidad. Nunca mandes un link a fechas que no comprobaste que tienen lugar; si no hay, ofrece otras fechas u otro cuarto.
+- Dile en una línea qué va a encontrar: elegir extras si quiere, poner sus datos y pagar con tarjeta u OXXO. Y que la confirmación le llega por correo al pagar.
+- Ese link NO caduca y NO le aparta el cuarto: si le urge asegurarlo, dile que lo complete pronto.\n`
+    : "";
+
   const formasPagoBloque = opcionesPago
     ? `\nFORMAS DE PAGO — cuando el huésped quiera pagar o cerrar (o si "reservar" falla), ofrécele estas opciones (las que apliquen). NUNCA inventes datos bancarios que no estén aquí.\n${opcionesPago}\n`
     : "";
@@ -581,7 +615,7 @@ REGLAS DE ORO (no romper)
 ${reservarRegla}
 - No prometas nada que la herramienta no confirme. Para grupos grandes o casos raros que no puedas resolver, ofrece pasar con una persona del hotel${escalar ? ` (WhatsApp ${escalar})` : ""}.
 ${escalar ? "" : `- CUANDO PASES CON UNA PERSONA: no des ningún número de teléfono — este chat YA es el WhatsApp del hotel y mandarlo a otro lado sería mandarlo aquí mismo. Dile que ya le avisaste al equipo y que en un momento le contestan, y recoge su duda con detalle para que la persona no tenga que volver a preguntársela.`}
-${formasPagoBloque}
+${cierreBloque}${formasPagoBloque}
 DATOS DEL HOTEL
 Ubicación: ${k.ubicacion || "—"}
 ${k.descripcion ? `Sobre el hotel: ${k.descripcion}` : ""}

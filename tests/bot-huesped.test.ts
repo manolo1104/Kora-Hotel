@@ -202,3 +202,55 @@ describe("por qué cambia el precio", () => {
     expect(buildBotSystemPrompt(CONOCIMIENTO)).not.toContain("CUÁNDO CAMBIA EL PRECIO");
   });
 });
+
+// ─── Cómo cierra Camila una reserva ──────────────────────────────────────────
+//
+// El 8 sep 2026 un huésped recibió el link de pago de Stripe partido a la mitad
+// ("The link is incomplete"): el modelo tenía que copiar 700 caracteres. La
+// respuesta fue dejar de mandar ese link por defecto y mandar el del motor, que
+// es corto — pero el nombre del cuarto lleva espacios y acentos, así que el link
+// se arma AQUÍ ya codificado y al modelo sólo le queda pegarle fechas.
+describe("el link de reserva se arma en el servidor, no en el modelo", () => {
+  const conCuartos: BotKnowledge = {
+    nombre: "Hotel San Luis",
+    reservaUrl: "https://kora-hotel.com/h/hotel-san-luis/reservar",
+    habitaciones: [
+      { nombre: "Estandar Doble", descripcion: "", desde: 600, desdeTexto: "$600 MXN", maxHuespedes: 4 },
+      { nombre: "Cabaña Ceiba", descripcion: "", desde: 900, desdeTexto: "$900 MXN", maxHuespedes: 2 },
+    ],
+  };
+
+  it("trae un link por cuarto, con el nombre codificado", () => {
+    const p = buildBotSystemPrompt(conCuartos);
+    expect(p).toContain("habitacion=estandar%20doble");
+    // La ñ y el acento son justo lo que un modelo escribiría mal.
+    expect(p).toContain("habitacion=caba%C3%B1a%20ceiba");
+  });
+
+  it("no deja ni un espacio suelto dentro de una URL", () => {
+    const p = buildBotSystemPrompt(conCuartos);
+    for (const m of p.match(/https?:\/\/\S*habitacion=\S*/g) ?? []) {
+      expect(m).not.toContain(" ");
+    }
+  });
+
+  it("lo que el modelo añade son sólo fechas y un número", () => {
+    const p = buildBotSystemPrompt(conCuartos);
+    expect(p).toContain("&checkin=AAAA-MM-DD&checkout=AAAA-MM-DD&adults=N");
+  });
+
+  it("el camino normal es el motor; la herramienta de pago es la excepción", () => {
+    const p = buildBotSystemPrompt(conCuartos);
+    expect(p).toContain("CÓMO SE CIERRA UNA RESERVA");
+    expect(p).toContain("LO NORMAL ES MANDARLE SU LINK DE RESERVA");
+    expect(p).toContain('La herramienta "reservar" es la EXCEPCIÓN');
+  });
+
+  it("y se le avisa de que ese link NO aparta el cuarto", () => {
+    expect(buildBotSystemPrompt(conCuartos)).toContain("NO le aparta el cuarto");
+  });
+
+  it("un hotel sin motor no recibe instrucciones de un link que no tiene", () => {
+    expect(buildBotSystemPrompt({ nombre: "H" })).not.toContain("CÓMO SE CIERRA UNA RESERVA");
+  });
+});
