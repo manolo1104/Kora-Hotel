@@ -1,6 +1,7 @@
 import { ArrowRight, ExternalLink } from "lucide-react";
 import { Reveal } from "@/components/shared/Reveal";
 import { CtaLink } from "@/components/shared/CtaLink";
+import { GARANTIA, RUTA_ACTIVAR, RUTA_REGISTRO } from "@/lib/oferta";
 
 // Demo INTERACTIVO del motor: no es un mockup ni un video — es el motor real
 // corriendo en un hotel REAL, el Hotel Paraíso Encantado (guardado con el slug
@@ -75,23 +76,31 @@ export function DemoMotorSection() {
 
             <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
               <CtaLink
-                href="/panel/onboarding"
+                href={RUTA_REGISTRO}
                 ctaName="demo_onboarding"
                 className="btn-press btn-arrow btn-fill inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-kora-accent text-kora-primary font-semibold text-sm hover:bg-kora-accent-dark transition-colors"
               >
-                Crear el mío con mi hotel
+                Crear cuenta y probar el mío
                 <ArrowRight size={16} aria-hidden="true" />
               </CtaLink>
               <CtaLink
-                href="/pago/iniciar?plan=kora"
+                href={RUTA_ACTIVAR}
                 ctaName="demo_pago"
                 className="btn-press inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full border-2 border-kora-primary text-kora-primary font-semibold text-sm hover:bg-kora-primary hover:text-white transition-colors"
               >
                 Activar mi plan
               </CtaLink>
             </div>
+            {/* Decía «cargas tus cuartos y fotos en unos 5 minutos»: nadie lo
+                midió, así que se quita. Y se añade la diferencia con el demo de
+                arriba, que es un hotel real y SÍ cobra: en la cuenta propia, el
+                motor simula el pago mientras el hotel esté EN PRUEBA y sin cobros
+                conectados (lib/motor/modo-prueba.ts): al activar el plan cobra de
+                verdad aunque no haya conectado Stripe, por eso se dicen las dos. */}
             <p className="mt-3 text-center text-xs text-kora-muted">
-              Gratis 14 días y sin tarjeta: cargas tus cuartos y fotos en unos 5 minutos.
+              {GARANTIA.diasPrueba} días gratis, sin tarjeta. Durante tu prueba, y
+              mientras no conectes tus cobros, las reservas de prueba en tu propio
+              motor no cobran nada.
             </p>
           </div>
         </Reveal>

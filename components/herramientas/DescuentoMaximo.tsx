@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowRight, Percent, Sparkles } from "lucide-react";
+import { Percent, Sparkles } from "lucide-react";
 import { Reveal } from "@/components/shared/Reveal";
 import { LeadCaptureTool } from "@/components/herramientas/LeadCaptureTool";
+import { CtaRegistroHerramienta } from "@/components/herramientas/CtaRegistro";
 
 function fmtMXN(n: number): string {
   return "$" + Math.round(n).toLocaleString("es-MX") + " MXN";
@@ -287,16 +288,9 @@ export function DescuentoMaximo() {
           </h2>
           <p className="mt-3 text-white/75 text-sm sm:text-base leading-relaxed max-w-xl mx-auto">
             Cada reserva directa con Kora te ahorra la comisión, así que tu costo
-            por noche baja y puedes ofrecer mejores precios sin perder. Y el precio
-            dinámico ajusta tus descuentos solo en las fechas flojas.
+            por noche baja y puedes ofrecer mejores precios sin perder.
           </p>
-          <a
-            href="/contacto?utm_source=descuento-maximo"
-            className="btn-press btn-arrow btn-fill mt-6 inline-flex items-center gap-2 px-7 py-4 rounded-full bg-kora-accent text-kora-primary font-bold text-sm hover:bg-kora-accent-dark transition-colors"
-          >
-            Ver cómo funciona Kora
-            <ArrowRight size={16} aria-hidden="true" />
-          </a>
+          <CtaRegistroHerramienta origen="descuento-maximo" />
         </div>
       </Reveal>
     </div>

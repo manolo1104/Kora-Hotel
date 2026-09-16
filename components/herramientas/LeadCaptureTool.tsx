@@ -4,9 +4,11 @@ import { useState } from "react";
 import { Check, Loader2, ArrowRight } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { trackLead } from "@/lib/analytics";
-import { WHATSAPP } from "@/lib/contacto";
+import { waLink } from "@/lib/contacto";
+import { GARANTIA, RUTA_REGISTRO } from "@/lib/oferta";
+import { CtaLink } from "@/components/shared/CtaLink";
 
-const WA_FALLBACK_URL = `https://wa.me/${WHATSAPP.replace(/\D/g, "")}?text=Hola%2C%20us%C3%A9%20una%20calculadora%20de%20Kora%20y%20quiero%20mi%20reporte`;
+const WA_FALLBACK_URL = waLink("Hola, usé una calculadora de Kora y quiero mi reporte");
 
 interface LeadCaptureToolProps {
   /** Título dentro del recuadro de captura */
@@ -46,11 +48,13 @@ export function LeadCaptureTool({
 
     const data = new FormData(e.currentTarget);
 
-    // Honeypot: si trae texto, es un bot. Fingimos éxito sin enviar nada.
-    if (data.get("_gotcha")) {
-      setSent(true);
-      return;
-    }
+    // La trampa anti-robots la resuelve el SERVIDOR (app/api/leads: responde
+    // éxito falso y no guarda nada). Aquí se quitó a propósito el 15 sep 2026:
+    // el campo es un <input type="text"> oculto, y hay gestores de contraseñas
+    // que rellenan campos ocultos. Cuando eso pasaba, a una persona real se le
+    // pintaba «¡Recibido!» y su mensaje no salía de su navegador: ni una línea
+    // en los registros, imposible de detectar. Dejándoselo al servidor, por lo
+    // menos queda el intento.
 
     setLoading(true);
     try {
@@ -93,10 +97,36 @@ export function LeadCaptureTool({
             </div>
             <h3 className="text-xl font-bold text-kora-text mb-2">¡Recibido!</h3>
             <p className="text-kora-muted text-sm leading-relaxed">
-              Te enviamos tu reporte por WhatsApp en menos de 24 horas.
+              {/* Decía «en menos de 24 horas». El reporte lo manda una persona
+                  y nadie mide ese plazo: no se promete (mismo criterio que
+                  ContactForm desde el 15 sep 2026). */}
+              Te enviamos tu reporte por WhatsApp.
               <br />
               Revisa que tu número esté correcto.
             </p>
+
+            {/* Quien acaba de dejar sus datos es el prospecto más caliente de
+                la página, y hasta el 15 sep 2026 aquí sólo se le decía que
+                esperara nuestro WhatsApp. Mientras llega, lo más útil que puede
+                hacer es probar Kora con su propio hotel: el registro es el
+                camino principal del sitio (decisión de Manolo). */}
+            <div className="mt-6 border-t border-gray-100 pt-5">
+              <p className="text-sm font-semibold text-kora-text">
+                Mientras tanto, pruébalo con tu hotel
+              </p>
+              <p className="mt-1 text-xs text-kora-muted leading-relaxed">
+                Crea tu cuenta y tienes {GARANTIA.diasPrueba} días gratis, sin
+                tarjeta.
+              </p>
+              <CtaLink
+                href={RUTA_REGISTRO}
+                ctaName={`lead_herramienta_registro:${herramienta}`}
+                className="btn-press btn-arrow btn-fill mt-4 inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-kora-primary text-white font-bold text-sm hover:bg-kora-primary-dark transition-colors"
+              >
+                Crear mi cuenta gratis
+                <ArrowRight size={16} aria-hidden="true" />
+              </CtaLink>
+            </div>
           </motion.div>
         ) : (
           <motion.form
@@ -154,13 +184,13 @@ export function LeadCaptureTool({
                   htmlFor="lead-whatsapp"
                   className="block text-sm font-semibold text-kora-text mb-1.5"
                 >
-                  WhatsApp
+                  WhatsApp{" "}
+                  <span className="font-normal text-kora-muted">(opcional)</span>
                 </label>
                 <input
                   id="lead-whatsapp"
                   name="whatsapp"
                   type="tel"
-                  required
                   placeholder="+52 489 123 4567"
                   className="w-full px-4 py-3 rounded-xl border border-gray-200 text-kora-text text-sm placeholder:text-kora-muted focus:outline-none focus:ring-2 focus:ring-kora-accent focus:border-transparent transition-all duration-200"
                 />

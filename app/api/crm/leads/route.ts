@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireCrmAuth } from "@/lib/crm/auth";
+import { requireCrmMutacion } from "@/lib/crm/guardas";
 import { createAdminClient, adminEnvReady } from "@/lib/supabase/admin";
 import { sanitizeLead } from "@/lib/crm/server";
 
@@ -35,8 +36,15 @@ export async function GET(req: Request) {
 }
 
 // POST /api/crm/leads  → crea un lead
+//
+// `requireCrmMutacion` y no `requireCrmAuth`: la cookie `kora_crm` va con
+// `path: "/"` y `sameSite: "lax"`, así que el navegador la manda a cualquier
+// ruta de este dominio —el mismo que sirve las páginas públicas de los hoteles—
+// y el repositorio es público. Sin la comprobación de `Origin`, una página de
+// otro sitio podía crear leads con la sesión del fundador. Las rutas nuevas del
+// CRM ya pasaban por aquí; estas se quedaron atrás.
 export async function POST(req: Request) {
-  const denied = await requireCrmAuth();
+  const denied = await requireCrmMutacion(req);
   if (denied) return denied;
   if (!adminEnvReady)
     return NextResponse.json({ error: "Falta SUPABASE_SERVICE_ROLE_KEY" }, { status: 503 });
@@ -56,6 +64,11 @@ export async function POST(req: Request) {
     .insert(data!)
     .select("*")
     .single();
-  if (dbErr) return NextResponse.json({ error: dbErr.message }, { status: 500 });
+  // El mensaje crudo de Postgres NO sale al navegador (nombra tablas, columnas y
+  // restricciones); queda en el log, como en el resto del CRM.
+  if (dbErr) {
+    console.error("[crm.leads.crear]", dbErr.message);
+    return NextResponse.json({ error: "No se pudo guardar el lead. Intenta de nuevo." }, { status: 500 });
+  }
   return NextResponse.json({ lead });
 }

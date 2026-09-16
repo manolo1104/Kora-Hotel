@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 import { glosario, getTermino } from "@/lib/glosario";
+import { metaDescripcion } from "@/lib/seo";
 import { Reveal } from "@/components/shared/Reveal";
 import { BarraCTA } from "@/components/shared/BarraCTA";
 import { JsonLd } from "@/components/shared/JsonLd";
@@ -23,7 +24,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!t) return { title: "Término no encontrado — Kora" };
   return {
     title: `${t.pregunta} | Glosario hotelero Kora`,
-    description: t.definicion.slice(0, 155),
+    // `metaDescripcion` corta por la última palabra entera; existe en lib/seo.ts
+    // justo para esto y aquí seguía el `.slice(0, 155)` que parte a media
+    // palabra. Se veía en producción: la descripción de /glosario/reservas-
+    // directas —la página con más impresiones del sitio, 302 en 6 meses y CERO
+    // clics— terminaba en «…sin pasar por una OTA como B».
+    description: metaDescripcion(t.definicion),
     alternates: { canonical: `/glosario/${t.slug}` },
     openGraph: {
       title: t.pregunta,

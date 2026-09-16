@@ -7,7 +7,8 @@ import { resolveHotel } from "@/lib/tenant";
 import { hotelRooms, bookingRules } from "@/lib/booking";
 import { COLOR_DEFAULT, inkFor, fontStack, type MiniExtras } from "@/lib/mini";
 import { accesoDelHotel } from "@/lib/suscripcion";
-import { getConnectState } from "@/lib/stripe/connect";
+import { getConnectState, CONNECT_NONE } from "@/lib/stripe/connect";
+import { motorEnModoPrueba } from "@/lib/motor/modo-prueba";
 import { HotelAnalytics } from "@/components/booking/HotelAnalytics";
 import ReservarClient from "./ReservarClient";
 
@@ -130,9 +131,24 @@ export default async function ReservarPage({
   const experiencias = Array.isArray(extras.experiencias) ? extras.experiencias : [];
   const experienciasBundle = extras.experienciasBundle ?? null;
 
+  // MODO PRUEBA: hotel real, en su prueba y sin cobros de Stripe listos. El
+  // pago se simula en el navegador y el checkout lo rechaza por su lado
+  // (defensa doble: el endpoint es público). Es una prop PROPIA y no `demo`,
+  // porque los textos del demo le hablan a un hotelero curioso («así reservan
+  // tus huéspedes») y aquí puede estar mirando un huésped de verdad que llegó
+  // por el WhatsApp del hotel. Quien paga o tiene cortesía nunca entra aquí.
+  // Nunca lanza; va después de `puedeCobrar`, así que un hotel despublicado
+  // sigue viendo la página pausada de arriba.
+  const modoPrueba = await motorEnModoPrueba(hotel, acceso);
+
   // Estado Stripe Connect del hotel (cache en BD): decide si se ofrece OXXO y
-  // "pagar en hotel" (ambos requieren su cuenta activa).
-  const connect = await getConnectState(hotel.id, hotel.stripe_account_id);
+  // "pagar en hotel" (ambos requieren su cuenta activa). En modo prueba ya se
+  // sabe que la cuenta NO cobra (motorEnModoPrueba lo acaba de leer): no se
+  // vuelve a consultar, y así ninguna opción de pago real se pinta encima de
+  // una reserva simulada.
+  const connect = modoPrueba
+    ? CONNECT_NONE
+    : await getConnectState(hotel.id, hotel.stripe_account_id);
 
   return (
     <>
@@ -158,6 +174,7 @@ export default async function ReservarPage({
         coverUrl={coverUrl}
         marcaOculta={marcaOculta}
         demo={extras.demo === true}
+        modoPrueba={modoPrueba}
         // 🔴 Ya NO es el campo libre de `extras.politicas.cancelacion`. Es el
         // texto DERIVADO de la política estructurada, que es la misma que
         // decide el reembolso cuando el huésped cancela. Antes el campo libre

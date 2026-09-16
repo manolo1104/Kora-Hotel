@@ -6,6 +6,7 @@
 // del correo de otro.
 import { describe, it, expect } from "vitest";
 import { emailAnuncio, TIPO_ANUNCIO } from "@/lib/email/anuncio";
+import { GARANTIA, RUTA_REGISTRO } from "@/lib/oferta";
 
 describe("nadie lo recibe sin poder salirse", () => {
   it("lleva el enlace de baja con SU token", () => {
@@ -38,10 +39,10 @@ describe("el nombre lo teclea un desconocido", () => {
 // cliente que paga no puede recibir un botón a la página de precios, y alguien
 // de la lista de captación no puede recibir un correo comercial sin baja.
 describe("hotelero y suscriptor no reciben lo mismo", () => {
-  it("al HOTELERO se le manda a su panel, no a precios", () => {
+  it("al HOTELERO se le manda a su panel, no a registrarse", () => {
     const { html } = emailAnuncio({ nombre: "Luis" });
     expect(html).toContain("Abrir mi panel");
-    expect(html).not.toContain("Ver Kora");
+    expect(html).not.toContain(RUTA_REGISTRO);
     expect(html).toContain("tienes un hotel en Kora");
   });
 
@@ -49,9 +50,13 @@ describe("hotelero y suscriptor no reciben lo mismo", () => {
     expect(emailAnuncio({ nombre: "Luis" }).html).not.toContain("Darme de baja");
   });
 
-  it("al SUSCRIPTOR se le manda a precios y con baja", () => {
+  // 15 sep 2026: el botón del suscriptor decía «Ver Kora» y llevaba a /precios.
+  // Ahora lleva al registro (decisión de Manolo: el alta es el camino principal
+  // de todo Kora), y los días salen de la constante, nunca escritos a mano.
+  it("al SUSCRIPTOR se le manda a crear su cuenta, y con baja", () => {
     const { html } = emailAnuncio({ nombre: "Luis", token: "tok-9" });
-    expect(html).toContain("Ver Kora");
+    expect(html).toContain(RUTA_REGISTRO);
+    expect(html).toContain(`Probarlo ${GARANTIA.diasPrueba} días gratis`);
     expect(html).toContain("Darme de baja");
     expect(html).not.toContain("Abrir mi panel");
   });

@@ -118,9 +118,14 @@ export default function PagosClient({ rol, hotelNombre }: { rol: string; hotelNo
       ) : status?.stripe === false ? (
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-800 flex gap-3">
           <AlertTriangle size={20} className="shrink-0 mt-0.5" />
+          {/* Sin «las reservas se completan por WhatsApp»: desde el 15 sep 2026 un
+              hotel en prueba sin cobros listos SIMULA el pago, y prometer aquí un
+              camino por WhatsApp contradecía lo que hace el motor. Este caso
+              (faltan las llaves de Stripe de Kora) es un fallo de la plataforma,
+              no algo que el hotelero pueda arreglar: se le dice así. */}
           <p className="text-sm">
-            Los pagos en línea aún no están activados en la plataforma. Mientras tanto, las reservas
-            se completan por WhatsApp.
+            Los pagos en línea todavía no están activados en Kora, así que por ahora no puedes
+            conectar tu cuenta. No es algo de tu hotel: lo resolvemos nosotros.
           </p>
         </div>
       ) : status?.connected ? (
@@ -309,8 +314,12 @@ export default function PagosClient({ rol, hotelNombre }: { rol: string; hotelNo
               </button>
               {error && <p className="text-sm text-red-600 mt-3">{error}</p>}
               <p className="text-xs text-panel-faint mt-3">
+                {/* Decía «Toma 2–3 minutos»: nadie lo ha medido, y el alta de
+                    Stripe puede pedir documentos y quedarse esperando su
+                    revisión. Un plazo inventado convierte un trámite normal en
+                    «algo se rompió». */}
                 Te llevamos a Stripe (nuestro procesador de pagos) para verificar tu identidad y tu
-                cuenta bancaria. Toma 2–3 minutos. Kora nunca ve ni guarda tus datos bancarios.
+                cuenta bancaria. Kora nunca ve ni guarda tus datos bancarios.
               </p>
             </>
           )}

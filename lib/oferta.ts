@@ -3,12 +3,21 @@
 // Mensualidad del plan (el "desde" que se comunica).
 export const PRECIO_DESDE = 550;
 
-// Horas que tardamos en dejar el hotel operando, llave en mano.
+// Horas que tardó en quedar operando el montaje de Paraíso Encantado.
 //
-// Estaba escrito a mano en ~30 lugares y no todos decían lo mismo: la landing y
-// las FAQ prometían 48 h, el formulario de contacto "48 a 72 horas" y el caso de
-// estudio contaba 72 h — tres promesas distintas para el mismo servicio, todas
-// visibles en la misma visita. Manolo fijó el número el 31 ago 2026.
+// 🔴 YA NO ES UNA PROMESA COMERCIAL. Hasta el 15 sep 2026 la web vendía «24
+// horas de implementación, nosotros lo configuramos». Ese día Manolo decidió
+// pasar a autoservicio: el hotelero se registra, lo configura él mismo y le
+// ayudamos si quiere (ver `PASOS_ALTA` y `AYUDA_ALTA` abajo). Kora no se
+// compromete a configurar cada hotel a mano ni en un plazo, así que ninguna
+// superficie de venta debe volver a usar este número como plazo de entrega.
+//
+// Se conserva SÓLO porque el caso de estudio de Paraíso cuenta lo que tardó su
+// montaje (`lib/caso-paraiso.ts`, la página del caso y `CasoTabs`): es un hecho
+// de ese caso, no una oferta. Historia: estuvo escrito a mano en ~30 lugares con
+// tres valores distintos (48 h, «48 a 72 horas», 72 h) hasta que se fijó en uno
+// el 31 ago 2026; `tests/caso-paraiso-congruente.test.ts` sigue vigilando que no
+// reaparezcan los otros.
 export const IMPLEMENTACION_HORAS = 24;
 
 // Días que el forecast de ocupación del panel mira hacia adelante.
@@ -59,6 +68,64 @@ export const GARANTIA = {
   /** Días tras el PRIMER PAGO en los que se devuelve esa mensualidad. */
   diasDevolucion: 30,
 } as const;
+
+// ─── El alta: regístrate y pruébalo por dentro ─────────────────────────────────
+//
+// Decisión de Manolo (15 sep 2026): el botón principal de TODO el sitio es el
+// registro, y la promesa es «lo configuras tú y te ayudamos si quieres». WhatsApp
+// queda sólo como apoyo («¿Dudas? Escríbenos»).
+//
+// Las rutas viven aquí para que ningún botón las escriba a mano: el día que el
+// alta cambie de sitio, cambia en un solo lugar.
+
+/**
+ * La ruta que abre el alta. Sin sesión, la página redirige a
+ * `/entrar?registro=1`, que abre el formulario en «Crear cuenta»; con sesión,
+ * lleva directo a cargar el hotel.
+ */
+export const RUTA_REGISTRO = "/panel/onboarding";
+
+/** La ruta para activar el plan de pago (sin sesión, pasa antes por /entrar). */
+export const RUTA_ACTIVAR = "/pago/iniciar?plan=kora";
+
+/**
+ * Los pasos del alta, tal como funciona el producto HOY. Los usan
+ * /como-funciona, la landing y el panel.
+ *
+ * 🔴 CADA PASO TIENE QUE SER VERDAD. Nada de importar reservas, conectar con
+ * Booking o Expedia, ni «nosotros lo configuramos»: no existen. Y ninguna cifra a
+ * mano: los días, el precio y la garantía salen de las constantes de arriba, que
+ * son las que vigilan las pruebas.
+ */
+export const PASOS_ALTA: readonly { titulo: string; texto: string }[] = [
+  {
+    titulo: "Crea tu cuenta",
+    texto: `Solo con tu correo y sin tarjeta. Tienes ${GARANTIA.diasPrueba} días gratis para probar Kora con tu propio hotel.`,
+  },
+  {
+    titulo: "Carga tu hotel",
+    texto:
+      "Escribe el nombre, tus habitaciones y sus tarifas. Las fotos y las reglas de cobro las puedes añadir cuando quieras.",
+  },
+  {
+    titulo: "Pruébalo por dentro",
+    texto:
+      "Habla con Camila en el chat de prueba con los datos de tu hotel, haz una reserva de prueba en tu motor sin que se cobre nada y recorre el panel.",
+  },
+  {
+    titulo: "Conéctalo",
+    texto:
+      "Conecta tus cobros con Stripe para recibir el dinero directo en tu cuenta y vincula tu WhatsApp escaneando un código QR.",
+  },
+  {
+    titulo: "Activa tu plan si te convence",
+    texto: `$${PRECIO_DESDE.toLocaleString("es-MX")} MXN al mes, sin permanencia. Si cancelas dentro de los ${GARANTIA.diasDevolucion} días siguientes a tu primer pago, te devolvemos esa mensualidad.`,
+  },
+] as const;
+
+/** El apoyo humano, siempre como opción y nunca como el camino principal. */
+export const AYUDA_ALTA =
+  "¿Prefieres que te acompañemos? Escríbenos por WhatsApp y te ayudamos a dejarlo listo.";
 
 // ─── Plan de suscripción (fuente única) ───────────────────────────────────────
 // Los price IDs de Stripe viven en variables de entorno porque cambian entre

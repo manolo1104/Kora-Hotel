@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowRight, TrendingDown, Sparkles } from "lucide-react";
+import { TrendingDown, Sparkles } from "lucide-react";
 import { Reveal } from "@/components/shared/Reveal";
 import { LeadCaptureTool } from "@/components/herramientas/LeadCaptureTool";
+import { CtaRegistroHerramienta } from "@/components/herramientas/CtaRegistro";
 
 function fmtMXN(n: number): string {
   return "$" + Math.round(n).toLocaleString("es-MX") + " MXN";
@@ -293,16 +294,9 @@ export function CalculadoraComisiones() {
           </h2>
           <p className="mt-3 text-white/75 text-sm sm:text-base leading-relaxed max-w-xl mx-auto">
             Kora toma tus reservas directo desde tu propia página y un agente de IA
-            contesta tu WhatsApp 24/7 — sin pagarle comisión a nadie. Todo en español,
-            instalado por nosotros.
+            contesta tu WhatsApp 24/7 — sin pagarle comisión a nadie. Todo en español.
           </p>
-          <a
-            href={`/contacto?perdida=${Math.round(comisionAnual)}&utm_source=calculadora-comisiones`}
-            className="btn-press btn-arrow btn-fill mt-6 inline-flex items-center gap-2 px-7 py-4 rounded-full bg-kora-accent text-kora-primary font-bold text-sm hover:bg-kora-accent-dark transition-colors"
-          >
-            Ver cómo funciona Kora
-            <ArrowRight size={16} aria-hidden="true" />
-          </a>
+          <CtaRegistroHerramienta origen="calculadora-comisiones" />
         </div>
       </Reveal>
     </div>

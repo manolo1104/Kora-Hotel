@@ -15,7 +15,9 @@ import {
   IMPLEMENTACION_HORAS,
   mxn,
 } from "@/lib/caso-paraiso";
-import { WHATSAPP } from "@/lib/contacto";
+import { waLink } from "@/lib/contacto";
+import { GARANTIA, RUTA_REGISTRO } from "@/lib/oferta";
+import { CtaLink } from "@/components/shared/CtaLink";
 
 export const metadata: Metadata = {
   title: "Caso de estudio: Hotel Paraíso Encantado — Kora",
@@ -25,7 +27,11 @@ export const metadata: Metadata = {
   },
 };
 
-const WA_URL = `https://wa.me/${WHATSAPP.replace(/\D/g, "")}?text=Hola%2C%20vi%20el%20caso%20de%20Par%C3%A1iso%20Encantado%20y%20quiero%20saber%20m%C3%A1s`;
+// El cierre del caso decía «Escríbeme y en 20 minutos te enseño cómo se vería
+// Kora con tus cuartos cargados», con un botón «Quiero ver el demo» a WhatsApp.
+// Desde el 15 sep 2026 eso lo hace el propio hotelero: crea su cuenta, carga sus
+// cuartos y lo ve funcionando por dentro. WhatsApp se queda como apoyo.
+const WA_DUDAS = waLink("Hola, vi el caso de Paraíso Encantado y tengo una duda");
 
 // ─── Fotos del hotel ──────────────────────────────────────────────────────────
 // Cuando tengas fotos, pega aquí las URLs.
@@ -203,18 +209,31 @@ export default function CasoParaisoEncantadoPage() {
             <span className="font-semibold text-kora-text">
               {mxn(AHORRO_ANUAL)} MXN al año
             </span>
-            . Escríbeme y en 20 minutos te enseño cómo se vería Kora con tus
-            cuartos y tus tarifas cargados.
+            . Crea tu cuenta, carga tus cuartos y tus tarifas, y mira cómo
+            funciona Kora con tu propio hotel. Tienes {GARANTIA.diasPrueba} días
+            gratis, sin tarjeta.
           </p>
-          <a
-            href={WA_URL}
-            target="_blank"
-            rel="noopener noreferrer"
+          <CtaLink
+            href={RUTA_REGISTRO}
+            ctaName="caso_paraiso_registro"
             className="btn-press btn-arrow btn-fill inline-flex items-center gap-2 px-8 py-4 rounded-full bg-kora-accent text-kora-primary font-bold text-sm hover:bg-kora-accent-dark transition-colors"
           >
-            Quiero ver el demo
+            Pruébalo gratis con tu hotel
             <ArrowRight size={16} aria-hidden="true" />
-          </a>
+          </CtaLink>
+          {WA_DUDAS && (
+            <p className="mt-5 text-sm text-kora-muted">
+              ¿Dudas?{" "}
+              <a
+                href={WA_DUDAS}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-semibold text-kora-primary underline underline-offset-4"
+              >
+                Escríbeme por WhatsApp
+              </a>
+            </p>
+          )}
         </Reveal>
       </section>
 

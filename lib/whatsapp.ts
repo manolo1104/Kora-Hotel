@@ -12,6 +12,15 @@
 //   · responde en el idioma del huésped, escala a una persona en casos raros
 // Nada de "cierra el 80% de las reservas" ni cifras sin fuente.
 import type { FAQ } from "@/lib/glosario";
+import { GARANTIA, PRECIO_DESDE } from "@/lib/oferta";
+
+// 15 sep 2026: la conexión del WhatsApp se vendía como «parte del arranque llave
+// en mano: nosotros la montamos», y el arranque incluía «que nosotros carguemos
+// tus tarifas». Ya no es así: el hotelero vincula su número desde el panel con
+// un código QR (`CamilaClient`, paso «Conecta tu WhatsApp») y carga él mismo su
+// hotel; te ayudamos si quieres (decisión de Manolo). El precio y los días de
+// prueba estaban escritos a mano en siete sitios: salen de lib/oferta.ts.
+const PLAN = `$${PRECIO_DESDE.toLocaleString("es-MX")} MXN`;
 
 export interface BloqueLista {
   titulo: string;
@@ -104,7 +113,7 @@ export const paginasWhatsApp: PaginaWhatsApp[] = [
       },
       {
         q: "¿Necesito un número de WhatsApp nuevo?",
-        a: "Puedes usar el número que ya tienes. Durante el arranque montamos la conexión contigo; no necesitas configurar nada por tu cuenta.",
+        a: "Puedes usar el número que ya tienes. Lo vinculas desde tu panel escaneando un código QR con el WhatsApp de tu hotel, sin configurar nada técnico. Si prefieres que te acompañemos, te ayudamos por WhatsApp.",
       },
     ],
     relacionados: [
@@ -157,7 +166,7 @@ export const paginasWhatsApp: PaginaWhatsApp[] = [
       },
       {
         q: "¿Cuánto cuesta comparado con pagar una guardia?",
-        a: "Camila viene incluida en el plan de Kora, $550 MXN al mes con todo lo demás. Un turno nocturno humano cuesta varias veces eso al mes.",
+        a: `Camila viene incluida en el plan de Kora, ${PLAN} al mes con todo lo demás. Un turno nocturno humano cuesta varias veces eso al mes.`,
       },
     ],
     relacionados: [
@@ -213,7 +222,7 @@ export const paginasWhatsApp: PaginaWhatsApp[] = [
       },
       {
         q: "¿Y si me equivoqué al cargar una tarifa?",
-        a: "Entonces Camila cotizará ese error, porque su fuente es tu sistema. Por eso el arranque incluye que nosotros carguemos y revisemos tus tarifas contigo.",
+        a: "Entonces Camila cotizará ese error, porque su fuente es tu sistema. Por eso conviene probarla antes: en tu panel hay un chat de prueba donde le preguntas por unas fechas y ves qué total da, sin tocar tu WhatsApp. Si algo no cuadra, corriges la tarifa y vuelves a preguntar.",
       },
     ],
     relacionados: [
@@ -404,7 +413,7 @@ export const paginasWhatsApp: PaginaWhatsApp[] = [
       "**WhatsApp normal.** El de siempre. Funciona, pero un solo dispositivo a la vez y sin ninguna herramienta de negocio. Es donde está la mayoría de los hoteles pequeños.",
       "**WhatsApp Business.** App gratuita con perfil de negocio, catálogo, etiquetas, mensaje de bienvenida y respuestas rápidas. Es un buen paso y no cuesta nada, pero todas sus automatizaciones son textos fijos: no saben si tienes cuartos libres.",
       "**La API de WhatsApp Business.** No es una app: es la vía técnica para que un software conecte con tu número, mande y reciba mensajes. Es lo que permite que un agente de IA opere tu WhatsApp. Contratarla y configurarla por tu cuenta es un proyecto técnico que ningún dueño de hotel debería tener que hacer.",
-      "Por eso el planteamiento correcto no es \"¿contrato la API?\", sino \"¿quién me deja el WhatsApp contestando?\". En Kora la conexión de tu número es parte del arranque llave en mano: nosotros la montamos y tú sólo ves las conversaciones.",
+      "Por eso el planteamiento correcto no es \"¿contrato la API?\", sino \"¿quién me deja el WhatsApp contestando?\". En Kora no contratas ni configuras nada de eso: vinculas el número de tu hotel desde tu panel escaneando un código QR y ves las conversaciones ahí mismo. Si prefieres que te acompañemos, te ayudamos por WhatsApp.",
     ],
     tabla: {
       encabezado: "Qué resuelve cada nivel",
@@ -422,12 +431,12 @@ export const paginasWhatsApp: PaginaWhatsApp[] = [
         {
           aspecto: "Configuración técnica",
           otro: "La API la configuras tú o un proveedor.",
-          kora: "Montada en el arranque, sin trabajo técnico de tu parte.",
+          kora: "La vinculas tú desde tu panel con un código QR, sin trabajo técnico.",
         },
         {
           aspecto: "Costo",
           otro: "Business gratis; la API se cobra por conversación.",
-          kora: "Incluido en el plan de $550 MXN/mes.",
+          kora: `Incluido en el plan de ${PLAN}/mes.`,
         },
       ],
     },
@@ -442,7 +451,7 @@ export const paginasWhatsApp: PaginaWhatsApp[] = [
       },
       {
         q: "¿Necesito un número distinto al personal?",
-        a: "Es lo recomendable: un número del hotel separado del personal. Si hoy usas el mismo, lo vemos en el arranque.",
+        a: "Es lo recomendable: un número del hotel separado del personal. Si hoy usas el mismo, escríbenos antes de vincularlo y lo vemos contigo.",
       },
     ],
     relacionados: [
@@ -520,7 +529,7 @@ export const paginasWhatsApp: PaginaWhatsApp[] = [
     cuerpo: [
       "Vale la pena decirlo claro: no son lo mismo y no compiten en todo. Una persona en recepción de noche hace cosas que ningún software hace —recibir a quien llega a la 1 de la mañana, resolver una fuga, estar presente si algo pasa—. Si tu hotel necesita eso, necesita a la persona.",
       "Lo que sí es comparable es la parte de mensajes. Ahí la pregunta es cuánto te cuesta cada canal de respuesta y qué tan bien responde.",
-      "Un turno nocturno en México, con prestaciones, es un gasto fijo mensual que para un hotel de 8 a 20 cuartos casi nunca se justifica sólo por contestar WhatsApp. Camila viene incluida en el plan de $550 MXN al mes junto con el resto del sistema.",
+      `Un turno nocturno en México, con prestaciones, es un gasto fijo mensual que para un hotel de 8 a 20 cuartos casi nunca se justifica sólo por contestar WhatsApp. Camila viene incluida en el plan de ${PLAN} al mes junto con el resto del sistema.`,
       "La otra diferencia es la consistencia. Una persona cansada a las 3 de la mañana da el precio de memoria y a veces se equivoca. El agente consulta el sistema cada vez y da el mismo total que cobrará el link de pago.",
     ],
     tabla: {
@@ -549,7 +558,7 @@ export const paginasWhatsApp: PaginaWhatsApp[] = [
         {
           aspecto: "Costo mensual",
           otro: "Sueldo más prestaciones.",
-          kora: "$550 MXN/mes, con todo el sistema incluido.",
+          kora: `${PLAN}/mes, con todo el sistema incluido.`,
         },
       ],
     },
@@ -612,13 +621,18 @@ export const paginasWhatsApp: PaginaWhatsApp[] = [
     resumen:
       "Los tres modelos de cobro del mercado y dónde están los costos escondidos.",
     respuesta:
-      "En México el rango va desde herramientas de respuestas automáticas gratuitas hasta plataformas de chatbot que cobran por conversación o por agente. El costo escondido está en la implementación y en las conversaciones facturadas por la API. En Kora, el agente viene incluido en el plan de $550 MXN al mes.",
+      `En México el rango va desde herramientas de respuestas automáticas gratuitas hasta plataformas de chatbot que cobran por conversación o por agente. El costo escondido está en la implementación y en las conversaciones facturadas por la API. En Kora, el agente viene incluido en el plan de ${PLAN} al mes.`,
     cuerpo: [
       "Cuando un hotelero pide cotización de \"un bot de WhatsApp\", recibe tres tipos de respuesta muy distintos y comparar se vuelve difícil.",
       "**Modelo 1 — gratis, pero de guion.** Las respuestas rápidas y el mensaje de ausencia de WhatsApp Business no cuestan nada. Tampoco resuelven nada más allá de avisar que no estás.",
       "**Modelo 2 — plataforma de chatbot.** Se cobra por mensaje, por conversación o por usuario, con una cuota mensual de plataforma. Se ve barato en la etiqueta y sube con el volumen. Y casi siempre hay que sumar la implementación: alguien tiene que escribir los flujos y conectarlos, y eso se cotiza aparte.",
       "**Modelo 3 — incluido en el sistema del hotel.** El agente es parte del software que ya opera tus reservas, así que no hay integración que pagar ni flujos que escribir: sabe de tu hotel porque vive en tu inventario.",
-      "Kora está en el tercero. El agente de WhatsApp viene dentro del plan único de $550 MXN al mes, junto con el motor de reservas, el PMS, el dashboard y el CRM. Sin costo por conversación, sin costo de implementación y sin permanencia.",
+      // 15 sep 2026: decía «Sin costo por conversación». Los mensajes de Camila
+      // se miden con un saldo prepago y las recargas se abren desde /crm con un
+      // botón: el día que se abran, esa frase queda falsa sin que nadie la
+      // revise. Se dice sólo lo cierto en cualquier fase del prepago (misma
+      // decisión que en app/whatsapp/page.tsx).
+      `Kora está en el tercero. El agente de WhatsApp viene dentro del plan único de ${PLAN} al mes, junto con el motor de reservas, el PMS, el dashboard y el CRM. Sin costo de implementación y sin permanencia.`,
     ],
     puntos: [
       {
@@ -640,15 +654,15 @@ export const paginasWhatsApp: PaginaWhatsApp[] = [
     faqs: [
       {
         q: "¿Kora cobra comisión por las reservas que cierra el agente?",
-        a: "No. El plan es de $550 MXN al mes y las reservas directas no pagan comisión a Kora. Sólo aplican las comisiones de la procesadora de pagos.",
+        a: `No. El plan es de ${PLAN} al mes y las reservas directas no pagan comisión a Kora. Sólo aplican las comisiones de la procesadora de pagos.`,
       },
       {
         q: "¿Hay costo de instalación?",
-        a: "No. El arranque llave en mano —cargar tu hotel, cuartos, fotos, tarifas y conectar el WhatsApp— está incluido.",
+        a: "No. Cargas tu hotel (cuartos, fotos y tarifas) y vinculas tu WhatsApp desde tu panel, sin costo aparte. Si prefieres que te acompañemos a dejarlo listo, te ayudamos por WhatsApp.",
       },
       {
         q: "¿Puedo probarlo antes de pagar?",
-        a: "Sí, hay 14 días gratis sin tarjeta.",
+        a: `Sí. Te registras y tienes ${GARANTIA.diasPrueba} días gratis, sin tarjeta, para probarlo con tu propio hotel, incluido un chat de prueba con Camila.`,
       },
     ],
     relacionados: [

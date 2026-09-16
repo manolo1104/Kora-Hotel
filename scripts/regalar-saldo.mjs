@@ -1,3 +1,14 @@
+// ⚠️ DESDE EL 15 SEP 2026 ESTO SE HACE DESDE EL CRM: /crm/prepago.
+//
+// Ahí están el ensayo, el regalo a todos con etiqueta y el botón «Hacer la
+// recarga de seguridad», y los interruptores del prepago ya no son
+// SALDO_RECARGA / SALDO_BLOQUEO en Vercel sino dos botones con candado (no deja
+// callar a Camila sin recargas abiertas ni sin la recarga de seguridad). El CRM
+// usa EXACTAMENTE el mismo `ref` que este script (`regalo-<etiqueta>`, tipo
+// `regalo`), así que un regalo hecho antes con el script cuenta allí y no se
+// repite. Este archivo se queda sólo como respaldo si el CRM no abre; los pasos
+// de abajo que hablan de las variables de entorno son la historia de cómo era.
+//
 // Regala saldo de arranque del bot de WhatsApp a los hoteles YA REGISTRADOS.
 //
 // SE CORRE UNA VEZ, Y ANTES DE ENCENDER EL BLOQUEO. Los hoteles que ya existen

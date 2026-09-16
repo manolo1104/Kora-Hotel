@@ -1,7 +1,7 @@
 import { createAdminClient, adminEnvReady } from "@/lib/supabase/admin";
 import type { PlanClave } from "@/lib/oferta";
 import { alertar } from "@/lib/alertas";
-import { inicioPruebaDelDueno } from "@/lib/db/prueba-dueno";
+import { anclaPruebaDelDueno } from "@/lib/db/prueba-dueno";
 
 // Estado de suscripción de un usuario. SOLO servidor (usa la service-role key).
 
@@ -129,6 +129,58 @@ export interface PruebaHotel {
   vencida: boolean;
 }
 
+const DIA_MS = 86_400_000;
+
+/** Tope de días extra, el mismo que el CHECK de `pruebas.dias_extra`. */
+const DIAS_EXTRA_MAX = 365;
+
+/** Días extra utilizables: enteros, de 0 a 365. Lo raro vale 0, nunca lanza. */
+function diasExtraValidos(diasExtra: number): number {
+  if (typeof diasExtra !== "number" || !Number.isFinite(diasExtra) || diasExtra <= 0) return 0;
+  return Math.min(DIAS_EXTRA_MAX, Math.floor(diasExtra));
+}
+
+/**
+ * El instante (ms) en que empezó la prueba: la fecha MÁS ANTIGUA entre el alta
+ * del hotel y el ancla del dueño, y nunca antes del lanzamiento de la prueba.
+ *
+ * El ancla es la primera vez que este DUEÑO dio de alta un hotel, no la de ESTE
+ * hotel. Anclarla al hotel hacía la prueba infinita: el panel deja borrarlo y
+ * volver a crearlo, y con eso arrancaban otros días gratis, una y otra vez. Se
+ * toma la MÁS ANTIGUA de las dos fechas, para que sembrar el ancla tarde nunca
+ * le quite días a nadie.
+ */
+export function inicioDePrueba(
+  createdAt?: string | null,
+  inicioDelDueno?: string | null,
+): number {
+  const creado = createdAt ? Date.parse(createdAt) : NaN;
+  const delDueno = inicioDelDueno ? Date.parse(inicioDelDueno) : NaN;
+  const fechas = [creado, delDueno].filter((n) => !Number.isNaN(n));
+  const base = fechas.length ? Math.min(...fechas) : NaN;
+  return Number.isNaN(base) ? LANZAMIENTO_PRUEBA : Math.max(base, LANZAMIENTO_PRUEBA);
+}
+
+/**
+ * Cuándo termina una prueba que empezó en `inicioMs` y tiene `diasExtra`.
+ *
+ * Es la MISMA cuenta que usa `pruebaDelHotel`, exportada para que el CRM pueda
+ * responder «si le doy N días, ¿hasta cuándo le llega?» sin copiar la regla (y
+ * sin olvidarse de que quien entró antes del 6 sep tiene 30 y no 14). Aplica el
+ * mínimo del lanzamiento, así que se le puede pasar tanto el inicio ya resuelto
+ * como el crudo de `pruebas.inicio`.
+ *
+ * Los días extra se SUMAN al final, nunca mueven el inicio: una prueba vencida
+ * hace 10 días con 14 extra queda con 4 por delante, no con 14. Quien quiera
+ * «N días desde hoy» calcula los extra con esta función.
+ */
+export function finDePrueba(inicioMs: number, diasExtra: number): Date {
+  const inicio = Number.isFinite(inicioMs) ? Math.max(inicioMs, LANZAMIENTO_PRUEBA) : LANZAMIENTO_PRUEBA;
+  // Los días se deciden por CUÁNDO empezó, no por cuándo se pregunta: quien
+  // entró con 30 los conserva hasta el final.
+  return new Date(inicio + (diasDePrueba(inicio) + diasExtraValidos(diasExtra)) * DIA_MS);
+}
+
 export function pruebaDelHotel(
   hotel: {
     created_at?: string | null;
@@ -140,26 +192,19 @@ export function pruebaDelHotel(
    * todo se comporta como siempre.
    */
   inicioDelDueno?: string | null,
+  /**
+   * Días que Kora le regaló a este dueño desde el CRM (`pruebas.dias_extra`).
+   * Se suman al final. Sin el dato, 0: la prueba dura lo de siempre.
+   */
+  diasExtra = 0,
 ): PruebaHotel | null {
   // El hotel de demostración nunca caduca.
   if ((hotel.extras as { demo?: boolean } | null)?.demo === true) return null;
-  const creado = hotel.created_at ? Date.parse(hotel.created_at) : NaN;
-  const delDueno = inicioDelDueno ? Date.parse(inicioDelDueno) : NaN;
-  // El ancla es la primera vez que este DUEÑO dio de alta un hotel, no la de
-  // ESTE hotel. Anclarla al hotel hacía la prueba infinita: el panel deja
-  // borrarlo y volver a crearlo, y con eso arrancaban otros días gratis, una y
-  // otra vez. Se toma la MÁS ANTIGUA de las dos fechas, para que sembrar el
-  // ancla tarde nunca le quite días a nadie.
-  const fechas = [creado, delDueno].filter((n) => !Number.isNaN(n));
-  const base = fechas.length ? Math.min(...fechas) : NaN;
-  const inicio = Number.isNaN(base) ? LANZAMIENTO_PRUEBA : Math.max(base, LANZAMIENTO_PRUEBA);
-  // Los días se deciden por CUÁNDO empezó, no por cuándo se pregunta: quien
-  // entró con 30 los conserva hasta el final.
-  const fin = new Date(inicio + diasDePrueba(inicio) * 86_400_000);
+  const fin = finDePrueba(inicioDePrueba(hotel.created_at, inicioDelDueno), diasExtra);
   const msRestantes = fin.getTime() - Date.now();
   return {
     fin,
-    diasRestantes: Math.max(0, Math.ceil(msRestantes / 86_400_000)),
+    diasRestantes: Math.max(0, Math.ceil(msRestantes / DIA_MS)),
     vencida: msRestantes <= 0,
   };
 }
@@ -310,8 +355,9 @@ export async function accesoDelHotel(hotel: {
 
   // El ancla de la prueba sólo se consulta AQUÍ, después de descartar que tenga
   // plan: a un cliente de pago esta lectura no le cuesta nada. Nunca lanza — si
-  // no se puede leer, se cae al `created_at` de siempre.
-  const prueba = pruebaDelHotel(hotel, await inicioPruebaDelDueno(hotel.owner_id));
+  // no se puede leer, se cae al `created_at` de siempre y sin días extra.
+  const ancla = await anclaPruebaDelDueno(hotel.owner_id);
+  const prueba = pruebaDelHotel(hotel, ancla.inicio, ancla.diasExtra);
   const activo = !prueba || !prueba.vencida;
   return {
     activo,

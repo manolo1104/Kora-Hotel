@@ -9,6 +9,25 @@
  */
 export const VENTANA_DIAS = 30;
 
+/**
+ * Días sin reservas a partir de los cuales un hotel que PAGA y ya vendía se
+ * marca en riesgo. La alerta vieja sólo miraba «0 reservas en total»: uno que
+ * vendía y lleva un mes callado no levantaba nada, y es la baja más fácil de ver
+ * venir. Dos semanas: menos es ruido de temporada baja. Vive aquí porque lo usan
+ * las alertas (servidor) y el filtro «En riesgo» de la tabla (cliente).
+ */
+export const DIAS_SIN_RESERVAS_PAGANDO = 14;
+
+/**
+ * La ficha de un hotel en el CRM. Vive aquí por lo mismo que VENTANA_DIAS: la
+ * usan el servidor (los enlaces de las alertas) y la tabla del panel, que es de
+ * cliente. Escrita una sola vez para que una alerta y la tabla no lleven a dos
+ * direcciones distintas del mismo hotel.
+ */
+export function rutaFichaHotel(slug: string): string {
+  return `/crm/hoteles/${encodeURIComponent(slug)}`;
+}
+
 export type Etapa =
   | "nuevo"
   | "contactado"

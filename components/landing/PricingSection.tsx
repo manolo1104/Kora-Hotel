@@ -4,7 +4,13 @@ import { Reveal } from "@/components/shared/Reveal";
 import { CountUp } from "@/components/shared/CountUp";
 import { GlowCard } from "@/components/shared/GlowCard";
 import { CtaLink } from "@/components/shared/CtaLink";
-import { PLANES, GARANTIA, FORECAST_DIAS } from "@/lib/oferta";
+import {
+  PLANES,
+  GARANTIA,
+  FORECAST_DIAS,
+  RUTA_ACTIVAR,
+  RUTA_REGISTRO,
+} from "@/lib/oferta";
 
 // Lo que incluye el sitio web profesional que construimos (el gancho gratis).
 const incluyeWeb = [
@@ -32,9 +38,9 @@ const featuresKora = [
 const garantias = [
   {
     icon: ShieldCheck,
-    titulo: "14 días gratis, sin tarjeta",
+    titulo: `${GARANTIA.diasPrueba} días gratis, sin tarjeta`,
     texto:
-      "Carga tu hotel y usa Kora completo dos semanas sin dar ningún dato de pago. Activas tu plan solo si te convence.",
+      "Creas tu cuenta, cargas tu hotel y usas Kora completo sin dar ningún dato de pago. Activas tu plan solo si te convence.",
   },
   {
     icon: BadgeCheck,
@@ -53,27 +59,40 @@ const garantias = [
   },
 ];
 
-// Arranque "llave en mano": lo que va GRATIS con el plan.
+// Lo que ya viene listo al cargar tu hotel.
 //
-// ⚠️ LOS IMPORTES NO SE PINTAN TACHADOS. Un precio tachado afirma, en México y
-// ante la PROFECO, que ESE precio se cobró antes (LFPC art. 32 y NOM-029-SCFI:
-// el "precio anterior" tiene que haber sido real). Kora nunca ha cobrado $8,000
-// por montar un hotel: el arranque siempre fue gratis, así que el tachado
-// inventaba un descuento que no existió. Los números sí son defendibles como
-// VALOR DE MERCADO —lo que cuesta contratar cada cosa por separado— y así es
-// como se presentan ahora.
-const arranque = [
-  { titulo: "Arranque Llave en Mano (24 h)", detalle: "Cargamos cuartos, fotos, tarifas y tu motor", valor: 8000 },
-  { titulo: "Tu página de reservas lista", detalle: "Motor embebido en una página con tu marca", valor: 6000 },
-  { titulo: "Camila entrenada con tu hotel", detalle: "Tus precios, políticas y respuestas", valor: 4000 },
-  // RETIRADA el 2 sep 2026: "Migración + sync Booking/Expedia · $2,500". Se
-  // cobraba como valor un servicio cuya pestaña salió del panel el 26 de agosto
-  // (CANALES_OTA_DISPONIBLES = false). El total del arranque baja de $23,500 a
-  // $21,000 solo, porque `arranqueTotal` se suma abajo. Vuelve el día que exista
-  // el channel manager — y entonces con la cifra que valga entonces.
-  { titulo: "2 meses de acompañamiento 1-a-1", detalle: "Con el equipo fundador", valor: 3000 },
+// 🔴 AQUÍ HABÍA UN «ARRANQUE LLAVE EN MANO» y se quitó el 15 sep 2026. Vendía
+// como regalo con valor de mercado cuatro servicios hechos a mano —«Arranque
+// Llave en Mano (24 h) · Cargamos cuartos, fotos, tarifas y tu motor · ~$8,000»,
+// «Camila entrenada con tu hotel · ~$4,000», «2 meses de acompañamiento 1-a-1»—
+// con un total de ~$21,000 «Contigo: gratis». Ese día Manolo decidió que el alta
+// es por cuenta propia («lo configuras tú y te ayudamos si quieres»): Kora ya no
+// promete montar cada hotel, así que anunciar ese valor sería vender un servicio
+// que no se va a dar. (Antes, el 2 sep, ya se había retirado de la misma lista
+// «Migración + sync Booking/Expedia», que tampoco existe.)
+//
+// Lo que queda es lo que el propio producto deja listo al cargar el hotel, SIN
+// importes: no hay nada que tasar, porque no es un servicio aparte. Y los
+// importes no vuelven tachados nunca (LFPC art. 32 y NOM-029-SCFI: un precio
+// tachado afirma que ese precio se cobró antes).
+const listoAlCargar = [
+  {
+    titulo: "Tu página de reservas con tu motor",
+    detalle: "Se crea al cargar tu hotel, con tus habitaciones y tarifas",
+  },
+  {
+    titulo: "Camila con los datos de tu hotel",
+    detalle: "La pruebas en el chat de prueba antes de vincular tu WhatsApp",
+  },
+  {
+    titulo: "Tu panel de reservas, calendario y clientes",
+    detalle: "Listo para registrar reservas desde el primer día",
+  },
+  {
+    titulo: "Ayuda del equipo fundador, si la pides",
+    detalle: "Por WhatsApp, cuando te atores o prefieras que te acompañemos",
+  },
 ];
-const arranqueTotal = arranque.reduce((s, b) => s + b.valor, 0);
 
 // Plan único (fuente única: lib/oferta.ts): todo incluido, sin límite de
 // habitaciones.
@@ -98,13 +117,16 @@ export function PricingSection() {
               </span>
             </p>
             <p className="mt-2 text-sm text-kora-muted">
-              Pruébalo 14 días gratis, <span className="font-semibold text-kora-text">sin tarjeta</span>:
-              cargas tu hotel y lo usas todo. Activas tu plan solo si te convence.
+              Crea tu cuenta y pruébalo {GARANTIA.diasPrueba} días gratis,{" "}
+              <span className="font-semibold text-kora-text">sin tarjeta</span>:
+              cargas tu hotel y lo pruebas por dentro. Activas tu plan solo si te convence.
             </p>
-            {/* Urgencia REAL (capacidad de acompañamiento, no falso countdown) */}
+            {/* Decía «Solo tomamos 5 hoteles nuevos al mes: montamos cada uno a
+                mano». Desde el 15 sep 2026 el alta es libre y por cuenta propia,
+                así que ese cupo era una urgencia falsa. Ahora dice cómo se empieza. */}
             <p className="mt-4 inline-flex items-center gap-2 rounded-full bg-kora-accent/15 px-4 py-2 text-xs font-semibold text-kora-primary">
-              <span className="w-1.5 h-1.5 rounded-full bg-kora-accent animate-pulse" aria-hidden="true" />
-              Solo tomamos 5 hoteles nuevos al mes: montamos cada uno a mano
+              <span className="w-1.5 h-1.5 rounded-full bg-kora-accent" aria-hidden="true" />
+              Lo configuras tú desde tu panel · te ayudamos si quieres
             </p>
           </div>
         </Reveal>
@@ -157,50 +179,39 @@ export function PricingSection() {
           </div>
         </Reveal>
 
-        {/* Arranque Reservas Directas: el stack de valor que va GRATIS con el plan */}
+        {/* Lo que el producto deja listo al cargar el hotel (sin importes) */}
         <Reveal delay={0.12}>
           <div className="max-w-2xl mx-auto mb-8 rounded-3xl border-2 border-kora-primary/15 bg-white p-6 sm:p-8">
             <div className="text-center mb-5">
               <span className="inline-flex items-center px-3 py-1 rounded-full bg-kora-primary/8 text-kora-primary text-xs font-bold">
-                Arranque Reservas Directas · llave en mano
+                Incluido desde tu prueba gratis
               </span>
               <p className="mt-3 text-sm text-kora-muted">
-                Al activar tu plan, montamos todo por ti. Estos servicios de
-                arranque van{" "}
-                <span className="font-semibold text-kora-text">incluidos gratis</span>{" "}
-                — al lado de cada uno, lo que costaría contratarlo aparte:
+                Creas tu cuenta, cargas tu hotel y esto queda listo para que lo
+                pruebes por dentro:
               </p>
             </div>
             <ul className="divide-y divide-gray-100">
-              {arranque.map((b) => (
-                <li key={b.titulo} className="flex items-baseline justify-between gap-3 py-3">
-                  <div className="flex items-start gap-2.5">
-                    <CheckCircle2 size={16} className="flex-shrink-0 text-kora-accent mt-1" aria-hidden="true" />
-                    <div>
-                      <p className="text-sm font-semibold text-kora-text">{b.titulo}</p>
-                      <p className="text-xs text-kora-muted">{b.detalle}</p>
-                    </div>
+              {listoAlCargar.map((b) => (
+                <li key={b.titulo} className="flex items-start gap-2.5 py-3">
+                  <CheckCircle2 size={16} className="flex-shrink-0 text-kora-accent mt-1" aria-hidden="true" />
+                  <div>
+                    <p className="text-sm font-semibold text-kora-text">{b.titulo}</p>
+                    <p className="text-xs text-kora-muted">{b.detalle}</p>
                   </div>
-                  <span className="text-sm font-semibold text-kora-muted tabular-nums whitespace-nowrap">
-                    ~${b.valor.toLocaleString("es-MX")}
-                  </span>
                 </li>
               ))}
             </ul>
-            <div className="mt-4 flex items-center justify-between rounded-2xl bg-kora-primary px-5 py-4 text-white">
-              <span className="text-sm">
-                Contratado por separado:{" "}
-                <span className="font-semibold text-white/80">
-                  ~${arranqueTotal.toLocaleString("es-MX")}
-                </span>
-              </span>
-              <span className="text-lg font-bold text-kora-accent">Contigo: gratis</span>
+            <div className="mt-5 text-center">
+              <CtaLink
+                href={RUTA_REGISTRO}
+                ctaName="precios_incluido_onboarding"
+                className="btn-press btn-arrow inline-flex items-center gap-1.5 text-sm font-bold text-kora-primary underline decoration-kora-accent underline-offset-4 hover:text-kora-primary-dark transition-colors"
+              >
+                Crear mi cuenta y probarlo
+                <ArrowRight size={14} aria-hidden="true" />
+              </CtaLink>
             </div>
-            <p className="mt-2 text-center text-[11px] text-kora-muted">
-              Los importes son lo que cuesta contratar cada servicio por su
-              cuenta, no un precio que Kora haya cobrado antes: el arranque
-              siempre ha ido incluido.
-            </p>
           </div>
         </Reveal>
 
@@ -315,7 +326,7 @@ export function PricingSection() {
                 </ul>
 
                 <CtaLink
-                  href="/panel/onboarding"
+                  href={RUTA_REGISTRO}
                   ctaName="precios_onboarding"
                   className={`btn-press btn-arrow mt-8 flex items-center justify-center gap-2 w-full py-3.5 rounded-full font-bold text-sm transition-colors text-center ${
                     plan.destacado
@@ -323,10 +334,10 @@ export function PricingSection() {
                       : "border-2 border-kora-primary text-kora-primary hover:bg-kora-primary hover:text-white"
                   }`}
                 >
-                  Empezar gratis — sin tarjeta
+                  Crear mi cuenta gratis
                 </CtaLink>
                 <p className="mt-2 text-center text-[11px] text-kora-muted">
-                  14 días completos · cancelas tú mismo en un clic, desde tu panel
+                  {GARANTIA.diasPrueba} días gratis, sin tarjeta · activas tu plan solo si te convence
                 </p>
                 {/* Social proof real: el sistema opera un hotel de verdad hoy */}
                 <p className="mt-3 text-center text-[11px] text-kora-muted">
@@ -339,11 +350,11 @@ export function PricingSection() {
                   </Link>
                 </p>
                 <CtaLink
-                  href={`/pago/iniciar?plan=${plan.clave}`}
+                  href={RUTA_ACTIVAR}
                   ctaName="precios_pago"
                   className="btn-press btn-arrow mt-2 flex items-center justify-center gap-1.5 text-center text-xs font-semibold text-kora-primary underline decoration-kora-accent underline-offset-2 hover:text-kora-primary-dark transition-colors"
                 >
-                  ¿Ya lo probaste? Activa tu plan de una vez
+                  ¿Ya lo probaste? Activa tu plan
                   <ArrowRight size={13} aria-hidden="true" />
                 </CtaLink>
               </GlowCard>
@@ -387,7 +398,7 @@ export function PricingSection() {
           <p className="mt-6 text-center text-xs text-kora-muted">
             Plan mes a mes, sin permanencia: cancelas cuando quieras y exportas
             tus datos. El sitio web es un servicio aparte (cotización
-            personalizada). ¿No sabes tu tamaño? Te ayudamos a elegir.
+            personalizada).
           </p>
         </Reveal>
       </div>

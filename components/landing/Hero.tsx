@@ -10,15 +10,19 @@ import {
 } from "motion/react";
 import { ArrowRight, Gift } from "lucide-react";
 import { WhatsAppMockup } from "@/components/landing/ProductMockups";
+import { CtaLink } from "@/components/shared/CtaLink";
 import { trackCta } from "@/lib/analytics";
+import { GARANTIA, PRECIO_DESDE, RUTA_ACTIVAR, RUTA_REGISTRO } from "@/lib/oferta";
 
 const EASE = [0.23, 1, 0.32, 1] as const;
 
-// Los 4 datos que el hotelero necesita para decidir, sin scrollear.
+// Los 4 datos que el hotelero necesita para decidir, sin scrollear. El precio y
+// los días salen de lib/oferta.ts: aquí estuvieron escritos a mano y son justo
+// los dos números que más cambian.
 const DATOS_CLAVE = [
-  { label: "Precio mensual", valor: "$550", nota: "MXN/mes, todo incluido" },
+  { label: "Precio mensual", valor: `$${PRECIO_DESDE.toLocaleString("es-MX")}`, nota: "MXN/mes, todo incluido" },
   { label: "Comisión por reserva", valor: "0%", nota: "comisión por reserva" },
-  { label: "Prueba gratis", valor: "14 días", nota: "gratis, sin tarjeta" },
+  { label: "Prueba gratis", valor: `${GARANTIA.diasPrueba} días`, nota: "gratis, sin tarjeta" },
   { label: "Habitaciones", valor: "Ilimitadas", nota: "habitaciones, un solo plan" },
 ];
 
@@ -115,19 +119,22 @@ export function Hero() {
               <motion.p {...item(0.12)} className="text-base sm:text-lg text-kora-muted leading-relaxed max-w-[52ch]">
                 Camila contesta en segundos a cualquier hora: consulta tu
                 disponibilidad real, da el precio exacto y manda el link de pago.
-                Con motor de reservas 0% comisión, PMS y CRM incluidos, montado
-                en 24 horas.
+                Con motor de reservas 0% comisión, PMS y CRM incluidos. Crea tu
+                cuenta, carga tu hotel y pruébalo por dentro.
               </motion.p>
 
               <motion.div {...item(0.2)} className="flex flex-col sm:flex-row gap-3">
-                <a
-                  href="/panel/onboarding"
-                  onClick={() => trackCta("hero_onboarding")}
+                {/* Decisión de Manolo (15 sep 2026): el botón principal es crear la
+                    cuenta. Decía «Empezar gratis», que no dejaba claro que hay
+                    que registrarse para probar. */}
+                <CtaLink
+                  href={RUTA_REGISTRO}
+                  ctaName="hero_onboarding"
                   className="btn-press btn-arrow btn-fill inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-kora-accent text-kora-primary font-semibold text-sm hover:bg-kora-accent-dark transition-colors"
                 >
-                  Empezar gratis — sin tarjeta
-                  <ArrowRight size={16} />
-                </a>
+                  Crear cuenta y probar {GARANTIA.diasPrueba} días gratis
+                  <ArrowRight size={16} aria-hidden="true" />
+                </CtaLink>
                 <a
                   href="#demo-motor"
                   className="btn-press inline-flex items-center justify-center px-6 py-3.5 rounded-full border-2 border-kora-primary text-kora-primary font-semibold text-sm hover:bg-kora-primary hover:text-white transition-colors"
@@ -139,7 +146,7 @@ export function Hero() {
               {/* El que llega decidido puede activar su plan de una vez */}
               <motion.a
                 {...item(0.22)}
-                href="/pago/iniciar?plan=kora"
+                href={RUTA_ACTIVAR}
                 onClick={() => trackCta("hero_pago")}
                 className="btn-press btn-arrow inline-flex items-center gap-1.5 text-sm font-semibold text-kora-primary hover:text-kora-primary-dark transition-colors"
               >

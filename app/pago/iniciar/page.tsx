@@ -42,6 +42,12 @@ function Iniciar() {
         const data = await res.json().catch(() => ({}));
         if (!activo) return;
         if (res.status === 401) {
+          // Sin `registro=1` A PROPÓSITO, aunque /entrar ya lo sabe leer.
+          // A esta pantalla no llega sólo quien viene de la web: los correos de
+          // recordatorio y de prueba vencida traen aquí a hoteleros que YA
+          // tienen cuenta y abren el enlace en un navegador sin sesión. Abrirles
+          // «Crear mi cuenta» los mandaría a registrarse otra vez con el mismo
+          // correo. Debajo del formulario sigue estando «Crear una gratis».
           router.replace(`/entrar?plan=${encodeURIComponent(plan)}`);
           return;
         }

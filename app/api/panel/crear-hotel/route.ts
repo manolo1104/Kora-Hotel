@@ -7,7 +7,7 @@ import { sendBienvenidaHotel } from "@/lib/email/prueba";
 import { emailHotelNuevo } from "@/lib/email/templates";
 import { alcanzoTopeDeHoteles, MAX_HOTELES_POR_CUENTA, getHotelesDelUsuario } from "@/lib/tenant";
 import { sembrarInicioPrueba } from "@/lib/db/prueba-dueno";
-import { bloqueoDelHotel } from "@/lib/suscripcion";
+import { accesoDelHotel, bloqueoDelHotel } from "@/lib/suscripcion";
 import { acreditarMensajes } from "@/lib/db/saldo";
 import { REGALO_BIENVENIDA } from "@/lib/saldo/paquetes";
 
@@ -261,11 +261,23 @@ export async function POST(req: Request) {
   // congela la función en cuanto respondemos y la petición a Resend se queda a
   // medias. Así se perdieron los avisos de los dos hoteles del 22/08/2026 —
   // el del 19/08 sí salió, porque es una carrera que a veces se gana.
+  //
+  // Los días que promete salen de la MISMA cuenta que aplica el panel. Antes no
+  // se pasaban y el correo caía a un 30 escrito a mano: decía «30 días gratis»
+  // a quien tenía 14. Tampoco basta con `PRUEBA_DIAS` a secas: la prueba es del
+  // DUEÑO, así que quien borra su hotel y lo vuelve a crear no estrena días, y
+  // quien tiene plan o cortesía no está en prueba. `accesoDelHotel` nunca lanza.
   if (user.email) {
+    const acceso = await accesoDelHotel({
+      owner_id: user.id,
+      created_at: new Date().toISOString(),
+      extras: null,
+    });
     await sendBienvenidaHotel(user.email, {
       hotelNombre: (body.nombre || "").trim() || creado.slug,
       slug: creado.slug,
       nombreUsuario: usuario,
+      diasPrueba: acceso.prueba ? acceso.prueba.diasRestantes : null,
     }).catch((e) => console.error("[panel/crear-hotel] ignorado:", e));
   }
 

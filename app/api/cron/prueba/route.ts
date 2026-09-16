@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { createAdminClient, adminEnvReady } from "@/lib/supabase/admin";
 import { pruebaDelHotel, tienePlanActivo, bloqueoDelHotel, type Suscripcion } from "@/lib/suscripcion";
 import { escribirMejorEsfuerzo } from "@/lib/db/result";
-import { iniciosPruebaDeDuenos } from "@/lib/db/prueba-dueno";
+import { anclasPruebaDeDuenos } from "@/lib/db/prueba-dueno";
 import { resolveHotelAvisoEmail } from "@/lib/email/reserva";
 import { sendRecordatorioPrueba, sendPruebaPausada } from "@/lib/email/prueba";
 
@@ -66,8 +66,10 @@ export async function GET(req: Request) {
 
   // Los anclajes de la prueba, de una sola consulta para todos los dueños: sin
   // ellos este cron le mandaría "te quedan 10 días" a quien borró y recreó su
-  // hotel, contradiciendo lo que el panel y el motor ya le dicen.
-  const inicios = await iniciosPruebaDeDuenos(
+  // hotel, contradiciendo lo que el panel y el motor ya le dicen. Traen también
+  // los días extra que Kora regaló desde el CRM: sin ellos, a quien se le alargó
+  // la prueba le llegaría «tu motor está pausado» con el motor encendido.
+  const anclas = await anclasPruebaDeDuenos(
     ((hoteles ?? []) as Array<{ owner_id?: string }>).map((h) => h.owner_id ?? ""),
   );
 
@@ -87,7 +89,8 @@ export async function GET(req: Request) {
     // quien tenemos apagado a propósito es, según por qué se bloqueó, desde
     // ridículo hasta ofensivo.
     if (bloqueoDelHotel(hotel.extras)) continue;
-    const prueba = pruebaDelHotel(hotel, inicios.get(hotel.owner_id) ?? null);
+    const ancla = anclas.get(hotel.owner_id);
+    const prueba = pruebaDelHotel(hotel, ancla?.inicio ?? null, ancla?.diasExtra ?? 0);
     if (!prueba) continue; // demo
 
     const esRecordatorio = !prueba.vencida && DIAS_RECORDATORIO.has(prueba.diasRestantes);

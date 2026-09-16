@@ -5,7 +5,12 @@ import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import { Menu, X } from "lucide-react";
 import { trackCta } from "@/lib/analytics";
-// La urgencia del sitio se basa en cupos de implementación al mes (capacidad real).
+import { CtaLink } from "@/components/shared/CtaLink";
+import { GARANTIA, RUTA_REGISTRO } from "@/lib/oferta";
+
+// El botón de la barra es el registro (decisión de Manolo, 15 sep 2026). Decía
+// «Empezar gratis», que no dejaba claro que para probar hay que crear la cuenta.
+const TEXTO_REGISTRO = "Crear cuenta gratis";
 
 const EASE = [0.23, 1, 0.32, 1] as const;
 
@@ -79,7 +84,7 @@ export function Navbar() {
           {/* Prueba gratis: gancho honesto y consistente con el alta self-service */}
           <span className="hidden lg:inline-flex items-center gap-1.5 text-[11px] font-semibold text-kora-primary">
             <span className="w-1.5 h-1.5 rounded-full bg-kora-accent animate-pulse" aria-hidden="true" />
-            14 días gratis
+            {GARANTIA.diasPrueba} días gratis
           </span>
           <a
             href="/entrar"
@@ -87,13 +92,13 @@ export function Navbar() {
           >
             Iniciar sesión
           </a>
-          <a
-            href="/panel/onboarding"
-            onClick={() => trackCta("nav_onboarding")}
+          <CtaLink
+            href={RUTA_REGISTRO}
+            ctaName="nav_onboarding"
             className="btn-press btn-arrow btn-fill inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-kora-primary text-white text-sm font-semibold hover:bg-kora-primary-dark transition-colors"
           >
-            Empezar gratis
-          </a>
+            {TEXTO_REGISTRO}
+          </CtaLink>
         </div>
 
         <button
@@ -164,7 +169,7 @@ export function Navbar() {
                 Iniciar sesión
               </motion.a>
               <motion.a
-                href="/panel/onboarding"
+                href={RUTA_REGISTRO}
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.22, delay: 0.05 + (navLinks.length + 1) * 0.06, ease: EASE }}
@@ -174,8 +179,11 @@ export function Navbar() {
                   setMenuOpen(false);
                 }}
               >
-                Empezar gratis
+                {TEXTO_REGISTRO}
               </motion.a>
+              <p className="mt-2 text-center text-[11px] text-kora-muted">
+                {GARANTIA.diasPrueba} días gratis, sin tarjeta
+              </p>
             </div>
           </motion.div>
         )}

@@ -3,7 +3,9 @@ import Link from "next/link";
 import { ArrowRight, LifeBuoy } from "lucide-react";
 import { Reveal } from "@/components/shared/Reveal";
 import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
+import { CtaLink } from "@/components/shared/CtaLink";
 import { AYUDA } from "@/lib/ayuda";
+import { GARANTIA, RUTA_REGISTRO } from "@/lib/oferta";
 
 export const metadata: Metadata = {
   title: "Centro de ayuda | Kora",
@@ -71,6 +73,30 @@ export default function AyudaPage() {
               </Reveal>
             ))}
           </div>
+
+          {/* El centro de ayuda no tenía ninguna salida al registro: quien
+              llega con dudas antes de probar se iba sin saber que puede crear
+              su cuenta y verlo por dentro (el camino principal del sitio desde
+              el 15 sep 2026). */}
+          <Reveal delay={0.1}>
+            <div className="mt-10 rounded-2xl bg-kora-primary p-6 sm:p-8 text-center">
+              <p className="text-lg font-bold text-white">
+                ¿Aún no tienes cuenta?
+              </p>
+              <p className="mt-2 text-sm text-white/75 leading-relaxed">
+                Créala gratis, carga tu hotel y pruébalo por dentro.{" "}
+                {GARANTIA.diasPrueba} días gratis, sin tarjeta.
+              </p>
+              <CtaLink
+                href={RUTA_REGISTRO}
+                ctaName="ayuda_registro"
+                className="btn-press btn-arrow btn-fill mt-5 inline-flex items-center gap-2 px-6 py-3.5 rounded-full bg-kora-accent text-kora-primary font-bold text-sm hover:bg-kora-accent-dark transition-colors"
+              >
+                Crear mi cuenta gratis
+                <ArrowRight size={16} aria-hidden="true" />
+              </CtaLink>
+            </div>
+          </Reveal>
         </div>
       </section>
     </main>

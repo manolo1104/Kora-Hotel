@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { articles, extractHeadings } from "@/lib/articles";
+import { articles, extractHeadings, ctaDeArticuloAlRegistro } from "@/lib/articles";
 import { getArticleBySlug, getAllArticles } from "@/lib/blog-db";
 import { SuscripcionInline } from "@/components/shared/SuscripcionInline";
 import { FUNDADOR } from "@/lib/fundador";
@@ -9,6 +9,8 @@ import { ShareButtons } from "@/components/blog/ShareButtons";
 import { CoverImage } from "@/components/blog/CoverImage";
 import { JsonLd } from "@/components/shared/JsonLd";
 import { sanitizarHtmlArticulo } from "@/lib/sanitizar-html";
+import { CtaLink } from "@/components/shared/CtaLink";
+import { GARANTIA, RUTA_REGISTRO } from "@/lib/oferta";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -27,9 +29,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const article = await getArticleBySlug(slug);
   if (!article) return { title: "Artículo no encontrado — Kora" };
 
+  // El título para Google manda sobre el de la página, y sin el sufijo
+  // «— Blog Kora»: con títulos de 88 caracteres, ese sufijo era justo lo que
+  // empujaba la cifra fuera de lo que el buscador alcanza a enseñar (~60).
   return {
-    title: `${article.title} — Blog Kora`,
-    description: article.excerpt,
+    title: article.metaTitle ?? `${article.title} — Blog Kora`,
+    description: article.metaDescription ?? article.excerpt,
     alternates: {
       canonical: `/blog/${article.slug}`,
     },
@@ -80,7 +85,11 @@ export default async function BlogArticlePage({ params }: Props) {
   // además busca en la web, y de ahí sale a esta página con
   // `dangerouslySetInnerHTML`. Se limpia ANTES de partirlo, para que la limpieza
   // vea el HTML entero y no dos mitades con etiquetas abiertas.
-  const contenido = sanitizarHtmlArticulo(article.content);
+  //
+  // Después de limpiar se corrige el bloque CTA: los artículos del agente que ya
+  // están en la base prometen «30 días» y llevan a /#contacto (ver
+  // `ctaDeArticuloAlRegistro`). Va después porque sólo mete texto fijo nuestro.
+  const contenido = ctaDeArticuloAlRegistro(sanitizarHtmlArticulo(article.content));
   const headings = extractHeadings(contenido);
   const [cuerpoA, cuerpoB] = partirEnDos(contenido);
   const todos = await getAllArticles();
@@ -286,20 +295,26 @@ export default async function BlogArticlePage({ params }: Props) {
                 </div>
               </div>
 
-              {/* CTA block */}
+              {/* CTA block
+                  Decía «Te mostramos el sistema en 20 minutos… Solicitar mi
+                  lugar» y llevaba a /contacto. Desde el 15 sep 2026 el camino de
+                  todo el sitio es registrarse y probarlo con tu propio hotel. */}
               <div className="mt-10 bg-kora-primary rounded-2xl p-7 sm:p-9 text-center">
                 <h2 className="font-bold text-white text-xl sm:text-2xl tracking-tight mb-3">
                   ¿Quieres aplicarlo en tu hotel?
                 </h2>
                 <p className="text-white/70 text-sm leading-relaxed mb-7 max-w-md mx-auto">
-                  Te mostramos el sistema completo en 20 minutos, con tus números reales y configurado para tu tipo de hotel.
+                  Crea tu cuenta, carga tu hotel y pruébalo por dentro con tus
+                  cuartos y tus tarifas. Tienes {GARANTIA.diasPrueba} días gratis,
+                  sin tarjeta.
                 </p>
-                <Link
-                  href="/contacto"
+                <CtaLink
+                  href={RUTA_REGISTRO}
+                  ctaName="blog_articulo_registro"
                   className="btn-press btn-arrow btn-fill inline-flex items-center gap-2 px-7 py-3.5 rounded-full bg-kora-accent text-kora-primary font-bold text-sm hover:bg-kora-accent-dark transition-colors"
                 >
-                  Solicitar mi lugar →
-                </Link>
+                  Pruébalo gratis →
+                </CtaLink>
               </div>
 
               {/* Related articles */}
@@ -370,14 +385,16 @@ export default async function BlogArticlePage({ params }: Props) {
                     ¿Tu hotel necesita esto?
                   </p>
                   <p className="text-white/60 text-xs leading-relaxed mb-4">
-                    Demo de 20 min, sin costo, con tus números reales.
+                    Pruébalo con tu hotel: {GARANTIA.diasPrueba} días gratis, sin
+                    tarjeta.
                   </p>
-                  <Link
-                    href="/contacto"
+                  <CtaLink
+                    href={RUTA_REGISTRO}
+                    ctaName="blog_lateral_registro"
                     className="btn-press btn-fill inline-flex items-center justify-center w-full px-4 py-2.5 rounded-xl bg-kora-accent text-kora-primary font-bold text-xs hover:bg-kora-accent-dark transition-colors"
                   >
-                    Solicitar demo →
-                  </Link>
+                    Pruébalo gratis →
+                  </CtaLink>
                 </div>
               </div>
             </aside>

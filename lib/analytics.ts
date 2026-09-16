@@ -69,5 +69,25 @@ export function trackBeginCheckout(plan: string, value: number) {
  */
 export function trackSuscripcion(origen: string) {
   if (typeof window === "undefined" || typeof window.gtag !== "function") return;
-  window.gtag("event", "sign_up", { method: "guia", origen });
+  // 🔴 SE LLAMABA `sign_up`, que en GA4 es el evento estándar de «se creó una
+  // cuenta». Con ese nombre, los suscriptores de la guía (7 en 30 días) se
+  // contaban como hoteles registrados, y era el único dato del panel capaz de
+  // mentir en la dirección que más ilusión hace. El alta de cuenta de verdad es
+  // `registro_cuenta`, abajo.
+  window.gtag("event", "suscripcion_guia", { method: "guia", origen });
+}
+
+/**
+ * Se creó una cuenta de Kora. Es el evento que faltaba: hasta el 15 sep 2026
+ * `supabase.auth.signUp()` no disparaba NADA, así que no se podía responder «¿de
+ * dónde salieron los registros?» — ni para Google, ni para un artículo, ni para
+ * una campaña. Sin esto, toda la estrategia de captación se dirige a ciegas.
+ *
+ * `estado` distingue los dos finales posibles del alta, porque no son lo mismo:
+ * `sesion` = entró directo; `pendiente` = le toca confirmar su correo (y ahí se
+ * pierde gente, sobre todo con el tope de 2 correos por hora de Supabase).
+ */
+export function trackRegistro(estado: "sesion" | "pendiente") {
+  if (typeof window === "undefined" || typeof window.gtag !== "function") return;
+  window.gtag("event", "registro_cuenta", { method: "correo", estado });
 }

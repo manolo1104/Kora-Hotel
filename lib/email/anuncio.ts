@@ -10,13 +10,19 @@
 //    que paga a la página de precios es de las cosas que hacen que dejen de
 //    abrirte los correos.
 //  - SUSCRIPTOR de la lista de captación (con `token`): todavía no tiene hotel
-//    en Kora. Botón a precios, y pie con BAJA DE UN CLIC — eso sí es comercial,
-//    y quien envía tiene que añadir además las cabeceras con `cabecerasBaja`.
+//    en Kora. Botón al REGISTRO, y pie con BAJA DE UN CLIC — eso sí es
+//    comercial, y quien envía tiene que añadir además las cabeceras con
+//    `cabecerasBaja`. (Hasta el 15 sep 2026 el botón decía «Ver Kora» y llevaba
+//    a /precios: le pedía leer una tabla de precios a quien todavía no ha visto
+//    el producto. Desde esa fecha el camino principal de todo Kora es crear la
+//    cuenta y probarlo por dentro — decisión de Manolo.)
 //
 // Todo con las piezas de lib/email/design.ts, como el resto de los 29 correos.
 
 import { doc, cabecera, titulo, saludo, parrafo, boton, lista, pieKora, esc } from "@/lib/email/design";
 import { pieConBaja } from "@/lib/email/guia";
+import { URL_REGISTRO_CORREO } from "@/lib/email/templates";
+import { GARANTIA } from "@/lib/oferta";
 
 const SITE = (process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com").replace(/\/$/, "");
 
@@ -70,10 +76,11 @@ export function emailAnuncio({ nombre, token }: DatosAnuncio): { subject: string
     ) +
     // El cierre cambia según a quién le llegue, porque el siguiente paso no es
     // el mismo: al hotelero se le manda a SU panel, donde esto ya está; al que
-    // sólo descargó la guía, a ver qué es Kora. Mandar a un cliente que ya paga
-    // a la página de precios es de las cosas que hacen que dejen de abrirte.
+    // sólo descargó la guía, a crear su cuenta y verlo con su propio hotel.
+    // Mandar a un cliente que ya paga a la página de precios (o a registrarse)
+    // es de las cosas que hacen que dejen de abrirte.
     (token
-      ? boton(`${SITE}/precios`, "Ver Kora") +
+      ? boton(URL_REGISTRO_CORREO, `Probarlo ${GARANTIA.diasPrueba} días gratis`) +
         parrafo(
           esc("Si ya tienes tu hotel en Kora, todo esto ya está en tu panel: no hay nada que instalar."),
           "padding-bottom:8px;",

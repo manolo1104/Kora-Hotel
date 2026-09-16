@@ -18,16 +18,21 @@ import { FAQSection } from "@/components/landing/FAQSection";
 import { FundadorSection } from "@/components/landing/FundadorSection";
 import { ContactForm } from "@/components/landing/ContactForm";
 import { JsonLd } from "@/components/shared/JsonLd";
-import { FORECAST_DIAS } from "@/lib/oferta";
+import { FORECAST_DIAS, GARANTIA, PRECIO_DESDE } from "@/lib/oferta";
+
+const PRECIO = PRECIO_DESDE.toLocaleString("es-MX");
+
+// La descripción que ven Google y WhatsApp. Estaba escrita tres veces a mano con
+// el precio dentro; ahora sale de las constantes y dice cómo se empieza: creando
+// la cuenta y probando Kora por dentro (decisión de Manolo, 15 sep 2026).
+const DESCRIPCION = `WhatsApp contestado 24/7 con IA que cotiza con disponibilidad real y cobra, más reservas directas 0% comisión y todo tu hotel en una pantalla. Crea tu cuenta y pruébalo gratis ${GARANTIA.diasPrueba} días, sin tarjeta. Después, $${PRECIO} MXN/mes, sin permanencia.`;
 
 export const metadata: Metadata = {
   title: "Kora — Sistema hotelero con IA para hoteles en México",
-  description:
-    "WhatsApp contestado 24/7 con IA que cotiza con disponibilidad real y cobra, más reservas directas 0% comisión y todo tu hotel en una pantalla. $550 MXN/mes, habitaciones ilimitadas, sin permanencia.",
+  description: DESCRIPCION,
   openGraph: {
     title: "Kora — Sistema hotelero con IA para hoteles en México",
-    description:
-      "WhatsApp contestado 24/7 con IA que cotiza con disponibilidad real y cobra, más reservas directas 0% comisión y todo tu hotel en una pantalla. $550 MXN/mes, habitaciones ilimitadas, sin permanencia.",
+    description: DESCRIPCION,
     type: "website",
     locale: "es_MX",
     siteName: "Kora",
@@ -35,8 +40,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Kora — Sistema hotelero con IA para hoteles en México",
-    description:
-      "WhatsApp contestado 24/7 con IA que cotiza con disponibilidad real y cobra, más reservas directas 0% comisión y todo tu hotel en una pantalla. $550 MXN/mes, habitaciones ilimitadas, sin permanencia.",
+    description: DESCRIPCION,
   },
   alternates: {
     canonical: "/",
@@ -72,11 +76,36 @@ const jsonLd = {
       ],
       offers: {
         "@type": "Offer",
+        name: "Plan Kora",
         priceCurrency: "MXN",
-        price: "550",
-        description:
-          "Plan único de $550 MXN/mes, todo incluido y con habitaciones ilimitadas: motor de reservas, PMS, Camila (WhatsApp con IA), dashboard y CRM. Mes a mes, sin permanencia. Sitio web profesional opcional, como servicio aparte.",
+        price: String(PRECIO_DESDE),
+        url: `${SITE_URL}/precios`,
+        description: `Plan único de $${PRECIO} MXN/mes, todo incluido y con habitaciones ilimitadas: motor de reservas, PMS, Camila (WhatsApp con IA), dashboard y CRM. Mes a mes, sin permanencia. Empiezas con ${GARANTIA.diasPrueba} días gratis, sin tarjeta. Sitio web profesional opcional, como servicio aparte.`,
       },
+    },
+    // La prueba gratis, como oferta APARTE y no dentro de `offers` del
+    // SoftwareApplication. Si fuera ahí, Google puede tomar el precio más bajo
+    // (0) para el resultado enriquecido y pintar Kora como «Gratis», que es
+    // falso: gratis es la prueba, no el producto. Aquí la leen igual los
+    // buscadores y los motores de IA, enlazada al software por @id.
+    // `eligibleDuration` es la propiedad de schema.org para «cuánto dura».
+    {
+      "@type": "Offer",
+      "@id": `${SITE_URL}/#prueba-gratis`,
+      name: `Prueba gratis de Kora, ${GARANTIA.diasPrueba} días`,
+      itemOffered: { "@id": `${SITE_URL}/#software` },
+      offeredBy: { "@id": `${SITE_URL}/#organization` },
+      priceCurrency: "MXN",
+      price: "0",
+      eligibleDuration: {
+        "@type": "QuantitativeValue",
+        value: GARANTIA.diasPrueba,
+        unitCode: "DAY",
+      },
+      // La página que explica la prueba, no la del alta: /panel está en
+      // `disallow` de robots.ts y un buscador no puede abrir esa URL.
+      url: `${SITE_URL}/como-funciona`,
+      description: `Crea tu cuenta, carga tu hotel y prueba Kora completo ${GARANTIA.diasPrueba} días gratis, sin tarjeta. Activas tu plan solo si te convence.`,
     },
     {
       "@type": "Service",

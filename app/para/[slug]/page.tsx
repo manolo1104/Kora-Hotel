@@ -7,6 +7,8 @@ import { metaDescripcion } from "@/lib/seo";
 import { Reveal } from "@/components/shared/Reveal";
 import { BarraCTA } from "@/components/shared/BarraCTA";
 import { JsonLd } from "@/components/shared/JsonLd";
+import { CtaLink } from "@/components/shared/CtaLink";
+import { GARANTIA, RUTA_REGISTRO } from "@/lib/oferta";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -84,13 +86,21 @@ export default async function PersonaPage({ params }: Props) {
               </p>
             </Reveal>
             <Reveal delay={0.25}>
-              <Link
-                href="/contacto"
+              {/* Era «Solicitar una demo» → /contacto: un formulario y esperar a
+                  que te escribieran. Desde el 15 sep 2026 el botón principal
+                  de todo el sitio es el registro, para probarlo con tu hotel. */}
+              <CtaLink
+                href={RUTA_REGISTRO}
+                ctaName={`para_${p.slug}_registro`}
                 className="btn-press btn-arrow btn-fill mt-8 inline-flex items-center gap-2 px-8 py-4 rounded-full bg-kora-accent text-kora-primary font-bold text-sm hover:bg-kora-accent-dark transition-colors"
               >
-                Solicitar una demo
+                Pruébalo gratis con tu hotel
                 <ArrowRight size={16} aria-hidden="true" />
-              </Link>
+              </CtaLink>
+              <p className="mt-3 text-xs text-white/60">
+                {GARANTIA.diasPrueba} días gratis, sin tarjeta. Lo configuras tú y
+                te ayudamos si quieres.
+              </p>
             </Reveal>
           </div>
         </section>

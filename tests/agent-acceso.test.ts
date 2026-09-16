@@ -20,8 +20,17 @@ const HOTEL = {
 vi.mock("@/lib/db/bot-token", () => ({ hotelIdPorBotToken: async () => "h1" }));
 // Cliente encadenable de mentira: `.from().select().eq().maybeSingle()` no debe
 // lanzar. Lo que devuelve la consulta lo decide el mock de `leer`, más abajo.
+//
+// `then` devuelve undefined A PROPÓSITO: si el proxy contestara también a `then`,
+// JavaScript lo tomaría por una promesa y `await` se quedaría esperando para
+// siempre a un `resolve` que nadie llama. Pasó de verdad el 15 sep 2026, al
+// empezar a leer las fases del prepago desde la base dentro de `/api/agent`: dos
+// pruebas del latido de Camila se colgaron hasta agotar el tiempo.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const cadena: any = new Proxy({}, { get: () => () => cadena });
+const cadena: any = new Proxy(
+  {},
+  { get: (_d, prop) => (prop === "then" ? undefined : () => cadena) },
+);
 vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: () => cadena, adminEnvReady: true }));
 vi.mock("@/lib/db/result", () => ({ leer: async () => HOTEL }));
 vi.mock("@/lib/suscripcion", () => ({ accesoDelHotel: (h: unknown) => accesoDelHotel(h) }));

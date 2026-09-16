@@ -6,6 +6,7 @@ import { FUNDADOR } from "@/lib/fundador";
 import "./globals.css";
 import { JsonLd } from "@/components/shared/JsonLd";
 import { EMAIL_CONTACTO } from "@/lib/contacto";
+import { GARANTIA, RUTA_REGISTRO } from "@/lib/oferta";
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -87,6 +88,22 @@ const orgJsonLd = {
         email: EMAIL_CONTACTO,
         availableLanguage: ["Spanish"],
         areaServed: "MX",
+      },
+      // Cómo se empieza con Kora: creando la cuenta (decisión de Manolo, 15 sep
+      // 2026). `potentialAction` es válido en cualquier Thing de schema.org y
+      // `RegisterAction` es el tipo exacto de «registrarse»; Google no lo pinta
+      // en resultados, pero lo leen los motores de IA que citan la entidad.
+      potentialAction: {
+        "@type": "RegisterAction",
+        name: `Crear cuenta y probar Kora ${GARANTIA.diasPrueba} días gratis`,
+        target: {
+          "@type": "EntryPoint",
+          urlTemplate: `${SITE_URL}${RUTA_REGISTRO}`,
+          actionPlatform: [
+            "https://schema.org/DesktopWebPlatform",
+            "https://schema.org/MobileWebPlatform",
+          ],
+        },
       },
     },
     {

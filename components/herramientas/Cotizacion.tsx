@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowRight, Printer, Sparkles } from "lucide-react";
+import { Printer, Sparkles } from "lucide-react";
 import { Reveal } from "@/components/shared/Reveal";
 import { LeadCaptureTool } from "@/components/herramientas/LeadCaptureTool";
+import { CtaRegistroHerramienta } from "@/components/herramientas/CtaRegistro";
 
 function fmtMXN(n: number): string {
   return "$" + Math.round(n).toLocaleString("es-MX") + " MXN";
@@ -307,13 +308,7 @@ export function Cotizacion() {
             confirma la reserva solo — 24/7, en español. Tú solo ves cómo se llena
             tu hotel.
           </p>
-          <a
-            href="/contacto?utm_source=cotizacion"
-            className="btn-press btn-arrow btn-fill mt-6 inline-flex items-center gap-2 px-7 py-4 rounded-full bg-kora-accent text-kora-primary font-bold text-sm hover:bg-kora-accent-dark transition-colors"
-          >
-            Ver cómo funciona Kora
-            <ArrowRight size={16} aria-hidden="true" />
-          </a>
+          <CtaRegistroHerramienta origen="cotizacion" />
         </div>
       </Reveal>
     </div>

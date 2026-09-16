@@ -28,6 +28,11 @@ vi.mock("@/lib/supabase/admin", () => ({
 vi.mock("@/lib/db/result", () => ({
   escribirMejorEsfuerzo: async (_n: string, q: unknown) => { await q; },
 }));
+// 15 sep 2026: la ruta pregunta antes si el motor está en modo prueba (ahí no
+// guarda el correo). Sin este mock la prueba pasaba de rebote —`accesoDelHotel`
+// reventaba con el Supabase simulado y `motorEnModoPrueba` atrapaba el error—,
+// así que medía otra cosa y dejaba un console.error. Aquí el hotel COBRA.
+vi.mock("@/lib/motor/modo-prueba", () => ({ motorEnModoPrueba: async () => false }));
 
 const { POST } = await import("@/app/api/h/[slug]/intento/route");
 

@@ -4,7 +4,8 @@ import { useState } from "react";
 import { ChevronDown, ArrowRight } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { faqs } from "@/lib/faqs";
-import { trackCta } from "@/lib/analytics";
+import { CtaLink } from "@/components/shared/CtaLink";
+import { GARANTIA, PRECIO_DESDE, RUTA_ACTIVAR, RUTA_REGISTRO } from "@/lib/oferta";
 
 const EASE = [0.23, 1, 0.32, 1] as const;
 
@@ -76,24 +77,25 @@ export function FAQSection() {
         {/* Cierre del embudo: la última duda resuelta merece un CTA a la mano. */}
         <div className="mt-12 text-center">
           <p className="text-kora-muted text-sm">
-            ¿Sin más dudas? Pruébalo con tu hotel: hoy no se cobra nada.
+            ¿Sin más dudas? Crea tu cuenta y pruébalo con tu hotel:{" "}
+            {GARANTIA.diasPrueba} días gratis, sin tarjeta.
           </p>
           <div className="mt-4 flex flex-col sm:flex-row gap-3 justify-center">
-            <a
-              href="/panel/onboarding"
-              onClick={() => trackCta("faq_onboarding")}
+            <CtaLink
+              href={RUTA_REGISTRO}
+              ctaName="faq_onboarding"
               className="btn-press btn-arrow btn-fill inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-kora-accent text-kora-primary font-semibold text-sm hover:bg-kora-accent-dark transition-colors"
             >
-              Empezar gratis — sin tarjeta
+              Crear mi cuenta gratis
               <ArrowRight size={16} aria-hidden="true" />
-            </a>
-            <a
-              href="/pago/iniciar?plan=kora"
-              onClick={() => trackCta("faq_pago")}
+            </CtaLink>
+            <CtaLink
+              href={RUTA_ACTIVAR}
+              ctaName="faq_pago"
               className="btn-press inline-flex items-center justify-center px-6 py-3.5 rounded-full border-2 border-kora-primary text-kora-primary font-semibold text-sm hover:bg-kora-primary hover:text-white transition-colors"
             >
-              Activar mi plan — $550/mes
-            </a>
+              Activar mi plan — ${PRECIO_DESDE.toLocaleString("es-MX")}/mes
+            </CtaLink>
           </div>
         </div>
       </div>

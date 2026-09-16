@@ -3,6 +3,7 @@ import { Clock, MessageSquare, Languages, ArrowRight } from "lucide-react";
 import { Reveal } from "@/components/shared/Reveal";
 import { CtaLink } from "@/components/shared/CtaLink";
 import { WhatsAppDemoChat } from "@/components/landing/WhatsAppDemoChat";
+import { GARANTIA, PRECIO_DESDE, RUTA_REGISTRO } from "@/lib/oferta";
 
 // Momento dedicado al agente de WhatsApp (estilo Notion: "el turno de noche").
 // Fondo oscuro para dar ritmo claro/oscuro a la página.
@@ -61,12 +62,12 @@ export function AgenteSection() {
 
               <div className="mt-8 flex flex-wrap items-center gap-4">
                 <CtaLink
-                  href="/panel/onboarding"
+                  href={RUTA_REGISTRO}
                   ctaName="agente_onboarding"
                   className="btn-press btn-arrow btn-fill inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-kora-accent text-kora-primary font-semibold text-sm hover:bg-kora-accent-dark transition-colors"
                 >
-                  Probar Kora gratis — sin tarjeta
-                  <ArrowRight size={16} />
+                  Crear cuenta y probar a Camila
+                  <ArrowRight size={16} aria-hidden="true" />
                 </CtaLink>
                 <Link
                   href="/whatsapp"
@@ -75,8 +76,15 @@ export function AgenteSection() {
                   Ver todo sobre Camila
                 </Link>
               </div>
+              {/* Qué pasa al registrarse, dicho aquí: quien llega por Camila quiere
+                  saber si puede probarla antes de conectar su WhatsApp. Sí puede:
+                  el chat de prueba del panel usa los datos de su hotel. */}
               <div className="mt-4">
-                <span className="text-xs text-white/50">Camila (WhatsApp con IA, 24/7) viene incluida en el plan Kora ($550/mes)</span>
+                <span className="text-xs text-white/60">
+                  {GARANTIA.diasPrueba} días gratis, sin tarjeta: dentro de tu cuenta
+                  la pruebas en el chat de prueba con los datos de tu hotel. Viene
+                  incluida en el plan Kora (${PRECIO_DESDE.toLocaleString("es-MX")}/mes).
+                </span>
               </div>
             </div>
           </Reveal>

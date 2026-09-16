@@ -19,6 +19,11 @@ export const FUNDADOR = {
     "Que el hotelero independiente recupere sus reservas directas y deje de regalar su margen a las OTAs, con tecnología hecha para él y en su idioma.",
 
   // Nota de transparencia sobre el momento del proyecto (edítala a tu voz):
+  //
+  // 15 sep 2026: decía «damos de alta a pocos al mes para acompañar bien a cada
+  // uno desde el arranque». FundadorSection lo pinta en la PORTADA, justo
+  // debajo del botón de crear cuenta: anunciaba un cupo que no existe (el alta
+  // es libre y automática) y prometía que el arranque lo hacemos nosotros.
   lanzamiento:
-    "Kora ya opera en mi propio hotel, el Paraíso Encantado. Ahora lo estamos abriendo a otros hoteles como el tuyo — damos de alta a pocos al mes para acompañar bien a cada uno desde el arranque.",
+    "Kora ya opera en mi propio hotel, el Paraíso Encantado. Ahora lo abrimos a hoteles como el tuyo: creas tu cuenta, lo pruebas con tu propio hotel y, si quieres, te acompaño por WhatsApp.",
 };

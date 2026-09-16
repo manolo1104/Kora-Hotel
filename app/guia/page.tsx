@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { Reveal } from "@/components/shared/Reveal";
+import { CtaLink } from "@/components/shared/CtaLink";
+import { GARANTIA, PRECIO_DESDE, RUTA_REGISTRO } from "@/lib/oferta";
 import { SuscripcionForm } from "@/components/shared/SuscripcionForm";
 import { JsonLd } from "@/components/shared/JsonLd";
 
@@ -280,14 +281,23 @@ export default function GuiaPage() {
                 <SuscripcionForm origen="guia-cierre" textoBoton="Mándame las plantillas" />
               </div>
 
+              {/* Enlazaba «Kora» a /precios con «$550» escrito a mano. Desde el
+                  15 sep 2026 el camino del sitio es registrarse y probarlo, y
+                  las cifras salen de lib/oferta.ts. */}
               <p className="mt-8 border-t border-gray-100 pt-6 text-sm leading-relaxed text-kora-muted">
-                Si prefieres no armarlo tú, esto es exactamente lo que hace{" "}
-                <Link href="/precios" className="font-semibold text-kora-primary underline">
-                  Kora
-                </Link>
-                : la página de reservas, el cobro directo a tu cuenta y el agente
-                de WhatsApp que contesta a cualquier hora. $550 al mes, sin
-                comisión por reserva.
+                Si prefieres no armarlo pieza por pieza, esto es exactamente lo
+                que hace Kora: la página de reservas, el cobro directo a tu cuenta
+                y el agente de WhatsApp que contesta a cualquier hora.{" "}
+                ${PRECIO_DESDE.toLocaleString("es-MX")} al mes, sin comisión por
+                reserva.{" "}
+                <CtaLink
+                  href={RUTA_REGISTRO}
+                  ctaName="guia_cierre_registro"
+                  className="font-semibold text-kora-primary underline"
+                >
+                  Pruébalo gratis {GARANTIA.diasPrueba} días con tu hotel
+                </CtaLink>
+                .
               </p>
             </div>
           </Reveal>

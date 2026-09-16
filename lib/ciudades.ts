@@ -3,7 +3,16 @@
 // duplicada) para tener valor real de SEO. Fuente única para /hoteles-en, /hoteles-en/[ciudad],
 // el sitemap y los llms.txt.
 import type { FAQ } from "@/lib/glosario";
-import { FORECAST_DIAS } from "@/lib/oferta";
+import { FORECAST_DIAS, GARANTIA, PRECIO_DESDE } from "@/lib/oferta";
+
+// 15 sep 2026: once textos de estas páginas prometían «lo montamos llave en mano
+// en 24 horas», «lo instalamos y capacitamos nosotros» o «cargamos tu hotel».
+// El alta es por cuenta propia: te registras, cargas tu hotel y lo pruebas
+// gratis; te ayudamos si quieres (decisión de Manolo). Precio y días salen de
+// lib/oferta.ts. Bacalar decía además que una reserva de WhatsApp «cierra esa
+// fecha también en las OTAs»: sin sincronía, eso era falso.
+const PRECIO = `$${PRECIO_DESDE.toLocaleString("es-MX")} MXN`;
+const DIAS = GARANTIA.diasPrueba;
 
 export interface FilaCiudad {
   aspecto: string;
@@ -35,7 +44,7 @@ export const TABLA_OTA_DIRECTO: FilaCiudad[] = [
   { aspecto: "Datos del huésped (correo/teléfono)", ota: "Limitados", kora: "Tuyos" },
   { aspecto: "Atención fuera de horario", ota: "Reglas de la OTA", kora: "WhatsApp con IA 24/7" },
   { aspecto: "Cobro", ota: "Según la plataforma", kora: "Anticipo con tarjeta, directo" },
-  { aspecto: "Puesta en marcha", ota: "—", kora: "Llave en mano en 24 horas" },
+  { aspecto: "Puesta en marcha", ota: "—", kora: `Te registras y lo pruebas ${DIAS} días gratis` },
 ];
 
 export const ciudades: Ciudad[] = [
@@ -52,12 +61,12 @@ export const ciudades: Ciudad[] = [
     cuerpo: [
       "El turismo de Xilitla es de fin de semana y puentes: viajeros que llegan por el jardín surrealista de Las Pozas, el café de altura y la selva. Muchos descubren tu hotel en una OTA y reservan ahí, dejándote una comisión del 15% al 20% en cada noche — justo cuando la ocupación se concentra en pocas fechas y cada reserva cuenta el doble.",
       "La mayoría de los hospedajes en Xilitla son pequeños y operados por su dueño: cabañas, posadas y hoteles boutique donde el mismo dueño contesta el WhatsApp. El problema es que las consultas llegan a cualquier hora —de noche, entre semana— y si nadie responde a tiempo, el huésped termina reservando por Booking de todos modos.",
-      "Con Kora pones un motor de reservas en tu propia página o en tu Instagram para captar directo, y Camila —tu recepcionista de IA— contesta 24/7, cotiza y reúne los datos de la reserva mientras tú atiendes el hotel. Nosotros te lo montamos llave en mano en 24 horas; tú solo empiezas a recibir reservas que no pagan comisión.",
+      `Con Kora pones un motor de reservas en tu propia página o en tu Instagram para captar directo, y Camila —tu recepcionista de IA— contesta 24/7, cotiza y reúne los datos de la reserva mientras tú atiendes el hotel. Te registras, cargas tu hotel y lo pruebas ${DIAS} días gratis; si quieres, te ayudamos a dejarlo listo.`,
     ],
     faqs: [
       {
         q: "¿Kora sirve para una cabaña o un hotel pequeño en Xilitla?",
-        a: "Sí. Está pensado justamente para hospedajes independientes operados por su dueño en la Huasteca. Lo instalamos y capacitamos nosotros; si sabes usar tu celular, sabes usar Kora.",
+        a: "Sí. Está pensado justamente para hospedajes independientes operados por su dueño en la Huasteca. Lo configuras tú con un asistente paso a paso y, si te atoras, te ayudamos por WhatsApp; si sabes usar tu celular, sabes usar Kora.",
       },
       {
         q: "¿Tengo que dejar Booking o Airbnb?",
@@ -82,7 +91,7 @@ export const ciudades: Ciudad[] = [
     cuerpo: [
       "Al ser la ciudad más grande de la región, Valles concentra desde hoteles de paso sobre la carretera hasta hospedajes turísticos para quienes salen a los ríos y cascadas. Ese volumen también significa que las OTAs se llevan una tajada considerable cada mes: en un hotel con buena ocupación, la comisión de Booking y Expedia puede sumar decenas de miles de pesos al año.",
       "El huésped de aventura planea con anticipación y compara precios; muchas veces te escribe por WhatsApp para preguntar disponibilidad y tours antes de reservar. Si no le contestas rápido y no puede reservar y pagar directo, la venta se enfría o se va a una OTA. Ese momento es donde más reservas directas se pierden.",
-      "Kora te da un motor de reservas con cobro de anticipo por tarjeta para cerrar esas consultas en el momento, y Camila contesta al instante 24/7 en español. Además operas todo el hotel —calendario, huéspedes, tarifas por temporada— desde una sola pantalla. Lo dejamos listo en 24 horas, sin que toques nada técnico.",
+      "Kora te da un motor de reservas con cobro de anticipo por tarjeta para cerrar esas consultas en el momento, y Camila contesta al instante 24/7 en español. Además operas todo el hotel —calendario, huéspedes, tarifas por temporada— desde una sola pantalla. Lo configuras tú en tu panel, sin nada técnico, y te ayudamos si lo necesitas.",
     ],
     faqs: [
       {
@@ -112,12 +121,12 @@ export const ciudades: Ciudad[] = [
     cuerpo: [
       "El turismo de Aquismón es de naturaleza y aventura: viajeros que van a Tamul en lancha, al Sótano de las Golondrinas de madrugada o a nadar al Puente de Dios. Muchos hospedajes son cabañas y ecolodges en zonas de baja señal, operados por familias, que reciben la mayoría de sus reservas por Airbnb y Booking pagando comisión.",
       "Ese perfil de huésped pregunta mucho antes de reservar: cómo llegar, qué tours hay, si hay que madrugar. Esas consultas caen por WhatsApp a toda hora y, si no se contestan, se pierde la reserva. Para un ecolodge pequeño, cada reserva directa que se convierte vale mucho más que su comisión.",
-      "Con Kora montas un motor de reservas propio y Camila contesta esas dudas 24/7, cotiza y reúne los datos para cerrar la reserva directa. Tu página, Camila y tu panel comparten un solo inventario, así que no vendes dos veces la misma noche, y lo operas todo desde el celular. Lo instalamos llave en mano en 24 horas, incluso si eres una cabaña familiar sin experiencia técnica.",
+      `Con Kora montas un motor de reservas propio y Camila contesta esas dudas 24/7, cotiza y reúne los datos para cerrar la reserva directa. Tu página, Camila y tu panel comparten un solo inventario, así que no vendes dos veces la misma noche, y lo operas todo desde el celular. Lo pruebas ${DIAS} días gratis con tu propio hospedaje y, si no tienes experiencia técnica, te ayudamos a dejarlo listo por WhatsApp.`,
     ],
     faqs: [
       {
         q: "¿Kora sirve para un ecolodge o cabañas en Aquismón?",
-        a: "Sí. Está diseñado para hospedajes independientes de la Huasteca, incluyendo cabañas y ecolodges. Habitaciones (o unidades) ilimitadas en un solo plan, instalado y con soporte por WhatsApp.",
+        a: "Sí. Está diseñado para hospedajes independientes de la Huasteca, incluyendo cabañas y ecolodges. Habitaciones (o unidades) ilimitadas en un solo plan, que configuras tú y con ayuda por WhatsApp si la necesitas.",
       },
       {
         q: "¿Camila puede contestar dudas de cómo llegar o de los tours?",
@@ -143,7 +152,7 @@ export const ciudades: Ciudad[] = [
     cuerpo: [
       "El turismo de Tamasopo se dispara en puentes, Semana Santa y verano, cuando las familias llegan a las cascadas y balnearios. Esa estacionalidad hace que la comisión de las OTAs pese aún más: si la mayor parte de tu ingreso anual entra en pocas semanas, cada 18% que se lleva Booking en esas fechas es dinero que ya no recuperas.",
       "Muchos hospedajes en Tamasopo son cabañas y hoteles familiares que además manejan tarifas distintas según la temporada. Llevar eso a mano en un cuaderno o en varias apps es un lío, y contestar el WhatsApp en plena temporada alta —mientras atiendes a los huéspedes— es casi imposible.",
-      "Kora te da un motor de reservas con tarifas por temporada, para que cobres el precio correcto en cada fecha automáticamente, y Camila contesta 24/7 para no perder reservas en tus semanas fuertes. Todo en una sola pantalla, montado llave en mano en 24 horas.",
+      "Kora te da un motor de reservas con tarifas por temporada, para que cobres el precio correcto en cada fecha automáticamente, y Camila contesta 24/7 para no perder reservas en tus semanas fuertes. Todo en una sola pantalla, y lo pruebas gratis antes de pagar.",
     ],
     faqs: [
       {
@@ -152,7 +161,7 @@ export const ciudades: Ciudad[] = [
       },
       {
         q: "¿Sirve para una cabaña o balneario con hospedaje en Tamasopo?",
-        a: "Sí. Está pensado para hospedajes independientes de la Huasteca. Lo instalamos y capacitamos nosotros; se opera desde el celular.",
+        a: "Sí. Está pensado para hospedajes independientes de la Huasteca. Lo configuras tú desde el celular con un asistente paso a paso, y te ayudamos si lo necesitas.",
       },
       {
         q: "¿Me ayuda a no saturarme el WhatsApp en Semana Santa?",
@@ -173,7 +182,7 @@ export const ciudades: Ciudad[] = [
     cuerpo: [
       "Por su ubicación sobre una carretera de mucho tránsito, los hoteles de Tamazunchale combinan huésped de paso, viajeros de negocios y turistas que exploran la Huasteca. Ese flujo constante hace fácil depender de las OTAs y de las llamadas, y perder de vista cuánto se va en comisiones cada mes.",
       "El huésped de paso muchas veces busca en Google o en Booking a última hora y reserva desde el celular. Si tu hotel no aparece con una opción de reservar directo —o nadie contesta el WhatsApp— la reserva se va a la OTA y pagas su comisión por un huésped que ya te había encontrado.",
-      "Kora te da un motor de reservas directas para captar esas reservas de último minuto sin comisión, y Camila contesta 24/7 para cerrar las consultas por WhatsApp. Operas el hotel completo —calendario, huéspedes, cobros— desde una pantalla, y lo dejamos listo en 24 horas.",
+      "Kora te da un motor de reservas directas para captar esas reservas de último minuto sin comisión, y Camila contesta 24/7 para cerrar las consultas por WhatsApp. Operas el hotel completo —calendario, huéspedes, cobros— desde una pantalla, y lo pruebas gratis antes de pagar.",
     ],
     faqs: [
       {
@@ -182,11 +191,11 @@ export const ciudades: Ciudad[] = [
       },
       {
         q: "¿Necesito una página web para usar el motor de reservas?",
-        a: "No necesariamente. Puedes crear gratis una mini-página de reservas con tu marca, o embeber el motor en la página que ya tengas. Si quieres, también te hacemos un sitio profesional como servicio aparte.",
+        a: "No necesariamente. Al registrar tu hotel queda con su propia página de reservas, o puedes embeber el motor en la página que ya tengas. Si quieres, también te hacemos un sitio profesional como servicio aparte.",
       },
       {
         q: "¿Qué tan rápido queda funcionando?",
-        a: "Lo montamos llave en mano en 24 horas: cargamos tus cuartos, fotos y tarifas, y te capacitamos. Tú no tocas nada técnico.",
+        a: "Depende de ti: te registras, escribes tu hotel y tus cuartos con su tarifa, y tu página queda en línea para probar el motor. Las fotos, los cobros y la conexión de tu WhatsApp los agregas cuando quieras; si prefieres que te acompañemos, te ayudamos por WhatsApp.",
       },
     ],
   },
@@ -203,7 +212,7 @@ export const ciudades: Ciudad[] = [
     cuerpo: [
       "El turismo de El Naranjo gira alrededor de sus cascadas y ríos, con visitantes que llegan en puentes y vacaciones a acampar o quedarse en cabañas. Muchos hospedajes son pequeños, en entornos naturales, y reciben la mayoría de sus reservas por Airbnb y Booking pagando comisión sobre cada noche.",
       "Como en el resto de la Huasteca, el huésped pregunta primero por WhatsApp: disponibilidad, cómo llegar, qué cascadas visitar. Si esas consultas no se contestan a tiempo —o no hay forma de reservar y pagar directo— la reserva se enfría o termina en una OTA con su comisión.",
-      "Kora te da un motor de reservas propio con cobro de anticipo y Camila contestando 24/7, para convertir esas consultas en reservas directas. Tu página, Camila y tu panel comparten un solo inventario para no vender dos veces la misma noche, y lo operas desde el celular. Lo montamos llave en mano en 24 horas.",
+      `Kora te da un motor de reservas propio con cobro de anticipo y Camila contestando 24/7, para convertir esas consultas en reservas directas. Tu página, Camila y tu panel comparten un solo inventario para no vender dos veces la misma noche, y lo operas desde el celular. Lo pruebas ${DIAS} días gratis antes de pagar.`,
     ],
     faqs: [
       {
@@ -233,12 +242,12 @@ export const ciudades: Ciudad[] = [
     cuerpo: [
       "El turismo de la Huasteca es estacional y de aventura: cascadas, ríos, grutas y pueblos mágicos que se llenan en Semana Santa, puentes y verano. Esa concentración hace que cada reserva de temporada alta valga mucho, y que la comisión del 15% al 20% de Booking, Airbnb o Expedia sea un costo enorme en las semanas que sostienen todo el año.",
       "La mayoría de los hospedajes de la región son independientes y operados por su dueño —hoteles boutique, cabañas, ecolodges— donde el mismo dueño contesta el WhatsApp mientras atiende a los huéspedes. El resultado son consultas que se pierden fuera de horario, tarifas por temporada llevadas a mano y una dependencia cara de las plataformas.",
-      "Kora reúne en un solo sistema, en español y montado llave en mano en 24 horas, todo lo que un hospedaje de la Huasteca necesita: motor de reservas directas sin comisión, Camila (WhatsApp con IA 24/7), tarifas por temporada, un solo inventario para no vender dos veces la misma noche y un dashboard para ver tu ocupación y tus ingresos. Es el mismo sistema que ya opera al Hotel Paraíso Encantado en Xilitla.",
+      "Kora reúne en un solo sistema, en español y que configuras tú con ayuda si la quieres, todo lo que un hospedaje de la Huasteca necesita: motor de reservas directas sin comisión, Camila (WhatsApp con IA 24/7), tarifas por temporada, un solo inventario para no vender dos veces la misma noche y un dashboard para ver tu ocupación y tus ingresos. Es el mismo sistema que ya opera al Hotel Paraíso Encantado en Xilitla.",
     ],
     faqs: [
       {
         q: "¿Kora funciona para cualquier tipo de hospedaje en la Huasteca?",
-        a: "Sí: hoteles boutique, posadas, cabañas y ecolodges independientes, operados por su dueño. Un solo plan con habitaciones (o unidades) ilimitadas, instalado y con soporte por WhatsApp.",
+        a: "Sí: hoteles boutique, posadas, cabañas y ecolodges independientes, operados por su dueño. Un solo plan con habitaciones (o unidades) ilimitadas, que configuras tú y con ayuda por WhatsApp si la necesitas.",
       },
       {
         q: "¿Me ayuda con la temporada alta de la Huasteca?",
@@ -271,12 +280,12 @@ export const ciudades: Ciudad[] = [
     cuerpo: [
       "San Miguel vive de un huésped que planea con anticipación, compara mucho y llega con expectativas altas de servicio. Ese perfil es exactamente el que reserva por OTA: descubre el hotel en la plataforma, ve reseñas, y cierra ahí. Cada una de esas noches deja entre 15% y 20% en comisión.",
       "El otro rasgo del destino es el peso del visitante extranjero, sobre todo estadounidense y canadiense. Muchos mensajes llegan en inglés y a horarios que no coinciden con la recepción, y responder tarde o con un traductor rígido cuesta reservas de ticket alto.",
-      "Con Kora tu hotel toma reservas directas desde su propia página con cobro de anticipo con tarjeta —incluidas tarjetas internacionales— y Camila contesta el WhatsApp las 24 horas en el idioma en que le escriban, con tu disponibilidad y tus precios reales. Nosotros lo montamos llave en mano.",
+      `Con Kora tu hotel toma reservas directas desde su propia página con cobro de anticipo con tarjeta —incluidas tarjetas internacionales— y Camila contesta el WhatsApp las 24 horas en el idioma en que le escriban, con tu disponibilidad y tus precios reales. Te registras y lo pruebas ${DIAS} días gratis con tu propio hotel.`,
     ],
     faqs: [
       {
         q: "¿Sirve para una casa de huéspedes de pocas habitaciones?",
-        a: "Sí. El plan es único e incluye habitaciones ilimitadas, así que un hospedaje de 5 cuartos paga lo mismo que uno de 30: $550 MXN al mes.",
+        a: `Sí. El plan es único e incluye habitaciones ilimitadas, así que un hospedaje de 5 cuartos paga lo mismo que uno de 30: ${PRECIO} al mes.`,
       },
       {
         q: "¿Puede atender a mis huéspedes en inglés?",
@@ -301,12 +310,12 @@ export const ciudades: Ciudad[] = [
     cuerpo: [
       "La hotelería de Bacalar es mayoritariamente pequeña y de dueño, y creció rápido apoyada en las plataformas. Eso dejó a muchos hospedajes con casi todo su volumen entrando por OTA: buena ocupación, margen delgado y ninguna relación propia con el huésped que ya vino.",
       "Al ser un destino de estancias cortas y alta rotación entre semana, el WhatsApp se vuelve el canal donde se decide todo: disponibilidad de esta noche, si queda cabaña para dos, si aceptan mascotas. Cuando el mensaje llega a las once de la noche y nadie contesta, el viajero reserva en la app.",
-      "Con Kora ese mensaje sí recibe respuesta: Camila consulta tu disponibilidad real, da el total de la estancia y manda el link de pago. Y como el inventario es uno solo, la reserva que entra por WhatsApp cierra esa fecha también en las OTAs.",
+      "Con Kora ese mensaje sí recibe respuesta: Camila consulta tu disponibilidad real, da el total de la estancia y manda el link de pago. Y como tu página, Camila y tu panel comparten un solo inventario, la reserva que entra por WhatsApp cierra esa fecha en los tres.",
     ],
     faqs: [
       {
         q: "¿Funciona para cabañas y hospedajes ecológicos?",
-        a: "Sí. El sistema no asume un tipo de propiedad: cargamos tus unidades como las tengas —cabañas, domos, habitaciones— con su capacidad y tarifa.",
+        a: "Sí. El sistema no asume un tipo de propiedad: cargas tus unidades como las tengas —cabañas, domos, habitaciones— con su capacidad y tarifa.",
       },
       {
         q: "¿Cómo evito el overbooking con Booking y Airbnb?",
@@ -314,7 +323,7 @@ export const ciudades: Ciudad[] = [
       },
       {
         q: "¿Cuánto tarda el arranque?",
-        a: "Montamos tu hotel completo —unidades, fotos, tarifas, motor y WhatsApp— en 24 horas, sin costo de instalación.",
+        a: `Lo que tardes en cargar tu hotel: con tus unidades y sus tarifas ya puedes probar el motor, y las fotos, los cobros y tu WhatsApp los agregas cuando quieras. Sin costo de instalación y con ${DIAS} días gratis; si quieres ayuda, te acompañamos por WhatsApp.`,
       },
     ],
   },
@@ -336,7 +345,7 @@ export const ciudades: Ciudad[] = [
     faqs: [
       {
         q: "¿Sirve para cabañas y casas completas?",
-        a: "Sí. Cargamos cada unidad con su capacidad, tarifa y mínimo de noches, que en Valle suele aplicar en fines de semana y puentes.",
+        a: "Sí. Cargas cada unidad con su capacidad, tarifa y mínimo de noches, que en Valle suele aplicar en fines de semana y puentes.",
       },
       {
         q: "¿Puedo poner mínimo de noches en fechas fuertes?",
@@ -388,11 +397,11 @@ export const ciudades: Ciudad[] = [
     faqs: [
       {
         q: "¿Sirve para una posada de pocas habitaciones?",
-        a: "Sí. Un solo plan de $550 MXN al mes con habitaciones ilimitadas, sin permanencia.",
+        a: `Sí. Un solo plan de ${PRECIO} al mes con habitaciones ilimitadas, sin permanencia.`,
       },
       {
         q: "¿Necesito saber de tecnología?",
-        a: "No. Kora está en español, se opera desde el celular y el arranque lo hacemos nosotros: cargamos tu hotel, tus fotos y tus tarifas.",
+        a: "No. Kora está en español, se opera desde el celular y cargas tu hotel, tus fotos y tus tarifas con un asistente paso a paso. Si prefieres que te acompañemos, te ayudamos por WhatsApp.",
       },
     ],
   },
@@ -444,7 +453,7 @@ export const ciudades: Ciudad[] = [
       },
       {
         q: "¿Sirve si vendo paquetes con experiencias?",
-        a: "Puedes cargar tus unidades y tarifas; para paquetes con experiencias lo vemos contigo en el arranque.",
+        a: "Puedes cargar tus unidades y tarifas; si vendes paquetes con experiencias, escríbenos y lo vemos contigo.",
       },
     ],
   },

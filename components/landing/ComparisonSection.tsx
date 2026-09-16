@@ -1,6 +1,7 @@
 import { CheckCircle2, XCircle } from "lucide-react";
 import { Reveal } from "@/components/shared/Reveal";
 import { CountUp } from "@/components/shared/CountUp";
+import { PRECIO_DESDE } from "@/lib/oferta";
 
 const tools = [
   { name: "PMS básico", cost: "$1,200 MXN" },
@@ -82,7 +83,7 @@ export function ComparisonSection() {
               <div className="mt-5 pt-4 border-t border-kora-primary/20 flex items-center justify-between gap-4">
                 <span className="font-semibold text-kora-primary text-sm">Todo Kora, en una sola cuenta</span>
                 <span className="font-bold text-2xl text-kora-primary whitespace-nowrap">
-                  <CountUp to={550} prefix="$" className="tabular-nums" /> MXN/mes
+                  <CountUp to={PRECIO_DESDE} prefix="$" className="tabular-nums" /> MXN/mes
                 </span>
               </div>
             </div>
@@ -95,7 +96,7 @@ export function ComparisonSection() {
             cerrado directo.
           </p>
           <p className="mt-3 text-center text-xs text-white/50 max-w-xl mx-auto leading-relaxed">
-            Un solo plan de $550 MXN/mes, todo incluido y con habitaciones
+            Un solo plan de ${PRECIO_DESDE.toLocaleString("es-MX")} MXN/mes, todo incluido y con habitaciones
             ilimitadas: motor de reservas, Camila (WhatsApp con IA), PMS,
             dashboard y CRM.
           </p>

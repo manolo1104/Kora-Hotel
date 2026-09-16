@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Send, ArrowRight } from "lucide-react";
 import { WindowFrame } from "@/components/landing/ProductMockups";
+import { CtaLink } from "@/components/shared/CtaLink";
+import { GARANTIA, RUTA_REGISTRO } from "@/lib/oferta";
 
 type Msg = { from: "guest" | "bot"; text: string };
 
@@ -151,12 +153,18 @@ export function WhatsAppDemoChat() {
             <p className="text-[12px] text-kora-muted">
               Así de bien atendería a <b>tus</b> huéspedes, 24/7.
             </p>
-            <a
-              href="/panel/onboarding"
+            {/* Al agotar la demo, la invitación es a probarla con SU hotel, que
+                es lo que hace el chat de prueba dentro de la cuenta. */}
+            <CtaLink
+              href={RUTA_REGISTRO}
+              ctaName="demo_chat_onboarding"
               className="btn-press mt-2 inline-flex items-center gap-1.5 text-sm font-bold text-kora-primary hover:underline"
             >
-              Probar Kora gratis <ArrowRight size={14} />
-            </a>
+              Crear cuenta y probarla con mi hotel <ArrowRight size={14} aria-hidden="true" />
+            </CtaLink>
+            <p className="mt-1 text-[11px] text-kora-muted">
+              {GARANTIA.diasPrueba} días gratis, sin tarjeta
+            </p>
           </div>
         ) : (
           <form
@@ -187,7 +195,10 @@ export function WhatsAppDemoChat() {
         )}
       </WindowFrame>
       <p className="mt-3 text-center text-[11px] text-white/50">
-        Demo real con IA sobre un hotel de ejemplo. Con tu hotel usa tus precios y tus datos.
+        {/* Decía «un hotel de ejemplo», pero /api/agent-demo usa el hotel real de
+            un cliente. Con cuenta propia, el chat de prueba usa los datos del hotel. */}
+        Demo real con IA sobre un hotel de verdad. En tu cuenta la pruebas con tus
+        precios y tus datos.
       </p>
     </div>
   );

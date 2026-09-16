@@ -26,7 +26,8 @@
 
 import type { TurnoConversacion } from "@/lib/db/admin";
 import { consumirMensaje, reclamarAviso, consumoDelMes, SIN_DATO } from "@/lib/db/saldo";
-import { UMBRAL_AVISO_BAJO, diasQueAlcanzan, recargaActiva } from "@/lib/saldo/paquetes";
+import { UMBRAL_AVISO_BAJO, diasQueAlcanzan } from "@/lib/saldo/paquetes";
+import { recargaAbierta } from "@/lib/saldo/fases";
 import { emailSaldoBajo, emailSaldoAgotado } from "@/lib/email/saldo";
 import { enviarEmail } from "@/lib/email/resend";
 import { resolveHotelAvisoEmail } from "@/lib/email/reserva";
@@ -78,19 +79,31 @@ export async function cobrarMensaje(hotel: HotelDelCobro, ref: string): Promise<
     // a una puerta cerrada y preocuparlo por algo que hoy no le corta el
     // servicio. Pero el dato importa —es el consumo real que estamos midiendo—
     // así que se avisa a Kora, no al cliente.
-    if (!recargaActiva()) {
-      alertar(
+    //
+    // El interruptor se lee de la base (lib/saldo/fases.ts, con caché de 60 s):
+    // sólo se consulta aquí, cuando el hotel YA cruzó el umbral y ganó el aviso,
+    // no en cada mensaje. Si la lectura falla, cae a las variables de siempre.
+    if (!(await recargaAbierta())) {
+      // CON `await`, igual que el correo de abajo y que los otros 17 sitios que
+      // llaman a `alertar()`. En Vercel la función se congela al responder: una
+      // alerta lanzada sin esperar se pierde con su correo Y con su fila de la
+      // bandeja. Y esta es LA señal de la fase de medición — es lo único que le
+      // dice a Kora que un hotel ya llegó a cero y que toca la recarga de
+      // seguridad antes de encender el bloqueo. Esperar no le cuesta nada al
+      // huésped: ya recibió su respuesta, y `reclamarAviso` deja pasar esto dos
+      // veces por hotel en toda su vida.
+      await alertar(
         `saldo: ${hotel.slug} llegó a ${quedan} mensajes`,
-        `El prepago todavía está en «próximamente», así que NO se le escribió al hotelero. ` +
-          `Es consumo real: ${hotel.slug} ya bajó a ${quedan} de sus 300. ` +
-          `Antes de encender SALDO_BLOQUEO hay que recargarle.`,
+        `Las recargas todavía están cerradas («próximamente»), así que NO se le escribió al hotelero. ` +
+          `Es consumo real: ${hotel.slug} ya bajó a ${quedan} mensajes. ` +
+          `Antes de callar a Camila sin saldo (CRM → Prepago) hay que hacer la recarga de seguridad.`,
       );
       return;
     }
 
     const para = await resolveHotelAvisoEmail(hotel);
     if (!para) {
-      alertar(
+      await alertar(
         "saldo: no se pudo avisar al hotelero",
         `El hotel ${hotel.slug} cruzó el umbral de saldo (${quedan} mensajes) y no hay correo al que escribirle.`,
       );
@@ -119,7 +132,7 @@ export async function cobrarMensaje(hotel: HotelDelCobro, ref: string): Promise<
     // bot. Se deja constancia y el correo de «se acabó» hace de segunda
     // oportunidad.
     if (!envio.ok) {
-      alertar(
+      await alertar(
         "saldo: el aviso al hotelero no salió",
         `Hotel ${hotel.slug}, aviso «${cual}», quedan ${quedan} mensajes. Resend: ${envio.error}`,
       );

@@ -1,6 +1,7 @@
 import { leer } from "@/lib/db/result";
 import { NextResponse } from "next/server";
 import { requireCrmAuth } from "@/lib/crm/auth";
+import { requireCrmMutacion } from "@/lib/crm/guardas";
 import { createAdminClient, adminEnvReady } from "@/lib/supabase/admin";
 import { sanitizeLead } from "@/lib/crm/server";
 
@@ -36,8 +37,13 @@ export async function GET(_req: Request, { params }: Ctx) {
 }
 
 // PATCH /api/crm/leads/:id  → edita campos / cambia etapa
+//
+// `requireCrmMutacion`: además de la sesión, comprueba que la petición salga del
+// propio CRM (cabecera `Origin`). La cookie va con `path: "/"` en el mismo
+// dominio que las páginas públicas de los hoteles, así que sin esto una página
+// de fuera podía editar o borrar leads con la sesión del fundador.
 export async function PATCH(req: Request, { params }: Ctx) {
-  const denied = await requireCrmAuth();
+  const denied = await requireCrmMutacion(req);
   if (denied) return denied;
   if (!adminEnvReady)
     return NextResponse.json({ error: "Falta SUPABASE_SERVICE_ROLE_KEY" }, { status: 503 });
@@ -61,13 +67,17 @@ export async function PATCH(req: Request, { params }: Ctx) {
     .eq("id", id)
     .select("*")
     .single();
-  if (dbErr) return NextResponse.json({ error: dbErr.message }, { status: 500 });
+  // El mensaje crudo de Postgres queda en el log, no en el navegador.
+  if (dbErr) {
+    console.error("[crm.lead.editar]", dbErr.message);
+    return NextResponse.json({ error: "No se pudo guardar el cambio. Intenta de nuevo." }, { status: 500 });
+  }
   return NextResponse.json({ lead });
 }
 
 // DELETE /api/crm/leads/:id
-export async function DELETE(_req: Request, { params }: Ctx) {
-  const denied = await requireCrmAuth();
+export async function DELETE(req: Request, { params }: Ctx) {
+  const denied = await requireCrmMutacion(req);
   if (denied) return denied;
   if (!adminEnvReady)
     return NextResponse.json({ error: "Falta SUPABASE_SERVICE_ROLE_KEY" }, { status: 503 });

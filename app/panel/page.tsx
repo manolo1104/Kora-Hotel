@@ -21,7 +21,16 @@ import { ExportarDatosButton } from "@/components/panel/ExportarDatosButton";
 import { pantallaDe } from "@/components/panel/SinPermiso";
 import { createClient } from "@/lib/supabase/server";
 import { supabaseEnvReady } from "@/lib/supabase/env";
-import { getSuscripcion } from "@/lib/suscripcion";
+import {
+  bloqueoDelHotel,
+  leerSuscripcion,
+  pruebaDelHotel,
+  tienePlanActivo,
+  type LecturaSuscripcion,
+  type PruebaHotel,
+} from "@/lib/suscripcion";
+import { anclaPruebaDelDueno } from "@/lib/db/prueba-dueno";
+import { RUTA_REGISTRO } from "@/lib/oferta";
 import {
   getHotelesDelUsuario,
   MAX_HOTELES_POR_CUENTA,
@@ -79,10 +88,11 @@ export default async function PanelPage() {
 
   if (!user) redirect("/entrar");
 
-  const [suscripcion, hoteles] = await Promise.all([
-    getSuscripcion(user.id),
+  const [lecturaSub, hoteles] = await Promise.all([
+    leerSuscripcion(user.id),
     getHotelesDelUsuario(),
   ]);
+  const suscripcion = lecturaSub.sub;
 
   // Un EMPLEADO con un solo hotel no necesita ver un selector de hoteles: entra
   // derecho a lo suyo (la camarista a Operaciones, recepción a Reservas). De
@@ -102,6 +112,12 @@ export default async function PanelPage() {
     hotelesPropios >= MAX_HOTELES_POR_CUENTA && suscripcion?.estado !== "cortesia";
 
   const card = "bg-panel-surface rounded-2xl p-6 sm:p-7 border border-panel-border-soft shadow-sm";
+
+  // ¿Cuántos días de prueba le quedan? El hub no lo decía: sólo se veía dentro
+  // del panel de cada hotel. La cuenta es la MISMA que aplica el sistema
+  // (`pruebaDelHotel` con el ancla del dueño y sus días extra); sólo se dan días
+  // cuando se sabe de verdad que está en prueba.
+  const prueba = await pruebaDelDueno(user.id, lecturaSub, hoteles);
 
   return (
     <main className="pt-16">
@@ -127,6 +143,7 @@ export default async function PanelPage() {
             estado={suscripcion?.estado ?? null}
             esStripe={Boolean(suscripcion?.stripe_customer_id)}
             sinHoteles={hoteles.length === 0}
+            prueba={prueba ? { diasRestantes: prueba.diasRestantes, vencida: prueba.vencida } : null}
           />
 
           {/* Sin hoteles → bienvenida */}
@@ -139,12 +156,16 @@ export default async function PanelPage() {
                 <h2 className="text-xl font-bold text-kora-text">
                   Da de alta tu primer hotel
                 </h2>
+                {/* Antes: «En un par de minutos tendrás tu página…», un tiempo que
+                    nadie midió. Ahora dice lo que pasa: cargas lo básico y lo
+                    pruebas por dentro. */}
                 <p className="mt-2 text-sm text-kora-muted leading-relaxed max-w-md mx-auto">
-                  En un par de minutos tendrás tu página de reservas directas, lista para
-                  recibir huéspedes sin comisiones de Booking ni Airbnb.
+                  Carga el nombre, tus habitaciones y sus precios. Después lo pruebas por
+                  dentro —Camila en su chat de prueba y tu motor de reservas— antes de
+                  compartirlo con tus huéspedes.
                 </p>
                 <Link
-                  href="/panel/onboarding"
+                  href={RUTA_REGISTRO}
                   className="btn-press btn-fill mt-6 inline-flex items-center gap-2 px-7 py-3.5 rounded-full bg-kora-accent text-kora-primary font-bold text-sm hover:bg-kora-accent-dark transition-colors"
                 >
                   <Plus size={16} /> Crear mi hotel
@@ -250,7 +271,7 @@ export default async function PanelPage() {
                   </div>
                 ) : (
                   <Link
-                    href="/panel/onboarding"
+                    href={RUTA_REGISTRO}
                     className="btn-press group flex items-center justify-center gap-2 w-full px-5 py-4 rounded-2xl border-2 border-dashed border-panel-border text-kora-muted font-semibold text-sm hover:border-kora-accent hover:text-kora-primary transition-colors"
                   >
                     <Plus size={16} /> Agregar otro hotel
@@ -293,4 +314,40 @@ export default async function PanelPage() {
       </section>
     </main>
   );
+}
+
+/**
+ * La prueba de este DUEÑO, o null si no hay que enseñar días.
+ *
+ * null cuando: no se pudo leer la suscripción (no sabemos si paga), tiene plan
+ * o cortesía, sólo es personal de hoteles ajenos (la prueba es del dueño de
+ * ESOS hoteles, no suya), alguno de sus hoteles es el de demostración (nunca
+ * caduca) o está bloqueado (manda el bloqueo), o todavía no empezó (nunca creó
+ * un hotel).
+ *
+ * Se toma el hotel propio MÁS ANTIGUO: la prueba corre desde la fecha más
+ * antigua entre ese alta y el ancla del dueño, igual que en `accesoDelHotel`.
+ * Nunca lanza: `anclaPruebaDelDueno` cae a «sin ancla» si no puede leer.
+ */
+async function pruebaDelDueno(
+  userId: string,
+  lectura: LecturaSuscripcion,
+  hoteles: { hotel: HotelRow; rol: RolHotel }[],
+): Promise<PruebaHotel | null> {
+  if (!lectura.ok || tienePlanActivo(lectura.sub)) return null;
+  if (hoteles.length > 0 && hoteles.every(({ rol }) => rol !== "dueno")) return null;
+
+  const propios = hoteles.filter(({ rol }) => rol === "dueno").map(({ hotel }) => hotel);
+  const extras = (h: HotelRow) => (h.extras ?? {}) as Record<string, unknown>;
+  if (propios.some((h) => extras(h).demo === true || bloqueoDelHotel(extras(h)))) return null;
+
+  const fechas = propios
+    .map((h) => h.created_at)
+    .filter((f): f is string => typeof f === "string" && !Number.isNaN(Date.parse(f)))
+    .sort((a, b) => Date.parse(a) - Date.parse(b));
+  const ancla = await anclaPruebaDelDueno(userId);
+  // Sin hotel y sin ancla, la prueba no ha empezado: `pruebaDelHotel` la daría
+  // por empezada en el lanzamiento (y vencida), que es falso.
+  if (!fechas[0] && !ancla.inicio) return null;
+  return pruebaDelHotel({ created_at: fechas[0] ?? null }, ancla.inicio, ancla.diasExtra);
 }

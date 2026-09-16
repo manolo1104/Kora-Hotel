@@ -5,7 +5,7 @@ import { createAdminClient, adminEnvReady } from "@/lib/supabase/admin";
 import { getStripe, stripeEnvReady } from "@/lib/stripe/server";
 import { planPorClave } from "@/lib/oferta";
 import { pruebaDelHotel, trialEndParaStripe, PRUEBA_DIAS } from "@/lib/suscripcion";
-import { inicioPruebaDelDueno } from "@/lib/db/prueba-dueno";
+import { anclaPruebaDelDueno } from "@/lib/db/prueba-dueno";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -118,11 +118,15 @@ export async function POST(req: Request) {
         .maybeSingle(),
     );
     // El ancla del DUEÑO manda sobre el created_at del hotel: si no, quien borró
-    // y recreó su hotel llegaba aquí con 30 días nuevos y se le respetaban.
-    const prueba = primerHotel
+    // y recreó su hotel llegaba aquí con 30 días nuevos y se le respetaban. Y los
+    // días extra que Kora le regaló cuentan: activar el plan no puede comerse la
+    // semana que se le prometió.
+    const ancla = primerHotel ? await anclaPruebaDelDueno(user.id) : null;
+    const prueba = primerHotel && ancla
       ? pruebaDelHotel(
           primerHotel as { created_at: string | null; extras: Record<string, unknown> | null },
-          await inicioPruebaDelDueno(user.id),
+          ancla.inicio,
+          ancla.diasExtra,
         )
       : null;
     const subMeta = { user_id: user.id, plan: plan.clave };

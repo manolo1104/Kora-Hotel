@@ -1,3 +1,16 @@
+import { GARANTIA, RUTA_REGISTRO } from "@/lib/oferta";
+
+// ─── Los CTAs de los artículos ──────────────────────────────────────────────────
+// Hasta el 15 sep 2026 los cinco cerraban con «Solicitar demo» o «Quiero
+// recuperar mis comisiones» y llevaban a /contacto: el lector tenía que dejar
+// sus datos y esperar a que le escribiéramos. Decisión de Manolo: el camino de
+// todo el sitio es registrarse y probar Kora con tu propio hotel.
+//
+// Los días de prueba estaban escritos a mano («14 días») y la ruta también. Se
+// interpolan aquí para que el día que cambien no quede un artículo prometiendo
+// otra cosa (`blog-agent/index.js` decía 30 mientras el sistema aplicaba 14).
+const DIAS = GARANTIA.diasPrueba;
+
 export interface Article {
   slug: string;
   title: string;
@@ -13,6 +26,22 @@ export interface Article {
   image: string;
   imageAlt: string;
   content: string;
+  /**
+   * Título y descripción PARA GOOGLE, cuando son distintos de los de la página.
+   *
+   * 🔴 El agente del blog escribe desde el 4 de septiembre un `meta_title` de 60
+   * caracteres y una `meta_description` de 140-155, y la API los guarda en la
+   * base (`app/api/blog/create/route.ts`). Pero el sitio nunca los leía: pintaba
+   * `${title} — Blog Kora`, y con títulos de 88 caracteres Google los cortaba a
+   * media frase. El artículo de la comisión de Expedia está en la POSICIÓN 4 con
+   * un 2,5 % de clics —la mitad de lo normal para esa posición— porque el
+   * buscador nunca llega a enseñar la cifra que la gente vino a buscar.
+   *
+   * Opcionales a propósito: los 5 artículos estáticos de este archivo no los
+   * tienen y caen a `title`/`excerpt` como siempre.
+   */
+  metaTitle?: string;
+  metaDescription?: string;
 }
 
 export const articles: Article[] = [
@@ -155,8 +184,8 @@ export const articles: Article[] = [
 
 <div class="callout-cta">
   <strong style="color: white; font-size: 1.1rem;">¿Quieres aplicarlo en tu hotel?</strong>
-  <p>Te mostramos cómo quedaría configurado Kora en tu hotel específico, con tus números reales, en 20 minutos.</p>
-  <a href="/contacto">Solicitar demo gratuito →</a>
+  <p>Crea tu cuenta, carga tu hotel y mira cómo queda Kora con tus propios cuartos y tarifas. Pruébalo ${DIAS} días gratis, sin tarjeta.</p>
+  <a href="${RUTA_REGISTRO}">Pruébalo gratis →</a>
 </div>
     `,
   },
@@ -309,8 +338,8 @@ export const articles: Article[] = [
 
 <div class="callout-cta">
   <strong style="color: white; font-size: 1.1rem;">¿Quieres subir tu RevPAR sin depender de Booking?</strong>
-  <p>Kora reúne tu motor de reservas directas, PMS, WhatsApp con IA y métricas en una sola pantalla. Te mostramos cómo funciona.</p>
-  <a href="/contacto">Ver demo del sistema →</a>
+  <p>Kora reúne tu motor de reservas directas, PMS, WhatsApp con IA y métricas en una sola pantalla. Pruébalo con tu hotel ${DIAS} días gratis, sin tarjeta.</p>
+  <a href="${RUTA_REGISTRO}">Pruébalo gratis →</a>
 </div>
     `,
   },
@@ -441,8 +470,8 @@ export const articles: Article[] = [
 
 <div class="callout-cta">
   <strong style="color: white; font-size: 1.1rem;">Mira el agente en acción</strong>
-  <p>Escríbenos por WhatsApp y experimentas de primera mano cómo funciona el agente de Kora. La ironía es intencional.</p>
-  <a href="/contacto">Ver demo del agente de WhatsApp →</a>
+  <p>Crea tu cuenta, carga tu hotel y habla con Camila en el chat de prueba de tu panel, con tus propios cuartos y tarifas. Tienes ${DIAS} días gratis, sin tarjeta.</p>
+  <a href="${RUTA_REGISTRO}">Probar a Camila gratis →</a>
 </div>
     `,
   },
@@ -505,8 +534,8 @@ export const articles: Article[] = [
 
 <div class="callout-cta">
   <strong>¿Cuánto le pagas tú a Booking al año?</strong>
-  <p>Montamos tu motor de reservas directas y tu recepcionista de IA en 24 horas. Pruébalo 14 días gratis, sin tarjeta.</p>
-  <a href="/contacto">Quiero recuperar mis comisiones →</a>
+  <p>Tu motor de reservas directas y tu recepcionista de IA, listos para probar con tu hotel. Pruébalo ${DIAS} días gratis, sin tarjeta.</p>
+  <a href="${RUTA_REGISTRO}">Probar Kora gratis →</a>
 </div>
 `,
   },
@@ -554,19 +583,63 @@ export const articles: Article[] = [
 </div>
 
 <h2 id="canal-directo">El canal directo es tu mejor aliado en temporada baja</h2>
-<p>Un motor de reservas propio, un asistente que conteste 24/7 y un CRM para reactivar huéspedes te dan, juntos, lo que ninguna OTA te da en temporada baja: margen completo y una relación directa con quien ya te conoce. Es exactamente lo que Kora reúne en un solo sistema, montado llave en mano.</p>
+<p>Un motor de reservas propio, un asistente que conteste 24/7 y un CRM para reactivar huéspedes te dan, juntos, lo que ninguna OTA te da en temporada baja: margen completo y una relación directa con quien ya te conoce. Es exactamente lo que Kora reúne en un solo sistema, que configuras tú desde tu panel.</p>
 <p>Si tu hotel está en la Huasteca, mira cómo funciona en tu zona en nuestras páginas de <a href="/hoteles-en">reservas directas por ciudad</a>.</p>
 
 <div class="callout-cta">
   <strong>Llena tu temporada baja sin regalar tu tarifa.</strong>
-  <p>Motor de reservas directas, WhatsApp con IA y CRM para reactivar huéspedes. Pruébalo 14 días gratis, sin tarjeta.</p>
-  <a href="/contacto">Quiero más reservas directas →</a>
+  <p>Motor de reservas directas, WhatsApp con IA y CRM para reactivar huéspedes. Pruébalo ${DIAS} días gratis, sin tarjeta.</p>
+  <a href="${RUTA_REGISTRO}">Probar Kora gratis →</a>
 </div>
 `,
   },
 ];
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
+
+/**
+ * Corrige, al pintar, el bloque CTA de los artículos que ya están publicados.
+ *
+ * 🔴 POR QUÉ HACE FALTA. Los artículos que escribe `blog-agent` se guardan en la
+ * base con el HTML tal cual. Hasta el 15 sep 2026 su plantilla pedía cerrar con
+ * «Menciona la prueba de 30 días sin tarjeta» y un enlace a `/#contacto`, así
+ * que cada artículo publicado desde el 18 jul promete 30 días (el sistema da
+ * los de `GARANTIA.diasPrueba`) y manda al formulario de WhatsApp en vez de al
+ * registro. Arreglar la plantilla sólo cura los artículos nuevos; esto cura los
+ * viejos sin tocar la base.
+ *
+ * Sólo toca lo que hay DENTRO de `<div class="callout-cta">`: fuera de ese
+ * bloque un «30 días» puede ser cualquier cosa (la cancelación, la ventana de
+ * una tarifa) y no es nuestro para cambiarlo. Dentro, el agente sólo escribía
+ * la prueba. Es idempotente: pasar dos veces deja el mismo HTML.
+ *
+ * ⚠️ Una frase que habla de DEVOLVER el dinero no se toca: la garantía de
+ * devolución también dura 30 días (`GARANTIA.diasDevolucion`), y cambiar ese 30
+ * por los días de prueba convertiría una frase verdadera en una falsa.
+ */
+export function ctaDeArticuloAlRegistro(html: string): string {
+  return html.replace(
+    /(<div[^>]*class="[^"]*\bcallout-cta\b[^"]*"[^>]*>)([\s\S]*?)(<\/div>)/g,
+    (_bloque, abre: string, cuerpo: string, cierra: string) => {
+      const corregido = cuerpo
+        // El botón decía lo que el modelo quisiera («Agenda tu demo») y llevaba
+        // al formulario; ahora lleva al registro y dice lo que hace. También con
+        // el dominio delante: el modelo a veces escribe la URL completa.
+        .replace(
+          /<a\b[^>]*href="(?:https?:\/\/(?:www\.)?kora-hotel\.com)?\/(?:#contacto|contacto)(?:[?#][^"]*)?"[^>]*>[\s\S]*?<\/a>/g,
+          `<a href="${RUTA_REGISTRO}">Pruébalo gratis →</a>`,
+        )
+        // Frase a frase (hasta un punto o una etiqueta), para poder respetar la
+        // de la garantía de devolución.
+        .replace(/[^<>.]*\b30 días\b[^<>.]*/g, (frase) =>
+          /devol|reembols|garant/i.test(frase)
+            ? frase
+            : frase.replace(/\b30 días\b/g, `${DIAS} días`),
+        );
+      return abre + corregido + cierra;
+    },
+  );
+}
 
 export function getArticle(slug: string): Article | undefined {
   return articles.find((a) => a.slug === slug);

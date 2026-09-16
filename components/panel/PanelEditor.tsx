@@ -11,6 +11,7 @@ import { deriveUnidades } from "@/lib/booking";
 import { comprimirImagen } from "@/lib/images-client";
 import { AMENIDADES, AMENIDADES_HAB, AMENIDADES_MAP, TIPOS_CAMA } from "@/lib/amenidades";
 import { construirMapa } from "@/lib/maps";
+import { RUTA_ACTIVAR } from "@/lib/oferta";
 import { ResenasCapturadas } from "@/components/panel/ResenasCapturadas";
 import {
   FUENTES,
@@ -4358,8 +4359,11 @@ export function PanelEditor({
             </div>
 
             <div className="mt-6 flex flex-wrap gap-3">
+              {/* Llevaba a /contacto: dejar tus datos y esperar a que alguien
+                  te escriba, a quien YA tiene su cuenta abierta en Kora. Desde
+                  el 15 sep 2026 se sube uno mismo, así que va al pago. */}
               <a
-                href="/contacto"
+                href={RUTA_ACTIVAR}
                 className="btn-press btn-arrow inline-flex items-center gap-1.5 px-5 py-3 rounded-full bg-kora-accent text-kora-primary font-bold text-sm hover:bg-kora-accent-dark transition-colors"
               >
                 Quiero subir a Kora <ArrowRight size={15} aria-hidden="true" />

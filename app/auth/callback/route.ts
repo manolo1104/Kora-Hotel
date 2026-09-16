@@ -19,5 +19,10 @@ export async function GET(request: Request) {
     if (!error) return NextResponse.redirect(`${origin}${next}`);
   }
 
-  return NextResponse.redirect(`${origin}/entrar?error=enlace`);
+  // `/entrar` lee `error=enlace` y explica qué pasó (caducó, ya se usó o se
+  // abrió en otro navegador: el canje necesita la clave que guardó el navegador
+  // que PIDIÓ el enlace). Se conserva el destino: antes se perdía, y quien venía
+  // a cargar su hotel o a pagar acababa en el panel vacío tras pedir otro enlace.
+  const destino = next !== "/panel" ? `&next=${encodeURIComponent(next)}` : "";
+  return NextResponse.redirect(`${origin}/entrar?error=enlace${destino}`);
 }

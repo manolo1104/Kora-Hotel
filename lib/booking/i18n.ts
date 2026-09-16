@@ -215,6 +215,32 @@ const es = {
     "Hasta aquí llega la simulación. En tu hotel real, aquí el huésped pagaría con tarjeta u OXXO y la reserva caería confirmada en tu panel, con su correo enviado.",
   demoConfCTA: "Crea el motor de TU hotel",
   demoConfOtra: "Probar otra búsqueda",
+  // Modo PRUEBA: un hotel REAL que está en su prueba y todavía no activa cobros
+  // en línea (lib/motor/modo-prueba.ts). No es el demo de la landing: aquí quien
+  // lee puede ser el hotelero probando su motor O un huésped de verdad que llegó
+  // por el WhatsApp o la página del hotel. Por eso ningún texto dice «confirmada»,
+  // «pagado» ni «número de confirmación»: un huésped que se va creyendo que tiene
+  // cuarto llega al hotel sin reserva.
+  pruebaBanner:
+    "Reserva de prueba: este hotel todavía no activa cobros en línea. No se cobra nada y no se aparta ningún cuarto.",
+  pruebaBannerWa: "Reservar por WhatsApp",
+  // Sustituye a `datosSub` («te enviamos la confirmación y tu folio»): en modo
+  // prueba no sale ningún correo, y un huésped que espera uno cree que reservó.
+  pruebaDatosSub: "Es una reserva de prueba: no se te envía ningún correo y el hotel no la recibe.",
+  pruebaPagoTitulo: "Revisa tu reserva de prueba",
+  pruebaPagasAhora: "En una reserva real pagarías ahora el {pct}% ({monto}) y el resto al llegar.",
+  pruebaPagar: "Hacer reserva de prueba (no se cobra)",
+  pruebaNotaPago: "No se pide tarjeta y no se cobra nada.",
+  pruebaConfTitulo: "Esta fue una reserva de prueba",
+  pruebaFolio: "Folio de prueba",
+  pruebaConfTexto:
+    "No se cobró nada, no se apartó ningún cuarto y al hotel no le llegó esta reserva.",
+  pruebaConfWa: "Para reservar de verdad, escribe al hotel",
+  pruebaConfSinWa: "Para reservar de verdad, ponte en contacto directo con el hotel.",
+  pruebaConfDueno: "¿Eres del hotel? Activa los cobros en línea en tu panel",
+  pruebaConfOtra: "Hacer otra prueba",
+  errModoPrueba:
+    "Este hotel todavía no activa cobros en línea, así que no se cobró nada. Para reservar, escribe al hotel.",
 } as const;
 
 export type MsgKey = keyof typeof es;
@@ -413,6 +439,23 @@ const en: Record<MsgKey, string> = {
     "This is where the simulation ends. On your real hotel, the guest would pay by card or OXXO and the booking would land confirmed in your panel, email included.",
   demoConfCTA: "Create YOUR hotel's engine",
   demoConfOtra: "Try another search",
+  pruebaBanner:
+    "Test booking: this hotel hasn't turned on online payments yet. Nothing is charged and no room is held.",
+  pruebaBannerWa: "Book on WhatsApp",
+  pruebaDatosSub: "This is a test booking: no email is sent to you and the hotel doesn't receive it.",
+  pruebaPagoTitulo: "Review your test booking",
+  pruebaPagasAhora: "In a real booking you'd pay {pct}% now ({monto}) and the rest at check-in.",
+  pruebaPagar: "Make a test booking (no charge)",
+  pruebaNotaPago: "No card is requested and nothing is charged.",
+  pruebaConfTitulo: "This was a test booking",
+  pruebaFolio: "Test reference",
+  pruebaConfTexto: "Nothing was charged, no room was held and the hotel did not receive this booking.",
+  pruebaConfWa: "To book for real, message the hotel",
+  pruebaConfSinWa: "To book for real, contact the hotel directly.",
+  pruebaConfDueno: "Are you the hotel? Turn on online payments in your dashboard",
+  pruebaConfOtra: "Try another test",
+  errModoPrueba:
+    "This hotel hasn't turned on online payments yet, so nothing was charged. To book, message the hotel.",
 };
 
 const DICTS: Record<Lang, Record<MsgKey, string>> = { es, en };

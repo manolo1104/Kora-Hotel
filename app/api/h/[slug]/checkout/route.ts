@@ -43,7 +43,8 @@ import {
 } from "@/lib/db/experiencias";
 import { accesoDelHotel } from "@/lib/suscripcion";
 import { getStripe, stripeEnvReady } from "@/lib/stripe/server";
-import { getConnectState } from "@/lib/stripe/connect";
+import { getConnectState, type ConnectState } from "@/lib/stripe/connect";
+import { cobrosListosDe, decidirModoPrueba } from "@/lib/motor/modo-prueba";
 import { alertar } from "@/lib/alertas";
 import { limitado, ipDe } from "@/lib/api/rate-limit";
 
@@ -145,7 +146,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
 
   // Hotel de demostración: el cliente simula el pago y nunca llama aquí, pero
   // el endpoint es público — nadie debe poder cobrarle o apartarle al demo.
-  if ((hotel.extras as { demo?: boolean } | null)?.demo === true) {
+  const esDemo = (hotel.extras as { demo?: boolean } | null)?.demo === true;
+  if (esDemo) {
     return NextResponse.json({ error: "hotel-demo" }, { status: 403 });
   }
 
@@ -168,6 +170,32 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       );
     }
     return NextResponse.json({ error: "motor-pausado" }, { status: 403 });
+  }
+
+  // MODO PRUEBA (decisión de Manolo, 15 sep 2026): hotel EN PRUEBA —sin plan ni
+  // cortesía— cuya cuenta de Stripe todavía no cobra. La web invita a todo el
+  // que se registra a probar su motor, y hasta hoy esa «prueba» cobraba de
+  // verdad con la tarjeta del hotelero en la cuenta de Kora, y Manolo la
+  // devolvía a mano. La página del motor ya simula el pago y nunca llama aquí;
+  // esto cierra la puerta por API, igual que el guard del demo: 403 ANTES de
+  // apartar un solo cuarto o hablar con Stripe.
+  //
+  // Por qué no `motorEnModoPrueba()`: esa función lee Connect por dentro y no lo
+  // devuelve, y más abajo esta ruta lo necesita para decidir EN QUÉ CUENTA entra
+  // el dinero. Se lee una vez aquí y se reusa. Y así «cobros listos» es
+  // literalmente el mismo `direct` que manda el cobro a la cuenta del hotel: el
+  // guard y el destino del dinero no pueden discrepar.
+  //
+  // Atajo: a quien tiene plan (o cortesía, o una suscripción que no se pudo
+  // leer) la regla ya le dice «no» sin Connect, así que su camino queda
+  // exactamente igual que antes, cobro degradado a la cuenta de Kora incluido.
+  let connectLeido: ConnectState | null = null;
+  if (decidirModoPrueba({ acceso, cobrosListos: false, demo: esDemo })) {
+    connectLeido = await getConnectState(hotel.id, hotel.stripe_account_id);
+    const cobrosListos = cobrosListosDe(connectLeido);
+    if (decidirModoPrueba({ acceso, cobrosListos, demo: esDemo })) {
+      return NextResponse.json({ error: "modo-prueba" }, { status: 403 });
+    }
   }
 
   const parsed = CheckoutBody.safeParse(await req.json().catch(() => null));
@@ -386,8 +414,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   }
 
   // Estado Connect del hotel (cache en BD; lo mantiene fresco account.updated).
-  const connect = await getConnectState(hotel.id, hotel.stripe_account_id);
-  const direct = Boolean(connect.chargesEnabled && connect.accountId);
+  // Si ya se leyó arriba para el modo prueba (hotel en prueba con cobros
+  // listos), se reusa esa misma lectura en vez de consultar dos veces.
+  const connect = connectLeido ?? (await getConnectState(hotel.id, hotel.stripe_account_id));
+  const direct = cobrosListosDe(connect);
 
   // La tarjeta-garantía se guarda en la cuenta Stripe DEL HOTEL: exige que el
   // hotel haya activado la opción y tenga su cuenta lista.
@@ -525,6 +555,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   // estaban en este estado el 26 ago 2026 (dos con la cuenta a medias y dos sin
   // cuenta), así que NO se cierra la puerta devolviendo `{whatsapp:true}`: eso
   // les apagaría el motor a los cuatro. Primero se ve, luego se cierra.
+  // Desde el 15 sep 2026 los hoteles EN PRUEBA ya no llegan hasta aquí (se
+  // cortan arriba con «modo-prueba»): este aviso queda para los que pagan o
+  // tienen cortesía sin Connect, y para cuando no se pudo leer la suscripción.
   if (!direct && !hotelesYaAvisados.has(hotel.id)) {
     hotelesYaAvisados.add(hotel.id);
     await alertar(

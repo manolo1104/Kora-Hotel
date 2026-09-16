@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowRight, Scale, Sparkles } from "lucide-react";
+import { Scale, Sparkles } from "lucide-react";
 import { Reveal } from "@/components/shared/Reveal";
 import { LeadCaptureTool } from "@/components/herramientas/LeadCaptureTool";
+import { CtaRegistroHerramienta } from "@/components/herramientas/CtaRegistro";
 
 function fmtMXN(n: number): string {
   return "$" + Math.round(n).toLocaleString("es-MX") + " MXN";
@@ -378,13 +379,7 @@ export function CalculadoraPuntoEquilibrio() {
             24/7 — bajas tu punto de equilibrio y ves tus números en un solo
             dashboard.
           </p>
-          <a
-            href="/contacto?utm_source=punto-de-equilibrio"
-            className="btn-press btn-arrow btn-fill mt-6 inline-flex items-center gap-2 px-7 py-4 rounded-full bg-kora-accent text-kora-primary font-bold text-sm hover:bg-kora-accent-dark transition-colors"
-          >
-            Ver cómo funciona Kora
-            <ArrowRight size={16} aria-hidden="true" />
-          </a>
+          <CtaRegistroHerramienta origen="punto-de-equilibrio" />
         </div>
       </Reveal>
     </div>

@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowRight, Copy, Printer, Check, Sparkles } from "lucide-react";
+import { Copy, Printer, Check, Sparkles } from "lucide-react";
 import { Reveal } from "@/components/shared/Reveal";
 import { LeadCaptureTool } from "@/components/herramientas/LeadCaptureTool";
+import { CtaRegistroHerramienta } from "@/components/herramientas/CtaRegistro";
 
 const inputCls =
   "w-full px-4 py-3 rounded-xl border border-gray-200 text-kora-text text-sm placeholder:text-kora-muted focus:outline-none focus:ring-2 focus:ring-kora-accent focus:border-transparent transition-all duration-200";
@@ -591,13 +592,7 @@ export function DocumentosLegales() {
             de cancelación, tu aviso de privacidad y tu reglamento ya integrados —
             todo en orden y con cara profesional.
           </p>
-          <a
-            href="/contacto?utm_source=documentos"
-            className="btn-press btn-arrow btn-fill mt-6 inline-flex items-center gap-2 px-7 py-4 rounded-full bg-kora-accent text-kora-primary font-bold text-sm hover:bg-kora-accent-dark transition-colors"
-          >
-            Ver cómo funciona Kora
-            <ArrowRight size={16} aria-hidden="true" />
-          </a>
+          <CtaRegistroHerramienta origen="documentos" />
         </div>
       </Reveal>
     </div>

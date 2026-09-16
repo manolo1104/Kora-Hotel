@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { supabaseEnvReady } from "@/lib/supabase/env";
 import { alcanzoTopeDeHoteles } from "@/lib/tenant";
+import { RUTA_REGISTRO } from "@/lib/oferta";
 import { OnboardingClient } from "./OnboardingClient";
 
 export const dynamic = "force-dynamic";
@@ -19,8 +20,11 @@ export default async function OnboardingPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  // Sin sesión: al entrar regresa directo aquí a cargar los datos del hotel.
-  if (!user) redirect("/entrar?next=/panel/onboarding");
+  // Sin sesión: casi todos los botones del sitio traen aquí, y quien llega casi
+  // siempre viene a REGISTRARSE, así que el formulario abre en «Crear mi cuenta»
+  // (antes abría en «Entrar» y crear la cuenta quedaba escondido). Al terminar
+  // regresa directo aquí a cargar los datos del hotel.
+  if (!user) redirect(`/entrar?registro=1&next=${encodeURIComponent(RUTA_REGISTRO)}`);
 
   // Tope por cuenta: si ya llegó al máximo de hoteles propios, no dejamos entrar
   // al alta (bloquea también el acceso directo por URL).

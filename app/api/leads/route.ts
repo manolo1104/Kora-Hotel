@@ -72,9 +72,16 @@ export async function POST(req: Request) {
   const rooms = str(body.rooms, 20);
   const location = str(body.location, 160);
 
-  if (!name || !whatsapp) {
+  // El WhatsApp deja de ser obligatorio: basta con una forma de contestarle.
+  //
+  // 🔴 EL DATO QUE LO DECIDIÓ (15 sep 2026, medido en la base de producción): el
+  // formulario de 4 campos con teléfono trajo UN lead en 3 meses; el de un solo
+  // campo —el correo de la guía, en las MISMAS páginas y con el mismo tráfico—
+  // trajo 7 en 30 días. No era falta de visitas: era pedir el teléfono antes de
+  // haber dado nada. Quien deja su correo entra igual al CRM y a su secuencia.
+  if (!name || (!whatsapp && !emailLead.includes("@"))) {
     return NextResponse.json(
-      { error: "Tu nombre y WhatsApp son obligatorios." },
+      { error: "Necesitamos tu nombre y un correo o WhatsApp para contestarte." },
       { status: 400 }
     );
   }
@@ -133,7 +140,10 @@ export async function POST(req: Request) {
   const filaLead: Record<string, unknown> = {
     hotel_nombre: hotel || `(sin hotel) — ${name}`,
     tomador_nombre: name,
-    contacto: whatsapp,
+    // Se queda VACÍO si no dio teléfono, en vez de meter aquí el correo: la ficha
+    // del CRM arma el enlace de WhatsApp con este campo (`waLink(lead.contacto)`)
+    // y un correo ahí produciría un botón de WhatsApp que no abre nada.
+    contacto: whatsapp || null,
     ciudad: location || null,
     origen,
     etapa: "nuevo",

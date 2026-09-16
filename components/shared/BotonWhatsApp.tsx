@@ -4,9 +4,15 @@ import { useEffect } from "react";
 import { motion, useMotionValue, useSpring, AnimatePresence } from "motion/react";
 import { MessageCircle } from "lucide-react";
 import { useState } from "react";
-import { WHATSAPP } from "@/lib/contacto";
+import { waLink } from "@/lib/contacto";
 
-const WA_URL = `https://wa.me/${WHATSAPP.replace(/\D/g, "")}?text=Hola%2C%20vi%20Kora%20y%20quiero%20saber%20m%C3%A1s%20para%20mi%20hotel`;
+// El botón flotante sale en TODAS las páginas, así que es lo que más empuja a
+// quien lo ve. Hasta el 15 sep 2026 decía «Escríbenos por WhatsApp» y competía
+// con el registro como si fuera la forma de empezar. Decisión de Manolo: el
+// camino principal es crear la cuenta; WhatsApp queda para resolver dudas. Por
+// eso el texto habla de dudas y no de «empezar» ni de «quiero Kora».
+const WA_URL = waLink("Hola, tengo una duda sobre Kora para mi hotel");
+const ETIQUETA = "¿Dudas? Escríbenos por WhatsApp";
 
 export function BotonWhatsApp() {
   const [visible, setVisible] = useState(false);
@@ -45,7 +51,7 @@ export function BotonWhatsApp() {
           target="_blank"
           rel="noopener noreferrer"
           className="fixed bottom-6 right-6 z-50 flex items-center justify-center rounded-full shadow-lg bg-[#25D366] hover:bg-[#1da851] w-14 h-14 md:w-16 md:h-16"
-          aria-label="Escríbenos por WhatsApp"
+          aria-label={ETIQUETA}
           style={{ x: springX, y: springY }}
           initial={{ scale: 0, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
@@ -69,7 +75,7 @@ export function BotonWhatsApp() {
                 transition={{ duration: 0.15 }}
                 role="tooltip"
               >
-                Escríbenos por WhatsApp
+                {ETIQUETA}
               </motion.span>
             )}
           </AnimatePresence>

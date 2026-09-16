@@ -4,6 +4,8 @@ import { ArrowRight, Globe, MessageCircle, BookOpen, QrCode } from "lucide-react
 import { BarraCTA } from "@/components/shared/BarraCTA";
 import { Reveal } from "@/components/shared/Reveal";
 import { JsonLd } from "@/components/shared/JsonLd";
+import { CtaLink } from "@/components/shared/CtaLink";
+import { RUTA_REGISTRO } from "@/lib/oferta";
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
 
@@ -24,7 +26,9 @@ export const metadata: Metadata = {
 };
 
 const pasos = [
-  { icon: <Globe size={20} />, t: "Crea tu cuenta gratis", d: "Con tu correo, en un minuto. Sin tarjeta." },
+  // Decía «en un minuto»: nadie lo midió, y el alta depende de un correo de
+  // confirmación que puede tardar. No se promete un plazo.
+  { icon: <Globe size={20} />, t: "Crea tu cuenta gratis", d: "Solo con tu correo y sin tarjeta." },
   { icon: <MessageCircle size={20} />, t: "Personaliza tu página", d: "Tu logo y color, fotos, habitaciones, reseñas y tu WhatsApp." },
   { icon: <QrCode size={20} />, t: "Comparte tu enlace y tu QR", d: "En recepción, redes y habitaciones. Listo para recibir reservas directas." },
 ];
@@ -87,13 +91,17 @@ export default function MiniPaginaLanding() {
             </p>
           </Reveal>
           <Reveal delay={0.3}>
-            <Link
-              href="/entrar"
+            {/* Los dos botones llevaban a /entrar sin `next`: la persona caía en
+                «Entra a tu panel» con el formulario en modo «Entrar», justo
+                cuando venía a crear su cuenta. RUTA_REGISTRO abre el alta. */}
+            <CtaLink
+              href={RUTA_REGISTRO}
+              ctaName="mini_pagina_registro_hero"
               className="btn-press btn-arrow btn-fill mt-8 inline-flex items-center gap-2 px-8 py-4 rounded-full bg-kora-accent text-kora-primary font-bold text-sm hover:bg-kora-accent-dark transition-colors"
             >
               Crear mi página gratis
               <ArrowRight size={16} aria-hidden="true" />
-            </Link>
+            </CtaLink>
           </Reveal>
         </div>
       </section>
@@ -152,13 +160,14 @@ export default function MiniPaginaLanding() {
             ))}
           </div>
           <div className="text-center mt-10">
-            <Link
-              href="/entrar"
+            <CtaLink
+              href={RUTA_REGISTRO}
+              ctaName="mini_pagina_registro_pasos"
               className="btn-press btn-arrow btn-fill inline-flex items-center gap-2 px-8 py-4 rounded-full bg-kora-accent text-kora-primary font-bold text-sm hover:bg-kora-accent-dark transition-colors"
             >
               Crear mi página gratis
               <ArrowRight size={16} aria-hidden="true" />
-            </Link>
+            </CtaLink>
           </div>
         </div>
       </section>

@@ -200,7 +200,7 @@ export function OnboardingClient() {
                   inputMode="tel"
                 />
                 <p className="mt-1.5 text-xs text-kora-muted">
-                  Aquí llegan las reservas y mensajes de tus huéspedes.
+                  Es el número al que te escriben tus huéspedes desde tu página.
                 </p>
               </div>
               <div>

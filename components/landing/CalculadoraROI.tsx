@@ -5,11 +5,14 @@ import { useInView } from "motion/react";
 import { ArrowRight } from "lucide-react";
 import { Reveal } from "@/components/shared/Reveal";
 import { AhorroStickyPill } from "@/components/landing/AhorroStickyPill";
-import { trackCta } from "@/lib/analytics";
-import { PRECIO_DESDE } from "@/lib/oferta";
-import { WHATSAPP } from "@/lib/contacto";
+import { CtaLink } from "@/components/shared/CtaLink";
+import { GARANTIA, PRECIO_DESDE, RUTA_REGISTRO } from "@/lib/oferta";
+import { waLink } from "@/lib/contacto";
 
-const WA_CALC_URL = `https://wa.me/${WHATSAPP.replace(/\D/g, "")}?text=Hola%2C%20us%C3%A9%20la%20calculadora%20de%20Kora%20y%20quiero%20saber%20m%C3%A1s`;
+// WhatsApp es la vía SECUNDARIA (decisión de Manolo, 15 sep 2026): quien acaba
+// de ver su número quiere probar Kora con su hotel, y eso se hace creando la
+// cuenta. El enlace de WhatsApp queda pequeño, para dudas.
+const WA_CALC_URL = waLink("Hola, usé la calculadora de Kora y tengo una duda");
 
 function fmtMXN(n: number): string {
   const abs = Math.round(Math.abs(n));
@@ -392,24 +395,26 @@ export function CalculadoraROI() {
           <p className="text-sm text-kora-text font-medium mb-3">
             ¿Quieres ver estos números aplicados a tu hotel?
           </p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <a
-              href="/panel/onboarding"
-              onClick={() => trackCta("roi_onboarding")}
+          <div className="flex flex-col items-center gap-3">
+            <CtaLink
+              href={RUTA_REGISTRO}
+              ctaName="roi_onboarding"
               className="btn-press btn-arrow btn-fill inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-kora-accent text-kora-primary font-bold text-sm hover:bg-kora-accent-dark transition-colors"
             >
-              Recuperarlos — prueba gratis
+              Crear cuenta y probar {GARANTIA.diasPrueba} días gratis
               <ArrowRight size={15} aria-hidden="true" />
-            </a>
-            <a
-              href={WA_CALC_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => trackCta("roi_whatsapp")}
-              className="btn-press inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full border-2 border-kora-primary text-kora-primary font-semibold text-sm hover:bg-kora-primary hover:text-white transition-colors"
-            >
-              Hablar con Manolo por WhatsApp
-            </a>
+            </CtaLink>
+            {WA_CALC_URL && (
+              <CtaLink
+                href={WA_CALC_URL}
+                ctaName="roi_whatsapp"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm font-semibold text-kora-primary underline decoration-kora-accent underline-offset-4 hover:text-kora-primary-dark transition-colors"
+              >
+                ¿Dudas? Escríbenos por WhatsApp
+              </CtaLink>
+            )}
           </div>
         </div>
       </div>

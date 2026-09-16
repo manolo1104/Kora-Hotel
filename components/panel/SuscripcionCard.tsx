@@ -5,8 +5,15 @@ import Link from "next/link";
 import { Loader2, CreditCard, Sparkles } from "lucide-react";
 import { postJson, mensajeDeError } from "@/lib/ui/api";
 import { WHATSAPP } from "@/lib/contacto";
+import { GARANTIA, PRECIO_DESDE, RUTA_ACTIVAR } from "@/lib/oferta";
 
 const WA_KORA = WHATSAPP;
+
+// Cifras de la oferta: salen de lib/oferta.ts, nunca escritas aquí. Es un
+// componente de CLIENTE, así que los días vienen de `GARANTIA.diasPrueba` y no
+// de `PRUEBA_DIAS` (lib/suscripcion usa la service-role); una prueba vigila que
+// las dos digan lo mismo (tests/prueba-14-dias.test.ts).
+const PRECIO = `$${PRECIO_DESDE.toLocaleString("es-MX")}/mes`;
 
 // Tarjeta de suscripción en el panel: muestra el plan/estado y abre el
 // Customer Portal de Stripe (cambiar tarjeta, recibos, cancelar) sin
@@ -25,6 +32,7 @@ export function SuscripcionCard({
   estado,
   esStripe,
   sinHoteles = false,
+  prueba = null,
 }: {
   plan: string | null;
   estado: string | null;
@@ -34,6 +42,15 @@ export function SuscripcionCard({
    *  que "Crear mi hotel" y arriba de el, y la gente pica el de pagar: se topa
    *  con la tarjeta de Stripe y cree que Kora la exige para entrar. */
   sinHoteles?: boolean;
+  /**
+   * La prueba de ESTE DUEÑO, ya calculada en el servidor (`pruebaDelHotel` con el
+   * ancla del dueño). null = no está en prueba o no se pudo saber: entonces no
+   * se dan días. El hub no decía cuántos le quedaban, y el texto de siempre
+   * («cada hotel nuevo incluye N días») era falso dos veces: la prueba es por
+   * dueño —recrear el hotel no la reinicia— y quien entró antes del 6 sep tiene
+   * más días que la prueba de hoy.
+   */
+  prueba?: { diasRestantes: number; vencida: boolean } | null;
 }) {
   const [abriendo, setAbriendo] = useState(false);
   const [error, setError] = useState("");
@@ -79,19 +96,23 @@ export function SuscripcionCard({
         <div className="flex items-center gap-3">
           <Sparkles size={18} className="text-kora-primary" aria-hidden="true" />
           <p className="text-sm text-kora-text">
-            <span className="font-bold">Prueba gratis.</span>{" "}
-            <span className="text-kora-muted">
-              {sinHoteles
-                ? "Tus 14 días empiezan cuando crees tu hotel, aquí abajo. No te pedimos tarjeta para empezar: el plan ($550/mes) lo activas después, desde esta misma barra."
-                : "Cada hotel nuevo incluye 14 días completos sin tarjeta; al vencer, su motor se pausa hasta que actives tu plan ($550/mes)."}
-            </span>
+            <span className="font-bold">
+              {prueba?.vencida
+                ? "Prueba gratis terminada."
+                : prueba
+                  ? `Prueba gratis: ${
+                      prueba.diasRestantes === 1 ? "hoy es tu último día." : `te quedan ${prueba.diasRestantes} días.`
+                    }`
+                  : "Prueba gratis."}
+            </span>{" "}
+            <span className="text-kora-muted">{textoPrueba(sinHoteles, prueba)}</span>
           </p>
         </div>
         {/* Sin hoteles no ofrecemos pagar: sería el único botón de la pantalla
             compitiendo con "Crear mi hotel" y ganándole por estar arriba. */}
         {!sinHoteles && (
           <Link
-            href="/pago/iniciar?plan=kora"
+            href={RUTA_ACTIVAR}
             className="btn-press inline-flex items-center px-4 py-2 rounded-full bg-kora-accent text-kora-primary font-bold text-sm hover:bg-kora-accent-dark transition-colors"
           >
             Activar mi plan
@@ -115,6 +136,14 @@ export function SuscripcionCard({
             {estado === "cancelada"
               ? "Tus recibos siguen disponibles y puedes reactivarlo cuando quieras."
               : "Tu pago quedó a medias. Puedes retomarlo cuando quieras."}
+            {/* Quien pulsó «Activar mi plan» durante su prueba y no terminó el
+                pago queda en «incompleta» CON cliente de Stripe, y cae aquí y no
+                en la barra de la prueba: el hub le escondía justo los días que
+                le quedaban, aunque su motor sigue abierto por la prueba. */}
+            {prueba && !prueba.vencida &&
+              (prueba.diasRestantes === 1
+                ? " Hoy es el último día de tu prueba gratis."
+                : ` Te quedan ${prueba.diasRestantes} días de tu prueba gratis.`)}
           </p>
         )}
         {error && (
@@ -160,7 +189,7 @@ export function SuscripcionCard({
             quien canceló no tenía forma de volver desde su panel. */}
         {cerrada && (
           <Link
-            href="/pago/iniciar?plan=kora"
+            href={RUTA_ACTIVAR}
             className="btn-press inline-flex items-center px-4 py-2 rounded-full bg-kora-accent text-kora-primary font-bold text-sm hover:bg-kora-accent-dark transition-colors"
           >
             Activar mi plan
@@ -182,4 +211,22 @@ export function SuscripcionCard({
       </div>
     </div>
   );
+}
+
+/** El texto de la barra para quien no tiene plan. Ninguna cifra a mano. */
+function textoPrueba(
+  sinHoteles: boolean,
+  prueba: { diasRestantes: number; vencida: boolean } | null,
+): string {
+  if (prueba?.vencida) {
+    return `Tu motor está en pausa hasta que actives tu plan (${PRECIO}). Tus datos siguen intactos.`;
+  }
+  if (prueba) {
+    return sinHoteles
+      ? "Tu prueba empezó con tu primer hotel y no se reinicia al crear otro. No te pedimos tarjeta: el plan lo activas cuando quieras."
+      : `Es una sola prueba por cuenta y sin tarjeta; al terminar, tu motor se pausa hasta que actives tu plan (${PRECIO}).`;
+  }
+  return sinHoteles
+    ? `Tus ${GARANTIA.diasPrueba} días empiezan cuando crees tu primer hotel, aquí abajo. No te pedimos tarjeta para empezar: el plan (${PRECIO}) lo activas después, desde esta misma barra.`
+    : `Es una sola prueba por cuenta y sin tarjeta, aunque tengas más de un hotel; al terminar, el motor se pausa hasta que actives tu plan (${PRECIO}).`;
 }

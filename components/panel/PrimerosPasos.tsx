@@ -1,133 +1,88 @@
-"use client";
-
 // Checklist "Primeros pasos" del Inicio: refleja el estado real del hotel
 // (mismo diagnóstico que la página de Camila) y enlaza a dónde completar cada
 // cosa. Incluye el botón para relanzar el tour guiado. Se colapsa cuando todo
 // está listo.
+//
+// Es un componente de SERVIDOR a propósito (antes era de cliente). Las dos
+// casillas que mentían necesitaban datos que el navegador no puede leer:
+// «cobros conectados» tiene que mirar `charges_enabled` real (service-role) y
+// no sólo que exista un `stripe_account_id`, y la tarea «haz una reserva de
+// prueba» sólo se puede ofrecer si el motor de verdad simula el pago. La parte
+// interactiva vive en `PrimerosPasosLista`. La firma no cambia: quien la monta
+// sigue pasando `slug` y `diagnostico`.
 
-import { useState } from "react";
-import { Check, ChevronDown, ChevronUp, Sparkles, ArrowRight, AlertTriangle } from "lucide-react";
 import type { DiagnosticoHotel } from "@/lib/panel/diagnostico";
+import { getHotelMember } from "@/lib/tenant";
+import { puedeCtx } from "@/lib/panel/permisos";
+import { motivoCierre } from "@/lib/panel/pantallas";
+import { accesoDelHotel } from "@/lib/suscripcion";
+import { cobrosListosDelHotel } from "@/lib/motor/modo-prueba";
+import {
+  estadoDelMotor,
+  progresoPrimerosPasos,
+  tareasPrimerosPasos,
+  type EstadoMotor,
+} from "@/lib/panel/primeros-pasos";
+import PrimerosPasosLista from "./PrimerosPasosLista";
 
-interface Tarea {
-  ok: boolean;
-  label: string;
-  aviso?: string;
-  href: string;
-}
-
-export default function PrimerosPasos({
+export default async function PrimerosPasos({
   slug,
   diagnostico,
 }: {
   slug: string;
   diagnostico: DiagnosticoHotel;
 }) {
-  const base = `/panel/${slug}`;
-  const sitio = (tab?: string) => `${base}/sitio${tab ? `?tab=${tab}` : ""}`;
+  // `getHotelMember` va envuelta en `cache()`: la pantalla ya la resolvió en sus
+  // layouts, así que aquí no cuesta otra consulta.
+  const ctx = await getHotelMember(slug);
+  const hotel = ctx?.hotel ?? null;
 
-  const tareas: Tarea[] = [
-    { ...diagnostico.habitaciones, href: sitio("habitaciones") },
-    { ...diagnostico.precios, href: sitio("habitaciones") },
-    { ...diagnostico.fotos, href: sitio("contenido") },
-    { ...diagnostico.amenidades, href: sitio("contenido") },
-    { ...diagnostico.experiencias, href: sitio("avanzado") },
-    { ...diagnostico.cobros, href: `${base}/pagos` },
-    { ...diagnostico.botEntrenado, href: `${base}/camila` },
-    { ...diagnostico.reglas, href: sitio("avanzado") },
-    { ...diagnostico.publicado, href: sitio() },
-  ].map((t) => ({ ok: t.ok, label: t.label, aviso: t.aviso, href: t.href }));
-
-  const hechas = tareas.filter((t) => t.ok).length;
-  const total = tareas.length;
-  const completo = hechas === total;
-
-  const [abierto, setAbierto] = useState(!completo);
-
-  function verTour() {
-    window.dispatchEvent(new Event("kora:iniciar-tour"));
+  let estadoMotor: EstadoMotor = "sin-cobros";
+  let cobrosListos = false;
+  if (hotel) {
+    const extras = (hotel.extras ?? {}) as Record<string, unknown>;
+    // Ninguna de las dos lanza. Sin cuenta de Stripe, `cobrosListosDelHotel`
+    // responde false sin llamar a nadie.
+    const [acceso, listos] = await Promise.all([
+      accesoDelHotel(hotel),
+      cobrosListosDelHotel(hotel.id, hotel.stripe_account_id),
+    ]);
+    cobrosListos = listos;
+    estadoMotor = estadoDelMotor({ acceso, cobrosListos, demo: extras.demo === true });
   }
 
+  const bot = ((hotel?.extras ?? {}) as { bot?: { probadoAt?: unknown } }).bot;
+  const tareas = tareasPrimerosPasos({
+    slug,
+    diagnostico,
+    estadoMotor,
+    cobrosListos,
+    camilaProbada: Boolean(bot?.probadoAt),
+    // Sin contexto (no debería pasar: la página ya exigió membresía) no se
+    // enlaza a nada que pueda terminar en «no tienes permiso».
+    puedeVerPagos: ctx ? puedeCtx(ctx, "pagos:ver") : false,
+    puedeProbarCamila: ctx
+      ? motivoCierre(ctx.rol, ctx.pantallas, "camila") === null && puedeCtx(ctx, "bot:leer")
+      : false,
+    puedeVincular: ctx
+      ? motivoCierre(ctx.rol, ctx.pantallas, "camila") === null && puedeCtx(ctx, "bot:vincular")
+      : false,
+  });
+  const { hechas, total, completo } = progresoPrimerosPasos(tareas);
+
   return (
-    <section className="rounded-2xl border border-panel-contrast/10 bg-panel-surface p-5">
-      <div className="flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <h2 className="text-lg font-bold text-kora-text">
-            {completo ? "✓ Configuración completa" : "Primeros pasos"}
-          </h2>
-          <p className="text-sm text-kora-muted">
-            {completo
-              ? "Tu hotel está listo para recibir reservas."
-              : `Termina de configurar tu hotel (${hechas}/${total}).`}
-          </p>
-        </div>
-        <button
-          onClick={() => setAbierto((v) => !v)}
-          className="shrink-0 text-kora-muted hover:text-kora-text"
-          aria-label={abierto ? "Contraer" : "Expandir"}
-        >
-          {abierto ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-        </button>
-      </div>
-
-      {!completo && (
-        <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-panel-contrast/5">
-          <div
-            className="h-full rounded-full bg-kora-primary transition-all"
-            style={{ width: `${(hechas / total) * 100}%` }}
-          />
-        </div>
-      )}
-
-      {abierto && (
-        <ul className="mt-4 space-y-2">
-          {tareas.map((t) => (
-            <li key={t.label} className="flex items-center justify-between gap-3">
-              <span className="flex min-w-0 items-center gap-2 text-sm">
-                <span
-                  className={`grid h-5 w-5 shrink-0 place-items-center rounded-full ${
-                    t.ok ? "bg-green-100 text-green-700" : "bg-panel-contrast/5 text-panel-faint"
-                  }`}
-                >
-                  <Check size={13} />
-                </span>
-                <span className={t.ok ? "text-kora-text" : "text-kora-muted"}>{t.label}</span>
-              </span>
-              {!t.ok && (
-                <a
-                  href={t.href}
-                  className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-kora-primary hover:underline"
-                >
-                  Completar <ArrowRight size={12} />
-                </a>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
-
-      {diagnostico.temporadas.estado !== "ok" && (
-        <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 p-3.5">
-          <AlertTriangle size={16} className="mt-0.5 shrink-0 text-amber-600" />
-          <div className="min-w-0 text-sm">
-            <p className="font-semibold text-amber-900">Precios de temporada</p>
-            <p className="mt-0.5 text-amber-800">{diagnostico.temporadas.mensaje}</p>
-            <a
-              href={sitio("avanzado")}
-              className="mt-1.5 inline-flex items-center gap-1 text-xs font-semibold text-amber-900 hover:underline"
-            >
-              Cargar temporadas <ArrowRight size={12} />
-            </a>
-          </div>
-        </div>
-      )}
-
-      <button
-        onClick={verTour}
-        className="btn-press mt-4 inline-flex items-center gap-2 rounded-full border border-panel-border px-4 py-2 text-sm font-semibold text-kora-text hover:border-kora-accent"
-      >
-        <Sparkles size={15} className="text-kora-primary" /> Ver el tour otra vez
-      </button>
-    </section>
+    <PrimerosPasosLista
+      tareas={tareas}
+      hechas={hechas}
+      total={total}
+      completo={completo}
+      sinPublicar={hotel?.publicado === false}
+      editorHref={`/panel/${slug}/sitio`}
+      temporadas={
+        diagnostico.temporadas.estado !== "ok"
+          ? { mensaje: diagnostico.temporadas.mensaje, href: `/panel/${slug}/sitio?tab=avanzado` }
+          : null
+      }
+    />
   );
 }

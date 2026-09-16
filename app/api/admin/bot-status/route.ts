@@ -1,7 +1,7 @@
 import { negar } from "@/lib/panel/permisos";
 import { NextResponse } from "next/server";
 import { leerSaldo, sinSaldo } from "@/lib/db/saldo";
-import { bloqueoActivo } from "@/lib/saldo/paquetes";
+import { bloqueoEncendido } from "@/lib/saldo/fases";
 import { getActiveHotel } from "@/lib/panel/active-hotel";
 import { getBotStatus, setBotStatus } from "@/lib/db/admin";
 
@@ -54,7 +54,10 @@ export async function GET() {
   // por un huésped enfadado.
   // Sólo mientras el bloqueo esté encendido: con él apagado el saldo baja pero
   // Camila contesta, y poner «Sin saldo» en el menú sería alarma falsa.
-  const saldo = bloqueoActivo() ? await leerSaldo(ctx.hotelId) : null;
+  // Es la MISMA pregunta que hace /api/agent antes de callar a Camila (fases de
+  // la base, con caché): si las dos leyeran interruptores distintos, el menú
+  // diría «Sin saldo» de una Camila que sigue hablando, o al revés.
+  const saldo = (await bloqueoEncendido()) ? await leerSaldo(ctx.hotelId) : null;
   return NextResponse.json({ enabled, conexion, sinSaldo: saldo !== null && sinSaldo(saldo) });
 }
 

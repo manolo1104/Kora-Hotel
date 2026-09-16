@@ -6,7 +6,8 @@ import { leerCuerpo } from "@/lib/api/cuerpo";
 import { limitado } from "@/lib/api/rate-limit";
 import { getStripe, stripeEnvReady } from "@/lib/stripe/server";
 import { leerSaldo, consumoDelMes, SIN_DATO } from "@/lib/db/saldo";
-import { paquetePorMxn, PAQUETES, diasQueAlcanzan, UMBRAL_AVISO_BAJO, recargaActiva, bloqueoActivo } from "@/lib/saldo/paquetes";
+import { paquetePorMxn, PAQUETES, diasQueAlcanzan, UMBRAL_AVISO_BAJO } from "@/lib/saldo/paquetes";
+import { recargaAbierta, bloqueoEncendido } from "@/lib/saldo/fases";
 
 export const dynamic = "force-dynamic";
 
@@ -47,6 +48,11 @@ export async function GET() {
   if (no) return no;
 
   const [saldo, consumo] = await Promise.all([leerSaldo(ctx.hotelId), consumoDelMes(ctx.hotelId)]);
+  // Los interruptores se mueven desde /crm/prepago. Uno detrás del otro y no en
+  // el Promise.all: con la caché fría, dos lecturas a la vez irían las dos a la
+  // base; así la segunda sale de la caché que dejó la primera.
+  const recarga = await recargaAbierta();
+  const bloqueo = await bloqueoEncendido();
 
   return NextResponse.json({
     ok: true,
@@ -61,10 +67,11 @@ export async function GET() {
     // Para que el panel sepa si pintar el botón de recargar o sólo la cifra.
     // Son DOS cosas distintas: `recargaAbierta` es si la función existe ya para
     // cualquiera, y `puedeRecargar` es si a ESTA persona le toca (sólo el dueño).
-    recargaAbierta: recargaActiva(),
+    recargaAbierta: recarga,
     // Con el bloqueo apagado el saldo baja pero Camila NO se calla, y el panel
-    // tiene que contar eso y no otra cosa.
-    bloqueoActivo: bloqueoActivo(),
+    // tiene que contar eso y no otra cosa. (El nombre `bloqueoActivo` se queda
+    // por el panel, que lo lee así; el valor ya es el de la base.)
+    bloqueoActivo: bloqueo,
     puedeRecargar: ctx.permisos.has("saldo:recargar"),
   });
 }
@@ -78,7 +85,11 @@ export async function POST(req: Request) {
   // La puerta de verdad está AQUÍ, no en el botón. Esconder el botón no impide
   // que alguien mande el POST a mano, y mientras el prepago esté anunciado como
   // «próximamente» no puede cobrarse un peso a nadie.
-  if (!recargaActiva()) {
+  //
+  // Con la caché de fases (60 s), cerrar las recargas desde el CRM tarda hasta
+  // un minuto en llegar a todas las instancias: en ese minuto alguien todavía
+  // podría abrir un pago. No pierde nada —el webhook le acredita lo que pagó—.
+  if (!(await recargaAbierta())) {
     return NextResponse.json(
       { ok: false, error: "Las recargas todavía no están abiertas." },
       { status: 503 },

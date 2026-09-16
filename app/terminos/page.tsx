@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Reveal } from "@/components/shared/Reveal";
-import { GARANTIA } from "@/lib/oferta";
+import { GARANTIA, PRECIO_DESDE } from "@/lib/oferta";
 import { EMAIL_CONTACTO, WHATSAPP } from "@/lib/contacto";
 
 export const metadata: Metadata = {
@@ -66,15 +66,26 @@ export default function TerminosPage() {
               <h2 id="pagos" className="text-xl font-bold text-kora-text mb-3">
                 3. Pagos y cancelación
               </h2>
+              {/* 15 sep 2026: el precio y los días estaban escritos a mano aquí
+                  ($550, «14 días»), justo en la página a la que /precios y
+                  /como-funciona mandan a comprobarlo. Salen de lib/oferta.ts.
+
+                  Y decía «el primer cargo se realiza al finalizar la prueba»,
+                  que contradecía a la lista de abajo («si no activas el plan, no
+                  se cobra nada») y a toda la web: la prueba no pide tarjeta, así
+                  que al vencer no hay nada que cobrar — el motor y Camila se
+                  pausan hasta que el hotelero active su plan él mismo. */}
               <p>
-                El servicio se cobra mensualmente. Hay un solo plan de $550
-                MXN/mes (IVA incluido), con habitaciones ilimitadas y todo incluido:
-                motor de reservas, PMS, Camila (WhatsApp con IA), dashboard y
-                CRM. El precio se mantiene vigente mientras la
-                suscripción esté activa. El plan incluye 14 días de prueba
-                gratis, sin tarjeta; el primer cargo se realiza al finalizar la
-                prueba. Las cuentas creadas antes del 6 de septiembre de 2026
-                conservan los 30 días de prueba con los que se registraron.
+                El servicio se cobra mensualmente. Hay un solo plan de $
+                {PRECIO_DESDE.toLocaleString("es-MX")} MXN/mes (IVA incluido), con
+                habitaciones ilimitadas y todo incluido: motor de reservas, PMS,
+                Camila (WhatsApp con IA), dashboard y CRM. El precio se mantiene
+                vigente mientras la suscripción esté activa. El plan incluye{" "}
+                {GARANTIA.diasPrueba} días de prueba gratis, sin tarjeta: al
+                terminar no se genera ningún cargo, y el primer cobro ocurre solo
+                si activas el plan por tu cuenta. Las cuentas creadas antes del 6
+                de septiembre de 2026 conservan los 30 días de prueba con los que
+                se registraron.
               </p>
               <ul className="mt-3 space-y-1.5 list-disc list-inside text-kora-muted">
                 <li>

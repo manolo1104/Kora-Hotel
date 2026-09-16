@@ -15,7 +15,10 @@ vi.mock("@/lib/supabase/admin", () => ({
     from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: fila, error: null }) }) }) }),
   }),
 }));
-vi.mock("@/lib/db/prueba-dueno", () => ({ inicioPruebaDelDueno: async () => null }));
+vi.mock("@/lib/db/prueba-dueno", () => ({
+  inicioPruebaDelDueno: async () => null,
+  anclaPruebaDelDueno: async () => ({ inicio: null, diasExtra: 0 }),
+}));
 vi.mock("@/lib/alertas", () => ({ alertar: async () => {} }));
 
 const { accesoDelHotel } = await import("@/lib/suscripcion");

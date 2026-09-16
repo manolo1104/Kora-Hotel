@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowRight, CalendarDays, Sparkles } from "lucide-react";
+import { CalendarDays, Sparkles } from "lucide-react";
 import { Reveal } from "@/components/shared/Reveal";
 import { LeadCaptureTool } from "@/components/herramientas/LeadCaptureTool";
+import { CtaRegistroHerramienta } from "@/components/herramientas/CtaRegistro";
 
 function fmtMXN(n: number): string {
   return "$" + Math.round(n).toLocaleString("es-MX") + " MXN";
@@ -269,30 +270,33 @@ export function CalendarioPuentes() {
         </div>
       </Reveal>
 
-      {/* ── CAPA 3: el puente a Kora ── */}
+      {/* ── CAPA 3: el puente a Kora ──
+          Hasta el 15 sep 2026 decía «Precio dinámico automático: Kora ajusta tu
+          tarifa solo». Kora no lo hace (lib/oferta.ts lo deja fuera del plan).
+          Lo que sí hace es cobrar las temporadas y el recargo de fin de semana
+          que el hotelero carga en su panel (lib/booking/engine.ts).
+          Ojo: cada temporada lleva fechas exactas (desde/hasta con año), así que
+          NO se cargan «una sola vez»: los puentes cambian de fecha cada año y hay
+          que dejarlos listos por adelantado. El recargo de fin de semana sí se
+          configura una vez. */}
       <Reveal>
         <div className="mt-10 rounded-2xl bg-kora-primary p-7 sm:p-9 text-center">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-kora-accent/15 mb-4">
             <Sparkles size={14} className="text-kora-accent" aria-hidden="true" />
             <span className="text-xs font-bold text-kora-accent uppercase tracking-widest">
-              Precio dinámico automático
+              Tus temporadas, listas por adelantado
             </span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight leading-tight">
-            No tienes que acordarte de subir tus precios
+            Deja tus precios de puente listos desde hoy
           </h2>
           <p className="mt-3 text-white/75 text-sm sm:text-base leading-relaxed max-w-xl mx-auto">
-            Kora ajusta tu tarifa solo en cada puente, temporada alta y evento
-            local — sube cuando hay demanda y baja en los días flojos para llenar.
-            Sin que tú estés pendiente del calendario.
+            En Kora cargas por adelantado tus temporadas y puentes con su tarifa, y
+            una vez tu recargo de fin de semana. Tu motor de reservas cobra la
+            tarifa que toca en cada fecha, sin que cambies precios a mano el día
+            que llega el puente.
           </p>
-          <a
-            href="/contacto?utm_source=calendario-puentes"
-            className="btn-press btn-arrow btn-fill mt-6 inline-flex items-center gap-2 px-7 py-4 rounded-full bg-kora-accent text-kora-primary font-bold text-sm hover:bg-kora-accent-dark transition-colors"
-          >
-            Ver cómo funciona Kora
-            <ArrowRight size={16} aria-hidden="true" />
-          </a>
+          <CtaRegistroHerramienta origen="calendario-puentes" />
         </div>
       </Reveal>
     </div>

@@ -12,6 +12,7 @@ import { AMENIDADES_MAP } from "@/lib/amenidades";
 import { accesoDelHotel } from "@/lib/suscripcion";
 import RoomDetailClient from "./RoomDetailClient";
 import { JsonLd } from "@/components/shared/JsonLd";
+import { metaDescripcion } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 
@@ -81,7 +82,11 @@ export async function generateMetadata({
   const h = hotel?.habitaciones?.[Number(idx)];
   if (!hotel || !h) return { title: "Habitación" };
   const title = `${h.nombre || "Habitación"} · ${hotel.nombre}`;
-  const description = (h.descripcion || `Reserva ${h.nombre || "esta habitación"} en ${hotel.nombre}.`).slice(0, 155);
+  // Por la misma razón que el glosario: `.slice()` parte a media palabra y eso
+  // es lo que Google enseña. Aquí además el texto lo escribe el hotelero.
+  const description = metaDescripcion(
+    h.descripcion || `Reserva ${h.nombre || "esta habitación"} en ${hotel.nombre}.`,
+  );
   return {
     title,
     description,

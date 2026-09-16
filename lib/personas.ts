@@ -1,6 +1,13 @@
 // Páginas por tipo de hotel (pSEO Personas). Aterrizaje ICP para backlinks de directorios.
 import type { FAQ } from "@/lib/glosario";
-import { FORECAST_DIAS } from "@/lib/oferta";
+import { FORECAST_DIAS, GARANTIA, PRECIO_DESDE } from "@/lib/oferta";
+
+// 15 sep 2026: estas páginas prometían «lo instalamos y capacitamos nosotros en
+// 24 horas» y «llave en mano» en seis sitios. El alta es por cuenta propia:
+// te registras, cargas tu hotel y lo pruebas gratis; te ayudamos si quieres
+// (decisión de Manolo). Precio y días salen de lib/oferta.ts.
+const PRECIO = `$${PRECIO_DESDE.toLocaleString("es-MX")} MXN`;
+const DIAS = GARANTIA.diasPrueba;
 
 export interface Persona {
   slug: string;
@@ -26,7 +33,7 @@ export const personas: Persona[] = [
     resumen:
       "Software pensado para hoteles boutique en México: reservas directas, IA en WhatsApp y operación simple.",
     intro:
-      "Un hotel boutique necesita un sistema que cuide la experiencia personal sin volverse complejo: reservas directas sin comisión, atención rápida por WhatsApp y una operación que se maneje desde el celular. Kora reúne motor de reservas, PMS y CRM en una sola pantalla, en español, instalado llave en mano.",
+      "Un hotel boutique necesita un sistema que cuide la experiencia personal sin volverse complejo: reservas directas sin comisión, atención rápida por WhatsApp y una operación que se maneje desde el celular. Kora reúne motor de reservas, PMS y CRM en una sola pantalla, en español, y lo pruebas gratis con tu propio hotel antes de pagar.",
     dolor: [
       "Cada reserva por OTA se lleva 15%–20% de comisión, justo cuando el margen del boutique es lo que sostiene la experiencia.",
       "El huésped escribe a deshoras por WhatsApp y, si nadie contesta, se pierde la reserva.",
@@ -52,7 +59,7 @@ export const personas: Persona[] = [
     faqs: [
       {
         q: "¿Kora sirve para un hotel boutique pequeño?",
-        a: "Sí. Está diseñado precisamente para hoteles boutique e independientes en México, operados por su dueño. Lo instalamos y capacitamos nosotros en 24 horas.",
+        a: `Sí. Está diseñado precisamente para hoteles boutique e independientes en México, operados por su dueño. Te registras, cargas tu hotel y lo pruebas ${DIAS} días gratis; si quieres, te ayudamos a dejarlo listo por WhatsApp.`,
       },
       {
         q: "¿Pierdo mis reservas de Booking o Airbnb?",
@@ -67,7 +74,7 @@ export const personas: Persona[] = [
     resumen:
       "Sistema todo-en-uno para hoteles pequeños: deja el cuaderno y el Excel sin complicarte.",
     intro:
-      "Un hotel pequeño o independiente necesita dejar atrás el cuaderno y el Excel sin caer en un sistema caro y complicado. Lo esencial: tomar reservas directas, evitar el overbooking y contestar rápido. Kora junta todo eso en un solo sistema en español, instalado y con soporte por WhatsApp.",
+      "Un hotel pequeño o independiente necesita dejar atrás el cuaderno y el Excel sin caer en un sistema caro y complicado. Lo esencial: tomar reservas directas, evitar el overbooking y contestar rápido. Kora junta todo eso en un solo sistema en español, que configuras tú y con ayuda por WhatsApp si la necesitas.",
     dolor: [
       "Llevar las reservas en cuaderno o Excel termina en errores y, tarde o temprano, en overbooking.",
       "Pagar varias herramientas sueltas (motor, chatbot, PMS) sale caro y no se hablan entre sí.",
@@ -85,19 +92,19 @@ export const personas: Persona[] = [
           "Reservas, atención con IA, PMS y CRM por un solo precio, en vez de juntar (y pagar) varias apps distintas.",
       },
       {
-        titulo: "Instalado y con soporte en español",
+        titulo: "Lo configuras tú, con ayuda en español",
         texto:
-          "Lo configuramos por ti en 24 horas y te damos soporte por WhatsApp. Cero fricción técnica.",
+          "Cargas tus habitaciones y tarifas con un asistente paso a paso y lo pruebas gratis. Si prefieres que te acompañemos, te ayudamos por WhatsApp.",
       },
     ],
     faqs: [
       {
         q: "¿Es difícil de usar si no sé de tecnología?",
-        a: "No. Lo instalamos, capacitamos y damos soporte por WhatsApp. Está pensado para dueños que operan su hotel desde el celular.",
+        a: "No. Un asistente te guía para cargar tu hotel y, si te atoras, te ayudamos por WhatsApp. Está pensado para dueños que operan su hotel desde el celular.",
       },
       {
         q: "¿Cuánto cuesta para un hotel pequeño?",
-        a: "Hay un solo plan de $550 MXN/mes, mes a mes y sin permanencia, con habitaciones ilimitadas y todo incluido: el motor de reservas directo (0% de comisión), el PMS, Camila (agente de WhatsApp con IA 24/7), el dashboard y el CRM. Lo pruebas 14 días gratis. Además, si quieres, te creamos tu sitio web profesional con motor de reservas como servicio aparte.",
+        a: `Hay un solo plan de ${PRECIO}/mes, mes a mes y sin permanencia, con habitaciones ilimitadas y todo incluido: el motor de reservas directo (0% de comisión), el PMS, Camila (agente de WhatsApp con IA 24/7), el dashboard y el CRM. Lo pruebas ${DIAS} días gratis. Además, si quieres, te creamos tu sitio web profesional con motor de reservas como servicio aparte.`,
       },
     ],
   },
@@ -142,7 +149,7 @@ export const personas: Persona[] = [
       },
       {
         q: "¿Sirve para un hotel de playa en Tulum, Sayulita o Puerto Escondido?",
-        a: "Sí. Kora sirve para hoteles boutique de playa en cualquier destino de México. Convive con Booking, Airbnb y Expedia mientras haces crecer tu canal directo sin comisión, y lo montamos llave en mano en 24 horas.",
+        a: `Sí. Kora sirve para hoteles boutique de playa en cualquier destino de México. Convive con Booking, Airbnb y Expedia mientras haces crecer tu canal directo sin comisión, y lo pruebas ${DIAS} días gratis antes de pagar.`,
       },
     ],
   },
@@ -222,7 +229,7 @@ export const personas: Persona[] = [
     faqs: [
       {
         q: "¿Kora sirve para un hotel boutique pequeño en un Pueblo Mágico?",
-        a: "Sí. Está diseñado para hoteles independientes operados por su dueño. Lo instalamos y capacitamos en 24 horas; convive con tus OTAs.",
+        a: "Sí. Está diseñado para hoteles independientes operados por su dueño. Lo configuras tú con un asistente paso a paso (y te ayudamos si quieres); convive con tus OTAs.",
       },
       {
         q: "¿Me ayuda a fidelizar al huésped?",
@@ -257,17 +264,17 @@ export const personas: Persona[] = [
       {
         titulo: "Un solo inventario",
         texto:
-          "Lo que se vende por WhatsApp, por tu página o por una OTA bloquea la misma unidad. Sin doble venta.",
+          "Lo que se vende por WhatsApp o por tu página, y las reservas de OTA que registras en tu panel, bloquean la misma unidad. Sin doble venta.",
       },
     ],
     faqs: [
       {
         q: "¿Sirve para camas en dormitorio compartido?",
-        a: "Cargamos tus unidades como las manejes, con su capacidad y tarifa. Lo revisamos contigo en el arranque para que quede como lo vendes.",
+        a: "Cargas tus unidades como las manejes, cada una con su capacidad y tarifa. Si no sabes cómo acomodarlas para que queden como las vendes, escríbenos y lo vemos contigo.",
       },
       {
         q: "¿Cuánto cuesta?",
-        a: "Plan único de $550 MXN al mes con habitaciones ilimitadas, sin permanencia y con 14 días gratis.",
+        a: `Plan único de ${PRECIO} al mes con habitaciones ilimitadas, sin permanencia y con ${DIAS} días gratis.`,
       },
     ],
   },
@@ -360,7 +367,7 @@ export const personas: Persona[] = [
     resumen:
       "El plan para mover volumen de las OTAs a tu canal directo, sin perder visibilidad.",
     intro:
-      "Si la mayoría de tus reservas entra por Booking, tu ocupación se ve bien y tu margen no. Bajar esa dependencia no significa salirte: significa tener un canal directo lo bastante bueno para que quien ya te encontró cierre contigo. Eso es exactamente lo que monta Kora.",
+      "Si la mayoría de tus reservas entra por Booking, tu ocupación se ve bien y tu margen no. Bajar esa dependencia no significa salirte: significa tener un canal directo lo bastante bueno para que quien ya te encontró cierre contigo. Eso es exactamente lo que te da Kora.",
     dolor: [
       "El 15%–20% de comisión se lleva la utilidad justo de las reservas que ya eran tuyas.",
       "Los datos del huésped los tiene la plataforma, así que no puedes traerlo de vuelta sin pagar de nuevo.",

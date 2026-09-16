@@ -18,7 +18,10 @@ import {
   Lock,
   Flame,
   BedDouble,
+  MessageCircle,
 } from "lucide-react";
+import { waNumero } from "@/lib/contacto";
+import { RUTA_REGISTRO } from "@/lib/oferta";
 import {
   type BookingRoom,
   type CartItem,
@@ -70,6 +73,12 @@ interface Props {
   coverUrl: string | null;
   marcaOculta: boolean;
   demo?: boolean; // hotel de demostración: el pago se simula, nada se cobra
+  /**
+   * Hotel REAL en prueba sin cobros de Stripe listos (lib/motor/modo-prueba.ts).
+   * El pago se simula igual que en el demo, pero los textos son otros: aquí
+   * puede estar mirando un huésped de verdad, no sólo el hotelero.
+   */
+  modoPrueba?: boolean;
   addons: AddonRule[];
   experiencias: Experiencia[];
   experienciasBundle?: ExperienciasBundle | null; // descuento de paquete (N+ experiencias → %)
@@ -255,6 +264,7 @@ export default function ReservarClient({
   coverUrl,
   marcaOculta,
   demo = false,
+  modoPrueba = false,
   addons,
   experiencias,
   experienciasBundle = null,
@@ -264,6 +274,21 @@ export default function ReservarClient({
   oxxoDisponible,
   reglas,
 }: Props) {
+  // Dos formas de simular el pago, con públicos distintos:
+  //  - `demo`: el hotel de demostración de la landing. Quien lo usa es un
+  //    hotelero curioso, y los textos le venden Kora.
+  //  - `prueba`: un hotel de verdad en su prueba que todavía no cobra en línea.
+  //    Quien lo usa puede ser un huésped real, y los textos le dicen que no hay
+  //    reserva y cómo reservar de verdad.
+  // El servidor nunca manda las dos (motorEnModoPrueba responde «no» al demo);
+  // si llegaran juntas, gana el demo, que es el que ya existía.
+  const prueba = modoPrueba && !demo;
+  const simulado = demo || prueba;
+  // `waNumero` y no `soloDigitos`: un número guardado sin clave de país abre en
+  // wa.me un chat con nadie, y en modo prueba este botón es la ÚNICA forma que
+  // le queda al huésped de reservar de verdad. Null = no se pinta.
+  const waHotel = waNumero(whatsapp);
+
   // ── Idioma (toggle ES/EN; se recuerda) ─────────────────
   const [lang, setLang] = useState<Lang>("es");
   useEffect(() => {
@@ -833,7 +858,10 @@ export default function ReservarClient({
   // ── Captura temprana de email (recuperación de abandono) ─
   const lastIntent = useRef("");
   function captureIntent(currentEmail: string, currentName?: string) {
-    if (demo) return; // a quien juega con el demo no se le escribe
+    // A quien juega con el demo no se le escribe. En modo prueba tampoco: el
+    // correo de «termina tu reserva» mandaría a alguien a una reserva que no
+    // puede terminar aquí (y la ruta /intento lo rechaza igual por su lado).
+    if (simulado) return;
     const e = currentEmail.trim().toLowerCase();
     if (!EMAIL_RE.test(e)) return;
     const key = `${e}|${currentName ?? ""}`;
@@ -876,9 +904,55 @@ export default function ReservarClient({
     trackAddPaymentInfo(cartItems(), total);
   }
 
-  // ── Modo demo: el pago se simula (nada llega a Stripe ni a la BD) ─
-  const [demoOk, setDemoOk] = useState(false);
-  const [demoFolio, setDemoFolio] = useState("");
+  // ── Pago simulado (demo o modo prueba): nada llega a Stripe ni a la BD ─
+  const [simuladoOk, setSimuladoOk] = useState(false);
+  // Sólo la parte aleatoria: el prefijo se pinta según el modo y el idioma, para
+  // que un folio de prueba nunca se parezca a un número de confirmación real.
+  const [folioSimulado, setFolioSimulado] = useState("");
+  const folioMostrado = demo
+    ? `DEMO-2026-${folioSimulado}`
+    : `${lang === "en" ? "TEST" : "PRUEBA"}-${folioSimulado}`;
+
+  // El mensaje de WhatsApp al hotel con los datos de la reserva. Lo usan el
+  // flujo sin Stripe y el «reserva de verdad» del modo prueba: así el hotelero
+  // recibe lo mismo venga por donde venga. Va en español a propósito (es para
+  // el hotel, no para el huésped).
+  // Se llama también DURANTE el render (el enlace de la pantalla de prueba), así
+  // que un cuarto que no aparezca se salta en vez de tronar la página entera.
+  function mensajeReservaWhatsApp(stay: number, dep: number): string {
+    const roomLines = cart
+      .map((item) => {
+        const room = findRoom(item.roomId);
+        if (!room) return "";
+        const qty = item.quantity ?? 1;
+        const tt = calcRoomStayTotal(room, item.guestCount, checkin, checkout, priceOpts) * qty;
+        const qtyTxt = qty > 1 ? ` ×${qty}` : "";
+        return `• ${room.name}${qtyTxt} (${item.guestCount} persona${item.guestCount > 1 ? "s" : ""}) — ${formatMXN(tt)}`;
+      })
+      .filter(Boolean)
+      .join("\n");
+    return [
+      `¡Hola! Quiero reservar en ${hotelNombre}.`,
+      "",
+      `*Nombre:* ${name.trim()}`,
+      `*Correo:* ${email.trim()}`,
+      `*Tel:* ${phone.trim()}`,
+      "",
+      `*Llegada:* ${checkin}`,
+      `*Salida:* ${checkout}`,
+      `*Noches:* ${nights}`,
+      `*Adultos:* ${adults}${children > 0 ? ` · *Menores:* ${children}` : ""}`,
+      "",
+      "*Habitaciones:*",
+      roomLines,
+      esNrf ? `*Tarifa:* No reembolsable (−${reglas.nrfPct}%)` : "",
+      "",
+      `*Total estadía:* ${formatMXN(stay)}`,
+      isDeposit ? `*Anticipo (${reglas.anticipoPct}%):* ${formatMXN(dep)}` : "",
+    ]
+      .filter(Boolean)
+      .join("\n");
+  }
 
   // ── Pagar / reservar ───────────────────────────────────
   async function handlePay() {
@@ -887,12 +961,15 @@ export default function ReservarClient({
       setPayError(t(lang, "errAceptaPolitica"));
       return;
     }
-    if (demo) {
+    // Demo o modo prueba: se simula AQUÍ y no se llama al checkout. En modo
+    // prueba el checkout contestaría 403 de todas formas; no llamarlo es lo que
+    // garantiza que tampoco se aparte un cuarto ni se abra una sesión de Stripe.
+    if (simulado) {
       setPaying(true);
       setPayError("");
       setTimeout(() => {
-        setDemoFolio(`DEMO-2026-${Math.random().toString(36).slice(2, 6).toUpperCase()}`);
-        setDemoOk(true);
+        setFolioSimulado(Math.random().toString(36).slice(2, 6).toUpperCase());
+        setSimuladoOk(true);
         setPaying(false);
       }, 700);
       return;
@@ -970,36 +1047,7 @@ export default function ReservarClient({
         const num = soloDigitos((data.whatsappNumber as string) || whatsapp || "");
         const stay = typeof data.stayTotal === "number" ? data.stayTotal : total;
         const dep = typeof data.deposit === "number" ? data.deposit : deposit;
-        const roomLines = cart
-          .map((item) => {
-            const room = findRoom(item.roomId)!;
-            const qty = item.quantity ?? 1;
-            const tt = calcRoomStayTotal(room, item.guestCount, checkin, checkout, priceOpts) * qty;
-            const qtyTxt = qty > 1 ? ` ×${qty}` : "";
-            return `• ${room.name}${qtyTxt} (${item.guestCount} persona${item.guestCount > 1 ? "s" : ""}) — ${formatMXN(tt)}`;
-          })
-          .join("\n");
-        const msg = [
-          `¡Hola! Quiero reservar en ${hotelNombre}.`,
-          "",
-          `*Nombre:* ${name.trim()}`,
-          `*Correo:* ${email.trim()}`,
-          `*Tel:* ${phone.trim()}`,
-          "",
-          `*Llegada:* ${checkin}`,
-          `*Salida:* ${checkout}`,
-          `*Noches:* ${nights}`,
-          `*Adultos:* ${adults}${children > 0 ? ` · *Menores:* ${children}` : ""}`,
-          "",
-          "*Habitaciones:*",
-          roomLines,
-          esNrf ? `*Tarifa:* No reembolsable (−${reglas.nrfPct}%)` : "",
-          "",
-          `*Total estadía:* ${formatMXN(stay)}`,
-          isDeposit ? `*Anticipo (${reglas.anticipoPct}%):* ${formatMXN(dep)}` : "",
-        ]
-          .filter(Boolean)
-          .join("\n");
+        const msg = mensajeReservaWhatsApp(stay, dep);
         if (num) {
           window.open(`https://wa.me/${num}?text=${encodeURIComponent(msg)}`, "_blank");
           setPaying(false);
@@ -1023,6 +1071,10 @@ export default function ReservarClient({
     if (code === "hotel-no-encontrado") return t(lang, "errHotel");
     if (code === "no-disponible") return t(lang, "errNoDisponible");
     if (code === "experiencia-agenda") return t(lang, "errExperienciaAgenda");
+    // La página se cargó cuando el hotel todavía cobraba (o con plan) y entre
+    // tanto el servidor lo ve en modo prueba: no se cobró nada, y el huésped
+    // tiene que saberlo con palabras, no con el código.
+    if (code === "modo-prueba") return t(lang, "errModoPrueba");
     return code;
   }
 
@@ -1133,6 +1185,17 @@ export default function ReservarClient({
           : t(lang, "politicaDefaultFlex", { n: reglas.cancelacionDias }));
   const politicaActiva = esNrf ? t(lang, "politicaNrf") : politicaFlex;
 
+  // Texto del botón final (el de la página y el de la barra fija de móvil, que
+  // antes lo repetían cada uno). En modo prueba no dice «Pagar $X»: el banner de
+  // arriba avisa, pero el botón es lo último que lee quien va a tocarlo.
+  const textoBotonPagar = prueba
+    ? t(lang, "pruebaPagar")
+    : payMode === "hotel"
+      ? t(lang, "reservarGarantia")
+      : isDeposit
+        ? t(lang, "pagarAnticipo", { monto: formatMXN(deposit), pct: reglas.anticipoPct })
+        : t(lang, "pagarTotal", { monto: formatMXN(total) });
+
   // ── Render ──────────────────────────────────────────────
   return (
     <div
@@ -1177,7 +1240,8 @@ export default function ReservarClient({
                 <h1 className="mt-0.5 text-2xl font-extrabold tracking-tight text-white sm:text-3xl">
                   {hotelNombre}
                 </h1>
-                <p className="mt-0.5 text-sm text-white/85">{t(lang, "tagline")}</p>
+                {/* «Confirmación inmediata · Pago seguro» sería falso en modo prueba */}
+                {!prueba && <p className="mt-0.5 text-sm text-white/85">{t(lang, "tagline")}</p>}
               </div>
             </div>
           </header>
@@ -1195,7 +1259,7 @@ export default function ReservarClient({
               {t(lang, "badge")}
             </p>
             <h1 className="mt-1 text-2xl font-extrabold tracking-tight sm:text-3xl">{hotelNombre}</h1>
-            <p className="mt-1 text-sm text-kora-muted">{t(lang, "tagline")}</p>
+            {!prueba && <p className="mt-1 text-sm text-kora-muted">{t(lang, "tagline")}</p>}
           </header>
         )}
 
@@ -1203,6 +1267,28 @@ export default function ReservarClient({
         {demo && (
           <div className="mb-4 flex items-center justify-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-center text-xs font-semibold text-amber-900">
             <span aria-hidden="true">🧪</span> {t(lang, "demoBanner")}
+          </div>
+        )}
+
+        {/* Aviso permanente del MODO PRUEBA. Va arriba y en todos los pasos:
+            un huésped de verdad tiene que saberlo antes de llenar sus datos, no
+            al final. El botón de WhatsApp le da la salida desde el principio. */}
+        {prueba && (
+          <div
+            role="note"
+            className="mb-4 flex flex-col items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-center text-xs font-semibold text-amber-900 sm:flex-row sm:justify-center sm:text-left"
+          >
+            <span>{t(lang, "pruebaBanner")}</span>
+            {waHotel && (
+              <a
+                href={`https://wa.me/${waHotel}?text=${encodeURIComponent(`Hola, quiero reservar en ${hotelNombre}`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex shrink-0 items-center gap-1 rounded-full border border-amber-300 bg-white px-3 py-1 text-amber-900 underline-offset-2 hover:underline"
+              >
+                <MessageCircle size={13} aria-hidden="true" /> {t(lang, "pruebaBannerWa")}
+              </a>
+            )}
           </div>
         )}
 
@@ -1755,14 +1841,17 @@ export default function ReservarClient({
                   {t(lang, "continuar")} <ChevronRight size={16} aria-hidden="true" />
                 </button>
 
-                <div className="mt-3 flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs text-kora-muted">
-                  <span className="inline-flex items-center gap-1">
-                    <ShieldCheck size={12} aria-hidden="true" /> {t(lang, "pagoSeguro")}
-                  </span>
-                  <span className="inline-flex items-center gap-1">
-                    <ShieldCheck size={12} aria-hidden="true" /> {t(lang, "confirmacionInmediata")}
-                  </span>
-                </div>
+                {/* En modo prueba no hay pago ni confirmación: estas promesas serían falsas */}
+                {!prueba && (
+                  <div className="mt-3 flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs text-kora-muted">
+                    <span className="inline-flex items-center gap-1">
+                      <ShieldCheck size={12} aria-hidden="true" /> {t(lang, "pagoSeguro")}
+                    </span>
+                    <span className="inline-flex items-center gap-1">
+                      <ShieldCheck size={12} aria-hidden="true" /> {t(lang, "confirmacionInmediata")}
+                    </span>
+                  </div>
+                )}
               </section>
             )}
           </>
@@ -1781,7 +1870,9 @@ export default function ReservarClient({
             <h2 ref={stepHeadingRef} tabIndex={-1} className="text-lg font-bold outline-none">
               {t(lang, "datosTitulo")}
             </h2>
-            <p className="mt-1 text-sm text-kora-muted">{t(lang, "datosSub")}</p>
+            {/* «Con tu correo te enviamos la confirmación y tu folio» es justo lo
+                que NO pasa en modo prueba: quien espera ese correo cree que reservó. */}
+            <p className="mt-1 text-sm text-kora-muted">{t(lang, prueba ? "pruebaDatosSub" : "datosSub")}</p>
 
             <div className="mt-4 grid gap-3">
               <label className="flex flex-col gap-1">
@@ -1969,13 +2060,70 @@ export default function ReservarClient({
               className="btn-press mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full px-6 py-3.5 text-sm font-bold"
               style={{ background: "var(--accent)", color: "var(--accent-ink)" }}
             >
-              {t(lang, "continuarPago")} <ChevronRight size={16} aria-hidden="true" />
+              {t(lang, prueba ? "continuar" : "continuarPago")} <ChevronRight size={16} aria-hidden="true" />
             </button>
           </section>
         )}
 
+        {/* ── Resultado SIMULADO del MODO PRUEBA ──
+            Sin palomita verde, sin «confirmada», sin «número de confirmación»:
+            un huésped real que ve eso se va creyendo que tiene cuarto. Lo único
+            que se le ofrece es la forma de reservar de verdad. */}
+        {step === "pago" && simuladoOk && prueba && (
+          <section className="rounded-2xl border border-amber-200 bg-white p-6 text-center shadow-sm">
+            <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-full bg-amber-50">
+              <AlertTriangle size={26} className="text-amber-700" aria-hidden="true" />
+            </div>
+            <h2 className="text-xl font-extrabold tracking-tight sm:text-2xl">
+              {t(lang, "pruebaConfTitulo")}
+            </h2>
+            <p className="mx-auto mt-1 inline-block rounded-full bg-kora-bg px-3 py-1 text-xs font-bold tracking-wide text-kora-muted">
+              {t(lang, "pruebaFolio")}: {folioMostrado}
+            </p>
+            <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-kora-muted">
+              {t(lang, "pruebaConfTexto")}
+            </p>
+            <div className="mt-6 flex flex-col items-center gap-3">
+              {waHotel ? (
+                <a
+                  href={`https://wa.me/${waHotel}?text=${encodeURIComponent(mensajeReservaWhatsApp(total, deposit))}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-press inline-flex items-center justify-center gap-2 rounded-full px-7 py-3.5 text-sm font-bold transition-opacity hover:opacity-90"
+                  style={{ background: "var(--brand)", color: "var(--brand-ink)" }}
+                >
+                  <MessageCircle size={16} aria-hidden="true" /> {t(lang, "pruebaConfWa")}
+                </a>
+              ) : (
+                <p className="max-w-md text-sm font-semibold">{t(lang, "pruebaConfSinWa")}</p>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  setSimuladoOk(false);
+                  setStep("buscar");
+                }}
+                className="text-sm font-semibold text-kora-muted underline hover:text-kora-text"
+              >
+                {t(lang, "pruebaConfOtra")}
+              </button>
+              {/* Para el hotelero que se está probando: la salida del modo
+                  prueba es activar sus cobros. El panel pide sesión: a un
+                  huésped que lo toque sólo le sale el inicio de sesión. `_top`
+                  por si el motor está embebido en la web del hotel. */}
+              <a
+                href={`/panel/${slug}/pagos`}
+                target="_top"
+                className="mt-2 text-xs text-kora-muted underline hover:text-kora-text"
+              >
+                {t(lang, "pruebaConfDueno")}
+              </a>
+            </div>
+          </section>
+        )}
+
         {/* ── Confirmación SIMULADA del modo demo (aquí termina el juego) ── */}
-        {step === "pago" && demoOk && (
+        {step === "pago" && simuladoOk && !prueba && (
           <section className="rounded-2xl border border-gray-100 bg-white p-6 text-center shadow-sm">
             <div
               className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-full"
@@ -1987,14 +2135,19 @@ export default function ReservarClient({
               {t(lang, "demoConfTitulo")}
             </h2>
             <p className="mx-auto mt-1 inline-block rounded-full bg-kora-bg px-3 py-1 text-xs font-bold tracking-wide text-kora-muted">
-              {t(lang, "confFolio")}: {demoFolio}
+              {t(lang, "confFolio")}: {folioMostrado}
             </p>
             <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-kora-muted">
               {t(lang, "demoConfTexto")}
             </p>
             <div className="mt-6 flex flex-col items-center gap-3">
+              {/* «Crea el motor de TU hotel» llevaba a /contacto, o sea a
+                  dejar tus datos y esperar. Desde el 15 sep 2026 el motor se
+                  crea uno mismo: este botón va al registro, como el resto del
+                  sitio. `target="_top"` porque el demo vive en un iframe de la
+                  portada (DemoMotorSection) y si no, el alta se abriría dentro. */}
               <a
-                href="/contacto"
+                href={RUTA_REGISTRO}
                 target="_top"
                 className="btn-press inline-flex items-center justify-center gap-2 rounded-full px-7 py-3.5 text-sm font-bold transition-opacity hover:opacity-90"
                 style={{ background: "var(--brand)", color: "var(--brand-ink)" }}
@@ -2004,7 +2157,7 @@ export default function ReservarClient({
               <button
                 type="button"
                 onClick={() => {
-                  setDemoOk(false);
+                  setSimuladoOk(false);
                   setStep("buscar");
                 }}
                 className="text-sm font-semibold text-kora-muted underline hover:text-kora-text"
@@ -2015,7 +2168,7 @@ export default function ReservarClient({
           </section>
         )}
 
-        {step === "pago" && !demoOk && (
+        {step === "pago" && !simuladoOk && (
           /* ── Paso 3: tarifa, desglose, política y pago ── */
           <section className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
             <button
@@ -2026,7 +2179,7 @@ export default function ReservarClient({
             </button>
 
             <h2 ref={stepHeadingRef} tabIndex={-1} className="text-lg font-bold outline-none">
-              {t(lang, "pagoTitulo")}
+              {t(lang, prueba ? "pruebaPagoTitulo" : "pagoTitulo")}
             </h2>
 
             {/* Forma de pago: en línea vs al llegar (si el hotel lo permite) */}
@@ -2252,7 +2405,10 @@ export default function ReservarClient({
                   isDeposit && (
                     <p className="flex items-start gap-1.5 border-t border-gray-200 pt-2 text-[12px] text-kora-muted">
                       <ShieldCheck size={13} className="mt-0.5 shrink-0" style={{ color: "var(--brand)" }} aria-hidden="true" />
-                      {t(lang, "pagasAhora", { pct: reglas.anticipoPct, monto: formatMXN(deposit) })}
+                      {t(lang, prueba ? "pruebaPagasAhora" : "pagasAhora", {
+                        pct: reglas.anticipoPct,
+                        monto: formatMXN(deposit),
+                      })}
                     </p>
                   )
                 )}
@@ -2292,22 +2448,22 @@ export default function ReservarClient({
                 </>
               ) : (
                 <>
-                  <Lock size={15} aria-hidden="true" />
-                  {payMode === "hotel"
-                    ? t(lang, "reservarGarantia")
-                    : isDeposit
-                      ? t(lang, "pagarAnticipo", { monto: formatMXN(deposit), pct: reglas.anticipoPct })
-                      : t(lang, "pagarTotal", { monto: formatMXN(total) })}
+                  {!prueba && <Lock size={15} aria-hidden="true" />}
+                  {textoBotonPagar}
                 </>
               )}
             </button>
 
-            <p className="mt-3 inline-flex items-center gap-1.5 text-xs text-kora-muted">
-              <ShieldCheck size={12} aria-hidden="true" /> {t(lang, "pagoCifrado")}
-              {payMode === "online" && oxxoDisponible && (
-                <span> · {t(lang, "pagoOnlineDescOxxo")}</span>
-              )}
-            </p>
+            {prueba ? (
+              <p className="mt-3 text-xs font-semibold text-amber-900">{t(lang, "pruebaNotaPago")}</p>
+            ) : (
+              <p className="mt-3 inline-flex items-center gap-1.5 text-xs text-kora-muted">
+                <ShieldCheck size={12} aria-hidden="true" /> {t(lang, "pagoCifrado")}
+                {payMode === "online" && oxxoDisponible && (
+                  <span> · {t(lang, "pagoOnlineDescOxxo")}</span>
+                )}
+              </p>
+            )}
           </section>
         )}
 
@@ -2328,7 +2484,7 @@ export default function ReservarClient({
         {/* Barra de acción fija en móvil: el total y el siguiente paso siempre a
             un toque, sin buscar el botón al fondo de la página. En ≥sm no existe
             (los botones inline quedan a la vista). */}
-        {!(step === "pago" && demoOk) && (
+        {!(step === "pago" && simuladoOk) && (
           <div
             className="fixed inset-x-0 bottom-0 z-40 border-t border-gray-200 bg-white/95 backdrop-blur-sm sm:hidden"
             style={{ paddingBottom: "max(env(safe-area-inset-bottom), 12px)" }}
@@ -2385,7 +2541,7 @@ export default function ReservarClient({
                     className="btn-press ml-auto inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-full px-5 text-sm font-bold"
                     style={{ background: "var(--accent)", color: "var(--accent-ink)" }}
                   >
-                    {t(lang, "continuarPago")} <ChevronRight size={16} aria-hidden="true" />
+                    {t(lang, prueba ? "continuar" : "continuarPago")} <ChevronRight size={16} aria-hidden="true" />
                   </button>
                 ) : (
                   <button
@@ -2401,12 +2557,8 @@ export default function ReservarClient({
                       </>
                     ) : (
                       <>
-                        <Lock size={15} aria-hidden="true" />
-                        {payMode === "hotel"
-                          ? t(lang, "reservarGarantia")
-                          : isDeposit
-                            ? t(lang, "pagarAnticipo", { monto: formatMXN(deposit), pct: reglas.anticipoPct })
-                            : t(lang, "pagarTotal", { monto: formatMXN(total) })}
+                        {!prueba && <Lock size={15} aria-hidden="true" />}
+                        {textoBotonPagar}
                       </>
                     )}
                   </button>

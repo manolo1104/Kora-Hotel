@@ -2,6 +2,10 @@
 // Regla de honestidad: comparamos el MODELO de negocio (comisión vs directo),
 // no inventamos features ni defectos de la otra plataforma.
 import type { FAQ } from "@/lib/glosario";
+import { PRECIO_DESDE } from "@/lib/oferta";
+
+// El precio estaba escrito a mano en tres tablas; sale de lib/oferta.ts.
+const PLAN = `$${PRECIO_DESDE.toLocaleString("es-MX")} MXN/mes`;
 
 export interface FilaComparativa {
   aspecto: string;
@@ -197,7 +201,9 @@ export const comparativas: Comparativa[] = [
       },
       {
         q: "¿Puedo evitar el overbooking entre Vrbo y mis reservas directas?",
-        a: "Sí. Kora sincroniza tu disponibilidad para que no vendas dos veces la misma unidad.",
+        // Decía «Kora sincroniza tu disponibilidad» sin decir con qué: con Vrbo no
+        // hay sincronía (ver lib/integraciones.ts). 15 sep 2026.
+        a: "Dentro de Kora, sí: tu página, Camila y tu panel comparten un solo inventario. Con Vrbo todavía no hay sincronía automática, así que esas reservas las registras en tu panel y bloquean la fecha igual.",
       },
     ],
   },
@@ -225,8 +231,8 @@ export const comparativas: Comparativa[] = [
       { aspecto: "Sabe tu disponibilidad", ota: "Sólo si alguien construye la integración", kora: "Sí, consulta tu inventario real" },
       { aspecto: "Da el total de una estancia", ota: "Un precio genérico o un rango", kora: "El total real por esas fechas y personas" },
       { aspecto: "Cierra la reserva", ota: "Deja el mensaje para que lo atiendas", kora: "Aparta el cuarto y manda el link de pago" },
-      { aspecto: "Implementación", ota: "Proyecto aparte: escribir y conectar flujos", kora: "Incluida en el arranque llave en mano" },
-      { aspecto: "Modelo de cobro", ota: "Suele cobrarse por conversación o por agente", kora: "Incluido en el plan de $550 MXN/mes" },
+      { aspecto: "Implementación", ota: "Proyecto aparte: escribir y conectar flujos", kora: "Sin proyecto aparte: cargas tu hotel y vinculas tu WhatsApp desde tu panel" },
+      { aspecto: "Modelo de cobro", ota: "Suele cobrarse por conversación o por agente", kora: `Incluido en el plan de ${PLAN}` },
     ],
     cuandoOta: [
       "Sólo necesitas contestar preguntas fijas: horarios, ubicación, si aceptan mascotas.",
@@ -266,7 +272,7 @@ export const comparativas: Comparativa[] = [
       "Un agente con IA conectado al inventario cubre justo eso: responde a cualquier hora, con los datos reales del hotel, y cierra la reserva con su link de pago. No sustituye a WhatsApp Business: opera sobre el mismo número.",
     ],
     tabla: [
-      { aspecto: "Costo", ota: "Gratis", kora: "Incluido en el plan de $550 MXN/mes" },
+      { aspecto: "Costo", ota: "Gratis", kora: `Incluido en el plan de ${PLAN}` },
       { aspecto: "Perfil de negocio y catálogo", ota: "Sí", kora: "Sí (usa el mismo número)" },
       { aspecto: "Contestar fuera de horario", ota: "Un aviso automático", kora: "Responde de verdad, con datos reales" },
       { aspecto: "Consultar disponibilidad", ota: "No", kora: "Sí" },
@@ -311,9 +317,12 @@ export const comparativas: Comparativa[] = [
       "El segundo costo es más silencioso: sin sistema no hay datos. No sabes tu ocupación real por mes, tu tarifa promedio ni qué canal te trae los huéspedes que sí vuelven.",
     ],
     tabla: [
-      { aspecto: "Costo", ota: "Gratis", kora: "$550 MXN/mes, todo incluido" },
-      { aspecto: "Varios canales a la vez", ota: "Copiar a mano en cada lista", kora: "Un solo inventario para todos" },
-      { aspecto: "Riesgo de overbooking", ota: "Alto en cuanto hay dos canales", kora: "El cuarto se bloquea en todos lados" },
+      { aspecto: "Costo", ota: "Gratis", kora: `${PLAN}, todo incluido` },
+      // 15 sep 2026: decían «un solo inventario para todos» y «el cuarto se
+      // bloquea en todos lados», con las OTAs en la misma frase de arriba. Sin
+      // sincronía con las OTAs, eso sólo es cierto dentro de Kora.
+      { aspecto: "Varios canales a la vez", ota: "Copiar a mano en cada lista", kora: "Página, WhatsApp y panel en un solo inventario; lo de las OTAs lo registras ahí" },
+      { aspecto: "Riesgo de overbooking", ota: "Alto en cuanto hay dos canales", kora: "Una reserva directa cierra la fecha al instante; la de una OTA, al registrarla" },
       { aspecto: "Reservas mientras duermes", ota: "No", kora: "Motor de reservas y agente de WhatsApp 24/7" },
       { aspecto: "Métricas del hotel", ota: "Las que armes tú", kora: "Ocupación, ADR, RevPAR y forecast" },
       { aspecto: "Datos del huésped", ota: "Sueltos en la hoja", kora: "CRM que se llena solo" },
@@ -330,12 +339,16 @@ export const comparativas: Comparativa[] = [
     ],
     faqs: [
       {
+        // 🔴 Decía «la migración de tus reservas es parte del arranque llave en
+        // mano; no tienes que capturarlas tú». No existe ningún importador de
+        // reservas (solo la exportación a Excel), y desde el 15 sep 2026 tampoco
+        // se ofrece cargar cada hotel a mano. Se contesta lo que sí hay.
         q: "¿Puedo migrar mis reservas actuales?",
-        a: "Sí. La migración de tus reservas vigentes es parte del arranque llave en mano; no tienes que capturarlas tú.",
+        a: "Todavía no hay importación automática desde Excel ni desde otro sistema. Tus reservas vigentes las capturas en el panel como reservas manuales, y desde ese momento bloquean la fecha en tu página, en Camila y en tu calendario. Si tienes muchas y quieres que te acompañemos, escríbenos por WhatsApp.",
       },
       {
         q: "¿Y si no soy bueno con la tecnología?",
-        a: "Kora está hecho para dueños de hotel sin equipo técnico, en español y operable desde el celular. Además el hotel te lo dejamos cargado nosotros.",
+        a: "Kora está hecho para dueños de hotel sin equipo técnico, en español y operable desde el celular. Cargas tu hotel con un asistente paso a paso y, si te atoras, te ayudamos por WhatsApp.",
       },
     ],
   },

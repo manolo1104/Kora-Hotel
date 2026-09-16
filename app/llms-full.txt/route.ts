@@ -7,13 +7,19 @@ import { ciudades } from "@/lib/ciudades";
 import { paginasWhatsApp } from "@/lib/whatsapp";
 import { AYUDA } from "@/lib/ayuda";
 import { faqs } from "@/lib/faqs";
-import { PRECIO_DESDE, GARANTIA } from "@/lib/oferta";
+import { PRECIO_DESDE, GARANTIA, PASOS_ALTA, AYUDA_ALTA, RUTA_REGISTRO } from "@/lib/oferta";
 
 // llms-full.txt dinámico: enumeración exhaustiva de todo el contenido del sitio,
 // generada de los mismos datos que renderizan las páginas. Se regenera en cada build.
 export const dynamic = "force-static";
 
 const BASE = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
+
+// 15 sep 2026: el resumen de arriba prometía «arranque llave en mano gratis;
+// solo 5 hoteles nuevos al mes» y no había forma de saber dónde registrarse.
+// Mismo cambio que en llms.txt: registro, pasos de PASOS_ALTA y WhatsApp sólo
+// como apoyo.
+const URL_REGISTRO = `${BASE}${RUTA_REGISTRO}`;
 
 function buildFull(): string {
   const L: string[] = [];
@@ -22,8 +28,14 @@ function buildFull(): string {
   L.push(
     "Kora contesta el WhatsApp de tu hotel 24/7 con Camila, un agente de IA conectado al inventario real: cotiza con disponibilidad y precio reales y cierra la reserva con link de pago. Incluye además motor de reservas directas 0% comisión, PMS, dashboard y CRM, para hoteles independientes en México. Plan único $" +
       PRECIO_DESDE.toLocaleString("es-MX") +
-      ` MXN/mes, todo incluido, sin permanencia. Prueba ${GARANTIA.diasPrueba} días gratis sin tarjeta, y si activas el plan y cancelas dentro de los ${GARANTIA.diasDevolucion} días siguientes al primer pago se devuelve esa mensualidad. Arranque llave en mano gratis; solo 5 hoteles nuevos al mes.`
+      ` MXN/mes, todo incluido, sin permanencia. Prueba ${GARANTIA.diasPrueba} días gratis sin tarjeta, y si activas el plan y cancelas dentro de los ${GARANTIA.diasDevolucion} días siguientes al primer pago se devuelve esa mensualidad. Cada hotel se registra en ${URL_REGISTRO} y lo configura desde su panel, con ayuda por WhatsApp si la quiere.`
   );
+  L.push("");
+
+  L.push(`## Cómo empezar (${PASOS_ALTA.length} pasos)`);
+  L.push(`Crear cuenta y empezar la prueba gratis: ${URL_REGISTRO}`);
+  PASOS_ALTA.forEach((p, i) => L.push(`${i + 1}. ${p.titulo}: ${p.texto}`));
+  L.push(`Ayuda humana, opcional: ${AYUDA_ALTA}`);
   L.push("");
 
   L.push(`## Preguntas frecuentes (${faqs.length})`);
@@ -87,8 +99,9 @@ function buildFull(): string {
   });
   L.push("");
 
-  L.push("## Contacto");
-  L.push("- WhatsApp: +52 489 125 1458");
+  L.push("## Empezar y contacto");
+  L.push(`- Crear cuenta y probar gratis: ${URL_REGISTRO}`);
+  L.push("- Dudas o ayuda para dejar el hotel listo (apoyo opcional, no hace falta para empezar): WhatsApp +52 489 125 1458");
   L.push(`- Sitio: ${BASE}`);
   L.push("");
   return L.join("\n");

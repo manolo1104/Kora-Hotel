@@ -110,6 +110,27 @@ export async function POST(req: Request) {
         ...turnos.map((t) => ({ rol: t.rol, texto: t.texto })),
         { rol: "assistant", texto, ts },
       ];
+      // `escalado` SÓLO se escribe cuando este turno escala. Antes iba siempre
+      // (`escalado: escalar`) y cada turno pisaba el valor anterior: el visitante
+      // pedía hablar con una persona (escalado = true), escribía un mensaje más
+      // al que el asistente contestaba sin volver a escalar, y la fila quedaba en
+      // `escalado = false` con `atendido_at` vacío. Con eso el chat DESAPARECÍA
+      // de /crm/bandeja y del contador de Operaciones sin que nadie lo hubiera
+      // atendido — justo el lead más caliente que llega por la web, y sin rastro
+      // en la fila para recuperarlo (la marca de escalada se quita del texto
+      // antes de guardar).
+      //
+      // Omitir la columna es lo correcto en los dos caminos del upsert: en el
+      // INSERT cae a su `default false` (sql/kora-soporte-schema.sql), y en el
+      // conflicto PostgREST sólo actualiza las columnas que van en el cuerpo, así
+      // que el `true` de antes se conserva. Se apaga desde el CRM, no desde aquí.
+      const fila: Record<string, unknown> = {
+        session_id: sessionId,
+        pagina: typeof body.pagina === "string" ? body.pagina.slice(0, 200) : null,
+        mensajes,
+      };
+      if (escalar) fila.escalado = true;
+
       // CON await. Sin él, en Vercel la función responde y se congela antes de
       // que la escritura llegue a Supabase: la conversación se perdía a veces, y
       // las escaladas —el mecanismo por el que un visitante atascado llega a
@@ -117,15 +138,7 @@ export async function POST(req: Request) {
       // visitante sale igual.
       await escribirMejorEsfuerzo(
         "soporte.conversacion",
-        admin.from("soporte_conversaciones").upsert(
-          {
-            session_id: sessionId,
-            pagina: typeof body.pagina === "string" ? body.pagina.slice(0, 200) : null,
-            mensajes,
-            escalado: escalar,
-          },
-          { onConflict: "session_id" },
-        ),
+        admin.from("soporte_conversaciones").upsert(fila, { onConflict: "session_id" }),
       );
     }
 

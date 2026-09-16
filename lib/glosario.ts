@@ -1,4 +1,4 @@
-import { FORECAST_DIAS } from "@/lib/oferta";
+import { FORECAST_DIAS, GARANTIA } from "@/lib/oferta";
 
 // Catálogo del glosario hotelero (estrategia pSEO "qué es X" + AI-SEO).
 // Fuente única para /glosario, /glosario/[termino] y el sitemap.
@@ -64,7 +64,7 @@ export const glosario: TerminoGlosario[] = [
     cuerpo: [
       "Cuando un huésped reserva por Booking o Airbnb, esas plataformas cobran una comisión del 15% al 20% por cada reserva. Un motor de reservas propio te permite captar a ese mismo huésped de forma directa y quedarte con el 100% del ingreso.",
       "Además de ahorrar la comisión, las reservas directas te dan la relación con el huésped: su correo, su teléfono y la posibilidad de fidelizarlo para que vuelva, en lugar de que la OTA sea la dueña de esa relación.",
-      "El motor de reservas de Kora se conecta a tu página (o a la mini-página gratuita que creas con nosotros) y cobra el anticipo en línea para confirmar la reserva.",
+      "El motor de reservas de Kora se conecta a tu página (o a la página de reservas que queda lista al registrar tu hotel) y cobra el anticipo en línea para confirmar la reserva.",
     ],
     faqs: [
       {
@@ -73,7 +73,7 @@ export const glosario: TerminoGlosario[] = [
       },
       {
         q: "¿Cuánto cuesta tener un motor de reservas?",
-        a: "Con Kora está incluido en el plan mensual. También puedes crear gratis una página de reservas por WhatsApp para empezar sin costo.",
+        a: `Con Kora está incluido en el plan mensual, y lo puedes probar ${GARANTIA.diasPrueba} días gratis y sin tarjeta al registrarte.`,
       },
     ],
     relacionado: {
@@ -172,7 +172,11 @@ export const glosario: TerminoGlosario[] = [
     cuerpo: [
       "Algunas cadenas grandes hacen overbooking a propósito, apostando a que habrá cancelaciones. Pero en un hotel boutique casi siempre es un accidente: dos reservas para la misma habitación que nadie detectó a tiempo.",
       "Las causas más comunes son llevar el control a mano y vender en varios canales (tu web, Booking, Airbnb) sin un inventario sincronizado.",
-      "Un PMS con channel manager integrado, como Kora, mantiene un solo inventario y descuenta cada reserva de todos los canales, que es la forma más efectiva de evitar el overbooking accidental.",
+      // 15 sep 2026: decía «un PMS con channel manager integrado, como Kora,
+      // descuenta cada reserva de todos los canales». Kora no tiene channel
+      // manager ni sincronía con las OTAs (lib/integraciones.ts): se cuenta lo
+      // que sí hace.
+      "La forma más efectiva de evitarlo es llevar un solo inventario. En Kora, tu página de reservas, Camila y tu panel leen la misma disponibilidad, así que una reserva directa cierra la fecha en los tres; las reservas que entran por una OTA las registras en el panel y bloquean la fecha igual. La sincronía automática con las OTAs todavía no existe.",
     ],
     faqs: [
       {
@@ -355,7 +359,9 @@ export const glosario: TerminoGlosario[] = [
     cuerpo: [
       "Conviene separar tres cosas que suelen mezclarse. WhatsApp normal es la app de siempre. WhatsApp Business es una app gratuita con perfil de negocio, catálogo, etiquetas y respuestas rápidas. La API es otra categoría: no se usa, se conecta.",
       "Para un hotel pequeño, contratar y configurar la API por cuenta propia es un proyecto técnico que no aporta valor por sí mismo. Lo que resuelve el problema no es la API, sino el sistema que se conecta a través de ella.",
-      "Por eso en Kora la conexión del número forma parte del arranque llave en mano: la montamos nosotros y el hotelero sólo ve las conversaciones en su panel.",
+      // Decía «forma parte del arranque llave en mano: la montamos nosotros». Desde el
+      // 15 sep 2026 el hotelero vincula su número él mismo con un QR en el panel.
+      "Por eso en Kora el hotelero no contrata ni configura nada de eso: vincula el número de su hotel desde su panel escaneando un código QR y ve las conversaciones ahí mismo. Si prefiere que lo acompañemos, le ayudamos por WhatsApp.",
     ],
     faqs: [
       {

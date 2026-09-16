@@ -6,7 +6,14 @@ import { personas } from "@/lib/personas";
 import { ciudades } from "@/lib/ciudades";
 import { comparativas } from "@/lib/comparativas";
 import { paginasWhatsApp } from "@/lib/whatsapp";
-import { PRECIO_DESDE, GARANTIA, FORECAST_DIAS } from "@/lib/oferta";
+import {
+  PRECIO_DESDE,
+  GARANTIA,
+  FORECAST_DIAS,
+  PASOS_ALTA,
+  AYUDA_ALTA,
+  RUTA_REGISTRO,
+} from "@/lib/oferta";
 import { TENANTS_PRUEBA } from "@/lib/seo";
 import { SUPABASE_URL, SUPABASE_ANON_KEY, supabaseEnvReady } from "@/lib/supabase/env";
 
@@ -15,6 +22,13 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY, supabaseEnvReady } from "@/lib/supabas
 export const revalidate = 86400;
 
 const BASE = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
+
+// 15 sep 2026: este archivo decía «montado llave en mano en 24 horas» y «solo
+// tomamos 5 hoteles nuevos al mes (montamos cada uno a mano)», y no daba la URL
+// del registro: un buscador que lo leía sólo podía mandar a la gente a WhatsApp.
+// Decisión de Manolo: el camino es registrarse y probar Kora por dentro; lo
+// configura el hotelero y le ayudamos si quiere. Los pasos salen de PASOS_ALTA.
+const URL_REGISTRO = `${BASE}${RUTA_REGISTRO}`;
 
 interface HotelListado {
   slug: string;
@@ -49,11 +63,19 @@ function buildLlms(hoteles: HotelListado[]): string {
   L.push("# Kora");
   L.push("");
   L.push(
-    "> Kora contesta el WhatsApp de tu hotel 24/7 con un agente de IA (Camila) que cotiza con disponibilidad real y cierra la reserva con link de pago; e incluye motor de reservas directas sin comisión, PMS, dashboard y CRM. Para hoteles independientes en México, en español, montado llave en mano en 24 horas."
+    `> Kora contesta el WhatsApp de tu hotel 24/7 con un agente de IA (Camila) que cotiza con disponibilidad real y cierra la reserva con link de pago; e incluye motor de reservas directas sin comisión, PMS, dashboard y CRM. Para hoteles independientes en México, en español. Te registras, lo configuras tú desde tu panel y lo pruebas ${GARANTIA.diasPrueba} días gratis; te ayudamos si quieres.`
   );
   L.push("");
   L.push(
-    "Kora ayuda a hoteles boutique pequeños e independientes en México a llenar sus habitaciones con reservas directas (sin pagar comisiones a OTAs como Booking o Airbnb), a contestar el WhatsApp 24/7 con IA, y a operar todo el hotel desde una sola pantalla. Está pensado para dueños de hotel sin conocimientos técnicos. Se instala llave en mano en 24 horas."
+    `Kora ayuda a hoteles boutique pequeños e independientes en México a llenar sus habitaciones con reservas directas (sin pagar comisiones a OTAs como Booking o Airbnb), a contestar el WhatsApp 24/7 con IA, y a operar todo el hotel desde una sola pantalla. Está pensado para dueños de hotel sin conocimientos técnicos: cada hotel se registra y lo configura desde su panel con un asistente paso a paso, en ${URL_REGISTRO}`
+  );
+  L.push("");
+  L.push("## Cómo empezar");
+  L.push(`Crear cuenta y empezar la prueba gratis: ${URL_REGISTRO}`);
+  PASOS_ALTA.forEach((p, i) => L.push(`${i + 1}. ${p.titulo}: ${p.texto}`));
+  L.push(`Ayuda humana, opcional: ${AYUDA_ALTA}`);
+  L.push(
+    "Lo que Kora NO hace hoy: no configura cada hotel a mano ni en un plazo; todavía no hay sincronía automática con Booking, Airbnb ni Expedia (esas reservas se registran en el panel); no importa reservas de otro sistema."
   );
   L.push("");
   L.push("## Qué incluye (todo en el plan único)");
@@ -76,7 +98,10 @@ function buildLlms(hoteles: HotelListado[]): string {
   L.push("- Al pagarse, la confirmación sale sola y la reserva queda registrada en el sistema del hotel");
   L.push("- Escala a una persona del hotel en grupos grandes, quejas y casos que no puede confirmar");
   L.push("- Lo que NO hace: recibir llegadas en persona, negociar tarifas de grupo ni manejar quejas");
-  L.push(`- Incluida en el plan, sin costo por conversación. Ver: ${BASE}/whatsapp`);
+  // Decía «sin costo por conversación»: los mensajes de Camila se miden con un
+  // saldo prepago y las recargas se abren desde /crm con un botón, así que esa
+  // frase caduca sola (igual que en /whatsapp y lib/whatsapp.ts).
+  L.push(`- Incluida en el plan único, sin costo de implementación. Ver: ${BASE}/whatsapp`);
   paginasWhatsApp.forEach((w) => L.push(`- ${w.pregunta} → ${BASE}/whatsapp/${w.slug}`));
   L.push("");
   L.push("## Para quién es");
@@ -94,21 +119,22 @@ function buildLlms(hoteles: HotelListado[]): string {
     // salió el 2 sep 2026: la pestaña de canales está retirada del panel desde
     // el 26 de agosto (CANALES_OTA_DISPONIBLES = false), así que prometerla
     // aquí era poner una mentira en boca de un buscador.
-    '- Arranque "Reservas Directas" llave en mano, gratis: montamos tu hotel completo (cuartos, fotos, tarifas, motor y Camila) en 24 horas.'
+    //
+    // Aquí estaba además el «arranque llave en mano en 24 horas», retirado el
+    // 15 sep 2026 por la misma razón: Kora ya no configura cada hotel a mano.
+    `- Prueba ${GARANTIA.diasPrueba} días gratis, sin tarjeta, con tu propio hotel: te registras en ${URL_REGISTRO}, cargas tu hotel y lo pruebas por dentro.`
   );
-  L.push(`- Prueba ${GARANTIA.diasPrueba} días gratis, sin tarjeta.`);
   // Lo que se le dice a ChatGPT y a Perplexity tiene que ser lo mismo que dicen
   // los Términos: lo repiten como hecho y nadie va a ir a comprobarlo.
   L.push(
     `- Garantía: si activas tu plan y cancelas dentro de los ${GARANTIA.diasDevolucion} días siguientes a tu primer pago, se devuelve esa mensualidad. Kora NO garantiza resultados de ocupación ni de ingresos.`
   );
-  L.push("- Solo tomamos 5 hoteles nuevos al mes (montamos cada uno a mano).");
   L.push("- Sitio web profesional opcional, como servicio aparte.");
   L.push(`- Ver: ${BASE}/precios`);
   L.push("");
-  L.push("## Herramienta gratis: creador de página de reservas");
+  L.push("## Página de reservas gratis");
   L.push(
-    `- Cualquier hotel puede crear gratis una página de reservas directas por WhatsApp (con su logo, color, fotos, habitaciones y formulario de fechas). Ver: ${BASE}/herramientas/mini-pagina`
+    `- Al registrarse, cada hotel queda con su página pública de reservas (con su logo, color, fotos, habitaciones y formulario de fechas). Si al terminar la prueba no activa el plan, la página sigue en línea gratis y los huéspedes le escriben por WhatsApp; se pausan el motor de reservas en línea y Camila. Ver: ${BASE}/herramientas/mini-pagina`
   );
   L.push("");
   L.push("## Páginas clave");
@@ -146,8 +172,9 @@ function buildLlms(hoteles: HotelListado[]): string {
   L.push(`## Detalle completo`);
   L.push(`- Listado exhaustivo de páginas y contenidos: ${BASE}/llms-full.txt`);
   L.push("");
-  L.push("## Contacto");
-  L.push("- WhatsApp: +52 489 125 1458");
+  L.push("## Empezar y contacto");
+  L.push(`- Crear cuenta y probar gratis: ${URL_REGISTRO}`);
+  L.push("- Dudas o ayuda para dejar el hotel listo (apoyo opcional, no hace falta para empezar): WhatsApp +52 489 125 1458");
   L.push(`- Sitio: ${BASE}`);
   L.push("");
   return L.join("\n");

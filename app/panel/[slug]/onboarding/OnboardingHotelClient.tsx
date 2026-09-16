@@ -18,6 +18,7 @@ import {
   Copy,
   CreditCard,
   ExternalLink,
+  FlaskConical,
   ImagePlus,
   LayoutDashboard,
   Loader2,
@@ -28,6 +29,8 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { comprimirImagen } from "@/lib/images-client";
+import { RUTA_ACTIVAR } from "@/lib/oferta";
+import type { EstadoMotor } from "@/lib/panel/primeros-pasos";
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
 
@@ -56,15 +59,36 @@ interface Props {
   chargesEnabled: boolean;
   connectStatus: "pendiente" | "verificado" | "requiere_info";
   requirementsDue: number;
+  /** Qué hace hoy su motor si alguien paga (lo decide el servidor). */
+  estadoMotor: EstadoMotor;
+  /** Puede abrir la pantalla de Camila y su chat de prueba. */
+  puedeProbarCamila: boolean;
+  /** Puede abrir Panel → Pagos (sólo el dueño). */
+  puedeVerPagos: boolean;
 }
 
 const PASOS = [
   { n: 3, titulo: "Fotos", desc: "La primera será tu portada." },
   { n: 4, titulo: "Cobros en línea", desc: "El dinero entra directo a tu cuenta." },
   { n: 5, titulo: "Reglas de cobro", desc: "Anticipo, mínimo de noches e impuestos." },
-  { n: 6, titulo: "Publicar", desc: "Revisa tu checklist y comparte tu página." },
+  // Antes se llamaba «Publicar», y era de adorno: el hotel ya nace publicado
+  // (`app/api/panel/crear-hotel`). Lo que de verdad le falta a quien acaba de
+  // registrarse es PROBARLO. Lo que se guarda al terminar no cambia.
+  { n: 6, titulo: "Pruébalo", desc: "Mira tu hotel como lo verá tu huésped antes de compartirlo." },
 ];
 const TOTAL = 6;
+
+// Qué pasa si se salta el paso de cobros, según lo que hace HOY su motor.
+const SALTAR_COBROS: Record<EstadoMotor, string> = {
+  prueba:
+    "Puedes saltarlo y conectarlos después: mientras tanto tu motor funciona en modo prueba, las reservas se simulan y no se cobra nada.",
+  "sin-cobros":
+    "Puedes saltarlo, pero conéctalos antes de recibir reservas: es lo que hace que el dinero de cada una llegue directo a tu cuenta.",
+  pausado:
+    "Tu prueba gratis terminó y tu motor está en pausa hasta que actives tu plan; puedes dejar tus cobros listos desde ya.",
+  bloqueado: "Tu cuenta está en pausa: escríbenos para reactivarla.",
+  cobra: "",
+};
 
 export function OnboardingHotelClient(props: Props) {
   const supabase = createClient();
@@ -271,6 +295,59 @@ export function OnboardingHotelClient(props: Props) {
     setTimeout(() => setCopiado(false), 2000);
   }
 
+  // Lo que se le dice al terminar sobre su motor. Sustituye a «aún no tienes
+  // cobros en línea: tus huéspedes reservarán por WhatsApp», que era falso.
+  const pagosHref = props.puedeVerPagos ? `/panel/${props.slug}/pagos` : null;
+  // En pausa, el chat de prueba de Camila responde «motor pausado»: no se invita.
+  const motorEnPausa = props.estadoMotor === "pausado" || props.estadoMotor === "bloqueado";
+  const avisoMotor =
+    props.estadoMotor === "prueba" ? (
+      <>
+        Tu motor está en modo prueba: las reservas se simulan y no se cobra nada.{" "}
+        {pagosHref ? (
+          <>
+            <a href={pagosHref} className="font-semibold underline">
+              Conecta tus cobros
+            </a>{" "}
+            para recibir reservas reales.
+          </>
+        ) : (
+          "Para recibir reservas reales, el dueño del hotel tiene que conectar los cobros."
+        )}
+      </>
+    ) : props.estadoMotor === "sin-cobros" ? (
+      <>
+        Aún no conectas tus cobros.{" "}
+        {pagosHref ? (
+          <>
+            Conéctalos en{" "}
+            <a href={pagosHref} className="font-semibold underline">
+              Panel → Pagos
+            </a>{" "}
+            para que el dinero de cada reserva llegue directo a tu cuenta.
+          </>
+        ) : (
+          "El dueño del hotel tiene que conectarlos para que el dinero de cada reserva llegue directo a su cuenta."
+        )}
+      </>
+    ) : props.estadoMotor === "bloqueado" ? (
+      "Tu cuenta está en pausa y tu motor no recibe reservas. Escríbenos para reactivarla."
+    ) : props.estadoMotor === "pausado" ? (
+      <>
+        Tu motor está en pausa: la prueba gratis terminó.{" "}
+        {props.esDueno ? (
+          <>
+            <a href={RUTA_ACTIVAR} className="font-semibold underline">
+              Activa tu plan
+            </a>{" "}
+            para que vuelva a recibir reservas.
+          </>
+        ) : (
+          "El dueño del hotel tiene que activar el plan para que vuelva a recibir reservas."
+        )}
+      </>
+    ) : null;
+
   // ── Pantalla final ─────────────────────────────────────────────────────────
   if (finalizado) {
     return (
@@ -293,45 +370,41 @@ export function OnboardingHotelClient(props: Props) {
               {urlPagina}
             </a>
           </p>
-          {!props.chargesEnabled && (
+          {avisoMotor && (
             <p className="mt-3 inline-flex items-start gap-2 text-left rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 text-xs text-amber-900 leading-relaxed">
               <TriangleAlert size={15} className="flex-shrink-0 mt-0.5" aria-hidden="true" />
-              <span>
-                Aún no tienes cobros en línea: tus huéspedes reservarán por WhatsApp.
-                Actívalos cuando quieras en{" "}
-                <a href={`/panel/${props.slug}/pagos`} className="font-semibold underline">
-                  Panel → Pagos
-                </a>
-                .
-              </span>
+              <span>{avisoMotor}</span>
             </p>
           )}
         </div>
 
-        {/* El siguiente paso natural: entrenar a Camila. Antes el onboarding
+        {/* El siguiente paso natural: probar a Camila. Antes el onboarding
             terminaba sin mencionarla y el hotelero ni se enteraba de que existe. */}
-        <div className="mt-6 rounded-2xl border border-kora-primary/20 bg-kora-primary/5 p-5">
-          <div className="flex items-start gap-3">
-            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-kora-primary/10 text-kora-primary">
-              <Bot size={20} aria-hidden="true" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-sm font-bold text-kora-text">
-                Siguiente paso: conoce a Camila, tu asistente de WhatsApp
-              </p>
-              <p className="mt-1 text-xs text-kora-muted leading-relaxed">
-                Contesta a tus huéspedes 24/7 con los datos de tu hotel, cotiza con
-                disponibilidad real y cierra reservas con link de pago. Entrénala en 5 minutos.
-              </p>
-              <a
-                href={`/panel/${props.slug}/camila`}
-                className="btn-press mt-3 inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-kora-primary text-white font-semibold text-xs hover:bg-kora-primary-dark transition-colors"
-              >
-                Entrenar a Camila <ArrowRight size={14} aria-hidden="true" />
-              </a>
+        {props.puedeProbarCamila && !motorEnPausa && (
+          <div className="mt-6 rounded-2xl border border-kora-primary/20 bg-kora-primary/5 p-5">
+            <div className="flex items-start gap-3">
+              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-kora-primary/10 text-kora-primary">
+                <Bot size={20} aria-hidden="true" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-bold text-kora-text">
+                  Siguiente paso: conoce a Camila, tu asistente de WhatsApp
+                </p>
+                <p className="mt-1 text-xs text-kora-muted leading-relaxed">
+                  Contesta a tus huéspedes 24/7 con los datos de tu hotel y cotiza con
+                  disponibilidad real. Pruébala en su chat de prueba y, cuando te convenza,
+                  vincula tu WhatsApp desde la misma pantalla.
+                </p>
+                <a
+                  href={`/panel/${props.slug}/camila`}
+                  className="btn-press mt-3 inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-kora-primary text-white font-semibold text-xs hover:bg-kora-primary-dark transition-colors"
+                >
+                  Probar a Camila <ArrowRight size={14} aria-hidden="true" />
+                </a>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
           <a
@@ -346,7 +419,8 @@ export function OnboardingHotelClient(props: Props) {
             rel="noopener noreferrer"
             className="btn-press inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-full border border-panel-border text-kora-text font-semibold text-sm hover:border-kora-accent transition-colors"
           >
-            <ExternalLink size={16} aria-hidden="true" /> Ver mi motor de reservas
+            <ExternalLink size={16} aria-hidden="true" />{" "}
+            {props.estadoMotor === "prueba" ? "Hacer una reserva de prueba" : "Ver mi motor de reservas"}
           </a>
         </div>
 
@@ -537,9 +611,11 @@ export function OnboardingHotelClient(props: Props) {
                       entre a este paso o a Panel → Pagos.
                     </p>
                   )}
+                  {/* Antes: «mientras tanto, tus huéspedes reservan por WhatsApp». Era
+                      falso —sin Connect el motor cobraba en la cuenta de Kora— y
+                      además prometía un tiempo («unos 5 minutos») que nadie midió. */}
                   <p className="text-xs text-kora-muted">
-                    Te tomará unos 5 minutos (datos personales, CLABE). Puedes saltarlo y
-                    conectar después: mientras tanto, tus huéspedes reservan por WhatsApp.
+                    Stripe te pedirá tus datos personales y tu CLABE. {SALTAR_COBROS[props.estadoMotor]}
                   </p>
                 </>
               )}
@@ -647,9 +723,45 @@ export function OnboardingHotelClient(props: Props) {
             </div>
           )}
 
-          {/* PASO 6 — PUBLICAR + CHECKLIST REAL */}
+          {/* PASO 6 — PRUÉBALO + CHECKLIST REAL */}
           {paso === 6 && (
             <div className="space-y-4">
+              <div className="space-y-2.5">
+                <MotorTarjeta
+                  estado={props.estadoMotor}
+                  urlMotor={urlMotor}
+                  pagosHref={pagosHref}
+                  esDueno={props.esDueno}
+                />
+                {props.puedeProbarCamila && !motorEnPausa && (
+                  <div className="flex items-start gap-3 rounded-xl border border-panel-border-soft bg-kora-bg/40 px-4 py-3.5">
+                    <Bot size={18} className="text-kora-primary flex-shrink-0 mt-0.5" aria-hidden="true" />
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-kora-text">
+                        Habla con Camila en el chat de prueba
+                      </p>
+                      <p className="mt-0.5 text-xs text-kora-muted leading-relaxed">
+                        Pregúntale precios y disponibilidad como si fueras un huésped: responde
+                        con los datos que acabas de cargar.
+                      </p>
+                      {/* Pestaña nueva: si sale del asistente sin «Terminar», el hub
+                          le sigue marcando «configuración incompleta». */}
+                      <a
+                        href={`/panel/${props.slug}/camila`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-kora-primary underline"
+                      >
+                        Abrir el chat de prueba <ExternalLink size={12} aria-hidden="true" />
+                      </a>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <p className="pt-1 text-[10px] font-bold text-kora-muted uppercase tracking-widest">
+                Tu checklist
+              </p>
               <ul className="space-y-2.5">
                 {checklist.map((item) => (
                   <li
@@ -685,20 +797,10 @@ export function OnboardingHotelClient(props: Props) {
                 ))}
               </ul>
 
-              {!props.chargesEnabled && (
-                <div className="flex items-start gap-2 rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 text-xs text-amber-900 leading-relaxed">
-                  <TriangleAlert size={15} className="flex-shrink-0 mt-0.5" />
-                  <span>
-                    Puedes publicar sin cobros en línea: tus huéspedes reservarán por
-                    WhatsApp y tú cobras a tu manera. Cuando conectes Stripe, el pago con
-                    tarjeta se activa solo.
-                  </span>
-                </div>
-              )}
-
-              {publicado && (
+              {!publicado && (
                 <p className="text-xs text-kora-muted">
-                  Tu página ya está publicada; este botón solo confirma y te da tus enlaces.
+                  Tu página está sin publicar. Al terminar la publicamos para que puedas
+                  compartirla.
                 </p>
               )}
             </div>
@@ -744,12 +846,12 @@ export function OnboardingHotelClient(props: Props) {
             >
               {guardando ? (
                 <>
-                  <Loader2 size={16} className="animate-spin" /> Publicando…
+                  <Loader2 size={16} className="animate-spin" /> Guardando…
                 </>
               ) : publicado ? (
                 "Terminar"
               ) : (
-                "Publicar mi página"
+                "Publicar y terminar"
               )}
             </button>
           ) : (
@@ -768,6 +870,85 @@ export function OnboardingHotelClient(props: Props) {
           Guardar y salir (retomas después)
         </a>
       </p>
+    </div>
+  );
+}
+
+/**
+ * La tarjeta del motor en el paso «Pruébalo». Sólo invita a «hacer una reserva
+ * de prueba» cuando el motor de verdad simula: con cobros reales se le cobraría
+ * a la tarjeta de quien prueba, y sin cobros listos (hotel con plan) el dinero
+ * caería en la cuenta de Kora.
+ */
+function MotorTarjeta({
+  estado,
+  urlMotor,
+  pagosHref,
+  esDueno,
+}: {
+  estado: EstadoMotor;
+  urlMotor: string;
+  pagosHref: string | null;
+  esDueno: boolean;
+}) {
+  const textos: Record<EstadoMotor, { titulo: string; texto: string }> = {
+    prueba: {
+      titulo: "Haz una reserva de prueba en tu motor",
+      texto:
+        "Tu motor está en modo prueba: el pago se simula y no se cobra nada. Así ves exactamente lo que vivirá tu huésped. Cuando conectes tus cobros, empiezas a recibir reservas reales.",
+    },
+    cobra: {
+      titulo: "Mira tu motor como lo ve tu huésped",
+      texto:
+        "Tus cobros ya están conectados: si terminas una reserva, se cobra de verdad a la tarjeta que uses. Recórrelo sin terminar el pago.",
+    },
+    "sin-cobros": {
+      titulo: "Mira tu motor como lo ve tu huésped",
+      texto:
+        "Recórrelo sin terminar el pago: tus cobros todavía no están conectados. Conéctalos antes de recibir reservas.",
+    },
+    pausado: {
+      titulo: "Tu motor está en pausa",
+      texto: "Tu prueba gratis terminó. Tus datos siguen intactos y el motor vuelve a recibir reservas al activar tu plan.",
+    },
+    bloqueado: {
+      titulo: "Tu motor está en pausa",
+      texto: "Tu cuenta está en pausa y tu motor no recibe reservas. Escríbenos para reactivarla.",
+    },
+  };
+  const enPausa = estado === "pausado" || estado === "bloqueado";
+  const t = textos[estado];
+  return (
+    <div className="flex items-start gap-3 rounded-xl border border-panel-border-soft bg-kora-bg/40 px-4 py-3.5">
+      <FlaskConical size={18} className="text-kora-primary flex-shrink-0 mt-0.5" aria-hidden="true" />
+      <div className="min-w-0">
+        <p className="text-sm font-bold text-kora-text">{t.titulo}</p>
+        <p className="mt-0.5 text-xs text-kora-muted leading-relaxed">{t.texto}</p>
+        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5">
+          {enPausa ? (
+            estado === "pausado" &&
+            esDueno && (
+              <a href={RUTA_ACTIVAR} className="text-xs font-bold text-kora-primary underline">
+                Activar mi plan
+              </a>
+            )
+          ) : (
+            <a
+              href={urlMotor}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-kora-primary underline"
+            >
+              Abrir mi motor <ExternalLink size={12} aria-hidden="true" />
+            </a>
+          )}
+          {(estado === "prueba" || estado === "sin-cobros") && pagosHref && (
+            <a href={pagosHref} className="text-xs font-semibold text-kora-muted underline">
+              Conectar mis cobros
+            </a>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

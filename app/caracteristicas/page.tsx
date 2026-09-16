@@ -19,8 +19,14 @@ import {
   DashboardMockup,
 } from "@/components/caracteristicas/Mockups";
 import { VsBooking } from "@/components/caracteristicas/VsBooking";
-import { FORECAST_DIAS } from "@/lib/oferta";
-import { WHATSAPP } from "@/lib/contacto";
+import { CtaLink } from "@/components/shared/CtaLink";
+import {
+  AYUDA_ALTA,
+  FORECAST_DIAS,
+  GARANTIA,
+  RUTA_REGISTRO,
+} from "@/lib/oferta";
+import { waLink } from "@/lib/contacto";
 
 export const metadata: Metadata = {
   title: "Características de Kora: PMS, IA y reservas directas",
@@ -31,7 +37,12 @@ export const metadata: Metadata = {
   },
 };
 
-const WA_URL = `https://wa.me/${WHATSAPP.replace(/\D/g, "")}?text=Hola%2C%20quiero%20ver%20el%20demo%20de%20Kora`;
+// Hasta el 15 sep 2026 los dos botones de esta página eran «Ver demo en vivo» y
+// «Solicitar demo por WhatsApp»: la única forma de ver Kora era esperar a que
+// Manolo contestara y agendara una llamada. Decisión de Manolo: el camino
+// principal es crear la cuenta y probarlo con tu propio hotel; WhatsApp queda
+// como apoyo para quien prefiera que lo acompañen.
+const WA_AYUDA = waLink("Hola, vi las características de Kora y quiero que me ayuden a dejarlo listo");
 
 // ─── Module section ───────────────────────────────────────────────────────────
 
@@ -163,15 +174,14 @@ export default function CaracteristicasPage() {
           </Reveal>
           <Reveal delay={0.22}>
             <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
-              <a
-                href={WA_URL}
-                target="_blank"
-                rel="noopener noreferrer"
+              <CtaLink
+                href={RUTA_REGISTRO}
+                ctaName="caracteristicas_registro_hero"
                 className="btn-press btn-arrow btn-fill inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-kora-accent text-kora-primary font-semibold text-sm hover:bg-kora-accent-dark transition-colors"
               >
-                Ver demo en vivo
+                Pruébalo gratis con tu hotel
                 <ArrowRight size={16} aria-hidden="true" />
-              </a>
+              </CtaLink>
               <Link
                 href="/precios"
                 className="btn-press inline-flex items-center justify-center px-6 py-3.5 rounded-full border-2 border-kora-primary text-kora-primary font-semibold text-sm hover:bg-kora-primary hover:text-white transition-colors"
@@ -192,7 +202,9 @@ export default function CaracteristicasPage() {
         description="Tu propio sistema de reservas en línea, conectado a tu sitio web. Los huéspedes reservan y pagan sin pasar por Booking ni Airbnb — y tú te quedas con el 100% del pago."
         bullets={[
           "Disponibilidad y precios en tiempo real",
-          "Pagos integrados con Stripe o Conekta",
+          // Decía «Stripe o Conekta», pero Conekta está marcada «soon» en
+          // lib/integraciones.ts: no existe. OXXO sí, dentro de Stripe.
+          "Pagos con tarjeta y OXXO a través de Stripe",
           "Confirmación automática al huésped por email y WhatsApp",
           "Widget embebible en tu sitio web actual",
         ]}
@@ -265,25 +277,37 @@ export default function CaracteristicasPage() {
         }}
       />
 
-      {/* CTA demo */}
+      {/* CTA: pruébalo dentro */}
       <section className="py-16 sm:py-20 bg-kora-bg border-t border-gray-100">
         <div className="max-w-xl mx-auto px-4 text-center">
           <h2 className="text-2xl sm:text-3xl font-bold text-kora-text mb-4">
-            ¿Quieres verlo en vivo?
+            ¿Quieres verlo con tu hotel?
           </h2>
           <p className="text-kora-muted text-base mb-8">
-            Te mostramos el sistema completo en una llamada de 20 minutos,
-            adaptado a tu hotel.
+            Crea tu cuenta, carga tus habitaciones y pruébalo por dentro: habla
+            con Camila en el chat de prueba y haz una reserva de prueba en tu
+            motor. Tienes {GARANTIA.diasPrueba} días gratis, sin tarjeta.
           </p>
-          <a
-            href={WA_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-8 py-4 rounded-full bg-kora-accent text-kora-primary font-bold text-sm hover:bg-kora-accent-dark transition-colors"
+          <CtaLink
+            href={RUTA_REGISTRO}
+            ctaName="caracteristicas_registro_cierre"
+            className="btn-press btn-arrow btn-fill inline-flex items-center gap-2 px-8 py-4 rounded-full bg-kora-accent text-kora-primary font-bold text-sm hover:bg-kora-accent-dark transition-colors"
           >
-            Solicitar demo por WhatsApp
+            Crear mi cuenta gratis
             <ArrowRight size={16} aria-hidden="true" />
-          </a>
+          </CtaLink>
+          {WA_AYUDA && (
+            <p className="mt-5 text-sm text-kora-muted">
+              <a
+                href={WA_AYUDA}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline underline-offset-4 hover:text-kora-primary transition-colors"
+              >
+                {AYUDA_ALTA}
+              </a>
+            </p>
+          )}
         </div>
       </section>
 

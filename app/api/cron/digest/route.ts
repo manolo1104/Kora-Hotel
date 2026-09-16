@@ -3,7 +3,8 @@ import { NextResponse } from "next/server";
 import { createAdminClient, adminEnvReady } from "@/lib/supabase/admin";
 import { enviarEmail, NOTIFY_EMAIL } from "@/lib/email/resend";
 import { emailDigest } from "@/lib/email/templates";
-import { PLANES } from "@/lib/oferta";
+import { calcularMrr, type FilaSuscMrr } from "@/lib/crm/operaciones";
+import { suscripcionesStripe, type Lectura, type SuscripcionStripe } from "@/lib/crm/fuentes";
 import { leer } from "@/lib/db/result";
 import { correosFallidos, anotarReintento, MAX_INTENTOS } from "@/lib/email/bitacora";
 import { sendConfirmacionReserva } from "@/lib/email/reserva";
@@ -18,6 +19,13 @@ const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+// Desde que el MRR sale de Stripe, esta ruta espera a alguien de fuera (hasta 6 s,
+// ver `STRIPE_TOPE_MS`) ANTES de armar el correo, y después reenvía una por una
+// las confirmaciones que no salieron. Con el tope corto por defecto, un Stripe
+// lento se come el presupuesto y el resumen del día NO se manda: ni los leads sin
+// contactar ni los pagos vencidos. Mismo número que /crm y que los demás crons.
+export const maxDuration = 60;
+
 // Digest diario para el fundador (cron de Vercel, ver vercel.json).
 // Junta lo que requiere su atención: leads nuevos, seguimientos vencidos,
 // pagos con problema y chats escalados. Si no hay nada, no manda correo.
@@ -26,6 +34,22 @@ function autorizado(req: Request): boolean {
   const secreto = process.env.CRON_SECRET ?? "";
   if (!secreto) return false;
   return req.headers.get("authorization") === `Bearer ${secreto}`;
+}
+
+/**
+ * Stripe con un tope propio, más corto que el de `suscripcionesStripe` (15 s).
+ * El MRR es una línea del correo; los leads sin contactar y los pagos vencidos
+ * son el correo. Si Stripe tarda y la función se queda sin tiempo, no sale
+ * NADA. Pasado el tope, el MRR sale estimado y el correo dice por qué.
+ */
+const STRIPE_TOPE_MS = 6_000;
+
+function stripeConTope(): Promise<Lectura<Map<string, SuscripcionStripe>>> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const tope = new Promise<Lectura<Map<string, SuscripcionStripe>>>((resolver) => {
+    timer = setTimeout(() => resolver({ ok: false, data: new Map(), error: "sin-respuesta" }), STRIPE_TOPE_MS);
+  });
+  return Promise.race([suscripcionesStripe(), tope]).finally(() => clearTimeout(timer));
 }
 
 function linkWa(contacto: string | null, nombre: string | null): string {
@@ -48,7 +72,7 @@ export async function GET(req: Request) {
   const hace24h = new Date(Date.now() - 24 * 3600_000).toISOString();
   const hoy = new Date().toISOString().slice(0, 10);
 
-  const [leadsNuevos, seguimientos, vencidos, escalados, activas] = await Promise.all([
+  const [leadsNuevos, seguimientos, vencidos, escalados, activas, stripe] = await Promise.all([
     // TODOS los leads que siguen en "nuevo", no solo los de las últimas 24 h.
     // Antes se filtraba por `created_at >= hace24h`: un lead que no contestabas
     // hoy desaparecía del resumen mañana y ya nadie lo volvía a recordar.
@@ -75,7 +99,14 @@ export async function GET(req: Request) {
       .eq("escalado", true)
       .gte("updated_at", hace24h)
       .limit(10),
-    admin.from("suscripciones").select("plan").in("estado", ["activa", "cortesia"]),
+    // TODAS las filas, no sólo activa/cortesía: el MRR se calcula con la misma
+    // función que /crm (`calcularMrr`) y tiene que recibir lo mismo para dar el
+    // mismo número.
+    admin.from("suscripciones").select("user_id, plan, estado, stripe_customer_id"),
+    // Stripe dice quién paga de verdad: el webhook guarda como `activa` a quien
+    // sigue en prueba con tarjeta. No lanza; si falla, el MRR sale estimado y
+    // el correo lo dice.
+    stripeConTope(),
   ]);
 
   const secciones: { encabezado: string; lineas: string[] }[] = [];
@@ -151,17 +182,37 @@ export async function GET(req: Request) {
     });
   }
 
-  // MRR aproximado con las suscripciones activas (cortesía cuenta $0).
-  const mrr = (activas.data ?? []).reduce((suma, s) => {
-    const plan = PLANES.find((p) => p.clave === s.plan);
-    return suma + (plan?.precio ?? 0);
-  }, 0);
-  if (activas.data?.length) {
+  // MRR: la MISMA cuenta que /crm. El comentario de aquí decía «cortesía cuenta
+  // $0», pero la consulta traía activa Y cortesía y les sumaba a las dos el
+  // precio del plan (las cortesías se dan con plan='kora'): cada cortesía
+  // inflaba el MRR del correo en una mensualidad entera, y el correo y /crm
+  // daban dos cifras distintas del mismo negocio. Tampoco distinguía a quien
+  // sigue en prueba de Stripe, que todavía no ha pagado nada.
+  const filas = activas.error ? null : ((activas.data ?? []) as FilaSuscMrr[]);
+  const conPlanDePago = (filas ?? []).filter((s) => s.estado === "activa").length;
+  const deCortesia = (filas ?? []).filter((s) => s.estado === "cortesia").length;
+  const conPlan = conPlanDePago + deCortesia;
+  if (filas && conPlan > 0) {
+    const mrr = calcularMrr(filas, stripe);
+    const pesos = `$${Math.round(mrr.mrr ?? 0).toLocaleString("es-MX")} MXN`;
+    const detalle: string[] = [];
+    if (mrr.fuente === "stripe") {
+      detalle.push(`${mrr.pagando} cobrando en Stripe`);
+      if (mrr.enPruebaConTarjeta) detalle.push(`${mrr.enPruebaConTarjeta} en prueba con tarjeta, no suman`);
+    }
+    if (mrr.cortesia) detalle.push(`${mrr.cortesia} de cortesía, $0`);
     secciones.push({
       encabezado: "📈 Estado del negocio",
       lineas: [
-        `${activas.data.length} suscripción(es) activa(s)`,
-        `MRR aproximado: $${mrr.toLocaleString("es-MX")} MXN`,
+        // La cortesía NO es una suscripción activa. La línea de siempre decía
+        // «6 suscripción(es) activa(s)» contando también las regaladas, justo
+        // encima de un MRR que sólo suma las que cobran: dos cifras que se
+        // contradecían en el mismo recuadro.
+        `${conPlanDePago} cuenta${conPlanDePago === 1 ? "" : "s"} con plan activo` +
+          (deCortesia ? ` y ${deCortesia} de cortesía` : ""),
+        mrr.fuente === "stripe"
+          ? `MRR: ${pesos}${detalle.length ? ` (${detalle.join("; ")})` : ""}`
+          : `MRR aproximado: ${pesos} — estimado porque ${esc(mrr.motivo ?? "Stripe no se pudo leer")}: cuenta como pagando a quien sigue en prueba con tarjeta${detalle.length ? ` (${detalle.join("; ")})` : ""}`,
       ],
     });
   }

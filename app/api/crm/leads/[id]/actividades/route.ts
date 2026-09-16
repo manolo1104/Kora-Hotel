@@ -1,6 +1,7 @@
 import { escribirMejorEsfuerzo } from "@/lib/db/result";
 import { NextResponse } from "next/server";
 import { requireCrmAuth } from "@/lib/crm/auth";
+import { requireCrmMutacion } from "@/lib/crm/guardas";
 import { createAdminClient, adminEnvReady } from "@/lib/supabase/admin";
 import { TIPOS_ACTIVIDAD } from "@/lib/crm/types";
 
@@ -33,8 +34,11 @@ export async function GET(_req: Request, { params }: Ctx) {
 }
 
 // POST → registra una actividad (llamada/correo/whatsapp/reunion/nota)
+//
+// `requireCrmMutacion`: sesión + `Origin` del propio CRM, como el resto de las
+// rutas del CRM que escriben.
 export async function POST(req: Request, { params }: Ctx) {
-  const denied = await requireCrmAuth();
+  const denied = await requireCrmMutacion(req);
   if (denied) return denied;
   if (!adminEnvReady)
     return NextResponse.json({ error: "Falta SUPABASE_SERVICE_ROLE_KEY" }, { status: 503 });

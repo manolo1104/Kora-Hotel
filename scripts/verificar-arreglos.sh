@@ -104,6 +104,13 @@ cero "A4.4 las pruebas de cifras y contacto en verde" bash -c 'npx vitest run te
 # que se vigila es que nadie vuelva a escribirla a mano en el componente.
 cero "A4.5 la rejilla de integraciones sale de su fuente única" bash -c '[ -f lib/integraciones.ts ] || echo "falta lib/integraciones.ts"; grep -nE "status:[[:space:]]*\"(active|soon)\"" components/landing/IntegracionesSection.tsx'
 cero "A4.6 la prueba de integraciones en verde" bash -c 'npx vitest run tests/integraciones-congruente.test.ts >/dev/null 2>&1 || echo "falla la prueba de integraciones"'
+# 15 sep 2026: el sitio pasó a «regístrate y pruébalo por dentro». Estas dos
+# pruebas son las que impiden que vuelvan las promesas retiradas («24 horas»,
+# «llave en mano», «montamos», cupos, migración de reservas) y que alguien
+# escriba a mano el precio, los días de prueba o la ruta del registro en vez de
+# sacarlos de lib/oferta.ts. Van aquí porque el daño de una regresión es
+# publicitario: se ve en producción, no en una pantalla rota.
+cero "A4.7 el sitio sigue mandando al registro, sin promesas retiradas" bash -c 'npx vitest run tests/sitio-registro-congruente.test.ts tests/sitio-registro-ctas.test.ts tests/alta-autoservicio-textos.test.ts >/dev/null 2>&1 || echo "fallan las pruebas del alta por cuenta propia"'
 
 sec "A5 · Pantallas de error de Next"
 # SON 6, no 5: `app/panel/[slug]/error.tsx` se añadió a propósito con la etapa 4

@@ -74,9 +74,17 @@ interface Saldo {
   diasRestantes: number | null;
   umbralBajo: number;
   paquetes: { mxn: number; mensajes: number; destacado?: boolean }[];
-  /** ¿Está abierto el pago ya, para cualquiera? (`SALDO_RECARGA`) */
+  /**
+   * ¿Está abierto el pago ya, para cualquiera? Lo decide Kora desde
+   * CRM → Prepago y vive en la base (`kora_ajustes.saldo_fases`); `SALDO_RECARGA`
+   * sólo manda mientras nadie haya tocado esos botones.
+   */
   recargaAbierta: boolean;
-  /** ¿Un hotel sin saldo se queda mudo ya? (`SALDO_BLOQUEO`) */
+  /**
+   * ¿Un hotel sin saldo se queda mudo ya? Misma fuente que `recargaAbierta`
+   * (`SALDO_BLOQUEO` es sólo el respaldo). El nombre del campo se conserva a
+   * propósito para no romper a este panel: ver app/api/admin/saldo/route.ts.
+   */
   bloqueoActivo: boolean;
   /** Recargar es gastar dinero del hotel: sólo el dueño. */
   puedeRecargar: boolean;

@@ -1,21 +1,26 @@
 import { Globe, Code2, CreditCard, ArrowRight, Lock } from "lucide-react";
 import { Reveal } from "@/components/shared/Reveal";
 import { CtaLink } from "@/components/shared/CtaLink";
+import { GARANTIA, RUTA_REGISTRO } from "@/lib/oferta";
 
 // Sección dedicada al producto ancla: el motor de reservas directas.
 // El hero muestra el motor "vivo"; aquí mostramos el ángulo de propiedad:
-// vive en TU web, se configura solo y el huésped paga directo (0% comisión).
+// vive en TU web, lo configuras tú y el huésped paga directo (0% comisión).
+//
+// Hasta el 15 sep 2026 decía «Lo incrustamos en tu sitio […] Tú no tocas
+// código» y «o lo hacemos por ti»: promesas de montarlo a mano que Kora ya no
+// hace. El alta es por cuenta propia y la ayuda es opcional.
 
 const pasos = [
   {
     Icon: Globe,
-    t: "Se configura solo",
-    d: "Al activar tu cuenta cargas cuartos, precios y fotos en un onboarding de 2 pasos. Si sabes usar WhatsApp, sabes hacerlo.",
+    t: "Lo configuras tú, sin saber de tecnología",
+    d: "Creas tu cuenta y cargas tus habitaciones y tarifas; las fotos las añades cuando quieras. Si sabes usar WhatsApp, sabes hacerlo.",
   },
   {
     Icon: Code2,
     t: "Vive en tu propia web",
-    d: "Lo incrustamos en tu sitio con una sola línea —o te creamos uno—. Con tu logo y tus colores. Tú no tocas código.",
+    d: "Lo pegas en tu sitio con una sola línea, o compartes tu página de reservas de Kora si aún no tienes web. Si te atoras, te ayudamos.",
   },
   {
     Icon: CreditCard,
@@ -60,12 +65,12 @@ export function MotorReservasSection() {
 
               <div className="mt-8 flex flex-col sm:flex-row gap-3">
                 <CtaLink
-                  href="/panel/onboarding"
+                  href={RUTA_REGISTRO}
                   ctaName="motor_onboarding"
                   className="btn-press btn-arrow btn-fill inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-kora-accent text-kora-primary font-semibold text-sm hover:bg-kora-accent-dark transition-colors"
                 >
-                  Crear mi motor gratis
-                  <ArrowRight size={16} />
+                  Crear cuenta y probar mi motor
+                  <ArrowRight size={16} aria-hidden="true" />
                 </CtaLink>
                 <a
                   href="#demo-motor"
@@ -74,6 +79,16 @@ export function MotorReservasSection() {
                   Probarlo en vivo
                 </a>
               </div>
+              {/* El modo prueba del motor (lib/motor/modo-prueba.ts) simula el pago
+                  mientras el hotel está EN PRUEBA y sus cobros no están listos. Se
+                  dicen las dos condiciones: al conectar Stripe cobra de verdad, y
+                  también al activar el plan aunque no haya conectado Stripe (el
+                  dinero cae entonces en la cuenta de Kora). */}
+              <p className="mt-3 text-xs text-kora-muted">
+                {GARANTIA.diasPrueba} días gratis, sin tarjeta. Durante tu prueba, y
+                mientras no conectes tus cobros, las reservas de prueba en tu motor no
+                cobran nada.
+              </p>
             </div>
           </Reveal>
 
@@ -131,7 +146,7 @@ export function MotorReservasSection() {
               {/* El embed: una sola línea */}
               <div className="mt-4 rounded-2xl bg-kora-primary p-4">
                 <p className="text-[11px] text-kora-accent font-semibold mb-2">
-                  Una línea y aparece en tu web (o lo hacemos por ti):
+                  Una línea y aparece en tu web (si te atoras, te ayudamos):
                 </p>
                 <code className="block text-[10px] sm:text-[11px] text-white/90 font-mono bg-black/25 rounded-lg px-3 py-2 overflow-x-auto whitespace-nowrap">
                   {'<script src="kora-hotel.com/embed.js" data-hotel="tu-hotel"></script>'}

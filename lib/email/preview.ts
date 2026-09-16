@@ -834,7 +834,9 @@ export const GRUPOS: GrupoPreview[] = [
             hotelNombre: MARCA.nombre,
             slug: "hotel-de-ejemplo",
             nombreUsuario: "Manolo",
-            diasPrueba: 30,
+            // Sin `diasPrueba`: la vista previa tiene que enseñar lo que recibe
+            // un hotelero de verdad. Estaba fijado a 30 y la prueba son los días
+            // de PRUEBA_DIAS, así que aquí se veía un correo que nadie recibe.
           }),
         }),
       },

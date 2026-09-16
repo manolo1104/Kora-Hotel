@@ -1,38 +1,82 @@
 import Link from "next/link";
-import { Clock, Lock, ArrowRight, Database } from "lucide-react";
+import { Clock, Lock, ArrowRight, Database, FlaskConical } from "lucide-react";
 import type { PruebaHotel } from "@/lib/suscripcion";
 import { EMAIL_CONTACTO } from "@/lib/contacto";
+import { PRECIO_DESDE, RUTA_ACTIVAR } from "@/lib/oferta";
 
 // Estado de la prueba gratis en el panel operativo (server components).
 // - Banner: cuenta regresiva discreta pero visible, con CTA a activar el plan.
 // - Pantalla vencida: firme pero honesta — los datos están a salvo, nada se borra.
+//
+// El precio sale de `PRECIO_DESDE`: estaba escrito a mano ($550) en este archivo
+// y en los correos de la prueba, y el día que cambie tiene que cambiar solo.
+const PRECIO = PRECIO_DESDE.toLocaleString("es-MX");
 
-export function PruebaBanner({ prueba }: { prueba: PruebaHotel }) {
+export function PruebaBanner({
+  prueba,
+  modoPrueba = false,
+  pagosHref = null,
+}: {
+  prueba: PruebaHotel;
+  /**
+   * El motor de este hotel SIMULA el pago (`motorEnModoPrueba`, calculado en el
+   * servidor que monta el banner). Hasta el 15 sep 2026 nada en el panel lo
+   * decía: el hotelero probaba su motor sin saber si se cobraba de verdad.
+   */
+  modoPrueba?: boolean;
+  /** Pantalla de pagos, sólo si quien mira puede abrirla (el dueño). */
+  pagosHref?: string | null;
+}) {
   const urgente = prueba.diasRestantes <= 5;
   return (
     <div
-      className={`flex items-center justify-between gap-3 flex-wrap px-4 py-2.5 text-sm ${
-        urgente ? "bg-amber-50 border-b border-amber-200" : "bg-kora-bg border-b border-panel-border-soft"
+      className={`border-b text-sm ${
+        urgente ? "bg-amber-50 border-amber-200" : "bg-kora-bg border-panel-border-soft"
       }`}
     >
-      <p className={`flex items-center gap-2 ${urgente ? "text-amber-900" : "text-kora-text"}`}>
-        <Clock size={15} className={urgente ? "text-amber-600" : "text-kora-primary"} aria-hidden="true" />
-        <span>
-          <strong>
-            {prueba.diasRestantes === 1
-              ? "Último día de tu prueba gratis"
-              : `Te quedan ${prueba.diasRestantes} días de prueba gratis`}
-          </strong>{" "}
-          — todo lo que configures se queda contigo.
-        </span>
-      </p>
-      <Link
-        href="/pago/iniciar?plan=kora"
-        className="btn-press inline-flex items-center gap-1.5 rounded-full bg-kora-primary px-4 py-1.5 text-xs font-bold text-white hover:bg-kora-primary-dark transition-colors"
-      >
-        Activar mi plan — $550/mes
-        <ArrowRight size={13} aria-hidden="true" />
-      </Link>
+      <div className="flex items-center justify-between gap-3 flex-wrap px-4 py-2.5">
+        <p className={`flex items-center gap-2 ${urgente ? "text-amber-900" : "text-kora-text"}`}>
+          <Clock size={15} className={urgente ? "text-amber-600" : "text-kora-primary"} aria-hidden="true" />
+          <span>
+            <strong>
+              {prueba.diasRestantes === 1
+                ? "Último día de tu prueba gratis"
+                : `Te quedan ${prueba.diasRestantes} días de prueba gratis`}
+            </strong>{" "}
+            — todo lo que configures se queda contigo.
+          </span>
+        </p>
+        <Link
+          href={RUTA_ACTIVAR}
+          className="btn-press inline-flex items-center gap-1.5 rounded-full bg-kora-primary px-4 py-1.5 text-xs font-bold text-white hover:bg-kora-primary-dark transition-colors"
+        >
+          Activar mi plan — ${PRECIO}/mes
+          <ArrowRight size={13} aria-hidden="true" />
+        </Link>
+      </div>
+      {modoPrueba && (
+        <p
+          className={`flex items-start gap-2 border-t px-4 py-2 text-xs leading-relaxed ${
+            urgente ? "border-amber-200 text-amber-900" : "border-panel-border-soft text-kora-muted"
+          }`}
+        >
+          <FlaskConical size={14} className="mt-0.5 shrink-0 text-kora-primary" aria-hidden="true" />
+          <span>
+            <strong className="text-kora-text">Tu motor está en modo prueba:</strong> las
+            reservas se simulan y no se cobra nada.{" "}
+            {pagosHref ? (
+              <>
+                <Link href={pagosHref} className="font-semibold text-kora-primary underline">
+                  Conecta tus cobros
+                </Link>{" "}
+                para recibir reservas reales.
+              </>
+            ) : (
+              "Para recibir reservas reales, el dueño del hotel tiene que conectar los cobros."
+            )}
+          </span>
+        </p>
+      )}
     </div>
   );
 }
@@ -62,10 +106,10 @@ export function PruebaVencida({ hotelNombre }: { hotelNombre: string }) {
           </p>
         </div>
         <Link
-          href="/pago/iniciar?plan=kora"
+          href={RUTA_ACTIVAR}
           className="btn-press btn-fill mt-6 inline-flex items-center justify-center gap-2 rounded-full bg-kora-accent px-7 py-3.5 text-sm font-bold text-kora-primary hover:bg-kora-accent-dark transition-colors"
         >
-          Activar mi plan — $550 MXN/mes
+          Activar mi plan — ${PRECIO} MXN/mes
           <ArrowRight size={15} aria-hidden="true" />
         </Link>
         <p className="mt-3 text-[11px] text-kora-muted">

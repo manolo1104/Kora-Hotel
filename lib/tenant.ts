@@ -33,7 +33,7 @@ export interface HotelRow {
   prefijo_confirmacion: string | null;
   stripe_account_id: string | null;
   publicado: boolean;
-  created_at: string | null; // ancla de la prueba de 30 días (lib/suscripcion)
+  created_at: string | null; // ancla de la prueba gratis (PRUEBA_DIAS, lib/suscripcion)
 }
 
 export interface TenantContext {

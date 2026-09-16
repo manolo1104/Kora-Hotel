@@ -19,7 +19,7 @@ import { contextoHuesped } from "@/lib/bot/huesped";
 import type { HotelRow } from "@/lib/tenant";
 import { limitado } from "@/lib/api/rate-limit";
 import { leerSaldo, sinSaldo } from "@/lib/db/saldo";
-import { bloqueoActivo } from "@/lib/saldo/paquetes";
+import { bloqueoEncendido } from "@/lib/saldo/fases";
 import { cobrable, cobrarMensaje } from "@/lib/saldo/cobro";
 
 export const dynamic = "force-dynamic";
@@ -175,11 +175,18 @@ export async function POST(req: Request) {
     // hablando. Regalar unos mensajes cuesta céntimos; dejar mudo el WhatsApp de
     // un hotel que paga $550/mes cuesta el cliente.
     //
-    // El interruptor `SALDO_BLOQUEO` existe para desplegar en dos tiempos: sin
-    // él se MIDE el consumo sin callar a nadie, que es como se sube esto a
-    // producción la primera vez. Se enciende cuando los números cuadran.
+    // El interruptor del bloqueo existe para desplegar en dos tiempos: sin él se
+    // MIDE el consumo sin callar a nadie. Se enciende desde /crm/prepago cuando
+    // los números cuadran (antes era `SALDO_BLOQUEO` en Vercel).
+    //
+    // UNA lectura por latido, y casi nunca va a la base: `bloqueoEncendido()`
+    // tiene caché de 60 s por instancia. No lanza, y si la base falla responde
+    // «apagado» (lib/saldo/fases.ts): un parpadeo de Supabase no puede callar a
+    // la vez el WhatsApp de todos los hoteles. Además sólo cuenta como encendido
+    // si las recargas también están abiertas: nunca se calla a quien no tiene
+    // cómo recargar.
     let sin = false;
-    if (bloqueoActivo()) {
+    if (await bloqueoEncendido()) {
       sin = sinSaldo(await leerSaldo(hotel.id));
     }
     return NextResponse.json({

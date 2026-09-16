@@ -1,8 +1,22 @@
 import Link from "next/link";
 import { Reveal } from "@/components/shared/Reveal";
+import { ArrowRight } from "lucide-react";
 import { SuscripcionForm } from "@/components/shared/SuscripcionForm";
+import { CtaLink } from "@/components/shared/CtaLink";
 import { OTA_ANTES, OTA_DESPUES } from "@/lib/caso-paraiso";
-import { EMAIL_CONTACTO, WHATSAPP } from "@/lib/contacto";
+import { EMAIL_CONTACTO, WHATSAPP, waLink } from "@/lib/contacto";
+import { GARANTIA, RUTA_REGISTRO } from "@/lib/oferta";
+
+// El número se muestra como se dice en voz alta («+52 489 125 1458») pero sale
+// de `WHATSAPP`: estaba escrito a mano aquí, y el día que Manolo cambie de número
+// el enlace se habría actualizado solo y el texto visible no.
+function numeroVisible(raw: string): string {
+  const d = raw.replace(/\D/g, "");
+  if (d.length === 12 && d.startsWith("52")) {
+    return `+52 ${d.slice(2, 5)} ${d.slice(5, 8)} ${d.slice(8)}`;
+  }
+  return `+${d}`;
+}
 
 // Actualiza estas URLs cuando crees las cuentas sociales
 const LINKEDIN_URL = ""; // e.g. "https://linkedin.com/company/kora-hotel"
@@ -12,6 +26,7 @@ const navLinks = [
   { label: "Inicio", href: "/" },
   { label: "Agente de WhatsApp con IA", href: "/whatsapp" },
   { label: "Características", href: "/caracteristicas" },
+  { label: "Cómo empezar", href: "/como-funciona" },
   { label: "Precios", href: "/precios" },
   // Un enlace al ÍNDICE, no dos sueltos: el pie enlazaba a mano sólo
   // `hoteles-boutique` y `hoteles-pequenos`, y las otras 7 páginas de la sección
@@ -79,6 +94,20 @@ export function Footer() {
               <p className="text-sm text-white/40 mt-3">
                 Hecho en la Huasteca Potosina, México
               </p>
+              {/* El registro también en el pie (decisión de Manolo, 15 sep 2026):
+                  quien llega hasta aquí ya leyó la página y no tenía por dónde
+                  empezar, sólo WhatsApp y la guía. */}
+              <CtaLink
+                href={RUTA_REGISTRO}
+                ctaName="footer_onboarding"
+                className="btn-press btn-arrow mt-5 inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-kora-accent text-kora-primary text-sm font-bold hover:bg-kora-accent-dark transition-colors"
+              >
+                Crear cuenta gratis
+                <ArrowRight size={15} aria-hidden="true" />
+              </CtaLink>
+              <p className="mt-2 text-xs text-white/40">
+                {GARANTIA.diasPrueba} días gratis, sin tarjeta
+              </p>
             </div>
           </Reveal>
 
@@ -141,12 +170,12 @@ export function Footer() {
                 </li>
                 <li>
                   <a
-                    href={`https://wa.me/${WHATSAPP.replace(/\D/g, "")}`}
+                    href={waLink("Hola, tengo una duda sobre Kora")}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="nav-link text-sm text-white/60 hover:text-white transition-colors"
                   >
-                    WhatsApp +52 489 125 1458
+                    WhatsApp {numeroVisible(WHATSAPP)}
                   </a>
                 </li>
               </ul>

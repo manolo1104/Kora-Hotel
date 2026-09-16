@@ -27,6 +27,7 @@ import {
   etiqueta,
 } from "@/lib/email/design";
 import { urlBaja, primerNombre, type ToqueGuia } from "@/lib/suscriptores";
+import { GARANTIA, PRECIO_DESDE, RUTA_REGISTRO } from "@/lib/oferta";
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
 
@@ -223,7 +224,9 @@ function guia9({ nombre, token }: DatosGuia) {
       `Los puntos 1 y 2 los terminé construyendo yo porque no encontré nada hecho para un hotel de mi tamaño y a un precio de un hotel de mi tamaño. Eso es <strong style="color:${TOK.tinta};">Kora</strong>: la página de reservas, el cobro con tarjeta y OXXO directo a tu cuenta, y un agente de WhatsApp que contesta a las 2 de la mañana.`,
     ) +
     parrafo(
-      `Mañana no te escribo. Pasado te mando el último correo con la invitación y ya no te molesto más con esto.`,
+      // Decía «Mañana no te escribo. Pasado te mando el último correo», pero el
+      // último sale el día 14 y éste el 9: no es pasado mañana.
+      `En unos días te mando el último correo con la invitación y ya no te molesto más con esto.`,
     ) +
     firma +
     respiro +
@@ -242,8 +245,15 @@ function guia9({ nombre, token }: DatosGuia) {
 // ─── Toque 14 · la invitación ────────────────────────────────────────────────
 // El único que vende. Y se despide: la secuencia se apaga sola aquí.
 
+// 🔴 15 sep 2026 — El botón decía «Ver cómo funciona» y llevaba a /precios: quien
+// llegaba hasta el único correo que vende tenía que encontrar solo el registro.
+// Ahora lleva a crear la cuenta. Y el texto prometía «lo que queda listo el
+// primer día» como si lo armáramos nosotros: el hotel lo carga el hotelero, así
+// que se cuenta lo que hay dentro, no un plazo. Precio y días, de lib/oferta.ts.
 function guia14({ nombre, token }: DatosGuia) {
   const first = primerNombre(nombre);
+  const precio = `$${PRECIO_DESDE.toLocaleString("es-MX")} MXN`;
+  const dias = GARANTIA.diasPrueba;
   const inner =
     cabecera({ nombre: "Kora", eyebrow: "Correo 5 de 5" }) +
     titulo("El último, y ya te dejo en paz") +
@@ -253,19 +263,19 @@ function guia14({ nombre, token }: DatosGuia) {
       `Este es el último correo de la serie. Si la guía te sirvió y quieres armarlo tú solo, adelante — en serio, para eso la escribí.`,
     ) +
     parrafo(
-      `Si prefieres no armarlo tú, Kora es lo que yo hubiera querido encontrar hace dos años:`,
+      `Si prefieres no armarlo desde cero, Kora es lo que yo hubiera querido encontrar hace dos años:`,
     ) +
-    lista("Lo que queda listo el primer día", [
+    lista("Lo que tienes dentro de Kora", [
       "Tu página de reservas con tus cuartos, tus precios y tus fotos",
       "Cobro con tarjeta y OXXO, directo a tu cuenta de banco",
       "Un agente de WhatsApp que cotiza y aparta a cualquier hora",
       "Los correos automáticos al huésped: confirmación, llegada y reseña",
     ]) +
     caja(
-      `<strong>$550 MXN al mes.</strong> Fijo. Sin comisión por reserva, sin contrato y sin costo de instalación. Los primeros 14 días no se cobran. Si con una reserva directa al mes ya lo pagaste, el resto del año es tuyo.`,
+      `<strong>${precio} al mes.</strong> Fijo. Sin comisión por reserva, sin contrato y sin costo de instalación. Te registras, cargas tu hotel y lo pruebas ${dias} días gratis, sin tarjeta. Si con una reserva directa al mes ya lo pagaste, el resto del año es tuyo.`,
       "exito",
     ) +
-    boton(`${SITE}/precios`, "Ver cómo funciona") +
+    boton(`${SITE}${RUTA_REGISTRO}`, `Probar ${dias} días gratis`) +
     respiro +
     parrafo(
       `Si prefieres platicarlo antes, respóndeme este correo y te contesto yo. No hay vendedor, no hay llamada agendada, no hay demo de 45 minutos.`,
@@ -281,7 +291,7 @@ function guia14({ nombre, token }: DatosGuia) {
     subject: `${first}, el último correo (y una invitación)`,
     html: doc(
       "La invitación — Kora",
-      "$550 al mes, 14 días sin cobro y sin contrato. O quédate con la guía y armalo tú.",
+      `${precio} al mes, ${dias} días gratis y sin contrato. O quédate con la guía y ármalo tú.`,
       inner,
     ),
   };

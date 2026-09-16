@@ -4,15 +4,32 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
-import { HelpCircle, Loader2, MessageCircle, Send, X } from "lucide-react";
-import { WHATSAPP } from "@/lib/contacto";
+import { ArrowRight, HelpCircle, Loader2, MessageCircle, Send, X } from "lucide-react";
+import { waLink } from "@/lib/contacto";
+import { GARANTIA, RUTA_REGISTRO } from "@/lib/oferta";
+import { trackCta } from "@/lib/analytics";
 
 // Chat de soporte con IA. Flota en el sitio de Kora y el panel (no en las
 // páginas públicas de los hoteles ni en el CRM — eso lo decide SiteFrame).
 
-const WA_FUNDADOR = `https://wa.me/${WHATSAPP.replace(/\D/g, "")}?text=${encodeURIComponent(
-  "Hola, vengo del chat de ayuda de Kora y tengo una duda"
-)}`;
+const WA_FUNDADOR = waLink("Hola, vengo del chat de ayuda de Kora y tengo una duda");
+
+/**
+ * ¿Tiene sentido ofrecer «Crear mi cuenta gratis» en esta pantalla?
+ *
+ * El chat también flota dentro del panel y en /entrar, donde la persona ya
+ * tiene cuenta o la está creando: ahí el botón sería ruido. En el resto del
+ * sitio sí, porque quien pide hablar con alguien casi siempre está decidiendo
+ * si probar Kora, y el camino principal es registrarse (decisión de Manolo del
+ * 15 sep 2026); WhatsApp se queda como apoyo.
+ */
+function ofrecerRegistro(pathname: string): boolean {
+  return !(
+    pathname === "/entrar" ||
+    pathname.startsWith("/panel") ||
+    pathname.startsWith("/pago")
+  );
+}
 
 interface Turno {
   rol: "user" | "assistant";
@@ -20,10 +37,12 @@ interface Turno {
   escalar?: boolean;
 }
 
+// El saludo decía «cómo funciona tu página gratis», que empujaba la mini-página
+// en vez de la prueba. Desde el 15 sep 2026 el camino principal es registrarse y
+// probar Kora por dentro, así que el saludo lo dice con los días de la constante.
 const SALUDO: Turno = {
   rol: "assistant",
-  texto:
-    "¡Hola! Soy el asistente de Kora 🤖 Pregúntame lo que quieras: precios, cómo funciona tu página gratis, pagos… Te contesto al instante.",
+  texto: `¡Hola! Soy el asistente de Kora 🤖 Pregúntame lo que quieras: precios, cómo empezar, qué puedes probar en tus ${GARANTIA.diasPrueba} días gratis… Te contesto al instante.`,
 };
 
 // El id de la conversación ya NO se inventa aquí: lo genera el servidor y
@@ -31,8 +50,12 @@ const SALUDO: Turno = {
 // adivinar, y con él se pisaba la conversación de otra persona.
 
 // Convierte rutas internas (/precios, /ayuda…) en links.
+//
+// `como-funciona` entró el 15 sep 2026: el prompt del chat ya manda a esa página
+// a explicar cómo se empieza, y sin estar en la lista salía como texto pelado que
+// hay que teclear a mano. `panel` cubre ya RUTA_REGISTRO (/panel/onboarding).
 function ConTexto({ texto }: { texto: string }) {
-  const partes = texto.split(/(\/(?:precios|panel|entrar|ayuda|herramientas)[a-z0-9\-/]*)/g);
+  const partes = texto.split(/(\/(?:precios|panel|entrar|ayuda|herramientas|como-funciona)[a-z0-9\-/]*)/g);
   return (
     <>
       {partes.map((p, i) =>
@@ -178,15 +201,27 @@ export function ChatWidget({ elevado = false }: { elevado?: boolean }) {
                     {m.rol === "assistant" ? <ConTexto texto={m.texto} /> : m.texto}
                   </div>
                   {m.escalar && (
-                    <a
-                      href={WA_FUNDADOR}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="btn-press mt-2 inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#25D366] text-white font-bold text-xs hover:bg-[#1da851] transition-colors"
-                    >
-                      <MessageCircle size={14} aria-hidden="true" />
-                      Hablar con Manolo por WhatsApp
-                    </a>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {ofrecerRegistro(pathname) && (
+                        <Link
+                          href={RUTA_REGISTRO}
+                          onClick={() => trackCta("chat_soporte_registro")}
+                          className="btn-press inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-kora-primary text-white font-bold text-xs hover:bg-kora-primary-dark transition-colors"
+                        >
+                          Crear mi cuenta gratis
+                          <ArrowRight size={14} aria-hidden="true" />
+                        </Link>
+                      )}
+                      <a
+                        href={WA_FUNDADOR}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn-press inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#25D366] text-white font-bold text-xs hover:bg-[#1da851] transition-colors"
+                      >
+                        <MessageCircle size={14} aria-hidden="true" />
+                        Hablar con Manolo por WhatsApp
+                      </a>
+                    </div>
                   )}
                 </div>
               ))}

@@ -23,6 +23,10 @@ interface BlogRow {
   read_time: string;
   published_at: string;
   updated_at: string | null;
+  // Los escribe el agente del blog y los guarda la API; hasta el 15 sep 2026
+  // esta consulta no los pedía y el sitio no los usaba. Ver `Article.metaTitle`.
+  meta_title: string | null;
+  meta_description: string | null;
 }
 
 const MESES = [
@@ -59,6 +63,10 @@ function rowToArticle(row: BlogRow): Article {
     image: portada?.image ?? row.image,
     imageAlt: portada?.imageAlt ?? row.image_alt,
     content: row.content,
+    // `|| undefined` y no `?? undefined`: una cadena vacía en la base también
+    // tiene que caer al título de la página, no dejar a Google sin título.
+    metaTitle: row.meta_title || undefined,
+    metaDescription: row.meta_description || undefined,
   };
 }
 
@@ -69,7 +77,7 @@ async function fetchDbArticles(): Promise<Article[]> {
     const { data, error } = await supabase
       .from("blog_articles")
       .select(
-        "slug, title, excerpt, author, category, tags, image, image_alt, content, read_time, published_at, updated_at"
+        "slug, title, excerpt, author, category, tags, image, image_alt, content, read_time, published_at, updated_at, meta_title, meta_description"
       )
       .eq("published", true)
       .order("published_at", { ascending: false });

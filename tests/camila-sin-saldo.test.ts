@@ -55,10 +55,29 @@ describe("el contrato de «sin-saldo» entre Vercel y Railway", () => {
   });
 
   it("el bloqueo va detrás de un interruptor, para poder desplegar midiendo antes de callar", () => {
-    // La ruta pregunta por el helper y el helper es quien lee el entorno, para
-    // que los dos interruptores del prepago vivan en un solo archivo.
-    expect(lee("app/api/agent/route.ts")).toContain("if (bloqueoActivo())");
-    expect(lee("lib/saldo/paquetes.ts")).toContain('process.env.SALDO_BLOQUEO === "1"');
-    expect(lee("lib/saldo/paquetes.ts")).toContain('process.env.SALDO_RECARGA === "1"');
+    // Desde el 15 sep 2026 el interruptor se mueve desde /crm/prepago y vive en
+    // la base. La ruta pregunta por el helper de lib/saldo/fases.ts, y ese
+    // archivo es el ÚNICO que lee las variables de entorno (de respaldo): así
+    // los dos interruptores del prepago siguen viviendo en un solo sitio.
+    const agente = lee("app/api/agent/route.ts");
+    expect(agente).toContain('import { bloqueoEncendido } from "@/lib/saldo/fases"');
+    expect(agente).toContain("if (await bloqueoEncendido())");
+    // Sin el `await` la promesa siempre es «verdadera» y callaría a TODOS los
+    // hoteles en cero aunque el bloqueo estuviera apagado.
+    expect(agente).not.toMatch(/if \(bloqueoEncendido\(\)\)/);
+
+    const fases = lee("lib/saldo/fases.ts");
+    expect(fases).toContain('process.env.SALDO_BLOQUEO === "1"');
+    expect(fases).toContain('process.env.SALDO_RECARGA === "1"');
+    // Candado de lectura: nunca se calla a quien no tiene cómo recargar…
+    expect(fases).toContain("return f.recarga && f.bloqueo;");
+    // …y si la base falla, el bloqueo queda apagado.
+    expect(fases).toContain("desdeEntorno(false)");
+
+    // Ningún otro archivo vuelve a leer el entorno por su cuenta: una función
+    // síncrona que sólo mirara la variable ignoraría el botón del CRM.
+    for (const r of ["lib/saldo/paquetes.ts", "lib/saldo/cobro.ts", "app/api/admin/saldo/route.ts", "app/api/admin/bot-status/route.ts", "app/api/agent/route.ts"]) {
+      expect(lee(r), r).not.toMatch(/process\.env\.SALDO_(RECARGA|BLOQUEO)/);
+    }
   });
 });

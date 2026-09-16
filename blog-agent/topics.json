@@ -1,7 +1,8 @@
 {
   "contexto_negocio": {
-    "objetivo_principal": "Posicionar a Kora (kora-hotel.com) como la referencia en gestión hotelera inteligente para hoteles boutique e independientes en México, atraer hoteleros por búsqueda orgánica y AI search, y convertirlos a la prueba de 30 días sin tarjeta.",
-    "producto": "Kora: motor de reservas directas + agente de WhatsApp con IA (Camila) + CRM + sync con OTAs + experiencias, plan único $550 MXN/mes.",
+    "_nota_15_sep_2026": "Los días de prueba, el precio y la ruta del registro NO se escriben aquí: el agente los lee de lib/oferta.ts (blog-agent/oferta.js). Este archivo decía «prueba de 30 días», «$550» y «sync con OTAs»; los dos primeros se quedaban viejos solos y el tercero es falso: Kora NO sincroniza con Booking, Airbnb ni Expedia, y un hotel nuevo ni siquiera puede configurar canales.",
+    "objetivo_principal": "Posicionar a Kora (kora-hotel.com) como la referencia en gestión hotelera inteligente para hoteles boutique e independientes en México, atraer hoteleros por búsqueda orgánica y AI search, y convertirlos a crear su cuenta y probar Kora con su propio hotel, sin tarjeta.",
+    "producto": "Kora: motor de reservas directas + agente de WhatsApp con IA (Camila) + PMS + CRM + experiencias, en un plan único mensual. El hotelero se registra y lo configura él mismo; le ayudamos si quiere.",
     "audiencia": "Dueños y administradores de hoteles boutique e independientes en México (5 a 40 habitaciones), sin equipo técnico.",
     "autor": "Manolo Covarrubias, fundador de Kora y dueño del Hotel Paraíso Encantado (Xilitla, SLP).",
     "cadencia": "1 artículo cada 3 días (GitHub Actions + blog-agent)."
@@ -39,7 +40,7 @@
           "titulo": "Channel manager: qué es, cuándo lo necesitas y cuánto cuesta",
           "palabras_clave": ["channel manager que es", "channel manager para hoteles", "sincronizar booking y airbnb", "channel manager precio"],
           "objetivo_seo": "Búsqueda informacional-comercial de alto intento; el hotelero que la hace ya vende en 2+ OTAs y sufre sobreventas.",
-          "enfoque_agente": "Definición clara, señales de que ya lo necesitas, rangos de precio del mercado y cómo Kora sincroniza calendarios OTA vía iCal sin costo extra.",
+          "enfoque_agente": "Definición clara, señales de que ya lo necesitas y rangos de precio del mercado. Kora NO es un channel manager y no sincroniza con las OTAs: decirlo con honestidad, y explicar lo que sí hace hoy — inventario único para la página de reservas, Camila y el panel, con las reservas de OTA registradas ahí.",
           "estado": "pendiente", "slug_publicado": null, "fecha_publicacion": null
         },
         {
@@ -79,7 +80,7 @@
           "titulo": "Overbooking en hoteles: cómo evitar la sobreventa cuando vendes en varias OTAs",
           "palabras_clave": ["como evitar overbooking hotel", "sobreventa hotel", "overbooking que es", "calendarios sincronizados hotel"],
           "objetivo_seo": "Búsqueda de dolor agudo (el hotelero que ya sufrió una sobreventa); intención altísima de adoptar una solución.",
-          "enfoque_agente": "Causas típicas (calendarios manuales, iCal mal configurado), protocolo si ya ocurrió, y prevención con sincronización automática como la de Kora.",
+          "enfoque_agente": "Causas típicas (calendarios manuales, iCal mal configurado), protocolo si ya ocurrió y cómo prevenirlo. Sin prometer sincronía automática con las OTAs: Kora no la tiene. Lo que sí evita sobreventas es que la página, Camila y el panel descuenten del MISMO inventario, y que las reservas de OTA se registren ahí.",
           "estado": "pendiente", "slug_publicado": null, "fecha_publicacion": null
         },
         {

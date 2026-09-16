@@ -15,22 +15,28 @@ import { BarraCTA } from "@/components/shared/BarraCTA";
 import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 import { WhatsAppDemoChat } from "@/components/landing/WhatsAppDemoChat";
 import { paginasWhatsApp } from "@/lib/whatsapp";
-import { PRECIO_DESDE } from "@/lib/oferta";
+import { AYUDA_ALTA, GARANTIA, PRECIO_DESDE, RUTA_REGISTRO } from "@/lib/oferta";
+import { waLink } from "@/lib/contacto";
 import { metaDescripcion } from "@/lib/seo";
 import { JsonLd } from "@/components/shared/JsonLd";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
 
+// El precio se escribía a mano en la respuesta citable y en la descripción,
+// mientras el resto de la página ya lo leía de la fuente única.
+const PRECIO = `$${PRECIO_DESDE.toLocaleString("es-MX")}`;
+
 // Página pilar del agente de WhatsApp. Existe porque es la razón por la que
 // entran los prospectos y hasta ahora sólo vivía como una sección de la home:
 // sin URL propia no puede rankear ni ser citada por una IA.
-const RESPUESTA_CITABLE =
-  "Camila es el agente de WhatsApp con IA de Kora para hoteles en México. Contesta los mensajes de tus huéspedes en segundos las 24 horas, consulta la disponibilidad y el precio reales de tu hotel, y cierra la reserva generando el link de pago. Viene incluida en el plan de $550 MXN al mes.";
+const RESPUESTA_CITABLE = `Camila es el agente de WhatsApp con IA de Kora para hoteles en México. Contesta los mensajes de tus huéspedes en segundos las 24 horas, consulta la disponibilidad y el precio reales de tu hotel, y cierra la reserva generando el link de pago. Viene incluida en el plan de ${PRECIO} MXN al mes.`;
+
+const WA_DUDAS = waLink("Hola, vi la página de Camila y tengo una duda");
 
 export const metadata: Metadata = {
   title: "Agente de WhatsApp con IA para hoteles | Kora",
   description: metaDescripcion(
-    "Camila contesta el WhatsApp de tu hotel 24/7, cotiza con disponibilidad real y cierra la reserva con link de pago. En español, incluido en el plan de $550 MXN/mes.",
+    `Camila contesta el WhatsApp de tu hotel 24/7, cotiza con disponibilidad real y cierra la reserva con link de pago. En español, incluido en el plan de ${PRECIO} MXN/mes.`,
   ),
   keywords: [
     "agente de whatsapp para hoteles",
@@ -101,7 +107,7 @@ const PASOS = [
     n: "02",
     titulo: "Camila resuelve con la información de tu hotel",
     texto:
-      "Conoce tus cuartos, capacidades, amenidades, políticas, cómo llegar y tus preguntas frecuentes, porque los cargamos en el arranque.",
+      "Conoce tus cuartos, capacidades, amenidades, políticas, cómo llegar y tus preguntas frecuentes, porque los cargas tú en tu panel.",
   },
   {
     n: "03",
@@ -128,7 +134,15 @@ const FAQS = [
   },
   {
     q: "¿Tengo que cambiar mi número de WhatsApp?",
-    a: "Puedes usar el número que ya tienes. La conexión la montamos nosotros durante el arranque llave en mano; no necesitas configurar nada por tu cuenta.",
+    // Decía «la conexión la montamos nosotros durante el arranque llave en
+    // mano». Desde el 15 sep 2026 Kora es autoservicio, y la vinculación ya lo
+    // era: el dueño escanea un QR desde la pantalla de Camila en su panel
+    // (app/panel/[slug]/(operativo)/camila/CamilaClient.tsx).
+    a: "Puedes usar el número que ya tienes. Lo vinculas tú desde tu panel: abres WhatsApp en el teléfono del hotel, entras a Dispositivos vinculados y escaneas el código QR que te aparece. Si prefieres, te ayudamos a hacerlo.",
+  },
+  {
+    q: "¿Puedo probar a Camila antes de conectarla o de pagar?",
+    a: `Sí. Creas tu cuenta gratis, cargas tu hotel y hablas con Camila en el chat de prueba de tu panel, con tus cuartos y tus tarifas, sin conectar tu WhatsApp. Tienes ${GARANTIA.diasPrueba} días gratis y no te pedimos tarjeta.`,
   },
   {
     q: "¿Puedo entrar yo a la conversación?",
@@ -136,7 +150,12 @@ const FAQS = [
   },
   {
     q: "¿Cuánto cuesta?",
-    a: `Camila viene incluida en el plan único de Kora: $${PRECIO_DESDE.toLocaleString("es-MX")} MXN al mes, con el motor de reservas, el PMS, el dashboard y el CRM. Sin costo por conversación, sin costo de implementación y sin permanencia.`,
+    // Decía también «Sin costo por conversación». Los mensajes de Camila ya se
+    // miden con un saldo prepago (lib/saldo/) y desde el 15 sep 2026 Manolo
+    // puede abrir las recargas con un botón del CRM, sin tocar código: el día
+    // que lo haga, esta frase quedaría falsa sin que nadie la revise. Se dice
+    // sólo lo que es cierto en cualquier fase del prepago.
+    a: `Camila viene incluida en el plan único de Kora: ${PRECIO} MXN al mes, con el motor de reservas, el PMS, el dashboard y el CRM. Sin costo de implementación y sin permanencia.`,
   },
   {
     q: "¿En qué idiomas responde?",
@@ -208,11 +227,11 @@ export default function WhatsAppPage() {
                   </p>
                   <div className="mt-8 flex flex-wrap items-center gap-4">
                     <CtaLink
-                      href="/panel/onboarding"
+                      href={RUTA_REGISTRO}
                       ctaName="whatsapp_pilar_onboarding"
                       className="btn-press btn-arrow btn-fill inline-flex items-center justify-center gap-2 px-7 py-4 rounded-full bg-kora-accent text-kora-primary font-bold text-sm hover:bg-kora-accent-dark transition-colors"
                     >
-                      Probar gratis 14 días — sin tarjeta
+                      Probar gratis {GARANTIA.diasPrueba} días — sin tarjeta
                       <ArrowRight size={16} aria-hidden="true" />
                     </CtaLink>
                     <Link
@@ -223,7 +242,7 @@ export default function WhatsAppPage() {
                     </Link>
                   </div>
                   <p className="mt-4 text-xs text-white/50">
-                    Incluida en el plan único de ${PRECIO_DESDE.toLocaleString("es-MX")} MXN/mes,
+                    Incluida en el plan único de {PRECIO} MXN/mes,
                     junto con el motor de reservas, el PMS y el CRM.
                   </p>
                 </div>
@@ -358,7 +377,7 @@ export default function WhatsAppPage() {
                 "No sustituye a una persona en recepción: no recibe llegadas tarde ni resuelve lo que pasa dentro del hotel.",
                 "No negocia tarifas de grupo ni condiciones especiales. Esos casos te los pasa a ti.",
                 "No maneja quejas ni conversaciones delicadas. Ahí el huésped necesita que le contestes tú.",
-                "No corrige tus datos: si una tarifa está mal cargada, la cotizará mal. Por eso el arranque lo hacemos nosotros contigo.",
+                "No corrige tus datos: si una tarifa está mal cargada, la cotizará mal. Por eso, antes de conectarla, pruébala en el chat de prueba de tu panel y corrige lo que haga falta.",
               ].map((t, i) => (
                 <Reveal key={t} delay={0.05 + i * 0.05}>
                   <li className="flex gap-3 bg-white rounded-2xl p-5 border border-gray-100">
@@ -439,6 +458,20 @@ export default function WhatsAppPage() {
                 </Link>
                 .
               </p>
+              {/* WhatsApp como apoyo, nunca como el camino principal: el botón
+                  de arriba y la barra de abajo llevan al registro. */}
+              {WA_DUDAS && (
+                <p className="mt-3 text-center text-sm text-kora-muted">
+                  <a
+                    href={WA_DUDAS}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline underline-offset-4 hover:text-kora-primary transition-colors"
+                  >
+                    {AYUDA_ALTA}
+                  </a>
+                </p>
+              )}
             </Reveal>
           </div>
         </section>

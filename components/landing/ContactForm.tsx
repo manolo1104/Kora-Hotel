@@ -1,23 +1,30 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Check, Loader2, Lock } from "lucide-react";
+import { ArrowRight, Check, Loader2, Lock } from "lucide-react";
 import { Reveal } from "@/components/shared/Reveal";
+import { CtaLink } from "@/components/shared/CtaLink";
 import { motion, AnimatePresence } from "motion/react";
 import { trackLead } from "@/lib/analytics";
-import { WHATSAPP } from "@/lib/contacto";
+import { waLink } from "@/lib/contacto";
+import { GARANTIA, PRECIO_DESDE, RUTA_REGISTRO } from "@/lib/oferta";
 
 // Respaldo: si el envío falla, ofrecemos WhatsApp para no perder el lead.
-const WA_FALLBACK_URL = `https://wa.me/${WHATSAPP.replace(/\D/g, "")}?text=Hola%2C%20quiero%20m%C3%A1s%20informaci%C3%B3n%20de%20Kora`;
+const WA_FALLBACK_URL = waLink("Hola, quiero más información de Kora");
 
+// Este formulario es la vía SECUNDARIA desde el 15 sep 2026: el camino principal
+// es crear la cuenta y probar Kora por dentro. Por eso ya no promete «Te
+// montamos todo y capacitamos a tu equipo en 24 horas» (Kora no configura cada
+// hotel a mano ni se compromete a un plazo) ni «te escribimos en menos de 24
+// horas» (nadie lo mide). Y lleva un enlace visible al registro.
 const benefits = [
-  "Plan mes a mes de $550 MXN/mes, habitaciones ilimitadas — sin permanencia",
-  "Te montamos todo y capacitamos a tu equipo en 24 horas",
+  `Plan mes a mes de $${PRECIO_DESDE.toLocaleString("es-MX")} MXN/mes, habitaciones ilimitadas — sin permanencia`,
+  "Te acompañamos a dejar tu hotel listo, si lo prefieres",
   "Opcional: tu sitio web profesional con motor de reservas (servicio aparte)",
   "Soporte directo con el equipo fundador",
 ];
 
-export function ContactForm() {
+export function ContactForm({ registroArriba = false }: { registroArriba?: boolean } = {}) {
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState(false);
@@ -72,12 +79,13 @@ export function ContactForm() {
 
     const data = new FormData(e.currentTarget);
 
-    // Honeypot: si este campo oculto trae texto, es un bot. Fingimos éxito
-    // (para que el bot no reintente) pero no enviamos nada.
-    if (data.get("_gotcha")) {
-      setSent(true);
-      return;
-    }
+    // La trampa anti-robots la resuelve el SERVIDOR (app/api/leads: responde
+    // éxito falso y no guarda nada). Aquí se quitó a propósito el 15 sep 2026:
+    // el campo es un <input type="text"> oculto, y hay gestores de contraseñas
+    // que rellenan campos ocultos. Cuando eso pasaba, a una persona real se le
+    // pintaba «¡Recibido!» y su mensaje no salía de su navegador: ni una línea
+    // en los registros, imposible de detectar. Dejándoselo al servidor, por lo
+    // menos queda el intento.
 
     setLoading(true);
     try {
@@ -114,14 +122,37 @@ export function ContactForm() {
                   </p>
                 </div>
               )}
+              {/* En /contacto la página ya abre con «¿Prefieres que te
+                  acompañemos?» y su botón de registro. Repetir aquí el mismo
+                  título y el mismo botón dejaba dos encabezados iguales en una
+                  pantalla y dos «Crear mi cuenta gratis» casi seguidos. */}
               <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-white leading-tight">
-                ¿Prefieres que te acompañemos?
+                {registroArriba ? "Déjanos tus datos" : "¿Prefieres que te acompañemos?"}
               </h2>
               <p className="mt-4 text-kora-accent text-base leading-relaxed">
                 Si aún tienes dudas, déjanos tus datos y te contactamos: te
                 enseñamos Kora con tu hotel y te ayudamos a arrancar. Sin
                 compromiso.
               </p>
+
+              {/* El registro, visible también aquí: quien baja hasta el
+                  formulario puede preferir probarlo por su cuenta ya mismo. */}
+              {!registroArriba && (
+                <div className="mt-6 rounded-2xl border border-white/15 bg-white/5 p-4">
+                  <p className="text-sm text-white/85 leading-relaxed">
+                    ¿Prefieres probarlo tú? Crea tu cuenta y úsalo con tu hotel{" "}
+                    {GARANTIA.diasPrueba} días gratis, sin tarjeta.
+                  </p>
+                  <CtaLink
+                    href={RUTA_REGISTRO}
+                    ctaName="contacto_onboarding"
+                    className="btn-press btn-arrow mt-3 inline-flex items-center gap-1.5 text-sm font-bold text-kora-accent hover:text-white transition-colors"
+                  >
+                    Crear mi cuenta gratis
+                    <ArrowRight size={15} aria-hidden="true" />
+                  </CtaLink>
+                </div>
+              )}
 
               <ul className="mt-8 space-y-4" aria-label="Beneficios de Kora">
                 {benefits.map((benefit, i) => (
@@ -160,7 +191,7 @@ export function ContactForm() {
                     </h3>
                     <p className="text-kora-muted text-sm leading-relaxed">
                       Te llega un correo ahora mismo y te escribimos por
-                      WhatsApp en menos de 24 horas.
+                      WhatsApp.
                     </p>
                   </motion.div>
                 ) : (
@@ -333,7 +364,7 @@ export function ContactForm() {
               {!sent && (
                 <>
                   <p className="mt-5 text-xs text-kora-muted text-center leading-relaxed">
-                    Te contactamos por WhatsApp en menos de 24 horas.
+                    Te contactamos por WhatsApp.
                     <br />
                     Sin llamadas en frío. Sin vendedores.
                   </p>

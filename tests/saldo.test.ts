@@ -20,23 +20,40 @@ let rpcs: { fn: string; args: Record<string, unknown> }[] = [];
 /** Lo que devuelve cada RPC. Se ajusta por prueba. */
 let respuestaRpc: (fn: string, args: Record<string, unknown>) => unknown = () => 299;
 
+// Los interruptores del prepago viven en la base desde el 15 sep 2026
+// (`kora_ajustes`, fila `saldo_fases`, lib/saldo/fases.ts). El doble los sirve
+// desde aquí para probar el camino REAL —cobro → fases → base— y no un atajo.
+// `null` = la fila no existe todavía: mandan las variables de entorno.
+let fasesEnBase: { recarga: boolean; bloqueo: boolean } | null = { recarga: true, bloqueo: true };
+
+const tablaFases = () => ({
+  select: () => ({
+    eq: () => ({
+      maybeSingle: () =>
+        Promise.resolve({ data: fasesEnBase ? { valor: fasesEnBase, updated_at: null } : null, error: null }),
+    }),
+  }),
+});
+
+const tablaSaldo = () => ({
+  select: () => ({
+    eq: () => ({
+      maybeSingle: () =>
+        Promise.resolve(
+          errorDeLectura
+            ? { data: null, error: errorDeLectura }
+            : { data: saldoDeHotel === null ? null : { mensajes: saldoDeHotel }, error: null },
+        ),
+    }),
+    // `consumoDelMes` usa el conteo por cabecera.
+    gte: () => Promise.resolve({ count: 90, error: null }),
+  }),
+});
+
 vi.mock("@/lib/supabase/admin", () => ({
   adminEnvReady: true,
   createAdminClient: () => ({
-    from: () => ({
-      select: () => ({
-        eq: () => ({
-          maybeSingle: () =>
-            Promise.resolve(
-              errorDeLectura
-                ? { data: null, error: errorDeLectura }
-                : { data: saldoDeHotel === null ? null : { mensajes: saldoDeHotel }, error: null },
-            ),
-        }),
-        // `consumoDelMes` usa el conteo por cabecera.
-        gte: () => Promise.resolve({ count: 90, error: null }),
-      }),
-    }),
+    from: (tabla: string) => (tabla === "kora_ajustes" ? tablaFases() : tablaSaldo()),
     rpc: (fn: string, args: Record<string, unknown>) => {
       rpcs.push({ fn, args });
       return Promise.resolve({ data: respuestaRpc(fn, args), error: null });
@@ -60,8 +77,16 @@ vi.mock("@/lib/alertas", () => ({ alertar: (a: string) => { alertas.push(a); ret
 
 const { leerSaldo, sinSaldo, consumirMensaje, SIN_DATO } = await import("@/lib/db/saldo");
 const { cobrable, cobrarMensaje } = await import("@/lib/saldo/cobro");
-const { paquetePorMxn, PAQUETES, diasQueAlcanzan, MINIMO_MXN, recargaActiva, bloqueoActivo } =
-  await import("@/lib/saldo/paquetes");
+const { paquetePorMxn, PAQUETES, diasQueAlcanzan, MINIMO_MXN } = await import("@/lib/saldo/paquetes");
+const { fasesSaldo, recargaAbierta, bloqueoEncendido, invalidarCacheFases } = await import("@/lib/saldo/fases");
+
+/** Cambia los interruptores guardados y olvida la caché de 60 s, que si no seguiría mandando lo de antes. */
+function ponerFases(f: { recarga: boolean; bloqueo: boolean } | null) {
+  fasesEnBase = f;
+  invalidarCacheFases();
+}
+
+const ENV_ORIGINAL = { recarga: process.env.SALDO_RECARGA, bloqueo: process.env.SALDO_BLOQUEO };
 
 const HOTEL = { id: "h1", slug: "hotel-san-luis", nombre: "Hotel San Luis", owner_id: "u1" };
 
@@ -72,17 +97,23 @@ beforeEach(() => {
   correosMandados.length = 0;
   alertas.length = 0;
   respuestaRpc = () => 299;
+  // Sin variables de entorno: aquí manda lo guardado desde el CRM. Una variable
+  // olvidada en la máquina de quien corre las pruebas no puede decidir nada.
+  delete process.env.SALDO_RECARGA;
+  delete process.env.SALDO_BLOQUEO;
   // Por defecto se prueba el prepago YA ENCENDIDO del todo. La fase de
   // «próximamente» tiene su propio bloque más abajo.
-  process.env.SALDO_RECARGA = "1";
-  process.env.SALDO_BLOQUEO = "1";
+  ponerFases({ recarga: true, bloqueo: true });
 });
 
 // Estas pruebas encienden y apagan interruptores de verdad. Dejarlos puestos
 // haría que la prueba siguiente midiera otra cosa sin que nadie se enterara.
 afterEach(() => {
-  delete process.env.SALDO_RECARGA;
-  delete process.env.SALDO_BLOQUEO;
+  if (ENV_ORIGINAL.recarga === undefined) delete process.env.SALDO_RECARGA;
+  else process.env.SALDO_RECARGA = ENV_ORIGINAL.recarga;
+  if (ENV_ORIGINAL.bloqueo === undefined) delete process.env.SALDO_BLOQUEO;
+  else process.env.SALDO_BLOQUEO = ENV_ORIGINAL.bloqueo;
+  invalidarCacheFases();
 });
 
 // ── 1. QUÉ COBRA Y QUÉ NO ────────────────────────────────────────────────────
@@ -273,13 +304,14 @@ describe("cuántos días le duran", () => {
 
 describe("fase 1 · «próximamente»: se mide, no se cobra, no se calla", () => {
   beforeEach(() => {
-    delete process.env.SALDO_RECARGA;
-    delete process.env.SALDO_BLOQUEO;
+    // Nadie ha tocado el botón del CRM y no hay variables: el estado de fábrica.
+    ponerFases(null);
   });
 
-  it("los dos interruptores están apagados", () => {
-    expect(recargaActiva()).toBe(false);
-    expect(bloqueoActivo()).toBe(false);
+  it("los dos interruptores están apagados", async () => {
+    expect(await fasesSaldo()).toMatchObject({ recarga: false, bloqueo: false });
+    expect(await recargaAbierta()).toBe(false);
+    expect(await bloqueoEncendido()).toBe(false);
   });
 
   it("el saldo SÍ baja: es lo que estamos midiendo", async () => {
@@ -309,8 +341,7 @@ describe("fase 1 · «próximamente»: se mide, no se cobra, no se calla", () =>
 
 describe("fase 2 · pago abierto, sin bloqueo", () => {
   beforeEach(() => {
-    process.env.SALDO_RECARGA = "1";
-    delete process.env.SALDO_BLOQUEO;
+    ponerFases({ recarga: true, bloqueo: false });
   });
 
   it("ahora sí se le escribe al hotelero", async () => {
@@ -322,27 +353,37 @@ describe("fase 2 · pago abierto, sin bloqueo", () => {
   it("pero con el bloqueo apagado, cero saldo NO calla a Camila", async () => {
     saldoDeHotel = 0;
     // `sinSaldo` describe el saldo; quien decide callar es la ruta, y sólo mira
-    // el saldo cuando `bloqueoActivo()`.
+    // el saldo cuando `bloqueoEncendido()`.
     expect(sinSaldo(await leerSaldo("h1"))).toBe(true);
-    expect(bloqueoActivo()).toBe(false);
+    expect(await bloqueoEncendido()).toBe(false);
   });
 });
 
 describe("fase 3 · todo encendido", () => {
-  it("los dos interruptores responden al «1» y a nada más", () => {
+  it("guardado desde el CRM: los dos interruptores encendidos", async () => {
+    ponerFases({ recarga: true, bloqueo: true });
+    expect(await recargaAbierta()).toBe(true);
+    expect(await bloqueoEncendido()).toBe(true);
+  });
+
+  it("el respaldo del entorno responde al «1» y a nada más", async () => {
+    // Mientras nadie guarde nada desde el CRM mandan las variables de siempre.
+    ponerFases(null);
     for (const v of ["1"]) {
       process.env.SALDO_RECARGA = v;
       process.env.SALDO_BLOQUEO = v;
-      expect(recargaActiva()).toBe(true);
-      expect(bloqueoActivo()).toBe(true);
+      invalidarCacheFases();
+      expect(await recargaAbierta()).toBe(true);
+      expect(await bloqueoEncendido()).toBe(true);
     }
     // Un valor "casi verdadero" NO enciende nada: encender esto por accidente
     // deja mudo el WhatsApp de un hotel que paga.
     for (const v of ["true", "sí", "yes", "0", "", "on"]) {
       process.env.SALDO_RECARGA = v;
       process.env.SALDO_BLOQUEO = v;
-      expect(recargaActiva(), v).toBe(false);
-      expect(bloqueoActivo(), v).toBe(false);
+      invalidarCacheFases();
+      expect(await recargaAbierta(), v).toBe(false);
+      expect(await bloqueoEncendido(), v).toBe(false);
     }
   });
 });
@@ -363,7 +404,11 @@ describe("no se puede cobrar aunque el botón esté escondido", () => {
     .join("\n");
 
   it("el POST comprueba el interruptor ANTES de hablar con Stripe", () => {
-    const corte = ruta.indexOf("if (!recargaActiva())");
+    // El interruptor de la base (lib/saldo/fases.ts), no una variable suelta:
+    // si la ruta leyera otra cosa, cerrar las recargas desde el CRM no cerraría
+    // nada.
+    expect(ruta).toContain('from "@/lib/saldo/fases"');
+    const corte = ruta.indexOf("if (!(await recargaAbierta()))");
     const stripe = ruta.indexOf("checkout.sessions.create");
     expect(corte).toBeGreaterThan(-1);
     expect(stripe).toBeGreaterThan(-1);

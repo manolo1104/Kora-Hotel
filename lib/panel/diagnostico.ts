@@ -394,6 +394,14 @@ export function diagnosticarHotel(hotel: HotelRow): DiagnosticoHotel {
       tab: "avanzado",
     },
     cobros: {
+      // ⚠️ `stripe_account_id` NO quiere decir que pueda cobrar: una cuenta de
+      // Connect a medias tiene id y no cobra, y es justo el caso que desvía el
+      // dinero a la cuenta de Kora. Hoy nadie pinta este campo (se comprobó el
+      // 15 sep 2026: ninguna pantalla lee `diagnostico.cobros`), y por eso se
+      // deja como está — `diagnosticarHotel` es puro y síncrono, y leer el
+      // `charges_enabled` real exige ir a la base.
+      // Quien vaya a ENSEÑARLO tiene que usar `cobrosListosDelHotel`
+      // (lib/motor/modo-prueba.ts), que es lo que ya usa Primeros pasos.
       ok: Boolean(hotel.stripe_account_id),
       label: "Cobros conectados (Stripe)",
       aviso: hotel.stripe_account_id ? undefined : "Conecta tus cobros para recibir pagos de las reservas.",

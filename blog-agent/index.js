@@ -18,6 +18,19 @@
 import "dotenv/config";
 import Anthropic from "@anthropic-ai/sdk";
 import { selectTopic } from "./content-strategy.js";
+import { ofertaDelRepo } from "./oferta.js";
+
+// Precio, días de prueba y ruta del registro, leídos de lib/oferta.ts (ver
+// oferta.js). Hasta el 15 sep 2026 el prompt decía «prueba de 30 días» escrito a
+// mano mientras el sistema daba 14. Si no se pueden leer, el agente NO publica.
+let OFERTA;
+try {
+  OFERTA = ofertaDelRepo();
+} catch (err) {
+  console.error("❌ Error:", err.message);
+  process.exit(1);
+}
+const PRECIO_TXT = `$${OFERTA.precio.toLocaleString("es-MX")}`;
 
 const DRY_RUN = process.argv.includes("--dry-run");
 const FORCE = process.argv.includes("--force");
@@ -141,10 +154,13 @@ Si no encuentras un dato confiable, dilo — NO inventes cifras.`;
 
 // ── Links internos: validar contra rutas reales del sitio ───
 
+// La ruta del registro TIENE que estar aquí: el CTA del artículo apunta a ella
+// y cualquier ruta que no esté en esta lista se reescribe a "/" en silencio.
+// `/#contacto` se queda por los artículos que lo enlacen en el cuerpo.
 const RUTAS_FIJAS = new Set([
   "/", "/caracteristicas", "/precios", "/como-funciona", "/blog",
   "/herramientas", "/glosario", "/comparativas", "/hoteles-en",
-  "/casos/paraiso-encantado", "/#contacto",
+  "/casos/paraiso-encantado", "/#contacto", OFERTA.rutaRegistro,
 ]);
 
 function validateInternalLinks(content, verifiedBlogSlugs) {
@@ -271,12 +287,18 @@ function extractBlogJSON(raw) {
 const WORD_MIN = 1800;
 const WORD_MAX = 2400;
 
+// ⚠️ El ENFOQUE EDITORIAL sale de topics.json y ahí hay temas escritos antes del
+// 15 sep 2026 que piden contar «cómo Kora sincroniza calendarios OTA vía iCal»
+// (tema 4). Hoy un hotel nuevo no puede configurar canales (la pestaña está
+// retirada, lib/panel/canales-ota.ts), así que el prompt deja escrito que la
+// regla de honestidad manda sobre el enfoque: si no, el modelo recibe dos
+// órdenes opuestas y gana la más concreta, que es la falsa.
 function buildPrompt(topic, researchContext, verifiedBlogSlugs, slug) {
   const year = new Date().getFullYear();
   const secundarias = topic.secondaryKeywords.join(", ");
   const slugsList = verifiedBlogSlugs.map((s) => `/blog/${s}`).join(", ") || "(ninguno)";
 
-  return `Escribe un artículo HTML para el blog de Kora (kora-hotel.com), el sistema de gestión hotelera para hoteles boutique e independientes en México (motor de reservas directas + agente de WhatsApp con IA + CRM, $550 MXN/mes, prueba de 30 días sin tarjeta).
+  return `Escribe un artículo HTML para el blog de Kora (kora-hotel.com), el sistema de gestión hotelera para hoteles boutique e independientes en México (motor de reservas directas + agente de WhatsApp con IA + CRM, ${PRECIO_TXT} MXN/mes, prueba gratis de ${OFERTA.diasPrueba} días sin tarjeta). El hotelero crea su cuenta, carga su hotel y lo configura él mismo; si quiere, lo ayudamos. NUNCA digas que Kora "lo instala", "lo configura por ti", "llave en mano" ni en un plazo de horas, ni que migra reservas o se sincroniza con Booking/Expedia: no es cierto.
 
 AUDIENCIA: dueños y administradores de hoteles independientes en México (5–40 habitaciones), sin equipo técnico. Háblales de tú, directo, como un colega hotelero.
 
@@ -287,6 +309,7 @@ KEYWORD PRINCIPAL: ${topic.focusKeyword}
 KEYWORDS SECUNDARIAS: ${secundarias}
 OBJETIVO SEO: ${topic.objetivoSeo}
 ENFOQUE EDITORIAL: ${topic.enfoque}
+(Si el enfoque editorial pide presentar como función de Kora algo que la regla del primer párrafo prohíbe —instalarlo o configurarlo por el hotelero, un plazo en horas, migrar reservas o sincronizar calendarios con Booking, Airbnb o Expedia—, manda la regla: explica ese tema como práctica general del sector y no digas que Kora lo hace.)
 
 CONTEXTO INVESTIGADO (única fuente permitida para cifras externas):
 ${researchContext || "(Sin investigación — usa solo conocimiento general y NO inventes cifras específicas)"}
@@ -324,8 +347,8 @@ ESTRUCTURA OBLIGATORIA del campo "content" (HTML, SIN <h1>):
 7. Cierra con este CTA (estilo de la casa, adapta el texto al tema):
 <div class="callout-cta">
   <strong>[frase de beneficio ligada al tema]</strong>
-  <p>[1–2 líneas: cómo Kora lo resuelve. Menciona la prueba de 30 días sin tarjeta.]</p>
-  <a href="/#contacto">[CTA de acción] →</a>
+  <p>[1–2 líneas: cómo Kora lo resuelve. Invita a crear la cuenta y probarlo con su propio hotel: prueba gratis de ${OFERTA.diasPrueba} días sin tarjeta.]</p>
+  <a href="${OFERTA.rutaRegistro}">[CTA que diga lo que hace el botón, p. ej. "Pruébalo gratis"] →</a>
 </div>
 
 LINKS INTERNOS (usa 3 a 5, rutas relativas):

@@ -4,6 +4,7 @@ import { z } from "zod";
 import { resolveHotel } from "@/lib/tenant";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { limitado, ipDe } from "@/lib/api/rate-limit";
+import { motorEnModoPrueba } from "@/lib/motor/modo-prueba";
 
 export const dynamic = "force-dynamic";
 
@@ -37,6 +38,18 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   // Hotel demo: no se capturan correos de quien juega con él.
   if ((hotel.extras as { demo?: boolean } | null)?.demo === true) {
     return NextResponse.json({ ok: true, demo: true });
+  }
+
+  // Hotel en MODO PRUEBA (en prueba y sin cobros de Stripe listos): su motor
+  // sólo simula. Guardar el correo aquí haría que el cron de recuperación le
+  // escribiera «termina tu reserva» a quien no puede terminarla —casi siempre
+  // el propio hotelero probando, y si no, un huésped al que se le manda de
+  // vuelta a una reserva de prueba—. La página ya no llama en este modo; esto
+  // lo cierra también para un navegador viejo o una llamada directa.
+  // `motorEnModoPrueba` nunca lanza: ante un fallo inesperado responde «no»,
+  // y la captura sigue como antes.
+  if (await motorEnModoPrueba(hotel)) {
+    return NextResponse.json({ ok: true, modoPrueba: true });
   }
 
   const parsed = Body.safeParse(await req.json().catch(() => null));

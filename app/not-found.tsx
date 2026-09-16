@@ -1,14 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { WHATSAPP } from "@/lib/contacto";
+import { waLink } from "@/lib/contacto";
+import { RUTA_REGISTRO } from "@/lib/oferta";
+import { CtaLink } from "@/components/shared/CtaLink";
 
 export const metadata: Metadata = {
   title: "Página no encontrada — Kora",
   robots: { index: false },
 };
 
-const WA_URL = `https://wa.me/${WHATSAPP.replace(/\D/g, "")}?text=Hola%2C%20quiero%20saber%20m%C3%A1s%20sobre%20Kora`;
+const WA_URL = waLink("Hola, quiero saber más sobre Kora");
 
 export default function NotFound() {
   return (
@@ -34,23 +36,39 @@ export default function NotFound() {
               reservas directas, eso sí lo podemos arreglar.
             </p>
 
+            {/* El texto de arriba promete arreglar las reservas directas, y los
+                dos botones eran «Volver al inicio» y WhatsApp: ninguno llevaba a
+                probar Kora. El registro es el camino principal del sitio desde
+                el 15 sep 2026; WhatsApp queda como apoyo. */}
             <div className="pt-2 flex flex-col sm:flex-row gap-3 justify-center">
-              <Link
-                href="/"
+              <CtaLink
+                href={RUTA_REGISTRO}
+                ctaName="404_registro"
                 className="btn-press btn-arrow btn-fill inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-kora-primary text-white font-bold text-sm hover:bg-kora-primary-dark transition-colors"
               >
-                Volver al inicio
+                Pruébalo gratis con tu hotel
                 <ArrowRight size={15} aria-hidden="true" />
-              </Link>
-              <a
-                href={WA_URL}
-                target="_blank"
-                rel="noopener noreferrer"
+              </CtaLink>
+              <Link
+                href="/"
                 className="btn-press inline-flex items-center justify-center px-6 py-3.5 rounded-full border-2 border-kora-primary text-kora-primary font-semibold text-sm hover:bg-kora-primary hover:text-white transition-colors"
               >
-                Hablar con Manolo
-              </a>
+                Volver al inicio
+              </Link>
             </div>
+            {WA_URL && (
+              <p className="text-sm text-kora-muted">
+                ¿Dudas?{" "}
+                <a
+                  href={WA_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-semibold text-kora-primary underline underline-offset-4"
+                >
+                  Habla con Manolo por WhatsApp
+                </a>
+              </p>
+            )}
           </div>
 
         </div>

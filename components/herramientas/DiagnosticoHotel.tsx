@@ -6,6 +6,9 @@ import { ArrowRight, ArrowLeft, RotateCcw, Sparkles, Check } from "lucide-react"
 import { motion, AnimatePresence } from "motion/react";
 import { Reveal } from "@/components/shared/Reveal";
 import { LeadCaptureTool } from "@/components/herramientas/LeadCaptureTool";
+import { CtaRegistroHerramienta } from "@/components/herramientas/CtaRegistro";
+import { RUTA_REGISTRO } from "@/lib/oferta";
+import { trackCta } from "@/lib/analytics";
 
 interface Opcion {
   label: string;
@@ -63,8 +66,16 @@ const PREGUNTAS: Pregunta[] = [
       titulo: "Te falta un canal de reservas propio",
       texto:
         "Sin una página donde reservar directo, dependes de que las OTAs te manden huéspedes — y les pagas comisión por cada uno. Una reserva directa es 100% tuya.",
-      ctaLabel: "Ver cómo tener reservas directas",
-      href: "/contacto?utm_source=diagnostico",
+      // Las tres recomendaciones que hablan de Kora llevaban a /contacto con
+      // textos de «ver»: el botón prometía mirar algo y abría un formulario.
+      // Ahora llevan al registro y dicen lo que hacen (decisión de Manolo del
+      // 15 sep 2026: el camino es registrarse y probarlo con tu hotel).
+      // «Probar», no «Crear… gratis»: el registro da la prueba de Kora completo
+      // y al vencer el motor se pausa; prometer una página de reservas gratis
+      // sin fecha es la otra oferta («mini-página gratis») que Manolo aún no ha
+      // decidido si se mantiene.
+      ctaLabel: "Probar gratis mi página de reservas",
+      href: RUTA_REGISTRO,
     },
   },
   {
@@ -81,8 +92,8 @@ const PREGUNTAS: Pregunta[] = [
       titulo: "Se te escapan reservas fuera de horario",
       texto:
         "El huésped que no recibe respuesta rápido reserva en otro lado. Un agente de IA que conteste tu WhatsApp 24/7 captura justo esas reservas que hoy pierdes.",
-      ctaLabel: "Ver el agente de IA de Kora",
-      href: "/contacto?utm_source=diagnostico",
+      ctaLabel: "Probar a Camila con mi hotel",
+      href: RUTA_REGISTRO,
     },
   },
   {
@@ -133,8 +144,8 @@ const PREGUNTAS: Pregunta[] = [
       titulo: "Tus reservas viven en lugares dispersos",
       texto:
         "Llevar todo en cuaderno, Excel o en cada OTA por separado es la receta del overbooking y los errores. Un solo sistema junta reservas, disponibilidad y huéspedes.",
-      ctaLabel: "Ver el sistema todo-en-uno",
-      href: "/contacto?utm_source=diagnostico",
+      ctaLabel: "Probar Kora gratis con mi hotel",
+      href: RUTA_REGISTRO,
     },
   },
 ];
@@ -379,7 +390,7 @@ export function DiagnosticoHotel() {
             </h2>
             <p className="mt-2 text-sm text-kora-muted text-center max-w-md mx-auto">
               Según tus respuestas, estos son los frentes donde más rápido puedes
-              ganar — con una herramienta gratis para cada uno.
+              ganar — con un siguiente paso para cada uno.
             </p>
             <div className="mt-6 space-y-3">
               {debiles.map((q, i) => (
@@ -396,6 +407,13 @@ export function DiagnosticoHotel() {
                     </p>
                     <Link
                       href={q.recomendacion.href}
+                      onClick={() => {
+                        // Sólo se mide el salto al registro: es la conversión
+                        // que importa. Las otras llevan a herramientas gratis.
+                        if (q.recomendacion.href === RUTA_REGISTRO) {
+                          trackCta("herramienta_registro:diagnostico-recomendacion");
+                        }
+                      }}
                       className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-kora-primary hover:text-kora-primary-dark transition-colors"
                     >
                       {q.recomendacion.ctaLabel}
@@ -441,13 +459,7 @@ export function DiagnosticoHotel() {
           <p className="mt-3 text-white/75 text-sm sm:text-base leading-relaxed max-w-xl mx-auto">
             {nivel.koraTexto}
           </p>
-          <a
-            href={`/contacto?puntaje=${puntaje}&utm_source=diagnostico`}
-            className="btn-press btn-arrow btn-fill mt-6 inline-flex items-center gap-2 px-7 py-4 rounded-full bg-kora-accent text-kora-primary font-bold text-sm hover:bg-kora-accent-dark transition-colors"
-          >
-            Ver cómo funciona Kora
-            <ArrowRight size={16} aria-hidden="true" />
-          </a>
+          <CtaRegistroHerramienta origen="diagnostico" />
         </div>
       </Reveal>
     </div>

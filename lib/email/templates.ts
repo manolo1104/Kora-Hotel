@@ -25,8 +25,13 @@ import {
   etiqueta,
 } from "@/lib/email/design";
 import { WHATSAPP } from "@/lib/contacto";
+import { GARANTIA, PRECIO_DESDE, RUTA_REGISTRO } from "@/lib/oferta";
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
+
+/** Precio y días de prueba, de la fuente única: aquí estaban escritos a mano. */
+const PLAN_MXN = `$${PRECIO_DESDE.toLocaleString("es-MX")} MXN`;
+const DIAS_PRUEBA = GARANTIA.diasPrueba;
 
 // ─── Bienvenida tras el pago ──────────────────────────────────────────────────
 
@@ -38,7 +43,8 @@ export function emailBienvenida({ plan, precio }: { plan: string; precio: number
       `Gracias por confiar en Kora. Tu suscripción de <strong style="color:${TOK.tinta};">$${precio.toLocaleString("es-MX")} MXN al mes</strong> quedó activa y tu recibo te llega por separado.`,
     ) +
     parrafo(
-      `El siguiente paso es dejar tu hotel listo: te toma unos 5 minutos y tu página queda recibiendo reservas.`,
+      // Decía «te toma unos 5 minutos»: nadie midió cuánto tarda un alta.
+      `El siguiente paso es dejar tu hotel listo en tu panel: con tus habitaciones y sus tarifas, tu página ya puede recibir reservas.`,
     ) +
     boton(`${SITE}/panel`, "Ir a mi panel") +
     parrafo(
@@ -95,7 +101,7 @@ export function emailHotelNuevo({
       ...(whatsapp ? [{ k: "WhatsApp", v: esc(whatsapp) }] : []),
       { k: "Hotel", v: esc(hotel) },
       ...(ubicacion ? [{ k: "Ubicación", v: esc(ubicacion) }] : []),
-      { k: "Plan", v: "Prueba gratis · 14 días" },
+      { k: "Plan", v: `Prueba gratis · ${DIAS_PRUEBA} días` },
     ]) +
     `<tr><td style="padding:20px 40px 0;">
       <div style="background:${TOK.panel};border:1px solid ${TOK.borde};border-radius:12px;padding:16px 18px;">
@@ -178,9 +184,29 @@ export type LeadSecuencia = "lead_day0" | "lead_day3" | "lead_day7";
 
 const WA_KORA = WHATSAPP;
 
-function ctaKora(texto: string, nombre: string): string {
-  const wa = waLink(WA_KORA, `Hola Manolo, soy ${nombre}. Vi tu correo de Kora y quiero saber más.`);
-  return wa ? boton(wa, texto) : botonOscuro(`${SITE}/contacto`, texto);
+// 🔴 15 sep 2026 — Los tres correos llevaban su único botón a WhatsApp, incluido
+// el «Probar 14 días gratis» del día 7, que abría un chat con Manolo en vez de
+// la prueba. Ningún correo enlazaba al registro, así que el lead que quería
+// probar Kora tenía que esperar a que alguien le contestara. Decisión de Manolo:
+// el botón principal es el registro y WhatsApp queda como apoyo, en un enlace
+// discreto debajo.
+
+/** URL absoluta del alta: el correo se abre fuera del sitio. */
+export const URL_REGISTRO_CORREO = `${SITE}${RUTA_REGISTRO}`;
+
+/** El botón principal de la secuencia: crear la cuenta y empezar la prueba. */
+function ctaRegistro(texto = `Probar ${DIAS_PRUEBA} días gratis`): string {
+  return boton(URL_REGISTRO_CORREO, texto);
+}
+
+/** El apoyo: un enlace de texto a WhatsApp, nunca un botón que compita con el registro. */
+function apoyoWhatsApp(nombre: string, texto = "¿Dudas? Escríbeme por WhatsApp"): string {
+  const wa = waLink(WA_KORA, `Hola Manolo, soy ${nombre}. Vi tu correo de Kora y tengo dudas.`);
+  if (!wa) return "";
+  return parrafo(
+    `<a href="${wa}" style="color:${TOK.verde};font-weight:600;text-decoration:none;">${texto} →</a>`,
+    "text-align:center;",
+  );
 }
 
 /** Toque 1 — el mismo día: agradece, aterriza qué es Kora y da un siguiente paso. */
@@ -192,26 +218,34 @@ export function emailLeadDay0({ nombre, hotel }: { nombre: string; hotel?: strin
     saludo(
       "Hola",
       esc(first),
-      `Gracias por dejarnos tus datos${hotel ? ` para <strong>${esc(hotel)}</strong>` : ""}. Soy Manolo, fundador de Kora, y te voy a escribir personalmente por WhatsApp en las próximas horas.`,
+      // Decía «en las próximas horas» y el asunto «te escribo hoy»: un plazo que
+      // depende de que Manolo esté libre y que nada garantiza. El lead sí pidió
+      // que le hablen, así que el aviso se queda; el plazo, no.
+      `Gracias por dejarnos tus datos${hotel ? ` para <strong>${esc(hotel)}</strong>` : ""}. Soy Manolo, fundador de Kora, y te voy a escribir personalmente por WhatsApp.`,
     ) +
     parrafo(
       `Mientras tanto, en corto: <strong style="color:${TOK.tinta};">Kora es el motor de reservas directas de tu hotel</strong>. La reserva se paga en tu página, el dinero te llega a tu cuenta y no pagas comisión por venta a nadie.`,
     ) +
-    lista("Lo que se resuelve el primer día", [
+    lista("Lo que incluye", [
       "Tu página de reservas con tus cuartos, tus precios y tus fotos",
       "Cobro con tarjeta y OXXO, directo a tu cuenta de banco",
       "Correos automáticos al huésped: confirmación, llegada y post-estancia",
     ]) +
-    ctaKora("Platicamos por WhatsApp", first) +
     parrafo(
-      `Si prefieres verlo antes de hablar, aquí está todo: <a href="${SITE}" style="color:${TOK.verde};font-weight:600;text-decoration:none;">kora-hotel.com</a>`,
+      `No tienes que esperarme para verlo: crea tu cuenta, carga tu hotel y pruébalo por dentro <strong style="color:${TOK.tinta};">${DIAS_PRUEBA} días gratis, sin tarjeta</strong>.`,
     ) +
+    ctaRegistro() +
+    apoyoWhatsApp(first, "¿Prefieres platicarlo antes? Escríbeme por WhatsApp") +
     respiro +
     pieKora();
 
   return {
-    subject: `${first}, recibimos tus datos — te escribo hoy`,
-    html: doc("Recibimos tus datos — Kora", "Soy Manolo, fundador de Kora. Te escribo hoy por WhatsApp.", inner),
+    subject: `${first}, recibimos tus datos`,
+    html: doc(
+      "Recibimos tus datos — Kora",
+      `Soy Manolo, fundador de Kora. Mientras te escribo, puedes probar Kora ${DIAS_PRUEBA} días gratis.`,
+      inner,
+    ),
   };
 }
 
@@ -230,13 +264,17 @@ export function emailLeadDay3({ nombre, hotel }: { nombre: string; hotel?: strin
       `Las OTAs cobran entre <strong style="color:${TOK.tinta};">15% y 20%</strong> de cada reserva. En un hotel que factura $80,000 al mes por ese canal, son entre <strong style="color:${TOK.tinta};">$12,000 y $16,000 mensuales</strong> que se van en comisión.`,
     ) +
     caja(
-      `Kora cuesta <strong>$550 MXN al mes</strong>, fijo, sin comisión por reserva. Con que le quites <strong>una sola reserva al mes</strong> a las OTAs, ya se pagó solo.`,
+      `Kora cuesta <strong>${PLAN_MXN} al mes</strong>, fijo, sin comisión por reserva. Con que le quites <strong>una sola reserva al mes</strong> a las OTAs, ya se pagó solo.`,
       "exito",
     ) +
     parrafo(
       `No se trata de salirte de Booking: se trata de que el huésped que ya te encontró en Instagram o en Google reserve directo contigo en vez de irse a buscarte a la OTA.`,
     ) +
-    ctaKora("Quiero ver mis números", first) +
+    parrafo(
+      `La mejor forma de saber si te sirve es probarlo con tu propio hotel: son ${DIAS_PRUEBA} días gratis y sin tarjeta.`,
+    ) +
+    ctaRegistro() +
+    apoyoWhatsApp(first) +
     respiro +
     pieKora();
 
@@ -244,7 +282,7 @@ export function emailLeadDay3({ nombre, hotel }: { nombre: string; hotel?: strin
     subject: `${first}, la cuenta de las comisiones (toma 2 minutos)`,
     html: doc(
       "Lo que te cuestan las comisiones — Kora",
-      "$550 al mes fijo contra 15-20% por reserva. Con una reserva al mes ya se paga.",
+      `${PLAN_MXN} al mes fijo contra 15-20% por reserva. Con una reserva al mes ya se paga.`,
       inner,
     ),
   };
@@ -262,18 +300,19 @@ export function emailLeadDay7({ nombre }: { nombre: string; hotel?: string }) {
       `Es mi último correo, no te quiero llenar la bandeja. Si ahora no es el momento, con toda confianza ignóralo.`,
     ) +
     parrafo(
-      `Si en algún momento quieres probarlo: son <strong style="color:${TOK.tinta};">14 días gratis, sin tarjeta</strong>. Dejas tu hotel montado, ves si te entran reservas y decides.`,
+      `Si en algún momento quieres probarlo: son <strong style="color:${TOK.tinta};">${DIAS_PRUEBA} días gratis, sin tarjeta</strong>. Creas tu cuenta, cargas tu hotel, lo pruebas por dentro y decides.`,
     ) +
     parrafo(
       `Y si lo que necesitas es otra cosa, respóndeme igual y te digo con honestidad si Kora te sirve o no. Prefiero eso a venderte algo que no te toca.`,
     ) +
-    ctaKora("Probar 14 días gratis", first) +
+    ctaRegistro() +
+    apoyoWhatsApp(first) +
     respiro +
     pieKora("Este es el último correo de esta secuencia. No recibirás más recordatorios.");
 
   return {
     subject: `${first}, ¿lo dejamos para después?`,
-    html: doc("Último correo — Kora", "14 días gratis sin tarjeta, cuando tú quieras.", inner),
+    html: doc("Último correo — Kora", `${DIAS_PRUEBA} días gratis sin tarjeta, cuando tú quieras.`, inner),
   };
 }
 
