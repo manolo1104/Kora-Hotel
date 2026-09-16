@@ -3,6 +3,7 @@
 import { motion, useReducedMotion } from "motion/react";
 import { CountUp } from "@/components/shared/CountUp";
 import { WindowFrame } from "@/components/landing/ProductMockups";
+import { FORECAST_DIAS } from "@/lib/oferta";
 
 // Mockups de la página de características. Comparten el mismo marco visual
 // ("ventana de app" con WindowFrame) que los mockups del inicio, para que todo
@@ -153,7 +154,9 @@ export function DashboardMockup() {
         </div>
         <div className="bg-kora-accent/10 rounded-xl p-3">
           <p className="text-[10px] font-semibold text-kora-primary">
-            Forecast 30 días
+            {/* El número sale de la constante: el panel proyecta 7 días y la
+                maqueta decía 30, que es una promesa de producto dibujada. */}
+            Forecast {FORECAST_DIAS} días
           </p>
           <p className="text-xs text-kora-muted mt-0.5">
             Ocupación proyectada: 79% · Ingresos: $312,400 MXN

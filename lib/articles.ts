@@ -48,6 +48,9 @@ export const articles: Article[] = [
   // ─── Artículo 1 ──────────────────────────────────────────────────────────────
   {
     slug: "como-aumentar-reservas-directas",
+    // Sin esto el título salía con «— Blog Kora» y pasaba de 90 caracteres:
+    // Google corta en ~60 y se comía la mitad de la frase.
+    metaTitle: "Cómo aumentar las reservas directas de tu hotel",
     title:
       "Cómo aumentar reservas directas en tu hotel y dejar de pagar comisiones a Booking",
     excerpt:
@@ -193,6 +196,9 @@ export const articles: Article[] = [
   // ─── Artículo 2 ──────────────────────────────────────────────────────────────
   {
     slug: "revenue-management-hoteles-boutique-mexico",
+    // Sin esto el título salía con «— Blog Kora» y pasaba de 90 caracteres:
+    // Google corta en ~60 y se comía la mitad de la frase.
+    metaTitle: "Revenue management para hoteles boutique en México",
     title:
       "Revenue management para hoteles boutique en México: guía práctica sin tecnicismos",
     excerpt:
@@ -347,6 +353,9 @@ export const articles: Article[] = [
   // ─── Artículo 3 ──────────────────────────────────────────────────────────────
   {
     slug: "agente-whatsapp-ia-hotel-2026",
+    // Sin esto el título salía con «— Blog Kora» y pasaba de 90 caracteres:
+    // Google corta en ~60 y se comía la mitad de la frase.
+    metaTitle: "Agente de WhatsApp con IA para hoteles: qué hace",
     title:
       "Agente de WhatsApp con IA para hoteles: cómo dejar de perder reservas de noche",
     excerpt:
@@ -477,6 +486,9 @@ export const articles: Article[] = [
   },
   {
     slug: "cuanto-le-pagas-a-booking-al-ano",
+    // Sin esto el título salía con «— Blog Kora» y pasaba de 90 caracteres:
+    // Google corta en ~60 y se comía la mitad de la frase.
+    metaTitle: "Cuánto le pagas a Booking al año (y cómo recuperarlo)",
     title: "Cuánto le pagas a Booking al año (y cómo empezar a recuperarlo)",
     excerpt:
       "La comisión de las OTAs parece pequeña por reserva, pero al año es una de tus cuentas más grandes. Aquí está la cuenta real y cómo recuperar parte sin salirte de Booking.",
@@ -541,6 +553,9 @@ export const articles: Article[] = [
   },
   {
     slug: "llenar-hotel-temporada-baja",
+    // Sin esto el título salía con «— Blog Kora» y pasaba de 90 caracteres:
+    // Google corta en ~60 y se comía la mitad de la frase.
+    metaTitle: "Cómo llenar tu hotel en temporada baja",
     title: "Cómo llenar tu hotel en temporada baja sin regalar tu tarifa",
     excerpt:
       "Bajar el precio no es la única forma de llenar en temporada baja — y muchas veces es la peor. 6 estrategias que cuidan tu margen y tu marca.",

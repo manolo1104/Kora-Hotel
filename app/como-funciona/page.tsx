@@ -56,7 +56,7 @@ const PRECIO = PRECIO_DESDE.toLocaleString("es-MX");
 // habría que repetir siteName y locale a mano.
 export const metadata: Metadata = {
   title: "Cómo funciona Kora — Regístrate y pruébalo gratis con tu hotel",
-  description: `Crea tu cuenta, carga tu hotel y prueba Kora por dentro ${DIAS} días gratis, sin tarjeta: Camila con los datos de tu hotel, reservas de prueba en tu motor y tu panel. Lo configuras tú y te ayudamos si quieres.`,
+  description: `Crea tu cuenta, carga tu hotel y prueba Kora por dentro ${DIAS} días gratis, sin tarjeta: Camila con tus datos, una reserva de prueba y tu panel.`,
   alternates: {
     canonical: "/como-funciona",
   },

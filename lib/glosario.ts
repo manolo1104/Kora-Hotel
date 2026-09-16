@@ -118,7 +118,7 @@ export const glosario: TerminoGlosario[] = [
     cuerpo: [
       "El RevPAR combina en un solo número las dos palancas de ingreso de un hotel: el precio (tarifa promedio o ADR) y qué tan lleno está (ocupación). Por eso es mejor indicador de salud que mirar solo la ocupación o solo el precio por separado.",
       "Ejemplo: si tu tarifa promedio es de $1,500 y tu ocupación es del 60%, tu RevPAR es de $900. Subir el RevPAR significa llenar más el hotel, cobrar mejor, o ambas.",
-      "Kora calcula tu RevPAR automáticamente en el dashboard y lo proyecta a 30 días, para que sepas si vas bien sin tener que armar fórmulas en Excel.",
+      `Kora calcula tu RevPAR automáticamente en el dashboard y lo proyecta a ${FORECAST_DIAS} días, para que sepas si vas bien sin tener que armar fórmulas en Excel.`,
     ],
     faqs: [
       {

@@ -17,7 +17,7 @@ const DIAS = GARANTIA.diasPrueba;
 
 export const metadata: Metadata = {
   title: `Precios de Kora — $${PRECIO} MXN/mes, todo incluido`,
-  description: `Un solo plan de $${PRECIO} MXN/mes, todo incluido y con habitaciones ilimitadas: motor de reservas 0% comisión, Camila (WhatsApp con IA), PMS y CRM. Crea tu cuenta y pruébalo ${DIAS} días gratis, sin tarjeta.`,
+  description: `Un solo plan: $${PRECIO} MXN al mes, todo incluido y con habitaciones ilimitadas. Crea tu cuenta y pruébalo ${DIAS} días gratis, sin tarjeta.`,
   alternates: {
     canonical: "/precios",
   },

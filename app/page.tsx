@@ -25,7 +25,7 @@ const PRECIO = PRECIO_DESDE.toLocaleString("es-MX");
 // La descripción que ven Google y WhatsApp. Estaba escrita tres veces a mano con
 // el precio dentro; ahora sale de las constantes y dice cómo se empieza: creando
 // la cuenta y probando Kora por dentro (decisión de Manolo, 15 sep 2026).
-const DESCRIPCION = `WhatsApp contestado 24/7 con IA que cotiza con disponibilidad real y cobra, más reservas directas 0% comisión y todo tu hotel en una pantalla. Crea tu cuenta y pruébalo gratis ${GARANTIA.diasPrueba} días, sin tarjeta. Después, $${PRECIO} MXN/mes, sin permanencia.`;
+const DESCRIPCION = `Camila contesta tu WhatsApp 24/7 con IA: cotiza con tu disponibilidad real y cobra. Reservas directas 0% comisión. Pruébalo ${GARANTIA.diasPrueba} días gratis, sin tarjeta.`;
 
 export const metadata: Metadata = {
   title: "Kora — Sistema hotelero con IA para hoteles en México",
