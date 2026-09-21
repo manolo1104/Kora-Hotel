@@ -16,6 +16,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     fonts-liberation \
     fonts-noto-color-emoji \
+    tini \
   && rm -rf /var/lib/apt/lists/*
 
 # Puppeteer usa el Chromium del sistema (no descarga el suyo).
@@ -62,4 +63,28 @@ COPY . .
 # Puerto de la página de estado/QR + health (Railway inyecta PORT).
 EXPOSE 3001
 
+# 🔴 `tini` COMO PROCESO NÚMERO 1, Y NO ES UN ADORNO.
+#
+# EL INCIDENTE DEL 21 SEP 2026: el contenedor llegó a 1.001 procesos con un tope
+# de 1.000 (`/sys/fs/cgroup/pids.max`), no pudo abrir el navegador del cuarto
+# hotel y dejó sin Camila al hotel que paga. No fue memoria: había 8 GB y se
+# usaban 1,6.
+#
+# El porqué, en una frase: Chromium abre y cierra procesos hijos todo el tiempo
+# (pestañas, renderers, el reportero de fallos), y cuando uno muere alguien
+# tiene que recogerlo. Ese trabajo le toca al proceso número 1 del contenedor.
+# Aquí el número 1 era `node`, y Node NO recoge a los huérfanos ajenos: cada uno
+# se quedaba de «zombi» ocupando una de las 1.000 plazas PARA SIEMPRE. No gastan
+# memoria, sólo plaza — por eso el síntoma era "no puedo crear un proceso" con
+# 6 GB de RAM libres, y por eso empeoraba con los días: el contenedor llevaba
+# 5 días y 18 horas sin reiniciarse, con 138 aperturas de QR en medio.
+#
+# `tini` existe justo para esto: pesa nada, se pone de número 1 y recoge todo lo
+# que quede huérfano. Es el arreglo estándar de este problema (mismo caso y misma
+# cura en ibeam#286 y en mobius#1165, éste último también en Railway).
+#
+# Cómo se comprueba que funciona, en producción y en un comando:
+#   npx --yes @railway/cli ssh "grep -l ' Z ' /proc/*/stat | wc -l"   → 0 zombis
+#   npx --yes @railway/cli ssh "cat /sys/fs/cgroup/pids.current"      → no sube solo
+ENTRYPOINT ["/usr/bin/tini", "--"]
 CMD ["node", "index.js"]

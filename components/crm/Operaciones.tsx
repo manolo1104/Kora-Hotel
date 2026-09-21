@@ -73,6 +73,7 @@ const CAMILA: Record<TipoCamila, { label: string; clase: string }> = {
   conectada: { label: "Conectada", clase: "bg-emerald-50 text-emerald-700 border-emerald-200" },
   "por-vincular": { label: "Sin vincular", clase: "bg-amber-50 text-amber-700 border-amber-200" },
   caida: { label: "Caída", clase: "bg-red-50 text-red-700 border-red-200" },
+  "sin-sitio": { label: "Sin sitio", clase: "bg-red-50 text-red-700 border-red-200" },
   arrancando: { label: "Arrancando", clase: "bg-gray-100 text-gray-600 border-gray-200" },
   otro: { label: "Desconocido", clase: "bg-gray-100 text-gray-600 border-gray-200" },
 };

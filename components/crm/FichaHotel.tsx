@@ -146,6 +146,8 @@ export function chipCamila(e: EstadoCamila | null): EstiloChip {
     case "auth_failure":
     case "error":
       return { label: "Con error", clase: ROJO };
+    case "sin-sitio":
+      return { label: "Sin sitio en el servidor", clase: ROJO };
     default:
       return { label: e.status, clase: GRIS };
   }

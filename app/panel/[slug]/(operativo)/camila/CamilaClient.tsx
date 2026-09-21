@@ -1569,6 +1569,10 @@ function BadgeEstado({ status, nombreBot }: { status: string | null; nombreBot: 
     disconnected: { dot: "bg-red-500", txt: "Desconectada — reconectando…" },
     auth_failure: { dot: "bg-red-500", txt: "Falló la vinculación — escanea de nuevo" },
     error: { dot: "bg-red-500", txt: "No pudo arrancar" },
+    // El servidor de Kora está lleno: NO es culpa del hotelero y no hay nada
+    // que él pueda hacer, así que no se le manda a escanear nada ni se le
+    // enseña un error rojo como si hubiera roto algo.
+    "sin-sitio": { dot: "bg-amber-500", txt: "En cola — la estamos conectando" },
     requisitos: { dot: "bg-amber-500", txt: "Falta un paso tuyo" },
     "sin-servicio": { dot: "bg-panel-faint", txt: "Preparando tu conexión" },
     // Nunca ha vinculado, así que no tenía navegador abierto: se le abre uno al

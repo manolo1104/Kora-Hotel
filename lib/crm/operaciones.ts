@@ -116,7 +116,7 @@ export interface ReservasHotel {
  * Lo que dice el servidor de Camila, agrupado en lo que le importa al fundador.
  * Los estados crudos salen de agentes/camila/index.js.
  */
-export type TipoCamila = "conectada" | "por-vincular" | "caida" | "arrancando" | "otro";
+export type TipoCamila = "conectada" | "por-vincular" | "caida" | "sin-sitio" | "arrancando" | "otro";
 
 /** Cobros del motor: `null` en HotelOps = no se pudo leer. */
 export type CobrosHotelOps = "listos" | "a-medias" | "sin-cuenta";
@@ -339,6 +339,12 @@ export function tipoCamila(status: string): TipoCamila {
     case "auth_failure":
     case "error":
       return "caida";
+    // El hotel está bien: el que no da más es el servidor de Kora. Se separa de
+    // «caída» porque lo que hay que hacer es distinto —ahí no sirve pedirle al
+    // hotelero que re-escanee nada— y porque es lo que avisa de que hay que
+    // ampliar antes de que se caiga alguien.
+    case "sin-sitio":
+      return "sin-sitio";
     case "starting":
       return "arrancando";
     default:
@@ -815,6 +821,20 @@ export function calcularAlertas(e: EntradaAlertas): Alerta[] {
           severidad: "alta",
           titulo: `${h.nombre} — Camila está caída`,
           detalle: `${quien} y Camila no está contestando su WhatsApp: se desconectó o WhatsApp rechazó la sesión. Hay que volver a vincularla.`,
+          ...ficha(h),
+        });
+      } else if (h.camila.tipo === "sin-sitio") {
+        // La que avisa ANTES de perder a un cliente. El 21 sep 2026 esto no
+        // existía: el contenedor llegó a su tope de procesos y el hotel que
+        // paga se quedó sin Camila durante horas sin que nadie se enterara.
+        alertas.push({
+          id: `camila-sin-sitio-${h.id}`,
+          severidad: "alta",
+          titulo: `${h.nombre} — no cabe en el servidor de Camila`,
+          detalle:
+            `${quien}, pero el servidor de Camila está al tope y no puede abrirle su conexión. ` +
+            `No es cosa del hotel: no hay nada que él pueda hacer. Hay que hacerle sitio (desconectar un hotel ` +
+            `inactivo) o ampliar el servidor.`,
           ...ficha(h),
         });
       } else if (h.camila.tipo === "por-vincular") {

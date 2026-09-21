@@ -17,6 +17,8 @@ import { arrancarServidor } from "./servidor.js";
 import { aMensajes } from "./historial.js";
 import { tieneSesion, marcadoSinVincular, marcarSinVincular, limpiarMarcaSinVincular } from "./sesiones.js";
 import { clasificar, respuestaSinSoporte, comoSeVeEnElPanel } from "./medios.js";
+// El tope de procesos del contenedor: lo que decide cuántos hoteles caben.
+import { procesosDelContenedor, haySitioParaOtroNavegador } from "./procesos.js";
 import { mismoNumero, parseComando, textoAyuda } from "./comandos.js";
 import path from "node:path";
 import { rmSync, existsSync, renameSync } from "node:fs";
@@ -178,6 +180,7 @@ function purgarChatsInactivos() {
 }
 
 // Los comandos del hotelero viven en `comandos.js`, para poder probarlos.
+
 
 // Borra "candados" viejos del perfil de Chromium (si un contenedor anterior no
 // cerró bien, deja un SingletonLock que impide arrancar: "Code 21"). Auto-recuperable.
@@ -359,7 +362,7 @@ function arrancarHotel(hotel) {
       .catch((e) => console.error(`[${slug}] no se guardó la pausa de ${chatId}:`, e && e.message));
   });
 
-  client.initialize().catch((e) => {
+  client.initialize().catch(async (e) => {
     console.error(`[${slug}] no se pudo inicializar:`, e && e.message);
     const st = estado.get(slug);
     if (st) {
@@ -367,6 +370,18 @@ function arrancarHotel(hotel) {
       st.err = String(e && e.message);
       st.errAt = new Date().toISOString();
     }
+    // 🔴 AQUÍ ESTABA LA FUGA. Un arranque fallido dejaba el Chromium a medio
+    // levantar y NADIE lo mataba: sólo se marcaba el estado. Con 26 intentos
+    // fallidos el 21 sep 2026, esos restos llenaron el contenedor hasta su tope
+    // de procesos y dejaron sin bot al hotel que paga. Cada fallo empeoraba el
+    // siguiente, que es lo que convierte un tropiezo en una caída.
+    try {
+      await client.destroy();
+    } catch (err) {
+      console.warn(`[${slug}] no se pudo cerrar el navegador fallido:`, err && err.message);
+    }
+    const p = procesosDelContenedor();
+    if (p) console.log(`[camila] procesos tras limpiar ${slug}: ${p.usados}/${p.max}`);
   });
 
   return { client, kora };
@@ -821,6 +836,20 @@ async function sincronizarFleet() {
       // preparando tu conexión» indefinidamente. Le pasó a un alta real el 31 de
       // agosto de 2026.
       if (st && st.status === "error" && clientes.has(hotel.slug)) {
+        // SIN SITIO NO SE REINTENTA: se espera. Reintentar cuando el contenedor
+        // está al tope no levanta a nadie y sí deja otro navegador a medias —
+        // que es exactamente cómo se llenó el 21 sep 2026. Y no cuenta como
+        // intento: el hotel no está roto, es que no cabe.
+        const sitioRe = haySitioParaOtroNavegador();
+        if (!sitioRe.ok) {
+          if (st.err !== sitioRe.motivo) {
+            console.warn(`[camila] ⏸ ${hotel.slug} en espera: ${sitioRe.motivo}`);
+          }
+          st.status = "sin-sitio";
+          st.err = sitioRe.motivo;
+          await pararHotel(hotel.slug);
+          continue;
+        }
         const intentos = (st.intentos || 0) + 1;
         if (intentos <= MAX_REINTENTOS_ARRANQUE) {
           console.warn(
@@ -875,9 +904,27 @@ async function sincronizarFleet() {
           }
           continue;
         }
+        // ¿CABE? Un Chromium son más de cien procesos, y el contenedor tiene
+        // un tope. Si no cabe, el hotel queda «en espera» con su motivo escrito
+        // —el panel se lo enseña— en vez de intentarlo y dejar restos.
+        const sitio = haySitioParaOtroNavegador();
+        if (!sitio.ok) {
+          console.warn(`[camila] ⏸ ${hotel.slug} no arranca: ${sitio.motivo}`);
+          estado.set(hotel.slug, {
+            slug: hotel.slug,
+            nombre: hotel.nombre,
+            status: "sin-sitio",
+            qr: null,
+            err: sitio.motivo,
+          });
+          continue;
+        }
         // Uno detrás de otro, no todos a la vez: cada uno es un Chromium.
         if (arrancados) await espera(ARRANQUE_ESCALONADO_MS);
-        console.log(`[camila] + arrancando ${hotel.slug}${pidioVincular ? " (lo pidió el panel)" : ""}`);
+        console.log(
+          `[camila] + arrancando ${hotel.slug}${pidioVincular ? " (lo pidió el panel)" : ""}` +
+            (sitio.usados ? ` · procesos ${sitio.usados}/${sitio.max}` : ""),
+        );
         clientes.set(hotel.slug, arrancarHotel(hotel));
         arrancados += 1;
       } else {
