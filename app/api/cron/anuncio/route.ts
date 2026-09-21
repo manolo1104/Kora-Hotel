@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createAdminClient, adminEnvReady } from "@/lib/supabase/admin";
 import { enviarEmail, resendEnvReady } from "@/lib/email/resend";
 import { emailAnuncio, TIPO_ANUNCIO } from "@/lib/email/anuncio";
+import { emailAvisoCamila, TIPO_AVISO_CAMILA } from "@/lib/email/aviso-camila";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -58,6 +59,27 @@ export async function GET(req: Request) {
   const params = new URL(req.url).searchParams;
   const prueba = (params.get("prueba") ?? "").trim();
   const enviar = params.get("enviar") === "1";
+
+  // QUÉ correo se manda. Todo lo demás de esta ruta (el ensayo por defecto, el
+  // modo prueba, el apunte antes del envío y el tope) es igual para todos: lo
+  // único que cambia es el texto y el tipo con el que se apunta, que es lo que
+  // impide mandar dos veces el mismo. Sin `?aviso=`, el de siempre.
+  const AVISOS = {
+    novedades: { construir: emailAnuncio, tipo: TIPO_ANUNCIO },
+    "camila-mantenimiento": {
+      construir: (d: { nombre?: string }) => emailAvisoCamila(d),
+      tipo: TIPO_AVISO_CAMILA,
+    },
+  } as const;
+  const cual = (params.get("aviso") ?? "novedades") as keyof typeof AVISOS;
+  if (!AVISOS[cual]) {
+    return NextResponse.json(
+      { ok: false, error: "ese-aviso-no-existe", disponibles: Object.keys(AVISOS) },
+      { status: 400 },
+    );
+  }
+  const { construir: emailDeEsteAviso, tipo: TIPO } = AVISOS[cual];
+
   const admin = createAdminClient();
 
   // ── Modo prueba: UNA copia, a una dirección, sin tocar nada más ──
@@ -66,7 +88,7 @@ export async function GET(req: Request) {
       return NextResponse.json({ ok: false, error: "ese-correo-no-es-valido" }, { status: 400 });
     }
     if (!resendEnvReady) return NextResponse.json({ ok: false, error: "sin-resend" }, { status: 503 });
-    const envio = await enviarEmail({ to: prueba, ...emailAnuncio({ nombre: "" }) });
+    const envio = await enviarEmail({ to: prueba, ...emailDeEsteAviso({ nombre: "" }) });
     return NextResponse.json({
       ok: envio.ok,
       modo: "PRUEBA — sólo a esa dirección, la lista no se tocó",
@@ -119,7 +141,8 @@ export async function GET(req: Request) {
       hoteles: destinatarios.map((d) => d.hotel),
       duenosSinCorreo: sinCorreo,
       correoConfigurado: resendEnvReady,
-      asunto: emailAnuncio({}).subject,
+      aviso: cual,
+      asunto: emailDeEsteAviso({}).subject,
       paraProbarlo: "?prueba=tu@correo.com",
       paraMandarloDeVerdad: "?enviar=1",
     });
@@ -134,8 +157,8 @@ export async function GET(req: Request) {
     // contra el índice único (hotel_id, confirmacion, email_type) y no escribe.
     const { error: yaEstaba } = await admin.from("email_log").insert({
       hotel_id: d.hotelId,
-      confirmacion: TIPO_ANUNCIO,
-      email_type: TIPO_ANUNCIO,
+      confirmacion: TIPO,
+      email_type: TIPO,
       email_destino: d.email,
     });
     if (yaEstaba) {
@@ -143,7 +166,7 @@ export async function GET(req: Request) {
       continue;
     }
 
-    const envio = await enviarEmail({ to: d.email, ...emailAnuncio({ nombre: "" }) });
+    const envio = await enviarEmail({ to: d.email, ...emailDeEsteAviso({ nombre: "" }) });
     if (envio.ok) {
       total.enviados++;
     } else {
@@ -154,8 +177,8 @@ export async function GET(req: Request) {
         .from("email_log")
         .delete()
         .eq("hotel_id", d.hotelId)
-        .eq("confirmacion", TIPO_ANUNCIO)
-        .eq("email_type", TIPO_ANUNCIO);
+        .eq("confirmacion", TIPO)
+        .eq("email_type", TIPO);
     }
   }
 
