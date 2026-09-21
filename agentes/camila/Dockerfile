@@ -86,5 +86,11 @@ EXPOSE 3001
 # Cómo se comprueba que funciona, en producción y en un comando:
 #   npx --yes @railway/cli ssh "grep -l ' Z ' /proc/*/stat | wc -l"   → 0 zombis
 #   npx --yes @railway/cli ssh "cat /sys/fs/cgroup/pids.current"      → no sube solo
+# ⚠️ Y ADEMÁS EN railway.json. Railway arranca con su `startCommand`, que pisa
+# a este ENTRYPOINT: al desplegar esto por primera vez (21 sep 2026) el proceso
+# número 1 seguía siendo `node index.js` y tini no recogía nada. Comprobado en
+# caliente con `ssh "head -c 30 /proc/1/cmdline"`. Por eso el comando de arranque
+# de railway.json también dice `/usr/bin/tini -- node index.js`: si alguien lo
+# cambia ahí y lo deja en `node index.js`, los zombis vuelven en silencio.
 ENTRYPOINT ["/usr/bin/tini", "--"]
 CMD ["node", "index.js"]
