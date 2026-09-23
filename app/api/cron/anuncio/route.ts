@@ -3,6 +3,7 @@ import { createAdminClient, adminEnvReady } from "@/lib/supabase/admin";
 import { enviarEmail, resendEnvReady } from "@/lib/email/resend";
 import { emailAnuncio, TIPO_ANUNCIO } from "@/lib/email/anuncio";
 import { emailAvisoCamila, TIPO_AVISO_CAMILA } from "@/lib/email/aviso-camila";
+import { emailAvisoRecargas, TIPO_AVISO_RECARGAS } from "@/lib/email/aviso-recargas";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -69,6 +70,10 @@ export async function GET(req: Request) {
     "camila-mantenimiento": {
       construir: (d: { nombre?: string }) => emailAvisoCamila(d),
       tipo: TIPO_AVISO_CAMILA,
+    },
+    "recargas-octubre": {
+      construir: (d: { nombre?: string }) => emailAvisoRecargas(d),
+      tipo: TIPO_AVISO_RECARGAS,
     },
   } as const;
   const cual = (params.get("aviso") ?? "novedades") as keyof typeof AVISOS;
