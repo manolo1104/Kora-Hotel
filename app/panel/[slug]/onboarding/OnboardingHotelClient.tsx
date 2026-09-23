@@ -29,7 +29,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { comprimirImagen } from "@/lib/images-client";
-import { RUTA_ACTIVAR } from "@/lib/oferta";
+import { REGALO_CAMILA_MENSAJES, RUTA_ACTIVAR } from "@/lib/oferta";
 import type { EstadoMotor } from "@/lib/panel/primeros-pasos";
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
@@ -63,6 +63,12 @@ interface Props {
   estadoMotor: EstadoMotor;
   /** Puede abrir la pantalla de Camila y su chat de prueba. */
   puedeProbarCamila: boolean;
+  /**
+   * `puedeUsarCamila()` (lib/suscripcion.ts). Desde el 2 oct 2026 un hotel en
+   * prueba gratis no tiene a Camila hasta que paga: en lugar de «Habla con
+   * Camila en el chat de prueba» se le invita a activar el plan.
+   */
+  camilaPermitida: boolean;
   /** Puede abrir Panel → Pagos (sólo el dueño). */
   puedeVerPagos: boolean;
 }
@@ -379,7 +385,11 @@ export function OnboardingHotelClient(props: Props) {
         </div>
 
         {/* El siguiente paso natural: probar a Camila. Antes el onboarding
-            terminaba sin mencionarla y el hotelero ni se enteraba de que existe. */}
+            terminaba sin mencionarla y el hotelero ni se enteraba de que existe.
+            Sin Camila permitida (prueba gratis desde el 2 oct 2026) se le
+            presenta igual, pero el botón es activar el plan, que es lo que la
+            abre: «Pruébala en su chat de prueba» era mandarlo a una puerta
+            cerrada. */}
         {props.puedeProbarCamila && !motorEnPausa && (
           <div className="mt-6 rounded-2xl border border-kora-primary/20 bg-kora-primary/5 p-5">
             <div className="flex items-start gap-3">
@@ -390,17 +400,42 @@ export function OnboardingHotelClient(props: Props) {
                 <p className="text-sm font-bold text-kora-text">
                   Siguiente paso: conoce a Camila, tu asistente de WhatsApp
                 </p>
-                <p className="mt-1 text-xs text-kora-muted leading-relaxed">
-                  Contesta a tus huéspedes 24/7 con los datos de tu hotel y cotiza con
-                  disponibilidad real. Pruébala en su chat de prueba y, cuando te convenza,
-                  vincula tu WhatsApp desde la misma pantalla.
-                </p>
-                <a
-                  href={`/panel/${props.slug}/camila`}
-                  className="btn-press mt-3 inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-kora-primary text-white font-semibold text-xs hover:bg-kora-primary-dark transition-colors"
-                >
-                  Probar a Camila <ArrowRight size={14} aria-hidden="true" />
-                </a>
+                {props.camilaPermitida ? (
+                  <>
+                    <p className="mt-1 text-xs text-kora-muted leading-relaxed">
+                      Contesta a tus huéspedes 24/7 con los datos de tu hotel y cotiza con
+                      disponibilidad real. Pruébala en su chat de prueba y, cuando te convenza,
+                      vincula tu WhatsApp desde la misma pantalla.
+                    </p>
+                    <a
+                      href={`/panel/${props.slug}/camila`}
+                      className="btn-press mt-3 inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-kora-primary text-white font-semibold text-xs hover:bg-kora-primary-dark transition-colors"
+                    >
+                      Probar a Camila <ArrowRight size={14} aria-hidden="true" />
+                    </a>
+                  </>
+                ) : (
+                  <>
+                    <p className="mt-1 text-xs text-kora-muted leading-relaxed">
+                      Contesta a tus huéspedes 24/7 con los datos de tu hotel y cotiza con
+                      disponibilidad real. Se enciende al activar tu plan, con{" "}
+                      {REGALO_CAMILA_MENSAJES} mensajes de regalo: la pruebas en su chat de
+                      prueba y, cuando te convenza, vinculas tu WhatsApp.
+                    </p>
+                    {props.esDueno ? (
+                      <a
+                        href={RUTA_ACTIVAR}
+                        className="btn-press mt-3 inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-kora-primary text-white font-semibold text-xs hover:bg-kora-primary-dark transition-colors"
+                      >
+                        Activar mi plan <ArrowRight size={14} aria-hidden="true" />
+                      </a>
+                    ) : (
+                      <p className="mt-2 text-xs text-kora-muted">
+                        El dueño del hotel es quien activa el plan.
+                      </p>
+                    )}
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -733,7 +768,7 @@ export function OnboardingHotelClient(props: Props) {
                   pagosHref={pagosHref}
                   esDueno={props.esDueno}
                 />
-                {props.puedeProbarCamila && !motorEnPausa && (
+                {props.puedeProbarCamila && !motorEnPausa && props.camilaPermitida && (
                   <div className="flex items-start gap-3 rounded-xl border border-panel-border-soft bg-kora-bg/40 px-4 py-3.5">
                     <Bot size={18} className="text-kora-primary flex-shrink-0 mt-0.5" aria-hidden="true" />
                     <div className="min-w-0">
@@ -754,6 +789,38 @@ export function OnboardingHotelClient(props: Props) {
                       >
                         Abrir el chat de prueba <ExternalLink size={12} aria-hidden="true" />
                       </a>
+                    </div>
+                  </div>
+                )}
+                {/* Prueba gratis desde el 2 oct 2026: Camila no está abierta, así
+                    que en vez de mandarlo a su chat de prueba se le dice cómo se
+                    abre. Pestaña nueva por lo mismo que el chat: el pago saca del
+                    asistente, y sin «Terminar» el hub lo sigue dando por a medias. */}
+                {props.puedeProbarCamila && !motorEnPausa && !props.camilaPermitida && (
+                  <div className="flex items-start gap-3 rounded-xl border border-panel-border-soft bg-kora-bg/40 px-4 py-3.5">
+                    <Bot size={18} className="text-kora-primary flex-shrink-0 mt-0.5" aria-hidden="true" />
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-kora-text">
+                        Activa tu plan para abrir a Camila ({REGALO_CAMILA_MENSAJES} mensajes de regalo)
+                      </p>
+                      <p className="mt-0.5 text-xs text-kora-muted leading-relaxed">
+                        Con tu plan se abren su chat de prueba, donde le preguntas precios y
+                        disponibilidad como si fueras un huésped, y la conexión con tu WhatsApp.
+                      </p>
+                      {props.esDueno ? (
+                        <a
+                          href={RUTA_ACTIVAR}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-kora-primary underline"
+                        >
+                          Activar mi plan <ExternalLink size={12} aria-hidden="true" />
+                        </a>
+                      ) : (
+                        <p className="mt-2 text-xs text-kora-muted">
+                          El dueño del hotel es quien activa el plan.
+                        </p>
+                      )}
                     </div>
                   </div>
                 )}

@@ -30,7 +30,7 @@ import {
   type PruebaHotel,
 } from "@/lib/suscripcion";
 import { anclaPruebaDelDueno } from "@/lib/db/prueba-dueno";
-import { RUTA_REGISTRO } from "@/lib/oferta";
+import { REGALO_CAMILA_MENSAJES, RUTA_REGISTRO } from "@/lib/oferta";
 import {
   getHotelesDelUsuario,
   MAX_HOTELES_POR_CUENTA,
@@ -158,11 +158,14 @@ export default async function PanelPage() {
                 </h2>
                 {/* Antes: «En un par de minutos tendrás tu página…», un tiempo que
                     nadie midió. Ahora dice lo que pasa: cargas lo básico y lo
-                    pruebas por dentro. */}
+                    pruebas por dentro. Hasta el 23 sep 2026 incluía «Camila en su
+                    chat de prueba»: un hotel creado desde el 2 oct no la tiene en
+                    la prueba gratis (`puedeUsarCamila`, lib/suscripcion.ts). */}
                 <p className="mt-2 text-sm text-kora-muted leading-relaxed max-w-md mx-auto">
                   Carga el nombre, tus habitaciones y sus precios. Después lo pruebas por
-                  dentro —Camila en su chat de prueba y tu motor de reservas— antes de
-                  compartirlo con tus huéspedes.
+                  dentro —tu motor de reservas y tu panel— antes de compartirlo con tus
+                  huéspedes. Camila se enciende al activar tu plan, con{" "}
+                  {REGALO_CAMILA_MENSAJES} mensajes de regalo.
                 </p>
                 <Link
                   href={RUTA_REGISTRO}

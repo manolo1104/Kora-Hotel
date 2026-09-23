@@ -83,9 +83,18 @@ export default function TerminosPage() {
                 vigente mientras la suscripción esté activa. El plan incluye{" "}
                 {GARANTIA.diasPrueba} días de prueba gratis, sin tarjeta: al
                 terminar no se genera ningún cargo, y el primer cobro ocurre solo
-                si activas el plan por tu cuenta. Las cuentas creadas antes del 6
-                de septiembre de 2026 conservan los 30 días de prueba con los que
-                se registraron.
+                si activas el plan por tu cuenta, el mismo día en que lo activas.
+                Las cuentas creadas antes del 6 de septiembre de 2026 conservan
+                los 30 días de prueba con los que se registraron.
+              </p>
+              <p className="mt-3">
+                Camila (WhatsApp con IA) se activa al activar el plan: durante la
+                prueba gratis puedes usar el panel, pero no su chat de prueba ni la
+                conexión con WhatsApp. Al activar el plan recibes 100 mensajes de
+                regalo; cada respuesta de Camila, de prueba o con huéspedes, usa
+                uno. Después, Camila funciona con saldo prepago que recargas desde
+                tu panel, a partir de $300 MXN por 500 mensajes (IVA incluido). Las cuentas creadas hasta el 1 de
+                octubre de 2026 conservan a Camila durante su prueba.
               </p>
               <ul className="mt-3 space-y-1.5 list-disc list-inside text-kora-muted">
                 <li>

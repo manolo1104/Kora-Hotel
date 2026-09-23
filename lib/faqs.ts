@@ -1,4 +1,4 @@
-import { AYUDA_ALTA, GARANTIA, PRECIO_DESDE } from "@/lib/oferta";
+import { AYUDA_ALTA, GARANTIA, PRECIO_DESDE, REGALO_CAMILA_MENSAJES, TEXTO_RECARGAS_CAMILA } from "@/lib/oferta";
 
 export interface Faq {
   question: string;
@@ -7,6 +7,7 @@ export interface Faq {
 
 const PRECIO = `$${PRECIO_DESDE.toLocaleString("es-MX")} MXN/mes`;
 const DIAS = GARANTIA.diasPrueba;
+const REGALO = REGALO_CAMILA_MENSAJES;
 
 // Fuente única de las preguntas frecuentes.
 // Se usa tanto en la sección visible (FAQSection) como en el schema FAQPage de la home.
@@ -20,18 +21,25 @@ const DIAS = GARANTIA.diasPrueba;
 // alimenta también el chat de la web y los llms.txt, la mentira salía por tres
 // sitios a la vez. Decisión de Manolo: «lo configuras tú y te ayudamos si
 // quieres». Las cifras salen de lib/oferta.ts.
+//
+// 23 sep 2026 — Tres respuestas decían que en la prueba gratis se habla con
+// Camila en el chat de prueba («usas Kora completo», «puedes probar el motor y
+// a Camila»). Desde el 2 oct Camila se enciende al activar el plan, con
+// `REGALO_CAMILA_MENSAJES` de regalo (`puedeUsarCamila`, lib/suscripcion.ts).
+// Y el plan se cobra el día que se activa: ya no se respeta lo que quede de
+// prueba, así que nada aquí puede sugerir un cobro diferido.
 export const faqs: Faq[] = [
   {
     question: "¿Cómo empiezo con Kora?",
-    answer: `Entras a kora-hotel.com y creas tu cuenta con tu correo, sin tarjeta: tienes ${DIAS} días gratis. Cargas tu hotel en tu panel (el nombre, tus habitaciones y sus tarifas) y lo pruebas por dentro: hablas con Camila en el chat de prueba y haces una reserva de prueba sin que se cobre nada. Cuando quieras, conectas tus cobros y tu WhatsApp, y activas tu plan si te convence. ${AYUDA_ALTA}`,
+    answer: `Entras a kora-hotel.com y creas tu cuenta con tu correo, sin tarjeta: tienes ${DIAS} días gratis. Cargas tu hotel en tu panel (el nombre, tus habitaciones y sus tarifas) y lo pruebas por dentro: haces una reserva de prueba sin que se cobre nada y recorres tu panel. Cuando quieras, conectas tus cobros, y si te convence activas tu plan: ahí se enciende Camila con ${REGALO} mensajes de regalo, la pruebas en su chat de prueba y vinculas tu WhatsApp. ${AYUDA_ALTA}`,
   },
   {
     question: "¿Cuánto cuesta y qué incluye?",
-    answer: `Hay un solo plan de ${PRECIO}, mes a mes y sin permanencia, con habitaciones ilimitadas y todo incluido: el motor de reservas directo (0% de comisión), el PMS completo, Camila (agente de WhatsApp con IA 24/7), el dashboard con tus reservas y métricas, y el CRM de huéspedes con emails automáticos. Lo pruebas ${DIAS} días gratis y sin tarjeta; activas tu plan solo si te convence.`,
+    answer: `Hay un solo plan de ${PRECIO}, mes a mes y sin permanencia, con habitaciones ilimitadas y todo incluido: el motor de reservas directo (0% de comisión), el PMS completo, Camila (agente de WhatsApp con IA 24/7), el dashboard con tus reservas y métricas, y el CRM de huéspedes con emails automáticos. Lo pruebas ${DIAS} días gratis y sin tarjeta; activas tu plan solo si te convence, y con él se enciende Camila con ${REGALO} mensajes de regalo; ${TEXTO_RECARGAS_CAMILA}.`,
   },
   {
     question: "¿Necesito tarjeta para empezar?",
-    answer: `No. Creas tu cuenta, cargas tu hotel y usas Kora completo durante ${DIAS} días sin dar ningún dato de pago. Cuando te convenza (o al terminar tu prueba) activas tu plan de ${PRECIO}. Si no lo activas, tu motor de reservas se pausa, pero tus datos se conservan íntegros y puedes retomarlos cuando quieras.`,
+    answer: `No. Creas tu cuenta, cargas tu hotel y usas tu panel y tu motor de reservas durante ${DIAS} días sin dar ningún dato de pago. Cuando te convenza, activas tu plan de ${PRECIO}: se cobra ese mismo día y con él se enciende Camila. Si no lo activas, al terminar tu prueba tu motor de reservas se pausa, pero tus datos se conservan íntegros y puedes retomarlos cuando quieras.`,
   },
   {
     question: "¿Necesito saber de tecnología para usar Kora?",
@@ -44,7 +52,7 @@ export const faqs: Faq[] = [
     // medido, así que no se escribe uno.
     question: "¿Cuánto tarda en quedar listo?",
     answer:
-      "Depende de ti. Con el nombre de tu hotel y al menos una habitación con su tarifa, tu página ya queda en línea y puedes probar el motor y a Camila. Las fotos, los cobros con Stripe y la conexión de tu WhatsApp los agregas cuando quieras y en el orden que quieras: el asistente guarda tu avance.",
+      "Depende de ti. Con el nombre de tu hotel y al menos una habitación con su tarifa, tu página ya queda en línea y puedes probar el motor. Las fotos y los cobros con Stripe los agregas cuando quieras y en el orden que quieras: el asistente guarda tu avance. Camila y la conexión de tu WhatsApp se encienden al activar tu plan.",
   },
   {
     // Decía «Kora se conecta con tus OTAs existentes». La pestaña de canales está

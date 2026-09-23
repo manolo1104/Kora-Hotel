@@ -5,7 +5,9 @@ Moneda: MXN (pesos mexicanos). Cobro mensual con tarjeta.
 
 ## Plan único — $550 MXN/mes
 - **$550 MXN/mes, todo incluido**, con **habitaciones ilimitadas**. Mes a mes, sin permanencia.
-- **Prueba 14 días gratis, sin tarjeta.** Creas tu cuenta, cargas tu hotel y lo usas completo; activas tu plan solo si te convence.
+- **Prueba 14 días gratis, sin tarjeta.** Creas tu cuenta, cargas tu hotel y usas tu panel y tu motor de reservas (en modo prueba); activas tu plan solo si te convence.
+- **Camila se enciende al activar tu plan**, con 100 mensajes de regalo (cuentan sus respuestas en el chat de prueba y por WhatsApp). Después, sus mensajes se recargan desde tu panel: $300 MXN = 500, $600 = 1,050, $900 = 1,800 o $2,000 = 4,500 (IVA incluido). La prueba gratis no incluye a Camila: ni su chat de prueba ni la vinculación de tu WhatsApp.
+- El plan se cobra el día que lo activas.
 - Cancelas tú mismo desde tu panel; tus datos son tuyos y los exportas a Excel cuando quieras.
 - **Devolución:** si activas tu plan y cancelas dentro de los 30 días siguientes a tu primer pago, se te devuelve esa mensualidad.
 
@@ -27,9 +29,9 @@ Moneda: MXN (pesos mexicanos). Cobro mensual con tarjeta.
 ## Cómo se empieza — tú, desde la web, hoy
 1. Creas tu cuenta en https://kora-hotel.com/panel/onboarding (solo tu correo, sin tarjeta).
 2. Cargas tu hotel: nombre, habitaciones y tarifas.
-3. Lo pruebas por dentro: le escribes a Camila en el chat de prueba con los datos de tu hotel y recorres una reserva de prueba en tu motor, sin que se cobre nada.
-4. Conectas tus cobros con Stripe y vinculas tu WhatsApp escaneando un código QR.
-5. Activas tu plan si te convence.
+3. Lo pruebas por dentro: recorres una reserva de prueba en tu motor, sin que se cobre nada, y registras reservas en tu panel.
+4. Conectas tus cobros con Stripe.
+5. Activas tu plan si te convence: se enciende Camila con 100 mensajes de regalo, la pruebas en su chat de prueba con los datos de tu hotel y vinculas tu WhatsApp escaneando un código QR.
 
 Si prefieres que te acompañemos, se hace por WhatsApp — pero no hace falta esperar a nadie para empezar.
 

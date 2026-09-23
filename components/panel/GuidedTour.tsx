@@ -30,7 +30,9 @@ const PASOS: PasoTour[] = [
     key: "nav-camila",
     titulo: "Camila, tu bot de WhatsApp",
     texto:
-      "Entrénala con la personalidad de tu hotel y conéctala escaneando un QR. Contesta, cotiza y cierra reservas 24/7.",
+      // «con tu plan activo»: desde el 2 oct 2026 el QR (y su chat de prueba)
+      // se abren al pagar, no en la prueba gratis (`puedeUsarCamila`).
+      "Entrénala con la personalidad de tu hotel y, con tu plan activo, conéctala escaneando un QR. Contesta, cotiza y cierra reservas 24/7.",
   },
   {
     key: "nav-calendario",

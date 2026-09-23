@@ -8,6 +8,7 @@ import {
   PLANES,
   GARANTIA,
   FORECAST_DIAS,
+  REGALO_CAMILA_MENSAJES,
   RUTA_ACTIVAR,
   RUTA_REGISTRO,
 } from "@/lib/oferta";
@@ -39,8 +40,10 @@ const garantias = [
   {
     icon: ShieldCheck,
     titulo: `${GARANTIA.diasPrueba} días gratis, sin tarjeta`,
+    // Decía «usas Kora completo»: desde el 2 oct 2026 Camila no entra en la
+    // prueba gratis (se enciende al activar el plan).
     texto:
-      "Creas tu cuenta, cargas tu hotel y usas Kora completo sin dar ningún dato de pago. Activas tu plan solo si te convence.",
+      "Creas tu cuenta, cargas tu hotel y usas tu panel y tu motor sin dar ningún dato de pago. Activas tu plan solo si te convence.",
   },
   {
     icon: BadgeCheck,
@@ -80,9 +83,13 @@ const listoAlCargar = [
     titulo: "Tu página de reservas con tu motor",
     detalle: "Se crea al cargar tu hotel, con tus habitaciones y tarifas",
   },
+  // Decía «La pruebas en el chat de prueba antes de vincular tu WhatsApp»,
+  // debajo de «Incluido desde tu prueba gratis». Desde el 2 oct 2026 el chat de
+  // prueba y el QR se abren al pagar (`puedeUsarCamila`, lib/suscripcion.ts): en
+  // la prueba se la puede entrenar con los datos del hotel, no hablar con ella.
   {
-    titulo: "Camila con los datos de tu hotel",
-    detalle: "La pruebas en el chat de prueba antes de vincular tu WhatsApp",
+    titulo: "Camila, entrenada con los datos de tu hotel",
+    detalle: `Se enciende al activar tu plan, con ${REGALO_CAMILA_MENSAJES} mensajes de regalo, y la pruebas en su chat antes de vincular tu WhatsApp`,
   },
   {
     titulo: "Tu panel de reservas, calendario y clientes",

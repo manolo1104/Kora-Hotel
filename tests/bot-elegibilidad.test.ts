@@ -59,3 +59,46 @@ describe("lo que se le enseña al hotelero", () => {
     }
   });
 });
+
+// ─── Camila sólo con plan pagado (23 sep 2026) ───────────────────────────────
+import { puedeUsarCamila, CORTE_CAMILA_CON_PLAN } from "@/lib/suscripcion";
+
+describe("Camila se abre al pagar", () => {
+  const antes = new Date(CORTE_CAMILA_CON_PLAN - 86_400_000).toISOString();
+  const despues = new Date(CORTE_CAMILA_CON_PLAN + 60_000).toISOString();
+  const prueba = { activo: true, planActivo: false };
+
+  it("hotel nuevo en prueba gratis: sin Camila", () => {
+    expect(puedeUsarCamila(prueba, { created_at: despues })).toBe(false);
+  });
+
+  it("hotel nuevo que ya pagó: con Camila", () => {
+    expect(puedeUsarCamila({ activo: true, planActivo: true }, { created_at: despues })).toBe(true);
+  });
+
+  it("hotel registrado antes del corte conserva a Camila en su prueba", () => {
+    expect(puedeUsarCamila(prueba, { created_at: antes })).toBe(true);
+  });
+
+  it("prueba vencida o cuenta bloqueada: nunca", () => {
+    expect(puedeUsarCamila({ activo: false, planActivo: false }, { created_at: antes })).toBe(false);
+  });
+
+  it("si la suscripción no se pudo leer, falla abierto", () => {
+    expect(
+      puedeUsarCamila({ activo: true, planActivo: false, lecturaFallida: true }, { created_at: despues }),
+    ).toBe(true);
+  });
+
+  it("sin fecha de alta no se regala: cuenta como nuevo", () => {
+    expect(puedeUsarCamila(prueba, { created_at: null })).toBe(false);
+  });
+
+  it("el motivo «sin-pago» sale sólo si hay acceso y falta el pago", () => {
+    const h = { publicado: true, whatsapp: "5215512345678" };
+    expect(motivosSinBot(h, true, false)).toEqual(["sin-pago"]);
+    expect(motivosSinBot(h, false, false)).toEqual(["sin-acceso"]);
+    expect(motivosSinBot(h, true, true)).toEqual([]);
+    expect(motivosSinBot(h, true)).toEqual([]);
+  });
+});

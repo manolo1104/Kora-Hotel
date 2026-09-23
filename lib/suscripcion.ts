@@ -262,6 +262,44 @@ export interface AccesoHotel {
    * siguieran entrando reservas por ahí es lo contrario de lo que pidió.
    */
   puedeCobrar: boolean;
+  /**
+   * true = no se pudo LEER la suscripción y se falló abierto. Lo mira
+   * `puedeUsarCamila`: sin esto, un hipo de Supabase dejaría fuera del fleet
+   * (o sea, desconectado de WhatsApp) al hotel nuevo que sí paga.
+   */
+  lecturaFallida?: boolean;
+}
+
+// ─── Camila sólo con plan pagado (decisión de Manolo, 23 sep 2026) ─────────
+//
+// Quien se registra tiene el panel entero, pero NO a Camila: ni el QR para
+// vincular su WhatsApp ni el chat de prueba. Se abren al pagar la suscripción.
+// Además de ser el modelo de negocio, cuida el servidor del bot: cada Camila
+// vinculada ocupa un navegador y en el contenedor caben pocas.
+//
+// Quien se registró ANTES del corte conserva lo que se le prometió al entrar:
+// Camila durante su prueba. Manolo decidió (23 sep) subir el cambio el 1 de
+// octubre, el mismo día que se abren las recargas; el corte va al día
+// siguiente, por la misma razón que `CAMBIO_A_14`: quien se dio de alta el
+// 1 oct lo hizo leyendo «prueba a Camila gratis». Si se sube antes, NO mover
+// esto hacia atrás: dejaría sin Camila a quien ya la tiene conectada.
+export const CORTE_CAMILA_CON_PLAN = Date.parse("2026-10-02T00:00:00-06:00");
+
+/**
+ * ¿Este hotel puede vincular a Camila y usar su chat de prueba?
+ *
+ * Plan pagado (o cortesía, o pago vencido dentro de la gracia) → sí. En prueba
+ * gratis → sólo si el hotel se creó antes del corte. Si la suscripción no se
+ * pudo leer, sí: se falla abierto igual que `accesoDelHotel`.
+ */
+export function puedeUsarCamila(
+  acceso: Pick<AccesoHotel, "activo" | "planActivo" | "lecturaFallida">,
+  hotel: { created_at?: string | null },
+): boolean {
+  if (!acceso.activo) return false;
+  if (acceso.planActivo || acceso.lecturaFallida) return true;
+  const creado = hotel.created_at ? Date.parse(hotel.created_at) : NaN;
+  return !Number.isNaN(creado) && creado < CORTE_CAMILA_CON_PLAN;
 }
 
 /** Bloqueo manual guardado en `hoteles.extras.bloqueo`. */
@@ -350,6 +388,7 @@ export async function accesoDelHotel(hotel: {
       mensajeBloqueo: null,
       publicado,
       puedeCobrar: publicado,
+      lecturaFallida: true,
     };
   }
 

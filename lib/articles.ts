@@ -1,4 +1,4 @@
-import { GARANTIA, RUTA_REGISTRO } from "@/lib/oferta";
+import { GARANTIA, REGALO_CAMILA_MENSAJES, RUTA_REGISTRO } from "@/lib/oferta";
 
 // ─── Los CTAs de los artículos ──────────────────────────────────────────────────
 // Hasta el 15 sep 2026 los cinco cerraban con «Solicitar demo» o «Quiero
@@ -478,9 +478,9 @@ export const articles: Article[] = [
 <p>Si el número que resulta te incomoda, tienes tu justificación para actuar.</p>
 
 <div class="callout-cta">
-  <strong style="color: white; font-size: 1.1rem;">Mira el agente en acción</strong>
-  <p>Crea tu cuenta, carga tu hotel y habla con Camila en el chat de prueba de tu panel, con tus propios cuartos y tarifas. Tienes ${DIAS} días gratis, sin tarjeta.</p>
-  <a href="${RUTA_REGISTRO}">Probar a Camila gratis →</a>
+  <strong style="color: white; font-size: 1.1rem;">Empieza con tu propio hotel</strong>
+  <p>Crea tu cuenta y carga tu hotel: tienes ${DIAS} días gratis, sin tarjeta, para probar tu motor y tu panel. Al activar tu plan se enciende Camila con ${REGALO_CAMILA_MENSAJES} mensajes de regalo, y la pruebas en su chat de prueba con tus propios cuartos y tarifas antes de conectar tu WhatsApp.</p>
+  <a href="${RUTA_REGISTRO}">Crear mi cuenta gratis →</a>
 </div>
     `,
   },

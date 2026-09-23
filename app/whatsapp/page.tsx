@@ -15,7 +15,14 @@ import { BarraCTA } from "@/components/shared/BarraCTA";
 import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 import { WhatsAppDemoChat } from "@/components/landing/WhatsAppDemoChat";
 import { paginasWhatsApp } from "@/lib/whatsapp";
-import { AYUDA_ALTA, GARANTIA, PRECIO_DESDE, RUTA_REGISTRO } from "@/lib/oferta";
+import {
+  AYUDA_ALTA,
+  GARANTIA,
+  PRECIO_DESDE,
+  REGALO_CAMILA_MENSAJES,
+  RUTA_REGISTRO,
+  TEXTO_RECARGAS_CAMILA,
+} from "@/lib/oferta";
 import { waLink } from "@/lib/contacto";
 import { metaDescripcion } from "@/lib/seo";
 import { JsonLd } from "@/components/shared/JsonLd";
@@ -141,8 +148,12 @@ const FAQS = [
     a: "Puedes usar el número que ya tienes. Lo vinculas tú desde tu panel: abres WhatsApp en el teléfono del hotel, entras a Dispositivos vinculados y escaneas el código QR que te aparece. Si prefieres, te ayudamos a hacerlo.",
   },
   {
-    q: "¿Puedo probar a Camila antes de conectarla o de pagar?",
-    a: `Sí. Creas tu cuenta gratis, cargas tu hotel y hablas con Camila en el chat de prueba de tu panel, con tus cuartos y tus tarifas, sin conectar tu WhatsApp. Tienes ${GARANTIA.diasPrueba} días gratis y no te pedimos tarjeta.`,
+    // Decía «Sí. Creas tu cuenta gratis… y hablas con Camila en el chat de
+    // prueba». Desde el 2 oct 2026 Camila se abre al activar el plan
+    // (`puedeUsarCamila`, lib/suscripcion.ts): lo que se prueba gratis es el
+    // resto de Kora, y a Camila se la prueba antes de CONECTARLA, no de pagar.
+    q: "¿Puedo probar a Camila antes de conectarla a mi WhatsApp?",
+    a: `Sí. Camila se enciende al activar tu plan y trae ${REGALO_CAMILA_MENSAJES} mensajes de regalo: en el chat de prueba de tu panel le preguntas lo que te preguntaría un huésped, con tus cuartos y tus tarifas, antes de vincular tu WhatsApp. Antes de pagar tienes ${GARANTIA.diasPrueba} días gratis, sin tarjeta, para cargar tu hotel y probar tu motor y tu panel.`,
   },
   {
     q: "¿Puedo entrar yo a la conversación?",
@@ -155,7 +166,9 @@ const FAQS = [
     // puede abrir las recargas con un botón del CRM, sin tocar código: el día
     // que lo haga, esta frase quedaría falsa sin que nadie la revise. Se dice
     // sólo lo que es cierto en cualquier fase del prepago.
-    a: `Camila viene incluida en el plan único de Kora: ${PRECIO} MXN al mes, con el motor de reservas, el PMS, el dashboard y el CRM. Sin costo de implementación y sin permanencia.`,
+    // 23 sep 2026: con el modelo nuevo las recargas SÍ son parte del precio
+    // (desde el 1 oct), así que se dicen: callarlas prometía mensajes ilimitados.
+    a: `Camila se enciende con el plan único de Kora: ${PRECIO} MXN al mes, con el motor de reservas, el PMS, el dashboard y el CRM. Trae ${REGALO_CAMILA_MENSAJES} mensajes de regalo; ${TEXTO_RECARGAS_CAMILA}. Sin costo de implementación y sin permanencia.`,
   },
   {
     q: "¿En qué idiomas responde?",
@@ -231,7 +244,7 @@ export default function WhatsAppPage() {
                       ctaName="whatsapp_pilar_onboarding"
                       className="btn-press btn-arrow btn-fill inline-flex items-center justify-center gap-2 px-7 py-4 rounded-full bg-kora-accent text-kora-primary font-bold text-sm hover:bg-kora-accent-dark transition-colors"
                     >
-                      Probar gratis {GARANTIA.diasPrueba} días — sin tarjeta
+                      Crear mi cuenta gratis
                       <ArrowRight size={16} aria-hidden="true" />
                     </CtaLink>
                     <Link
@@ -241,9 +254,14 @@ export default function WhatsAppPage() {
                       Ver precios
                     </Link>
                   </div>
+                  {/* El botón decía «Probar gratis N días — sin tarjeta» en la
+                      página de Camila, y desde el 2 oct 2026 la prueba gratis
+                      no la incluye: se enciende al activar el plan. */}
                   <p className="mt-4 text-xs text-white/50">
                     Incluida en el plan único de {PRECIO} MXN/mes,
-                    junto con el motor de reservas, el PMS y el CRM.
+                    junto con el motor de reservas, el PMS y el CRM. Se
+                    enciende al activar tu plan, con {REGALO_CAMILA_MENSAJES} mensajes
+                    de regalo; {TEXTO_RECARGAS_CAMILA}.
                   </p>
                 </div>
               </Reveal>
@@ -377,7 +395,7 @@ export default function WhatsAppPage() {
                 "No sustituye a una persona en recepción: no recibe llegadas tarde ni resuelve lo que pasa dentro del hotel.",
                 "No negocia tarifas de grupo ni condiciones especiales. Esos casos te los pasa a ti.",
                 "No maneja quejas ni conversaciones delicadas. Ahí el huésped necesita que le contestes tú.",
-                "No corrige tus datos: si una tarifa está mal cargada, la cotizará mal. Por eso, antes de conectarla, pruébala en el chat de prueba de tu panel y corrige lo que haga falta.",
+                "No corrige tus datos: si una tarifa está mal cargada, la cotizará mal. Por eso, al activar tu plan y antes de conectarla, pruébala en el chat de prueba de tu panel y corrige lo que haga falta.",
               ].map((t, i) => (
                 <Reveal key={t} delay={0.05 + i * 0.05}>
                   <li className="flex gap-3 bg-white rounded-2xl p-5 border border-gray-100">

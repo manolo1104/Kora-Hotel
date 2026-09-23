@@ -13,6 +13,7 @@ import {
 } from "@/lib/booking";
 import type { Politica } from "@/lib/politica";
 import type { HotelRow } from "@/lib/tenant";
+import { REGALO_CAMILA_MENSAJES } from "@/lib/oferta";
 
 export interface DiagnosticoItem {
   ok: boolean;
@@ -194,8 +195,20 @@ export function coberturaTemporadas(hotel: HotelRow): CoberturaTemporadas {
   };
 }
 
-/** Diagnóstico completo del hotel. Cada consumidor toma los items que necesita. */
-export function diagnosticarHotel(hotel: HotelRow): DiagnosticoHotel {
+/**
+ * Diagnóstico completo del hotel. Cada consumidor toma los items que necesita.
+ *
+ * `opts.camilaPermitida` es `puedeUsarCamila()` de lib/suscripcion.ts. Desde el
+ * 2 oct 2026 un hotel en prueba gratis no tiene el chat de prueba de Camila
+ * hasta que paga, y el aviso de `botEntrenado` no puede mandarlo a hacerle «3
+ * preguntas en el chat de prueba». Por defecto `true` (lo de siempre): hoy
+ * ninguna pantalla pinta ese aviso, y quien lo pinte tiene que pasarlo.
+ */
+export function diagnosticarHotel(
+  hotel: HotelRow,
+  opts: { camilaPermitida?: boolean } = {},
+): DiagnosticoHotel {
+  const camilaPermitida = opts.camilaPermitida ?? true;
   const extras = (hotel.extras ?? {}) as Record<string, unknown>;
   const rooms = hotelRooms(hotel);
   // Un cuarto que se llama "prueba"/"test"/"demo" y está publicado: pasó en un
@@ -411,9 +424,11 @@ export function diagnosticarHotel(hotel: HotelRow): DiagnosticoHotel {
       label: "Camila entrenada y probada",
       aviso: botEntrenado
         ? undefined
-        : botConTexto
-          ? "Ya la entrenaste; ahora hazle 3 preguntas en el chat de prueba para confirmar que responde bien."
-          : "Entrena a Camila para que suene como tu hotel y pruébala con 3 preguntas.",
+        : !camilaPermitida
+          ? `Entrena a Camila para que suene como tu hotel. Al activar tu plan se abre su chat de prueba, con ${REGALO_CAMILA_MENSAJES} mensajes de regalo, para hacerle 3 preguntas.`
+          : botConTexto
+            ? "Ya la entrenaste; ahora hazle 3 preguntas en el chat de prueba para confirmar que responde bien."
+            : "Entrena a Camila para que suene como tu hotel y pruébala con 3 preguntas.",
     },
     publicado: {
       ok: hotel.publicado !== false,

@@ -1,5 +1,6 @@
 "use client";
 
+import { RUTA_ACTIVAR, REGALO_CAMILA_MENSAJES } from "@/lib/oferta";
 import { useEffect, useRef, useState } from "react";
 import {
   Bot,
@@ -159,11 +160,17 @@ export default function CamilaClient({
   hotelNombre,
   whatsappHotel,
   diagnostico,
+  camilaPermitida = true,
 }: {
   slug: string;
   hotelNombre: string;
   whatsappHotel: string;
   diagnostico: DiagnosticoHotel;
+  /**
+   * false = hotel en prueba gratis registrado desde el 2 oct 2026: tiene el
+   * panel, pero Camila (chat de prueba y QR) se abre al activar el plan.
+   */
+  camilaPermitida?: boolean;
 }) {
   const [cargando, setCargando] = useState(true);
   const [enabled, setEnabled] = useState(true);
@@ -489,6 +496,10 @@ export default function CamilaClient({
       const reply =
         res.ok && d.reply
           ? d.reply
+          : d.error === "sin-pago"
+            ? `(Camila se activa con tu plan: al activarlo se abre este chat y la conexión con tu WhatsApp, con ${REGALO_CAMILA_MENSAJES} mensajes de regalo.)`
+          : d.error === "sin-saldo"
+            ? "(Se te acabaron los mensajes de Camila. Recarga desde tu panel y vuelve a probar.)"
           : d.error === "motor-pausado"
             ? "(Tu plan no está activo, así que Camila está en pausa —también con tus huéspedes. Reactívalo desde Suscripción y vuelve a probar.)"
             : d.error === "demasiadas-pruebas"
@@ -791,8 +802,9 @@ export default function CamilaClient({
                 </div>
 
                 <p className="mt-3 text-sm text-kora-muted">
-                  Cada respuesta que {nombreBot} le manda a un huésped cuenta como un mensaje. Lo demás —tu
-                  página de reservas, los cobros y los correos— no gasta saldo.
+                  Cada respuesta que {nombreBot} le manda a un huésped, o que te da en el chat de prueba,
+                  cuenta como un mensaje. Lo demás —tu página de reservas, los cobros y los correos— no
+                  gasta saldo.
                 </p>
 
                 {!saldo.recargaAbierta ? (
@@ -1224,6 +1236,25 @@ export default function CamilaClient({
                 `Hazle ${META_PRUEBAS} preguntas para darla por probada (${Math.min(pruebas, META_PRUEBAS)}/${META_PRUEBAS})`
               )}
             </span>
+            {!camilaPermitida ? (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-5 space-y-2">
+                <p className="text-sm font-semibold text-amber-900">
+                  Camila se activa con tu plan
+                </p>
+                <p className="text-sm text-amber-900/80">
+                  Durante tu prueba puedes usar todo el panel y dejar a Camila entrenada. Al
+                  activar tu plan se abren este chat de prueba y la conexión con tu WhatsApp,
+                  con {REGALO_CAMILA_MENSAJES} mensajes de regalo.
+                </p>
+                <a
+                  href={RUTA_ACTIVAR}
+                  className="btn-press inline-flex items-center rounded-full bg-kora-primary px-4 py-2 text-sm font-semibold text-white"
+                >
+                  Activar mi plan
+                </a>
+              </div>
+            ) : (
+            <>
             <div className="rounded-xl border border-panel-contrast/10 bg-kora-bg/50 h-72 overflow-y-auto p-3 space-y-2">
               {mensajes.length === 0 && (
                 <p className="text-sm text-kora-muted text-center py-8">
@@ -1278,6 +1309,8 @@ export default function CamilaClient({
                 <Send size={17} />
               </button>
             </div>
+            </>
+            )}
 
             {/* Verificador de disponibilidad: exactamente lo que Camila ofrecería */}
             <div className="rounded-xl border border-panel-contrast/10 bg-panel-surface p-4 space-y-3">
@@ -1390,6 +1423,11 @@ export default function CamilaClient({
                     <li key={m.clave}>
                       <span className="font-semibold">{m.titulo}.</span>{" "}
                       <span className="text-amber-800">{m.detalle}</span>
+                      {m.clave === "sin-pago" && (
+                        <a href={RUTA_ACTIVAR} className="ml-1 font-semibold underline">
+                          Activar mi plan
+                        </a>
+                      )}
                     </li>
                   ))}
                 </ul>

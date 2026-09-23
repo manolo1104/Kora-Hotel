@@ -323,7 +323,7 @@ export const ciudades: Ciudad[] = [
       },
       {
         q: "¿Cuánto tarda el arranque?",
-        a: `Lo que tardes en cargar tu hotel: con tus unidades y sus tarifas ya puedes probar el motor, y las fotos, los cobros y tu WhatsApp los agregas cuando quieras. Sin costo de instalación y con ${DIAS} días gratis; si quieres ayuda, te acompañamos por WhatsApp.`,
+        a: `Lo que tardes en cargar tu hotel: con tus unidades y sus tarifas ya puedes probar el motor, y las fotos y los cobros los agregas cuando quieras; Camila y tu WhatsApp se encienden al activar tu plan. Sin costo de instalación y con ${DIAS} días gratis; si quieres ayuda, te acompañamos por WhatsApp.`,
       },
     ],
   },

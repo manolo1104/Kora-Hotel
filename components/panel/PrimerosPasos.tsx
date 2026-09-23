@@ -15,7 +15,7 @@ import type { DiagnosticoHotel } from "@/lib/panel/diagnostico";
 import { getHotelMember } from "@/lib/tenant";
 import { puedeCtx } from "@/lib/panel/permisos";
 import { motivoCierre } from "@/lib/panel/pantallas";
-import { accesoDelHotel } from "@/lib/suscripcion";
+import { accesoDelHotel, puedeUsarCamila } from "@/lib/suscripcion";
 import { cobrosListosDelHotel } from "@/lib/motor/modo-prueba";
 import {
   estadoDelMotor,
@@ -39,6 +39,9 @@ export default async function PrimerosPasos({
 
   let estadoMotor: EstadoMotor = "sin-cobros";
   let cobrosListos = false;
+  // Desde el 2 oct 2026 la prueba gratis no trae a Camila: sin plan, la tarea
+  // de su chat de prueba se cambia por «Activa tu plan para abrir a Camila».
+  let camilaPermitida = false;
   if (hotel) {
     const extras = (hotel.extras ?? {}) as Record<string, unknown>;
     // Ninguna de las dos lanza. Sin cuenta de Stripe, `cobrosListosDelHotel`
@@ -49,6 +52,7 @@ export default async function PrimerosPasos({
     ]);
     cobrosListos = listos;
     estadoMotor = estadoDelMotor({ acceso, cobrosListos, demo: extras.demo === true });
+    camilaPermitida = puedeUsarCamila(acceso, hotel);
   }
 
   const bot = ((hotel?.extras ?? {}) as { bot?: { probadoAt?: unknown } }).bot;
@@ -67,6 +71,10 @@ export default async function PrimerosPasos({
     puedeVincular: ctx
       ? motivoCierre(ctx.rol, ctx.pantallas, "camila") === null && puedeCtx(ctx, "bot:vincular")
       : false,
+    camilaPermitida,
+    // La suscripción es del dueño: si otra persona del equipo pagara, el plan
+    // quedaría a su nombre y no abriría a Camila en este hotel.
+    puedeActivarPlan: ctx?.rol === "dueno",
   });
   const { hechas, total, completo } = progresoPrimerosPasos(tareas);
 

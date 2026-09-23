@@ -194,6 +194,7 @@ const MOTIVO_CAMILA: Record<MotivoSinBot, string> = {
   "sin-publicar": "Su página no está publicada.",
   "bot-apagado": "El hotelero apagó a Camila en su panel.",
   "sin-acceso": "No tiene acceso: está bloqueado, su prueba venció o su plan no está activo.",
+  "sin-pago": "Está en prueba gratis y se registró desde el 2 oct: Camila se abre cuando pague el plan.",
   "sin-whatsapp": "No ha capturado el WhatsApp del hotel.",
 };
 

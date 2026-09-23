@@ -20,7 +20,15 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it, expect } from "vitest";
-import { PASOS_ALTA, RUTA_REGISTRO, RUTA_ACTIVAR, AYUDA_ALTA, GARANTIA } from "@/lib/oferta";
+import {
+  PASOS_ALTA,
+  RUTA_REGISTRO,
+  RUTA_ACTIVAR,
+  AYUDA_ALTA,
+  GARANTIA,
+  REGALO_CAMILA_MENSAJES,
+} from "@/lib/oferta";
+import { REGALO_BIENVENIDA } from "@/lib/saldo/paquetes";
 
 const raiz = join(__dirname, "..");
 const leer = (rel: string) => readFileSync(join(raiz, rel), "utf8");
@@ -201,4 +209,63 @@ describe("las constantes que usa el sitio tienen sentido", () => {
   it("el primer paso del alta dice los mismos días de prueba que la garantía", () => {
     expect(PASOS_ALTA[0].texto).toContain(`${GARANTIA.diasPrueba} días`);
   });
+});
+
+// ─── La prueba gratis ya no trae a Camila (decisión de Manolo, 23 sep 2026) ────
+//
+// Desde el 2 oct 2026 quien se registra tiene todo el panel, pero Camila (su
+// chat de prueba y el QR de WhatsApp) se enciende al activar el plan, con
+// `REGALO_CAMILA_MENSAJES` de regalo (`puedeUsarCamila`, lib/suscripcion.ts).
+// Hasta ese día una docena de textos decían «habla con Camila en el chat de
+// prueba» como parte de la prueba gratis, y el botón de la sección de Camila era
+// «Crear cuenta y probar a Camila».
+describe("la prueba gratis no promete a Camila", () => {
+  it("el regalo que anuncia el sitio es el que se acredita de verdad", () => {
+    expect(REGALO_CAMILA_MENSAJES).toBe(REGALO_BIENVENIDA);
+  });
+
+  it("en los pasos del alta, Camila (chat de prueba y QR) va con el plan, no antes", () => {
+    const iPlan = PASOS_ALTA.findIndex((p) => /plan/i.test(p.titulo));
+    expect(iPlan).toBeGreaterThan(-1);
+    PASOS_ALTA.forEach((p, i) => {
+      if (/Camila|chat de prueba|c[oó]digo QR/i.test(p.texto)) {
+        expect(i, `«${p.titulo}» habla de Camila antes de activar el plan`).toBeGreaterThanOrEqual(iPlan);
+      }
+    });
+  });
+
+  const PUBLICAS = [
+    "app/page.tsx",
+    "app/precios/page.tsx",
+    "app/como-funciona/page.tsx",
+    "app/caracteristicas/page.tsx",
+    "app/whatsapp/page.tsx",
+    "components/landing/AgenteSection.tsx",
+    "components/landing/PricingSection.tsx",
+    "components/landing/WhatsAppDemoChat.tsx",
+    "components/landing/HerramientasSection.tsx",
+    "components/herramientas/DiagnosticoHotel.tsx",
+    "lib/articles.ts",
+    "lib/faqs.ts",
+    "lib/whatsapp.ts",
+    "lib/ciudades.ts",
+    "lib/ayuda.ts",
+    "public/pricing.md",
+  ];
+  const FRASES: [string, RegExp][] = [
+    ["hablar con Camila en el chat de prueba", /habla(s)?\s+con\s+Camila\s+en\s+(el|su)\s+chat\s+de\s+prueba/i],
+    ["escribirle a Camila en el chat de prueba", /le\s+escribes\s+a\s+Camila\s+en\s+el\s+chat/i],
+    ["probar a Camila gratis", /probar\s+a\s+Camila(\s+gratis|\s+con\s+mi\s+hotel)?\s*(<|→|"|$)/im],
+    ["crear cuenta y probar a Camila", /Crear\s+cuenta\s+y\s+probar(la|\s+a\s+Camila)/i],
+    ["un chat de prueba con Camila incluido en la prueba", /incluido\s+un\s+chat\s+de\s+prueba/i],
+    ["usar Kora completo en la prueba", /(usas|pruebas|prueba)\s+Kora\s+completo|lo\s+usas\s+completo/i],
+  ];
+
+  for (const rel of PUBLICAS) {
+    it(`${rel} no invita a hablar con Camila en la prueba gratis`, () => {
+      const texto = sinComentarios(leer(rel));
+      const culpables = FRASES.filter(([, re]) => re.test(texto)).map(([que]) => que);
+      expect(culpables).toEqual([]);
+    });
+  }
 });

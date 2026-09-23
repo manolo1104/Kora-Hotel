@@ -12,7 +12,7 @@
 //   · responde en el idioma del huésped, escala a una persona en casos raros
 // Nada de "cierra el 80% de las reservas" ni cifras sin fuente.
 import type { FAQ } from "@/lib/glosario";
-import { GARANTIA, PRECIO_DESDE } from "@/lib/oferta";
+import { GARANTIA, PRECIO_DESDE, REGALO_CAMILA_MENSAJES, TEXTO_RECARGAS_CAMILA } from "@/lib/oferta";
 
 // 15 sep 2026: la conexión del WhatsApp se vendía como «parte del arranque llave
 // en mano: nosotros la montamos», y el arranque incluía «que nosotros carguemos
@@ -166,7 +166,7 @@ export const paginasWhatsApp: PaginaWhatsApp[] = [
       },
       {
         q: "¿Cuánto cuesta comparado con pagar una guardia?",
-        a: `Camila viene incluida en el plan de Kora, ${PLAN} al mes con todo lo demás. Un turno nocturno humano cuesta varias veces eso al mes.`,
+        a: `Camila se enciende con el plan de Kora, ${PLAN} al mes con todo lo demás, y trae ${REGALO_CAMILA_MENSAJES} mensajes de regalo; ${TEXTO_RECARGAS_CAMILA}. Un turno nocturno humano cuesta varias veces eso al mes.`,
       },
     ],
     relacionados: [
@@ -222,7 +222,7 @@ export const paginasWhatsApp: PaginaWhatsApp[] = [
       },
       {
         q: "¿Y si me equivoqué al cargar una tarifa?",
-        a: "Entonces Camila cotizará ese error, porque su fuente es tu sistema. Por eso conviene probarla antes: en tu panel hay un chat de prueba donde le preguntas por unas fechas y ves qué total da, sin tocar tu WhatsApp. Si algo no cuadra, corriges la tarifa y vuelves a preguntar.",
+        a: "Entonces Camila cotizará ese error, porque su fuente es tu sistema. Por eso conviene probarla antes de vincularla: con tu plan activo, en tu panel tienes un chat de prueba donde le preguntas por unas fechas y ves qué total da, sin tocar tu WhatsApp. Si algo no cuadra, corriges la tarifa y vuelves a preguntar.",
       },
     ],
     relacionados: [
@@ -529,7 +529,7 @@ export const paginasWhatsApp: PaginaWhatsApp[] = [
     cuerpo: [
       "Vale la pena decirlo claro: no son lo mismo y no compiten en todo. Una persona en recepción de noche hace cosas que ningún software hace —recibir a quien llega a la 1 de la mañana, resolver una fuga, estar presente si algo pasa—. Si tu hotel necesita eso, necesita a la persona.",
       "Lo que sí es comparable es la parte de mensajes. Ahí la pregunta es cuánto te cuesta cada canal de respuesta y qué tan bien responde.",
-      `Un turno nocturno en México, con prestaciones, es un gasto fijo mensual que para un hotel de 8 a 20 cuartos casi nunca se justifica sólo por contestar WhatsApp. Camila viene incluida en el plan de ${PLAN} al mes junto con el resto del sistema.`,
+      `Un turno nocturno en México, con prestaciones, es un gasto fijo mensual que para un hotel de 8 a 20 cuartos casi nunca se justifica sólo por contestar WhatsApp. Camila se enciende con el plan de ${PLAN} al mes junto con el resto del sistema, con ${REGALO_CAMILA_MENSAJES} mensajes de regalo; ${TEXTO_RECARGAS_CAMILA}.`,
       "La otra diferencia es la consistencia. Una persona cansada a las 3 de la mañana da el precio de memoria y a veces se equivoca. El agente consulta el sistema cada vez y da el mismo total que cobrará el link de pago.",
     ],
     tabla: {
@@ -621,7 +621,7 @@ export const paginasWhatsApp: PaginaWhatsApp[] = [
     resumen:
       "Los tres modelos de cobro del mercado y dónde están los costos escondidos.",
     respuesta:
-      `En México el rango va desde herramientas de respuestas automáticas gratuitas hasta plataformas de chatbot que cobran por conversación o por agente. El costo escondido está en la implementación y en las conversaciones facturadas por la API. En Kora, el agente viene incluido en el plan de ${PLAN} al mes.`,
+      `En México el rango va desde herramientas de respuestas automáticas gratuitas hasta plataformas de chatbot que cobran por conversación o por agente. El costo escondido está en la implementación y en las conversaciones facturadas por la API. En Kora, el agente se enciende con el plan de ${PLAN} al mes y trae ${REGALO_CAMILA_MENSAJES} mensajes de regalo; ${TEXTO_RECARGAS_CAMILA}. No hay costo de implementación.`,
     cuerpo: [
       "Cuando un hotelero pide cotización de \"un bot de WhatsApp\", recibe tres tipos de respuesta muy distintos y comparar se vuelve difícil.",
       "**Modelo 1 — gratis, pero de guion.** Las respuestas rápidas y el mensaje de ausencia de WhatsApp Business no cuestan nada. Tampoco resuelven nada más allá de avisar que no estás.",
@@ -662,7 +662,9 @@ export const paginasWhatsApp: PaginaWhatsApp[] = [
       },
       {
         q: "¿Puedo probarlo antes de pagar?",
-        a: `Sí. Te registras y tienes ${GARANTIA.diasPrueba} días gratis, sin tarjeta, para probarlo con tu propio hotel, incluido un chat de prueba con Camila.`,
+        // Decía «…incluido un chat de prueba con Camila». Desde el 2 oct 2026
+        // Camila se enciende al activar el plan (`puedeUsarCamila`).
+        a: `Sí. Te registras y tienes ${GARANTIA.diasPrueba} días gratis, sin tarjeta, para probar tu motor y tu panel con tu propio hotel. Camila se enciende al activar tu plan, con ${REGALO_CAMILA_MENSAJES} mensajes de regalo, y la pruebas en su chat de prueba antes de vincular tu WhatsApp.`,
       },
     ],
     relacionados: [

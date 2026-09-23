@@ -3,6 +3,7 @@ import {
   GARANTIA,
   PASOS_ALTA,
   AYUDA_ALTA,
+  REGALO_CAMILA_MENSAJES,
   RUTA_REGISTRO,
 } from "@/lib/oferta";
 import { faqs } from "@/lib/faqs";
@@ -66,6 +67,7 @@ DATOS VIGENTES:
 Plan (hay uno solo):
 ${planes}
 Prueba: ${GARANTIA.diasPrueba} días gratis, sin tarjeta. Si al terminarla no activa el plan, su página pública de reservas sigue en línea y los huéspedes le escriben por WhatsApp; se pausan el motor de reservas en línea y Camila. Sus datos se conservan.
+Camila y la prueba gratis: la prueba incluye el panel, el sitio y el motor de reservas (en modo prueba), pero NO a Camila. Camila (su chat de prueba en el panel y la vinculación del WhatsApp con el código QR) se enciende al activar el plan, con ${REGALO_CAMILA_MENSAJES} mensajes de regalo; cuentan tanto sus respuestas en el chat de prueba como las que da por WhatsApp. No digas que en la prueba gratis se puede hablar con Camila. Excepción: los hoteles que se registraron hasta el 1 de octubre de 2026 conservan a Camila durante su prueba; menciónalo sólo si un hotelero ya registrado pregunta por qué él sí la tiene.
 Sitio web profesional con motor de reservas: servicio aparte, lo cotizamos según cada hotel (además de la mensualidad). NUNCA des un precio del sitio: ofrécete a cotizarlo o escala. También se puede conectar el motor a una página que el hotel ya tenga.
 Plan mes a mes, sin permanencia ni contrato forzoso. Garantía: si activa su plan y cancela dentro de los ${GARANTIA.diasDevolucion} días siguientes a su primer pago, se le devuelve esa mensualidad.
 Pagos: tarjeta vía Stripe, cobro mensual automático. El cliente activa su plan desde /panel ("Activar mi plan") o desde /precios, y administra su tarjeta, recibos y cancelación desde /panel → "Administrar mi pago".

@@ -39,10 +39,13 @@ export interface Paquete {
  * compre 3.000 mensajes por un peso.
  */
 export const PAQUETES: Paquete[] = [
-  { mxn: 100, mensajes: 300 },
-  { mxn: 200, mensajes: 600, destacado: true },
-  { mxn: 500, mensajes: 1_500 },
-  { mxn: 1_000, mensajes: 3_000 },
+  // 23 sep 2026: los del estudio del modelo de negocio (cifras-ancla, sección
+  // de recargas), todos con IVA. El de $100 = 300 dejaba 30 % después de Stripe;
+  // el mínimo pasa a $300 = 500. El de $600 es el señuelo del de $900.
+  { mxn: 300, mensajes: 500 },
+  { mxn: 600, mensajes: 1_050 },
+  { mxn: 900, mensajes: 1_800, destacado: true },
+  { mxn: 2_000, mensajes: 4_500 },
 ];
 
 /** El mínimo que se puede recargar. */
@@ -51,8 +54,13 @@ export const MINIMO_MXN = PAQUETES[0].mxn;
 /** Cuántos mensajes trae cada peso. Sólo para textos («≈ N mensajes»). */
 export const MENSAJES_POR_PESO = PAQUETES[0].mensajes / PAQUETES[0].mxn;
 
-/** Cuántos mensajes de regalo lleva un hotel nuevo (y los ya registrados). */
-export const REGALO_BIENVENIDA = 300;
+/**
+ * Cuántos mensajes de regalo lleva un hotel nuevo. Eran 300 hasta el 23 sep
+ * 2026; con el modelo nuevo (Camila se abre al pagar) son 100, y cuentan igual
+ * los del chat de prueba que los de WhatsApp. A los ya registrados no se les
+ * quita nada: esto sólo se acredita al crear un hotel.
+ */
+export const REGALO_BIENVENIDA = 100;
 
 /** Por debajo de esto se le avisa al hotelero de que se le está acabando. */
 export const UMBRAL_AVISO_BAJO = 60;

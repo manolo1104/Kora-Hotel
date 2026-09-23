@@ -26,6 +26,7 @@ import {
   GARANTIA,
   PASOS_ALTA,
   PRECIO_DESDE,
+  REGALO_CAMILA_MENSAJES,
   RUTA_REGISTRO,
 } from "@/lib/oferta";
 
@@ -56,7 +57,7 @@ const PRECIO = PRECIO_DESDE.toLocaleString("es-MX");
 // habría que repetir siteName y locale a mano.
 export const metadata: Metadata = {
   title: "Cómo funciona Kora — Regístrate y pruébalo gratis con tu hotel",
-  description: `Crea tu cuenta, carga tu hotel y prueba Kora por dentro ${DIAS} días gratis, sin tarjeta: Camila con tus datos, una reserva de prueba y tu panel.`,
+  description: `Crea tu cuenta, carga tu hotel y prueba Kora por dentro ${DIAS} días gratis, sin tarjeta: una reserva de prueba y tu panel. Camila se enciende con tu plan.`,
   alternates: {
     canonical: "/como-funciona",
   },
@@ -73,8 +74,13 @@ const iconoDelPaso = (i: number) => ICONOS_PASO[Math.min(i, ICONOS_PASO.length -
 
 // Lo que se puede probar dentro de la cuenta SIN huéspedes reales. Cada frase
 // describe algo que ya funciona hoy:
-//  · el chat de prueba de Camila usa los datos y la disponibilidad reales del
-//    hotel y tiene apagada la herramienta de reservar (`api/admin/bot-preview`);
+//  · Camila NO entra en la prueba gratis desde el 2 oct 2026 (`puedeUsarCamila`
+//    en lib/suscripcion.ts): su chat de prueba y el QR se abren al activar el
+//    plan. Su tarjeta iba PRIMERO y decía «En el chat de prueba le escribes como
+//    si fueras un huésped», que ya no se puede sin pagar; ahora va al final y
+//    dice que se enciende con el plan. Cuando se abre, el chat usa los datos y
+//    la disponibilidad reales del hotel y tiene apagada la herramienta de
+//    reservar (`api/admin/bot-preview`);
 //  · el motor simula el pago mientras el hotel está EN PRUEBA y sus cobros de
 //    Stripe no están listos (`lib/motor/modo-prueba.ts`). La condición va entera
 //    en el texto: la primera versión decía sólo «mientras no conectes tus
@@ -88,12 +94,6 @@ const iconoDelPaso = (i: number) => ICONOS_PASO[Math.min(i, ICONOS_PASO.length -
 //    (`buildCRM` parte de las reservas).
 const QUE_PROBAR: { Icon: LucideIcon; titulo: string; texto: string }[] = [
   {
-    Icon: MessageCircle,
-    titulo: "Camila, con los datos de tu hotel",
-    texto:
-      "En el chat de prueba le escribes como si fueras un huésped. Te contesta con tus habitaciones, tus tarifas y tu disponibilidad. No aparta ni cobra nada: es para que veas cómo atendería tu WhatsApp antes de vincularlo.",
-  },
-  {
     Icon: CalendarCheck,
     titulo: "Una reserva de prueba en tu motor",
     texto:
@@ -104,6 +104,11 @@ const QUE_PROBAR: { Icon: LucideIcon; titulo: string; texto: string }[] = [
     titulo: "Tu panel: reservas, calendario y clientes",
     texto:
       "Registra una reserva a mano con los datos de un huésped y mira cómo aparece en tu calendario y en tus clientes. Así conoces el día a día antes de recibir reservas reales.",
+  },
+  {
+    Icon: MessageCircle,
+    titulo: "Camila, al activar tu plan",
+    texto: `Se enciende con tu plan y trae ${REGALO_CAMILA_MENSAJES} mensajes de regalo. En su chat de prueba le escribes como si fueras un huésped y te contesta con tus habitaciones, tus tarifas y tu disponibilidad, para que veas cómo atendería tu WhatsApp antes de vincularlo.`,
   },
 ];
 

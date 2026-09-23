@@ -1,6 +1,8 @@
 // Fuente única de la oferta comercial.
 
 // Mensualidad del plan (el "desde" que se comunica).
+import { MINIMO_MXN, PAQUETES } from "@/lib/saldo/paquetes";
+
 export const PRECIO_DESDE = 550;
 
 // Horas que tardó en quedar operando el montaje de Paraíso Encantado.
@@ -88,6 +90,28 @@ export const RUTA_REGISTRO = "/panel/onboarding";
 /** La ruta para activar el plan de pago (sin sesión, pasa antes por /entrar). */
 export const RUTA_ACTIVAR = "/pago/iniciar?plan=kora";
 
+// ─── Camila se abre al pagar (decisión de Manolo, 23 sep 2026) ────────────────
+//
+// Desde el 2 oct 2026 la prueba gratis trae TODO el panel (motor en modo
+// prueba, sitio, PMS…) pero NO a Camila: ni su chat de prueba ni el QR para
+// vincular el WhatsApp. Se abre al activar el plan, con estos mensajes de
+// regalo (cuentan igual las respuestas del chat de prueba que las de WhatsApp).
+// Lo que aplica el sistema es `puedeUsarCamila` (lib/suscripcion.ts).
+//
+// DEBE coincidir con `REGALO_BIENVENIDA` de lib/saldo/paquetes.ts, que es lo
+// que se acredita de verdad; `tests/sitio-registro-congruente.test.ts` lo
+// vigila. Vive aquí, y no se importa de lib/saldo, para que los textos del
+// sitio no arrastren el módulo del saldo.
+export const REGALO_CAMILA_MENSAJES = 100;
+
+/**
+ * Después del regalo, Camila funciona con saldo prepago (23 sep 2026). Una sola
+ * frase para todas las superficies de precio: sin ella, «Camila viene incluida»
+ * prometía mensajes ilimitados dentro de los $550. Sale de la lista blanca de
+ * paquetes, así que si cambia el mínimo cambia aquí.
+ */
+export const TEXTO_RECARGAS_CAMILA = `después, sus mensajes se recargan desde tu panel, desde $${MINIMO_MXN.toLocaleString("es-MX")} MXN por ${PAQUETES[0].mensajes.toLocaleString("es-MX")} mensajes`;
+
 /**
  * Los pasos del alta, tal como funciona el producto HOY. Los usan
  * /como-funciona, la landing y el panel.
@@ -96,6 +120,11 @@ export const RUTA_ACTIVAR = "/pago/iniciar?plan=kora";
  * Booking o Expedia, ni «nosotros lo configuramos»: no existen. Y ninguna cifra a
  * mano: los días, el precio y la garantía salen de las constantes de arriba, que
  * son las que vigilan las pruebas.
+ *
+ * 23 sep 2026: el paso 3 decía «Habla con Camila en el chat de prueba» y el 4,
+ * «vincula tu WhatsApp escaneando un código QR», los dos ANTES de activar el
+ * plan. Desde el 2 oct eso ya no se puede en la prueba gratis, así que Camila
+ * (chat de prueba y QR) pasa al último paso, con el plan.
  */
 export const PASOS_ALTA: readonly { titulo: string; texto: string }[] = [
   {
@@ -110,16 +139,15 @@ export const PASOS_ALTA: readonly { titulo: string; texto: string }[] = [
   {
     titulo: "Pruébalo por dentro",
     texto:
-      "Habla con Camila en el chat de prueba con los datos de tu hotel, haz una reserva de prueba en tu motor sin que se cobre nada y recorre el panel.",
+      "Haz una reserva de prueba en tu motor sin que se cobre nada, registra reservas en tu calendario y recorre el panel con los datos de tu hotel.",
   },
   {
-    titulo: "Conéctalo",
-    texto:
-      "Conecta tus cobros con Stripe para recibir el dinero directo en tu cuenta y vincula tu WhatsApp escaneando un código QR.",
+    titulo: "Conecta tus cobros",
+    texto: "Conecta tus cobros con Stripe para recibir el dinero de cada reserva directo en tu cuenta.",
   },
   {
-    titulo: "Activa tu plan si te convence",
-    texto: `$${PRECIO_DESDE.toLocaleString("es-MX")} MXN al mes, sin permanencia. Si cancelas dentro de los ${GARANTIA.diasDevolucion} días siguientes a tu primer pago, te devolvemos esa mensualidad.`,
+    titulo: "Activa tu plan y enciende a Camila",
+    texto: `$${PRECIO_DESDE.toLocaleString("es-MX")} MXN al mes, sin permanencia. Al activarlo se abre Camila con ${REGALO_CAMILA_MENSAJES} mensajes de regalo: la pruebas en su chat de prueba y vinculas tu WhatsApp escaneando un código QR. Si cancelas dentro de los ${GARANTIA.diasDevolucion} días siguientes a tu primer pago, te devolvemos esa mensualidad.`,
   },
 ] as const;
 

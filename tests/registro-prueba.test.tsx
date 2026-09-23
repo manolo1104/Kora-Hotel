@@ -35,7 +35,7 @@ import {
 } from "@/lib/panel/primeros-pasos";
 import { buildBienvenidaHotelHtml, buildRecordatorioPruebaHtml } from "@/lib/email/prueba";
 import { PRUEBA_DIAS, type AccesoHotel } from "@/lib/suscripcion";
-import { GARANTIA, PRECIO_DESDE } from "@/lib/oferta";
+import { GARANTIA, PRECIO_DESDE, REGALO_CAMILA_MENSAJES, RUTA_ACTIVAR } from "@/lib/oferta";
 
 // ── /entrar ─────────────────────────────────────────────────────────────────
 
@@ -147,6 +147,8 @@ function datos(p: Partial<DatosPrimerosPasos> = {}): DatosPrimerosPasos {
     puedeVerPagos: true,
     puedeProbarCamila: true,
     puedeVincular: true,
+    camilaPermitida: true,
+    puedeActivarPlan: true,
     ...p,
   };
 }
@@ -218,6 +220,47 @@ describe("las dos casillas que mentían", () => {
     const ids = tareasPrimerosPasos(datos({ puedeProbarCamila: false, puedeVincular: false })).map((t) => t.id);
     expect(ids).not.toContain("camila-chat");
     expect(ids).not.toContain("whatsapp");
+    expect(ids).not.toContain("camila-plan");
+  });
+});
+
+// Desde el 2 oct 2026 la prueba gratis no trae a Camila (`puedeUsarCamila`):
+// su chat de prueba y el QR se abren al pagar. La lista no puede invitar a
+// «hablar con Camila en el chat de prueba» a quien no puede abrirlo.
+describe("sin Camila permitida (prueba gratis), la lista invita a activar el plan", () => {
+  const sinCamila = (p: Partial<DatosPrimerosPasos> = {}) => datos({ camilaPermitida: false, ...p });
+
+  it("el chat de prueba y el QR se cambian por «Activa tu plan»", () => {
+    const probar = tareasPrimerosPasos(sinCamila()).filter((t) => t.grupo === "probar").map((t) => t.id);
+    expect(probar).toEqual(["camila-plan", "motor"]);
+  });
+
+  it("dice los mensajes de regalo y lleva a activar el plan, sin palomita", () => {
+    const t = porId(sinCamila(), "camila-plan")!;
+    expect(t.label).toMatch(/Activa tu plan/);
+    expect(t.label).toContain(`${REGALO_CAMILA_MENSAJES} mensajes de regalo`);
+    expect(t.href).toBe(RUTA_ACTIVAR);
+    expect(t.ok).toBeNull();
+  });
+
+  it("no cuenta para el avance: no hay palomita que ganar sin pagar", () => {
+    const { total } = progresoPrimerosPasos(tareasPrimerosPasos(sinCamila()));
+    // Sólo el diagnóstico (6) y los cobros: el chat de Camila ya no cuenta.
+    expect(total).toBe(7);
+  });
+
+  it("a quien no es el dueño no se le manda a pagar: el plan es del dueño", () => {
+    const t = porId(sinCamila({ puedeActivarPlan: false }), "camila-plan")!;
+    expect(t.href).toBeNull();
+    expect(t.detalle).toMatch(/dueño/);
+  });
+
+  it("con el hotel bloqueado a mano no se ofrece: pagar no lo desbloquea", () => {
+    expect(porId(sinCamila({ estadoMotor: "bloqueado" }), "camila-plan")).toBeUndefined();
+  });
+
+  it("ninguna tarea habla del chat de prueba", () => {
+    for (const t of tareasPrimerosPasos(sinCamila())) expect(t.label).not.toMatch(/chat de prueba/i);
   });
 });
 
@@ -263,8 +306,20 @@ describe("la bienvenida dice los días que aplica el sistema", () => {
   });
 
   it("le invita a probarlo por dentro", () => {
-    expect(html).toMatch(/chat de prueba/);
     expect(html).toMatch(/reserva de prueba/);
+  });
+
+  // Desde el 2 oct 2026 un hotel en prueba gratis no tiene a Camila: el correo
+  // decía «Habla con Camila en el chat de prueba» como paso 1.
+  it("en prueba, Camila y su chat de prueba van con el plan, no antes", () => {
+    expect(html).not.toMatch(/Habla con Camila en el chat de prueba/);
+    expect(html).toContain("3. Activa tu plan y enciende a Camila");
+    expect(html).toContain(`${REGALO_CAMILA_MENSAJES} mensajes de regalo`);
+  });
+
+  it("con plan o cortesía (null) Camila ya está abierta y se le invita a hablarle", () => {
+    const conPlan = buildBienvenidaHotelHtml({ hotelNombre: "P", slug: "p", diasPrueba: null });
+    expect(conPlan).toMatch(/Habla con Camila en el chat de prueba/);
   });
 
   it("con los días que le quedan a un dueño que ya había empezado", () => {
@@ -295,6 +350,12 @@ describe("el precio de los correos sale de PRECIO_DESDE", () => {
   it("el recordatorio cita la mensualidad vigente", () => {
     const html = buildRecordatorioPruebaHtml({ hotelNombre: "Posada", diasRestantes: 3 });
     expect(html).toContain(`$${PRECIO_DESDE.toLocaleString("es-MX")} MXN al mes`);
+  });
+
+  // Desde el 23 sep 2026 el plan se cobra el día que se activa.
+  it("el recordatorio ya no promete respetar los días de prueba que queden", () => {
+    const html = buildRecordatorioPruebaHtml({ hotelNombre: "Posada", diasRestantes: 3 });
+    expect(html).not.toMatch(/Se respeta el tiempo que te quede/);
   });
 });
 

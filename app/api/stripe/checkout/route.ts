@@ -4,8 +4,6 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient, adminEnvReady } from "@/lib/supabase/admin";
 import { getStripe, stripeEnvReady } from "@/lib/stripe/server";
 import { planPorClave } from "@/lib/oferta";
-import { pruebaDelHotel, trialEndParaStripe, PRUEBA_DIAS } from "@/lib/suscripcion";
-import { anclaPruebaDelDueno } from "@/lib/db/prueba-dueno";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -100,49 +98,15 @@ export async function POST(req: Request) {
     const puedeEmbebido =
       body.embedded === true && Boolean(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
 
-    // La prueba vive en el PRODUCTO (corre desde que creó su primer hotel, sin
-    // tarjeta). Al activar el plan se respeta el tiempo que le QUEDE: ni días
-    // extra encima de su prueba, ni cobrarle antes de tiempo. Sin hotel aún
-    // (paga primero, carga después) → una prueba entera desde hoy. Prueba
-    // vencida (o a <48 h, mínimo de Stripe) → el cobro corre desde hoy.
-    // Lanza si falla: sin este dato la prueba se recalcularía desde hoy, y a un
-    // hotelero que lleva casi toda la suya se le regalaría otra completa.
-    const primerHotel = await leer<{ created_at: string | null; extras: Record<string, unknown> | null }>(
-      "checkout.primerHotel",
-      admin
-        .from("hoteles")
-        .select("created_at, extras")
-        .eq("owner_id", user.id)
-        .order("created_at", { ascending: true })
-        .limit(1)
-        .maybeSingle(),
-    );
-    // El ancla del DUEÑO manda sobre el created_at del hotel: si no, quien borró
-    // y recreó su hotel llegaba aquí con 30 días nuevos y se le respetaban. Y los
-    // días extra que Kora le regaló cuentan: activar el plan no puede comerse la
-    // semana que se le prometió.
-    const ancla = primerHotel ? await anclaPruebaDelDueno(user.id) : null;
-    const prueba = primerHotel && ancla
-      ? pruebaDelHotel(
-          primerHotel as { created_at: string | null; extras: Record<string, unknown> | null },
-          ancla.inicio,
-          ancla.diasExtra,
-        )
-      : null;
-    const subMeta = { user_id: user.id, plan: plan.clave };
-    // `trialEndParaStripe` es quien conoce el mínimo de 48 h de Stripe. Antes la
-    // condición era `prueba.diasRestantes >= 2` y `diasRestantes` se redondea
-    // hacia arriba, así que a 25 h del final se pedía un `trial_end` que Stripe
-    // rechazaba: el hotelero NO PODÍA PAGAR en las últimas 24-48 h de su prueba.
-    const trialEnd = trialEndParaStripe(prueba);
-    const subscriptionData = !primerHotel
-      // PRUEBA_DIAS, no un 30 escrito a mano: es un alta NUEVA (aún no tiene
-      // hotel), así que le tocan los días vigentes. Atarlo a la constante evita
-      // que la web anuncie un número y Stripe cobre según otro.
-      ? { trial_period_days: PRUEBA_DIAS, metadata: subMeta }
-      : trialEnd !== null
-        ? { trial_end: trialEnd, metadata: subMeta }
-        : { metadata: subMeta };
+    // SE COBRA EL DÍA QUE SE SUSCRIBE (decisión de Manolo, 23 sep 2026).
+    //
+    // Hasta ahora se respetaba lo que le quedara de prueba con un `trial_end`:
+    // el hotelero ponía la tarjeta y Stripe no cobraba hasta el final. Con el
+    // modelo nuevo, suscribirse es lo que abre a Camila (el QR y su chat de
+    // prueba), y el webhook guarda `trialing` como `activa`: con días gratis en
+    // Stripe, Camila se abría sin haber cobrado nada y se podía cancelar antes
+    // del primer cargo. Ahora «pagó» significa dinero cobrado.
+    const subscriptionData = { metadata: { user_id: user.id, plan: plan.clave } };
 
     const comun = {
       mode: "subscription" as const,

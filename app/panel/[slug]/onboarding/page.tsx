@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { requireHotelMember } from "@/lib/tenant";
 import { getConnectState } from "@/lib/stripe/connect";
-import { accesoDelHotel } from "@/lib/suscripcion";
+import { accesoDelHotel, puedeUsarCamila } from "@/lib/suscripcion";
 import { puedeCtx } from "@/lib/panel/permisos";
 import { motivoCierre } from "@/lib/panel/pantallas";
 import { estadoDelMotor } from "@/lib/panel/primeros-pasos";
@@ -59,6 +59,10 @@ export default async function OnboardingHotelPage({
   // El chat de prueba y el QR viven en la pantalla de Camila; los cobros, en
   // Pagos (sólo el dueño). No se enlaza a nada que termine en «no tienes permiso».
   const camilaAbierta = motivoCierre(ctx.rol, ctx.pantallas, "camila") === null;
+  // Desde el 2 oct 2026 la prueba gratis no trae a Camila: su chat de prueba y
+  // el QR se abren al pagar. Sin ella, el asistente invita a activar el plan en
+  // vez de a «hablar con Camila en el chat de prueba».
+  const camilaPermitida = puedeUsarCamila(acceso, hotel);
 
   return (
     <main className="pt-16">
@@ -97,6 +101,7 @@ export default async function OnboardingHotelPage({
             requirementsDue={connect.requirementsDue}
             estadoMotor={estadoMotor}
             puedeProbarCamila={camilaAbierta && puedeCtx(ctx, "bot:leer")}
+            camilaPermitida={camilaPermitida}
             puedeVerPagos={puedeCtx(ctx, "pagos:ver")}
           />
         </div>

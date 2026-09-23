@@ -63,7 +63,9 @@ const jsonLd = {
       priceCurrency: "MXN",
       eligibleDuration: { "@type": "QuantitativeValue", value: DIAS, unitCode: "DAY" },
       url: `${SITE_URL}/como-funciona`,
-      description: `Crea tu cuenta, carga tu hotel y prueba Kora completo ${DIAS} días gratis, sin tarjeta. Activas tu plan solo si te convence.`,
+      // Decía «prueba Kora completo»: desde el 2 oct 2026 Camila no entra en
+      // la prueba gratis (se enciende al activar el plan).
+      description: `Crea tu cuenta, carga tu hotel y prueba tu panel y tu motor de reservas ${DIAS} días gratis, sin tarjeta. Activas tu plan solo si te convence; con él se enciende Camila.`,
     },
     {
       "@type": "Service",

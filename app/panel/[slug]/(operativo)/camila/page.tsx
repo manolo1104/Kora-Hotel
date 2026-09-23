@@ -2,6 +2,7 @@ import { requireHotelMember } from "@/lib/tenant";
 import { motivoCierre } from "@/lib/panel/pantallas";
 import { SinPermiso, pantallaDe } from "@/components/panel/SinPermiso";
 import { diagnosticarHotel } from "@/lib/panel/diagnostico";
+import { accesoDelHotel, puedeUsarCamila } from "@/lib/suscripcion";
 import CamilaClient from "./CamilaClient";
 
 export const dynamic = "force-dynamic";
@@ -33,12 +34,14 @@ export default async function CamilaPage({
     );
   }
   const diagnostico = diagnosticarHotel(ctx.hotel);
+  const acceso = await accesoDelHotel(ctx.hotel);
   return (
     <CamilaClient
       slug={slug}
       hotelNombre={ctx.hotel.nombre}
       whatsappHotel={ctx.hotel.whatsapp ?? ""}
       diagnostico={diagnostico}
+      camilaPermitida={puedeUsarCamila(acceso, ctx.hotel)}
     />
   );
 }

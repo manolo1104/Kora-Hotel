@@ -13,7 +13,7 @@
 
 import { NextResponse } from "next/server";
 import { createAdminClient, adminEnvReady } from "@/lib/supabase/admin";
-import { accesoDelHotel } from "@/lib/suscripcion";
+import { accesoDelHotel, puedeUsarCamila } from "@/lib/suscripcion";
 import { asegurarBotToken } from "@/lib/db/bot-token";
 import { motivosSinBot } from "@/lib/bot/elegibilidad";
 import { alertar } from "@/lib/alertas";
@@ -70,7 +70,7 @@ export async function GET(req: Request) {
     // (El de WhatsApp no bloquea el fleet: un hotel puede tener Camila lista y
     // poner el número después; sólo se le avisa en el panel.)
     const acceso = await accesoDelHotel(h);
-    const motivos = motivosSinBot(h, acceso.activo).filter((m) => m !== "sin-whatsapp");
+    const motivos = motivosSinBot(h, acceso.activo, puedeUsarCamila(acceso, h)).filter((m) => m !== "sin-whatsapp");
     if (motivos.length > 0) continue;
 
     // FIX de acceso: antes el token solo se generaba si el dueño abría "Ver

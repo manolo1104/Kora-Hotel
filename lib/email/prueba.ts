@@ -14,7 +14,7 @@
 
 import { enviarEmail, type ResultadoEmail } from "@/lib/email/resend";
 import { PRUEBA_DIAS } from "@/lib/suscripcion";
-import { PRECIO_DESDE, RUTA_ACTIVAR } from "@/lib/oferta";
+import { PRECIO_DESDE, REGALO_CAMILA_MENSAJES, RUTA_ACTIVAR } from "@/lib/oferta";
 import {
   T as TOK,
   doc,
@@ -81,16 +81,22 @@ export function buildBienvenidaHotelHtml(a: BienvenidaHotelArgs): string {
   // chat de prueba de Camila responde «motor pausado» (`api/admin/bot-preview`),
   // el motor enseña la página de pausa y el panel operativo, la de «prueba
   // terminada». Invitarlo a probar era mandarlo a tres puertas cerradas.
+  //
+  // En prueba (23 sep 2026) el paso 1 decía «Habla con Camila en el chat de
+  // prueba». Desde el 2 oct la prueba gratis no trae a Camila: su chat y el QR
+  // se abren al activar el plan (`puedeUsarCamila`, lib/suscripcion.ts), así que
+  // se prueba el motor y Camila pasa al paso 3, con el plan. Con plan o
+  // cortesía (null) Camila ya está abierta y se le sigue invitando a hablarle.
   const pasos = [
     enPrueba
       ? paso(
           "1. Pruébalo por dentro",
-          "Habla con Camila en el chat de prueba y haz una reserva de prueba en tu motor: mientras no conectes tus cobros, el pago se simula y no se cobra nada.",
+          "Haz una reserva de prueba en tu motor y recorre tu panel: mientras no conectes tus cobros, el pago se simula y no se cobra nada.",
         )
       : dias === 0
         ? paso(
             "1. Activa tu plan",
-            `${PRECIO}, todo incluido. Tu motor de reservas y Camila vuelven a funcionar al instante, con todo lo que ya cargaste.`,
+            `${PRECIO}, todo incluido. Tu motor de reservas vuelve a funcionar al instante, con todo lo que ya cargaste, y se enciende Camila con ${REGALO_CAMILA_MENSAJES} mensajes de regalo.`,
           )
         : paso(
             "1. Pruébalo por dentro",
@@ -100,10 +106,15 @@ export function buildBienvenidaHotelHtml(a: BienvenidaHotelArgs): string {
       "2. Sube tus fotos y conecta tus cobros",
       "Con Stripe, el dinero de cada reserva te llega directo a tu cuenta, no pasa por Kora.",
     ),
-    paso(
-      "3. Vincula tu WhatsApp y comparte tu página",
-      "Escanea el código QR en la pantalla de Camila y pon el enlace de tu página en tu Instagram y tu WhatsApp.",
-    ),
+    enPrueba
+      ? paso(
+          "3. Activa tu plan y enciende a Camila",
+          `Al activarlo se abre Camila con ${REGALO_CAMILA_MENSAJES} mensajes de regalo: en su chat de prueba le escribes como si fueras un huésped y, cuando te convenza, vinculas tu WhatsApp con el código QR.`,
+        )
+      : paso(
+          "3. Vincula tu WhatsApp y comparte tu página",
+          "Escanea el código QR en la pantalla de Camila y pon el enlace de tu página en tu Instagram y tu WhatsApp.",
+        ),
   ];
 
   const inner =
@@ -161,7 +172,9 @@ export function buildRecordatorioPruebaHtml(a: PruebaEmailArgs): string {
       urgente ? "alerta" : "neutro",
     ) +
     parrafo(
-      `Para que no se detenga, activa tu plan: <strong style="color:${TOK.tinta};">${PRECIO}, todo incluido y habitaciones ilimitadas</strong>. Se respeta el tiempo que te quede de prueba.`,
+      // Decía «Se respeta el tiempo que te quede de prueba». Desde el 23 sep
+      // 2026 el plan se cobra el día que se activa: esa promesa ya no es verdad.
+      `Para que no se detenga, activa tu plan: <strong style="color:${TOK.tinta};">${PRECIO}, todo incluido y habitaciones ilimitadas</strong>. El cobro empieza el día que lo activas, y con tu plan activo Camila contesta tu WhatsApp 24/7.`,
     ) +
     boton(ACTIVAR_URL, "Activar mi plan") +
     respiro +

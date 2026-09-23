@@ -7,7 +7,7 @@ import { negar } from "@/lib/panel/permisos";
 
 import { NextResponse } from "next/server";
 import { getActiveHotel } from "@/lib/panel/active-hotel";
-import { accesoDelHotel } from "@/lib/suscripcion";
+import { accesoDelHotel, puedeUsarCamila } from "@/lib/suscripcion";
 import { motivosSinBot, QUE_HACER } from "@/lib/bot/elegibilidad";
 
 export const runtime = "nodejs";
@@ -33,7 +33,7 @@ export async function GET() {
   // por algo que dependía de él. Los motivos salen de la MISMA lista que aplica
   // /api/bots/fleet, así que el panel no puede contradecir al fleet.
   const acceso = await accesoDelHotel(ctx.hotel);
-  const motivos = motivosSinBot(ctx.hotel, acceso.activo);
+  const motivos = motivosSinBot(ctx.hotel, acceso.activo, puedeUsarCamila(acceso, ctx.hotel));
   if (motivos.length > 0) {
     return NextResponse.json({
       ok: true,

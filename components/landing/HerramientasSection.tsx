@@ -80,14 +80,15 @@ export function HerramientasSection() {
               </h3>
               {/* 15 sep 2026: esta banda anunciaba «gratis» al lado de la prueba
                   de N días, y desde fuera parecían dos ofertas distintas. Es la
-                  MISMA cuenta: se crea igual, y lo que dura unos días es Kora
-                  completo (motor con cobro, Camila y panel). Decidir si la
-                  mini-página sigue existiendo como gancho aparte le toca a
-                  Manolo; mientras tanto, que al menos no se contradigan. */}
+                  MISMA cuenta: se crea igual, y lo que dura unos días es la
+                  prueba de Kora (motor y panel; Camila, desde el 2 oct 2026,
+                  se enciende al activar el plan). Decidir si la mini-página
+                  sigue existiendo como gancho aparte le toca a Manolo; mientras
+                  tanto, que al menos no se contradigan. */}
               <p className="mt-2 text-white/75 text-sm sm:text-base leading-relaxed max-w-md">
                 Una página de reservas directas por WhatsApp y una guía del huésped
                 con QR. Sin comisiones y sin saber de tecnología. Es la misma
-                cuenta con la que pruebas Kora completo.
+                cuenta con la que pruebas Kora por dentro.
               </p>
             </div>
             <Link

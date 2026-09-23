@@ -10,6 +10,7 @@ import {
   GARANTIA,
   PASOS_ALTA,
   PRECIO_DESDE,
+  REGALO_CAMILA_MENSAJES,
   RUTA_REGISTRO,
 } from "@/lib/oferta";
 
@@ -47,7 +48,9 @@ export const AYUDA: ArticuloAyuda[] = [
       // Decía «no se cobra nada hasta el día 15 y cancelas antes sin pagar», como
       // si la prueba cobrara sola al terminar. La prueba no pide tarjeta: si no
       // activas el plan, no hay nada que cancelar.
-      `Lo pruebas ${GARANTIA.diasPrueba} días gratis y sin tarjeta: te registras, cargas tu hotel y lo usas completo. No se cobra nada si no activas tu plan.`,
+      // Decía «lo usas completo». Desde el 2 oct 2026 Camila no entra en la
+      // prueba gratis: se enciende al activar el plan (`puedeUsarCamila`).
+      `Lo pruebas ${GARANTIA.diasPrueba} días gratis y sin tarjeta: te registras, cargas tu hotel y usas tu panel y tu motor de reservas. Camila se enciende al activar tu plan, con ${REGALO_CAMILA_MENSAJES} mensajes de regalo. No se cobra nada si no activas tu plan.`,
       // «Gratis para siempre» sólo es cierto para la página pública: al vencer la
       // prueba sin plan, /h/[slug] sigue en línea y sus botones pasan a WhatsApp.
       "Si al terminar la prueba no activas tu plan, tu página pública de reservas sigue en línea y tus huéspedes te escriben por WhatsApp; lo que se pausa es el motor de reservas en línea y Camila.",

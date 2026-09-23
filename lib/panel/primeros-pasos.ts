@@ -33,6 +33,7 @@
 import type { AccesoHotel } from "@/lib/suscripcion";
 import type { DiagnosticoHotel } from "@/lib/panel/diagnostico";
 import { decidirModoPrueba } from "@/lib/motor/modo-prueba";
+import { REGALO_CAMILA_MENSAJES, RUTA_ACTIVAR } from "@/lib/oferta";
 
 /**
  * Qué hace HOY el motor de reservas de este hotel si un huésped paga.
@@ -106,6 +107,14 @@ export interface DatosPrimerosPasos {
   puedeProbarCamila: boolean;
   /** Puede escanear el QR (sólo el dueño). */
   puedeVincular: boolean;
+  /**
+   * `puedeUsarCamila(acceso, hotel)` de lib/suscripcion.ts. Desde el 2 oct 2026
+   * un hotel en prueba gratis no tiene a Camila (ni su chat de prueba ni el QR)
+   * hasta que paga: en su lugar se le invita a activar el plan.
+   */
+  camilaPermitida: boolean;
+  /** Puede activar el plan: la suscripción es del dueño, no del hotel. */
+  puedeActivarPlan: boolean;
 }
 
 export function tareasPrimerosPasos(d: DatosPrimerosPasos): TareaPrimerosPasos[] {
@@ -115,7 +124,11 @@ export function tareasPrimerosPasos(d: DatosPrimerosPasos): TareaPrimerosPasos[]
   const tareas: TareaPrimerosPasos[] = [];
 
   // ── Probar ────────────────────────────────────────────────────────────────
-  if (d.puedeProbarCamila) {
+  // Sin Camila permitida (prueba gratis desde el 2 oct 2026) la tarea del chat
+  // de prueba se cambia por la de activar el plan, que es lo que la abre. Va SIN
+  // palomita: al activarlo desaparece y vuelve la del chat, que sí se mide. Con
+  // el hotel bloqueado a mano no se ofrece: pagar no lo desbloquea.
+  if (d.puedeProbarCamila && d.camilaPermitida) {
     tareas.push({
       id: "camila-chat",
       grupo: "probar",
@@ -124,6 +137,18 @@ export function tareasPrimerosPasos(d: DatosPrimerosPasos): TareaPrimerosPasos[]
       ok: d.camilaProbada,
       href: `${base}/camila`,
       accion: "Probar",
+    });
+  } else if (d.puedeProbarCamila && d.estadoMotor !== "bloqueado") {
+    tareas.push({
+      id: "camila-plan",
+      grupo: "probar",
+      label: `Activa tu plan para abrir a Camila (${REGALO_CAMILA_MENSAJES} mensajes de regalo)`,
+      detalle: d.puedeActivarPlan
+        ? "Con tu plan se abren su chat de prueba y la conexión con tu WhatsApp."
+        : "Solo el dueño del hotel puede activar el plan.",
+      ok: null,
+      href: d.puedeActivarPlan ? RUTA_ACTIVAR : null,
+      accion: "Activar mi plan",
     });
   }
 
@@ -157,7 +182,7 @@ export function tareasPrimerosPasos(d: DatosPrimerosPasos): TareaPrimerosPasos[]
     });
   }
 
-  if (d.puedeVincular) {
+  if (d.puedeVincular && d.camilaPermitida) {
     tareas.push({
       id: "whatsapp",
       grupo: "probar",

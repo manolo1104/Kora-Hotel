@@ -80,7 +80,7 @@ const valor = (nombre, porDefecto) => {
   const i = args.indexOf(`--${nombre}`);
   return i >= 0 && args[i + 1] ? args[i + 1] : porDefecto;
 };
-const MENSAJES = Number(valor("mensajes", "300"));
+const MENSAJES = Number(valor("mensajes", "100"));
 const ETIQUETA = valor("etiqueta", "arranque-2026-09");
 
 if (!Number.isInteger(MENSAJES) || MENSAJES < 1) {

@@ -26,3 +26,19 @@ describe("aviso de recargas", () => {
     expect(TIPO_AVISO_RECARGAS).toMatch(/2026_10_01$/);
   });
 });
+
+// Ya con el modelo nuevo arriba: lo que dice el correo tiene que ser lo que se cobra.
+import { PAQUETES_OCTUBRE, COLCHON_OCTUBRE } from "@/lib/email/aviso-recargas";
+import { PAQUETES } from "@/lib/saldo/paquetes";
+import { MENSAJES_SEGURIDAD } from "@/lib/saldo/candados";
+
+describe("el aviso dice lo mismo que se cobra", () => {
+  it("mismos paquetes que la lista blanca", () => {
+    expect(PAQUETES_OCTUBRE.map((p) => [p.mxn, p.mensajes])).toEqual(
+      PAQUETES.map((p) => [p.mxn, p.mensajes]),
+    );
+  });
+  it("mismo colchón que la recarga de seguridad", () => {
+    expect(COLCHON_OCTUBRE).toBe(MENSAJES_SEGURIDAD);
+  });
+});

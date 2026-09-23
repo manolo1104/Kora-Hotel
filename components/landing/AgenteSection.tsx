@@ -3,7 +3,7 @@ import { Clock, MessageSquare, Languages, ArrowRight } from "lucide-react";
 import { Reveal } from "@/components/shared/Reveal";
 import { CtaLink } from "@/components/shared/CtaLink";
 import { WhatsAppDemoChat } from "@/components/landing/WhatsAppDemoChat";
-import { GARANTIA, PRECIO_DESDE, RUTA_REGISTRO } from "@/lib/oferta";
+import { GARANTIA, PRECIO_DESDE, REGALO_CAMILA_MENSAJES, RUTA_REGISTRO } from "@/lib/oferta";
 
 // Momento dedicado al agente de WhatsApp (estilo Notion: "el turno de noche").
 // Fondo oscuro para dar ritmo claro/oscuro a la página.
@@ -66,7 +66,7 @@ export function AgenteSection() {
                   ctaName="agente_onboarding"
                   className="btn-press btn-arrow btn-fill inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-kora-accent text-kora-primary font-semibold text-sm hover:bg-kora-accent-dark transition-colors"
                 >
-                  Crear cuenta y probar a Camila
+                  Crear mi cuenta gratis
                   <ArrowRight size={16} aria-hidden="true" />
                 </CtaLink>
                 <Link
@@ -77,13 +77,18 @@ export function AgenteSection() {
                 </Link>
               </div>
               {/* Qué pasa al registrarse, dicho aquí: quien llega por Camila quiere
-                  saber si puede probarla antes de conectar su WhatsApp. Sí puede:
-                  el chat de prueba del panel usa los datos de su hotel. */}
+                  saber si puede probarla antes de conectar su WhatsApp. Hasta el
+                  23 sep 2026 decía «N días gratis: dentro de tu cuenta la pruebas
+                  en el chat de prueba», y el botón, «Crear cuenta y probar a
+                  Camila». Desde el 2 oct la prueba gratis no la incluye
+                  (`puedeUsarCamila`, lib/suscripcion.ts): se enciende al activar
+                  el plan, y ahí se prueba en su chat antes de vincular WhatsApp. */}
               <div className="mt-4">
                 <span className="text-xs text-white/60">
-                  {GARANTIA.diasPrueba} días gratis, sin tarjeta: dentro de tu cuenta
-                  la pruebas en el chat de prueba con los datos de tu hotel. Viene
-                  incluida en el plan Kora (${PRECIO_DESDE.toLocaleString("es-MX")}/mes).
+                  Viene incluida en el plan Kora (${PRECIO_DESDE.toLocaleString("es-MX")}/mes):
+                  al activarlo se enciende con {REGALO_CAMILA_MENSAJES} mensajes de regalo y
+                  la pruebas en su chat de prueba antes de vincular tu WhatsApp. El resto
+                  de Kora lo pruebas {GARANTIA.diasPrueba} días gratis, sin tarjeta.
                 </span>
               </div>
             </div>

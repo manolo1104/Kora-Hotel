@@ -135,9 +135,9 @@ function Iniciar() {
 
           {listo && (
             <p className="mt-4 text-center text-xs text-kora-muted">
-              Se respeta el tiempo que te quede de prueba gratis; el detalle del
-              primer cargo lo ves arriba antes de confirmar. Mes a mes, sin
-              permanencia: cancelas tú mismo desde tu panel.
+              El primer cargo se hace hoy y con él se activa Camila, con 100
+              mensajes de regalo. Mes a mes, sin permanencia: cancelas tú mismo
+              desde tu panel.
             </p>
           )}
         </>

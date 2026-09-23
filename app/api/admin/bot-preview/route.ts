@@ -10,7 +10,10 @@ import { getActiveHotel } from "@/lib/panel/active-hotel";
 import { buildBotSystemPrompt, BOT_TOOLS } from "@/lib/bot/prompt";
 import { buildHotelKnowledge } from "@/lib/bot/knowledge";
 import { botAvailability } from "@/lib/bot/tools";
-import { accesoDelHotel } from "@/lib/suscripcion";
+import { accesoDelHotel, puedeUsarCamila } from "@/lib/suscripcion";
+import { leerSaldo, sinSaldo } from "@/lib/db/saldo";
+import { bloqueoEncendido } from "@/lib/saldo/fases";
+import { cobrarMensaje } from "@/lib/saldo/cobro";
 import { leerCuerpo } from "@/lib/api/cuerpo";
 import { z } from "zod";
 import { limitado } from "@/lib/api/rate-limit";
@@ -82,6 +85,21 @@ export async function POST(req: Request) {
   const acceso = await accesoDelHotel(ctx.hotel);
   if (!acceso.activo) {
     return NextResponse.json({ ok: false, error: "motor-pausado" }, { status: 403 });
+  }
+
+  // Desde el 2 oct 2026 Camila se abre al PAGAR: en la prueba gratis el hotel
+  // tiene el panel, no el bot. `CamilaClient` pinta `sin-pago` como invitación
+  // a activar el plan. Quien se registró antes del corte conserva su prueba.
+  if (!puedeUsarCamila(acceso, ctx.hotel)) {
+    return NextResponse.json({ ok: false, error: "sin-pago" }, { status: 403 });
+  }
+
+  // Las respuestas del chat de prueba gastan saldo igual que las de WhatsApp
+  // (los 100 de regalo son «de prueba o reales»). Con el corte encendido, sin
+  // saldo no se contesta — la misma regla que aplica /api/agent, y con el mismo
+  // fallo abierto: si el saldo no se puede leer, `sinSaldo` dice que no.
+  if ((await bloqueoEncendido()) && sinSaldo(await leerSaldo(ctx.hotel.id))) {
+    return NextResponse.json({ ok: false, error: "sin-saldo" }, { status: 402 });
   }
 
   // El chat de prueba llama a Anthropic con TODO el cerebro del hotel en el
@@ -170,6 +188,10 @@ export async function POST(req: Request) {
         .map((b) => b.text)
         .join("\n")
         .trim();
+      // Se cobra DESPUÉS de tener la respuesta y sólo si la hay, como en
+      // WhatsApp. Con `await`: en Vercel la función se congela al responder.
+      // `cobrarMensaje` nunca lanza. Sin `ref`: cada respuesta de prueba es una.
+      if (reply) await cobrarMensaje(ctx.hotel, "");
       return NextResponse.json({ ok: true, reply });
     }
     return NextResponse.json({ ok: true, reply: "Dame un momento, déjame confirmarlo. 🌿" });

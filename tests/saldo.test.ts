@@ -260,19 +260,20 @@ describe("los paquetes son una lista blanca", () => {
   it("un importe inventado no existe", () => {
     expect(paquetePorMxn(1)).toBeNull();
     expect(paquetePorMxn(99)).toBeNull();
-    expect(paquetePorMxn("100")).toMatchObject({ mensajes: 300 });
+    expect(paquetePorMxn(100)).toBeNull(); // el paquete viejo ya no se vende
+    expect(paquetePorMxn("300")).toMatchObject({ mensajes: 500 });
     expect(paquetePorMxn(null)).toBeNull();
     expect(paquetePorMxn(Infinity)).toBeNull();
   });
 
-  it("el mínimo son $100 = 300 mensajes, lo que se le prometió al cliente", () => {
-    expect(MINIMO_MXN).toBe(100);
-    expect(paquetePorMxn(100)?.mensajes).toBe(300);
+  it("el mínimo son $300 = 500 mensajes (23 sep 2026: el de $100 dejaba 30 %)", () => {
+    expect(MINIMO_MXN).toBe(300);
+    expect(paquetePorMxn(300)?.mensajes).toBe(500);
   });
 
-  it("todos los paquetes valen lo mismo por mensaje: nadie sale perdiendo", () => {
+  it("un paquete más grande nunca sale más caro por mensaje", () => {
     const precios = PAQUETES.map((p) => p.mxn / p.mensajes);
-    expect(new Set(precios.map((p) => p.toFixed(6))).size).toBe(1);
+    for (let i = 1; i < precios.length; i++) expect(precios[i]).toBeLessThanOrEqual(precios[i - 1]);
   });
 
   it("el precio cubre el coste con margen (coste real: $0.18 MXN/mensaje)", () => {

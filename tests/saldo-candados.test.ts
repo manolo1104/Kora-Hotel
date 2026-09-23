@@ -168,7 +168,7 @@ describe("la recarga de seguridad", () => {
   });
 
   it("regala lo mismo que el script por defecto", () => {
-    expect(MENSAJES_SEGURIDAD).toBe(300);
+    expect(MENSAJES_SEGURIDAD).toBe(100);
   });
 });
 

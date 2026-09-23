@@ -25,6 +25,7 @@ import {
   inicioDePrueba,
   pruebaDelHotel,
   tienePlanActivo,
+  puedeUsarCamila,
   type AccesoHotel,
   type EstadoSuscripcion,
   type Suscripcion,
@@ -770,7 +771,7 @@ async function cargarFicha(slug: string): Promise<ResultadoFicha> {
         runtime,
         // Sin acceso calculado se listan los demás motivos y la ficha avisa de
         // que el del acceso no se pudo comprobar (no se inventa ni un «sí» ni un «no»).
-        motivos: motivosSinBot(h, acceso ? acceso.activo : true),
+        motivos: motivosSinBot(h, acceso ? acceso.activo : true, acceso ? puedeUsarCamila(acceso, h) : true),
         accesoLeido: Boolean(acceso),
         botEncendido: cfg.bot_enabled !== false,
       },

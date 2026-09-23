@@ -92,7 +92,10 @@ const PREGUNTAS: Pregunta[] = [
       titulo: "Se te escapan reservas fuera de horario",
       texto:
         "El huésped que no recibe respuesta rápido reserva en otro lado. Un agente de IA que conteste tu WhatsApp 24/7 captura justo esas reservas que hoy pierdes.",
-      ctaLabel: "Probar a Camila con mi hotel",
+      // Decía «Probar a Camila con mi hotel», y el botón lleva al registro:
+      // desde el 2 oct 2026 la prueba gratis no trae a Camila (se enciende al
+      // activar el plan), así que el botón no puede prometer probarla gratis.
+      ctaLabel: "Quiero a Camila en mi hotel",
       href: RUTA_REGISTRO,
     },
   },

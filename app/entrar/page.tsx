@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Reveal } from "@/components/shared/Reveal";
 import { AuthForm, type TextosAuth } from "@/components/panel/AuthForm";
-import { planPorClave, RUTA_REGISTRO } from "@/lib/oferta";
+import { planPorClave, RUTA_REGISTRO, REGALO_CAMILA_MENSAJES } from "@/lib/oferta";
 import { PRUEBA_DIAS } from "@/lib/suscripcion";
 import { destinoSeguro } from "@/lib/destino-seguro";
 
@@ -54,11 +54,11 @@ export default async function EntrarPage({
     ? {
         registro: {
           titulo: `Activa tus ${PRUEBA_DIAS} días gratis`,
-          detalle: `Crea tu cuenta para activar tu ${plan.nombre} (${precio}). Se respeta el tiempo que te quede de tu prueba gratis, y cancelas cuando quieras desde tu panel.`,
+          detalle: `Crea tu cuenta para activar tu ${plan.nombre} (${precio}). El cargo se hace al activarlo y con él se abre Camila, con ${REGALO_CAMILA_MENSAJES} mensajes de regalo. Cancelas cuando quieras desde tu panel.`,
         },
         entrar: {
           titulo: `Activa tu ${plan.nombre}`,
-          detalle: `Entra para activar tu ${plan.nombre} (${precio}). Se respeta el tiempo que te quede de tu prueba gratis, y cancelas cuando quieras desde tu panel.`,
+          detalle: `Entra para activar tu ${plan.nombre} (${precio}). El cargo se hace al activarlo y con él se abre Camila, con ${REGALO_CAMILA_MENSAJES} mensajes de regalo. Cancelas cuando quieras desde tu panel.`,
         },
       }
     : vaAlOnboarding

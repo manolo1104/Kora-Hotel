@@ -105,7 +105,9 @@ const jsonLd = {
       // La página que explica la prueba, no la del alta: /panel está en
       // `disallow` de robots.ts y un buscador no puede abrir esa URL.
       url: `${SITE_URL}/como-funciona`,
-      description: `Crea tu cuenta, carga tu hotel y prueba Kora completo ${GARANTIA.diasPrueba} días gratis, sin tarjeta. Activas tu plan solo si te convence.`,
+      // Decía «prueba Kora completo»: desde el 2 oct 2026 Camila no entra en
+      // la prueba gratis (se enciende al activar el plan).
+      description: `Crea tu cuenta, carga tu hotel y prueba tu panel y tu motor de reservas ${GARANTIA.diasPrueba} días gratis, sin tarjeta. Activas tu plan solo si te convence; con él se enciende Camila.`,
     },
     {
       "@type": "Service",

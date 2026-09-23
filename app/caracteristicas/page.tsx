@@ -24,6 +24,7 @@ import {
   AYUDA_ALTA,
   FORECAST_DIAS,
   GARANTIA,
+  REGALO_CAMILA_MENSAJES,
   RUTA_REGISTRO,
 } from "@/lib/oferta";
 import { waLink } from "@/lib/contacto";
@@ -284,9 +285,10 @@ export default function CaracteristicasPage() {
             ¿Quieres verlo con tu hotel?
           </h2>
           <p className="text-kora-muted text-base mb-8">
-            Crea tu cuenta, carga tus habitaciones y pruébalo por dentro: habla
-            con Camila en el chat de prueba y haz una reserva de prueba en tu
-            motor. Tienes {GARANTIA.diasPrueba} días gratis, sin tarjeta.
+            Crea tu cuenta, carga tus habitaciones y pruébalo por dentro: haz
+            una reserva de prueba en tu motor y recorre tu panel. Tienes{" "}
+            {GARANTIA.diasPrueba} días gratis, sin tarjeta, y Camila se enciende
+            al activar tu plan, con {REGALO_CAMILA_MENSAJES} mensajes de regalo.
           </p>
           <CtaLink
             href={RUTA_REGISTRO}

@@ -12,7 +12,6 @@
 
 import type { FasesSaldo } from "@/lib/saldo/fases";
 import { MENSAJES_REGALO_MAX } from "@/lib/crm/acciones";
-import { REGALO_BIENVENIDA } from "@/lib/saldo/paquetes";
 
 // ─── La etiqueta y el `ref` de un regalo a todos ─────────────────────────────
 
@@ -23,8 +22,12 @@ import { REGALO_BIENVENIDA } from "@/lib/saldo/paquetes";
  */
 export const ETIQUETA_SEGURIDAD = "antes-del-bloqueo";
 
-/** Lo que regala la recarga de seguridad si no se cambia: lo mismo que el script (300). */
-export const MENSAJES_SEGURIDAD = REGALO_BIENVENIDA;
+/**
+ * El colchón que se regala a todos justo antes de encender el corte, para que
+ * nadie se quede mudo el mismo día sin haber podido recargar. 100, decisión de
+ * Manolo (23 sep 2026); antes era el regalo de bienvenida (300).
+ */
+export const MENSAJES_SEGURIDAD = 100;
 
 /** Tope de mensajes por hotel en un regalo a todos. El mismo que el de la ficha. */
 export const MENSAJES_TODOS_MAX = MENSAJES_REGALO_MAX;

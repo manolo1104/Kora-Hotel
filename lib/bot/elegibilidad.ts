@@ -15,6 +15,7 @@ export type MotivoSinBot =
   | "demo"
   | "bot-apagado"
   | "sin-acceso"
+  | "sin-pago"
   | "sin-whatsapp";
 
 export interface HotelElegibilidad {
@@ -29,11 +30,14 @@ export interface HotelElegibilidad {
  * Vacío = es elegible y Camila debería arrancar sola.
  *
  * `accesoActivo` se pasa desde fuera porque calcularlo consulta la base, y quien
- * llama ya suele tenerlo.
+ * llama ya suele tenerlo. `camilaPermitida` es `puedeUsarCamila()` de
+ * lib/suscripcion.ts: desde el 2 oct 2026 un hotel en prueba gratis tiene el
+ * panel pero no a Camila, hasta que paga.
  */
 export function motivosSinBot(
   hotel: HotelElegibilidad,
   accesoActivo: boolean,
+  camilaPermitida = true,
 ): MotivoSinBot[] {
   const cfg = (hotel.config ?? {}) as Record<string, unknown>;
   const extras = (hotel.extras ?? {}) as Record<string, unknown>;
@@ -43,6 +47,7 @@ export function motivosSinBot(
   if (hotel.publicado === false) motivos.push("sin-publicar");
   if (cfg.bot_enabled === false) motivos.push("bot-apagado");
   if (!accesoActivo) motivos.push("sin-acceso");
+  else if (!camilaPermitida) motivos.push("sin-pago");
   // No bloquea el fleet, pero sin número no hay a qué vincular el QR: se avisa
   // igual, porque es lo siguiente con lo que se va a topar.
   if (!(hotel.whatsapp ?? "").trim()) motivos.push("sin-whatsapp");
@@ -65,6 +70,11 @@ export const QUE_HACER: Record<MotivoSinBot, { titulo: string; detalle: string }
     titulo: "Activa tu plan",
     detalle:
       "Tu prueba terminó o el plan no está activo. Camila vuelve a conectarse en cuanto lo actives.",
+  },
+  "sin-pago": {
+    titulo: "Activa tu plan para conectar a Camila",
+    detalle:
+      "Tu panel es tuyo durante la prueba, pero Camila (su chat de prueba y el código QR de WhatsApp) se abre al activar tu plan. Trae 100 mensajes de regalo.",
   },
   "sin-whatsapp": {
     titulo: "Pon el WhatsApp de tu hotel",
