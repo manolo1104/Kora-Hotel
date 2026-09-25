@@ -1,4 +1,4 @@
-// Corrige en la base los tres artículos del blog que prometen funciones que Kora
+// Corrige en la base los cuatro artículos del blog que prometen funciones que Kora
 // NO tiene. Los escribió el agente de blog y viven en `blog_articles`, no en el
 // repo: por eso la limpieza de promesas del 15 sep 2026 pasó por encima de ellos.
 //
@@ -7,7 +7,10 @@
 //                         viene incluida sin costo extra» (x3).
 //   · overbooking      → «Kora conecta tus OTAs en un solo calendario».
 //   · Google Hotels    → «Kora conecta tu motor de reservas a Google».
-// Ninguna de las tres existe. Y son peores que una exageración: atraen justo al
+//   · automatización   → «motor de reservas en tu página web y conectado a
+//                         Google» (añadido el 24 sep 2026).
+// Ninguna existe. La de Google llegó a un cliente que paga: el 3 sep Hotel
+// Nealtican escribió «dice ChatGPT que ofreces Google Free Links». Y son peores que una exageración: atraen justo al
 // hotelero que quiere lo que Kora no hace, que se registra y se va enojado.
 //
 //   ENSAYO (no escribe nada):
@@ -80,13 +83,28 @@ const CAMBIOS = [
         viejo:
           "Kora conecta tu motor de reservas a Google, activa tu enlace directo y responde por WhatsApp con IA para que no se te enfríe ninguna reserva.",
         nuevo:
-          "Kora te da el motor de reservas directas al que mandas ese tráfico y el agente de WhatsApp que contesta en segundos. El alta en Google —tu Perfil de Empresa y el enlace directo— la haces tú: Kora todavía no la hace por ti.",
+          "Kora te da el motor de reservas directas al que mandas ese tráfico y el agente de WhatsApp que contesta en segundos. Kora todavía no manda tus precios a Google Hotels: lo que sí puedes hacer hoy es poner tu motor como sitio web en tu Perfil de Empresa de Google.",
       },
       {
         viejo:
           "Hacerlo a mano con Google Hotel Center es complicado, pero un motor de reservas moderno lo conecta por ti automáticamente: envía tus tarifas y disponibilidad a Google y coloca tu enlace directo.",
         nuevo:
-          "Hacerlo a mano con Google Hotel Center es complicado, y no todos los motores lo resuelven: algunos mandan tus tarifas y disponibilidad a Google por ti, y otros —Kora entre ellos, hoy— no, así que ahí el alta corre por tu cuenta.",
+          "Desde julio de 2025 Google ya no deja que el hotel cargue sus precios a mano: hace falta un socio de conectividad (un motor, channel manager o PMS certificado por Google) que se los mande. Kora todavía no es uno de ellos; lo que sí puedes hacer hoy es poner tu motor de Kora como sitio web en tu Perfil de Empresa.",
+      },
+    ],
+  },
+  {
+    slug: "automatizacion-hotelera-que-automatizar-primero-en-un-hotel-de-menos-d",
+    reemplazos: [
+      {
+        viejo:
+          " en tu página web y conectado a Google permite que el huésped reserve y pague solo, a cualquier hora, sin pasar por una OTA.",
+        nuevo:
+          " en tu página web permite que el huésped reserve y pague solo, a cualquier hora, sin pasar por una OTA.",
+      },
+      {
+        viejo: "<td>Motor de reservas en tu web y Google</td>",
+        nuevo: "<td>Motor de reservas en tu web</td>",
       },
     ],
   },

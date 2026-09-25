@@ -133,6 +133,20 @@ describe("el agente del blog lee la oferta de la fuente única", () => {
     expect(cta![1]).not.toContain("#contacto");
   });
 
+  it("el prompt le prohíbe decir que Kora conecta el hotel a Google Hotels", () => {
+    // El 3 sep 2026 un hotel que paga escribió «dice ChatGPT que ofreces Google
+    // Free Links»: lo había sacado de un artículo de este agente. Kora no es socio
+    // de conectividad de Google (no manda precios ni disponibilidad).
+    const nunca = agente.match(/NUNCA digas que Kora[^\n]*/);
+    expect(nunca).not.toBeNull();
+    expect(nunca![0]).toMatch(/Google Hotels/);
+    expect(nunca![0]).toMatch(/enlaces de reserva gratuitos/);
+  });
+
+  it("ningún artículo del repo promete integración directa con Google", () => {
+    expect(sinComentarios(leer("lib/articles.ts"))).not.toMatch(/integraci[oó]n directa con tu motor/);
+  });
+
   it("la ruta del registro está entre las rutas válidas (si no, se reescribe a «/»)", () => {
     const rutas = agente.match(/const RUTAS_FIJAS = new Set\(\[([\s\S]*?)\]\)/);
     expect(rutas).not.toBeNull();

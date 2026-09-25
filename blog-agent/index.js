@@ -298,7 +298,7 @@ function buildPrompt(topic, researchContext, verifiedBlogSlugs, slug) {
   const secundarias = topic.secondaryKeywords.join(", ");
   const slugsList = verifiedBlogSlugs.map((s) => `/blog/${s}`).join(", ") || "(ninguno)";
 
-  return `Escribe un artículo HTML para el blog de Kora (kora-hotel.com), el sistema de gestión hotelera para hoteles boutique e independientes en México (motor de reservas directas + agente de WhatsApp con IA + CRM, ${PRECIO_TXT} MXN/mes, prueba gratis de ${OFERTA.diasPrueba} días sin tarjeta). El hotelero crea su cuenta, carga su hotel y lo configura él mismo; si quiere, lo ayudamos. NUNCA digas que Kora "lo instala", "lo configura por ti", "llave en mano" ni en un plazo de horas, ni que migra reservas o se sincroniza con Booking/Expedia: no es cierto.
+  return `Escribe un artículo HTML para el blog de Kora (kora-hotel.com), el sistema de gestión hotelera para hoteles boutique e independientes en México (motor de reservas directas + agente de WhatsApp con IA + CRM, ${PRECIO_TXT} MXN/mes, prueba gratis de ${OFERTA.diasPrueba} días sin tarjeta). El hotelero crea su cuenta, carga su hotel y lo configura él mismo; si quiere, lo ayudamos. NUNCA digas que Kora "lo instala", "lo configura por ti", "llave en mano" ni en un plazo de horas, ni que migra reservas o se sincroniza con Booking/Expedia, ni que conecta el hotel a Google Hotels, manda sus precios a Google o activa los enlaces de reserva gratuitos de Google, ni que es channel manager, ni que abre cerraduras inteligentes: no es cierto. De Google Hotels sí puedes decir que el hotel pone su motor de Kora como sitio web en su Perfil de Empresa de Google.
 
 AUDIENCIA: dueños y administradores de hoteles independientes en México (5–40 habitaciones), sin equipo técnico. Háblales de tú, directo, como un colega hotelero.
 
@@ -309,7 +309,7 @@ KEYWORD PRINCIPAL: ${topic.focusKeyword}
 KEYWORDS SECUNDARIAS: ${secundarias}
 OBJETIVO SEO: ${topic.objetivoSeo}
 ENFOQUE EDITORIAL: ${topic.enfoque}
-(Si el enfoque editorial pide presentar como función de Kora algo que la regla del primer párrafo prohíbe —instalarlo o configurarlo por el hotelero, un plazo en horas, migrar reservas o sincronizar calendarios con Booking, Airbnb o Expedia—, manda la regla: explica ese tema como práctica general del sector y no digas que Kora lo hace.)
+(Si el enfoque editorial pide presentar como función de Kora algo que la regla del primer párrafo prohíbe —instalarlo o configurarlo por el hotelero, un plazo en horas, migrar reservas, sincronizar calendarios con Booking, Airbnb o Expedia, o conectar el hotel a Google Hotels—, manda la regla: explica ese tema como práctica general del sector y no digas que Kora lo hace.)
 
 CONTEXTO INVESTIGADO (única fuente permitida para cifras externas):
 ${researchContext || "(Sin investigación — usa solo conocimiento general y NO inventes cifras específicas)"}

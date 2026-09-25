@@ -138,7 +138,7 @@ export const articles: Article[] = [
 
 <p>Cuando alguien busca tu hotel por nombre en Google, debe encontrar primero tu sitio web con un botón claro de "Reservar". Si lo que aparece primero es Booking.com, estás pagando comisiones por huéspedes que ya te buscaban a ti específicamente.</p>
 
-<p>Google Hotels y el perfil de Google Business son gratuitos y tienen integración directa con tu motor de reservas. Sin comisión.</p>
+<p>Tu Perfil de Empresa de Google es gratuito: pon tu motor de reservas como sitio web y quien ya te busca reserva directo, sin comisión. Mostrar tus precios en Google Hotels es otra cosa: Google exige un socio de conectividad certificado que se los mande, y Kora todavía no lo es.</p>
 
 <h2 id="rol-tecnologia">El rol de la tecnología: automatización, no sustitución</h2>
 
