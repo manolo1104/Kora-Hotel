@@ -9,7 +9,7 @@
 // El patrón ya estaba inventado en este mismo archivo (`LANZAMIENTO_PRUEBA`,
 // «nadie amanece pausado por un cambio de reglas retroactivo»); aquí se aplica
 // otra vez y se fija con pruebas.
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { pruebaDelHotel, PRUEBA_DIAS } from "@/lib/suscripcion";
 
 const DIA = 86_400_000;
@@ -22,6 +22,18 @@ const ANTES = Date.parse("2026-08-20T12:00:00-06:00");
 const DESPUES = Date.parse("2026-09-20T12:00:00-06:00");
 
 describe("quien ya estaba dentro conserva sus 30 días", () => {
+  // «Hace 20 días» tiene que caer ANTES del corte, o la prueba deja de probar lo
+  // que dice: con el reloj real, desde el 26 sep un hotel de 20 días ya es de
+  // después del corte (14 días) y esta prueba falla sola. Se congela el reloj
+  // poco después del corte, que es el momento que describe.
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(Date.parse("2026-09-10T12:00:00-06:00"));
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("un hotel de antes del cambio termina a los 30, no a los 14", () => {
     const p = pruebaDelHotel({ created_at: iso(ANTES) });
     expect(p).not.toBeNull();
