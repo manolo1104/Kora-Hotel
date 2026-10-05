@@ -1,10 +1,11 @@
-name: Blog Agent — 1 artículo cada 3 días
+name: Blog Agent — 1 artículo cada 15 días
 
 on:
   schedule:
     # Corre DIARIO a las 14:20 UTC (8:20 AM CDMX). El propio agente decide si
-    # "hoy toca" publicar (cada 3 días exactos desde su fecha ancla) — así
-    # evitamos el bug del cron "*/3", que se reinicia al cambiar de mes.
+    # "hoy toca" publicar (15 días desde el último artículo publicado) — así
+    # evitamos el bug de un cron por días, que se reinicia al cambiar de mes,
+    # y si una corrida falla, la del día siguiente lo reintenta.
     - cron: "20 14 * * *"
   workflow_dispatch:
     inputs:

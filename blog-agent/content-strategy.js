@@ -1,7 +1,7 @@
 /**
  * content-strategy.js
  * Banco editorial del blog de kora-hotel.com (topics.json: 50 artículos
- * en 5 bloques). El agente publica 1 cada 3 días en orden editorial.
+ * en 5 bloques). El agente publica 1 cada 15 días en orden editorial.
  */
 
 import fs from "fs";

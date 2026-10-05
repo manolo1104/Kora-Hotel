@@ -2,14 +2,14 @@
  * blog-agent/index.js
  * ─────────────────────────────────────────────────────────
  * Agente de contenido del blog de Kora (kora-hotel.com).
- * Publica 1 artículo cada 3 días desde el banco de 50 temas
+ * Publica 1 artículo cada 15 días desde el banco de 50 temas
  * (topics.json), vía POST /api/blog/create → Supabase.
  *
  * Basado en el blog-agent de huasteca-potosina.com, adaptado
  * a la audiencia B2B hotelera y al stack Vercel + Supabase.
  *
  * Uso:
- *   node index.js                    ← publica si "toca" (cada 3 días)
+ *   node index.js                    ← publica si "toca" (cada 15 días)
  *   node index.js --force            ← ignora el calendario y publica hoy
  *   node index.js --dry-run          ← genera sin publicar
  *   node index.js --topic "chatbot"  ← tema específico del banco
@@ -46,14 +46,25 @@ const SITE_URL = "https://kora-hotel.com";
 const API_BASE_URL = process.env.API_BASE_URL || process.env.SITE_URL || SITE_URL;
 const BLOG_SECRET = process.env.BLOG_AGENT_SECRET;
 
-// ── Calendario: cada 3 días exactos ─────────────────────────
-// El workflow corre DIARIO a las 14:20 UTC; este gate decide si hoy toca
-// publicar (a diferencia del cron "*/3", que se reinicia cada mes).
-const ANCHOR_ISO = "2026-07-18"; // primer día de publicación
+// ── Calendario: cada 15 días desde el último artículo ──────
+// El workflow corre DIARIO; este gate decide si hoy toca publicar. Cuenta
+// desde el último artículo publicado (lo dice la BD), no desde una fecha ancla
+// fija: con ancla, una corrida que falla el día que tocaba dejaba el blog un
+// periodo entero sin artículo (30 días); así, al día siguiente lo reintenta.
+// Hasta el 4 oct 2026 era cada 3 días desde el ancla 2026-07-18.
+const CADA_DIAS = 15;
 
-function tocaPublicarHoy() {
-  const dias = Math.floor((Date.now() - Date.parse(ANCHOR_ISO)) / 86400000);
-  return dias >= 0 && dias % 3 === 0;
+// Días de CALENDARIO en CDMX, no milisegundos: el cron de GitHub se retrasa
+// horas (corre entre las 18 y las 20 UTC), y 15 días exactos podían salir
+// 14.99 y brincarse un día.
+const diaCdmx = (ms) =>
+  Date.parse(new Date(ms).toLocaleDateString("en-CA", { timeZone: "America/Mexico_City" }));
+
+/** Días desde el último artículo publicado; null si no hay ninguno. */
+function diasDesdeElUltimo(posts) {
+  const fechas = posts.map((p) => Date.parse(p.published_at)).filter((n) => !Number.isNaN(n));
+  if (!fechas.length) return null;
+  return Math.round((diaCdmx(Date.now()) - diaCdmx(Math.max(...fechas))) / 86400000);
 }
 
 // ── Utilidades ──────────────────────────────────────────────
@@ -539,21 +550,17 @@ function printQualityLog(post) {
 
 async function main() {
   console.log("\n📝  BLOG AGENT — kora-hotel.com");
-  console.log(`    1 artículo cada 3 días · ${WORD_MIN}–${WORD_MAX} palabras · ${MODEL}`);
+  console.log(`    1 artículo cada ${CADA_DIAS} días · ${WORD_MIN}–${WORD_MAX} palabras · ${MODEL}`);
   console.log(`    Modo: ${DRY_RUN ? "🧪 DRY-RUN" : "🚀 LIVE"}`);
   console.log("═".repeat(55));
 
-  // Gate del calendario (el workflow corre diario)
-  if (!FORCE && !DRY_RUN && !CUSTOM_TOPIC && !tocaPublicarHoy()) {
-    console.log("\n📅 Hoy no toca publicar (cadencia: cada 3 días desde " + ANCHOR_ISO + "). Saliendo.");
-    return;
-  }
 
   if (!process.env.ANTHROPIC_API_KEY) throw new Error("Falta ANTHROPIC_API_KEY");
   if (!DRY_RUN && !BLOG_SECRET) throw new Error("Falta BLOG_AGENT_SECRET");
 
   // Posts existentes: dedup por topic_id + slugs verificados para links
   let postsExistentes = [];
+  let listaLeida = false;
   if (BLOG_SECRET) {
     try {
       const res = await fetch(`${API_BASE_URL}/api/blog/create`, {
@@ -562,12 +569,27 @@ async function main() {
       if (res.ok) {
         const data = await res.json();
         postsExistentes = data.posts || [];
+        listaLeida = true;
         console.log(`\n📚 Posts existentes: ${postsExistentes.length}`);
       } else {
         console.warn(`\n⚠️  GET /api/blog/create → ${res.status} (continuando sin lista)`);
       }
     } catch (e) {
       console.warn(`\n⚠️  No se pudo leer posts existentes: ${e.message}`);
+    }
+  }
+
+  // Gate del calendario (el workflow corre diario). Va DESPUÉS de leer la lista
+  // porque cuenta desde el último artículo publicado.
+  if (!FORCE && !DRY_RUN && !CUSTOM_TOPIC) {
+    if (!listaLeida) {
+      console.log("\n📅 No pude leer los artículos publicados, así que no sé si hoy toca. Saliendo (mañana se reintenta).");
+      return;
+    }
+    const dias = diasDesdeElUltimo(postsExistentes);
+    if (dias !== null && dias < CADA_DIAS) {
+      console.log(`\n📅 Hoy no toca publicar: el último artículo salió hace ${dias} días (cadencia: cada ${CADA_DIAS}). Saliendo.`);
+      return;
     }
   }
 

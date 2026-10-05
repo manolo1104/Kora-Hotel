@@ -1,13 +1,14 @@
 # Blog Agent — kora-hotel.com
 
-Publica **1 artículo cada 3 días** en el blog de Kora, tomando el siguiente tema
+Publica **1 artículo cada 15 días** en el blog de Kora, tomando el siguiente tema
 pendiente del banco de 50 (`topics.json`).
 
 ## Cómo funciona
 
 1. **GitHub Actions** (`.github/workflows/blog-agent.yml`) corre diario a las
-   8:20 AM CDMX; el agente decide si "hoy toca" (cada 3 días exactos desde la
-   fecha ancla en `index.js`).
+   8:20 AM CDMX; el agente decide si "hoy toca" (15 días de calendario desde el
+   último artículo publicado, `CADA_DIAS` en `index.js`). Si una corrida falla,
+   la del día siguiente lo reintenta.
 2. Lee los posts ya publicados (`GET /api/blog/create`) — la BD es la fuente de
    verdad de qué temas del banco ya salieron (`topic_id`), así que el runner no
    guarda estado.
