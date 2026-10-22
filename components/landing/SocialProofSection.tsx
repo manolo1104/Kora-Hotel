@@ -1,5 +1,4 @@
 import { Reveal } from "@/components/shared/Reveal";
-import { TiltCard } from "@/components/shared/TiltCard";
 import {
   CASO,
   OTA_ANTES,
@@ -42,59 +41,14 @@ const caso = {
   autor: `${CASO.duenoNombre} · dueño del ${CASO.hotel}`,
 };
 
-// Negocios reales en línea con Kora: hoteles operando con el motor/sitio
-// y páginas que diseñamos y publicamos (prueba del servicio de página).
-const sitiosCreados = [
-  { logo: "/portfolio/paraiso-encantado.png", nombre: "Hotel Paraíso Encantado", url: "https://paraisoencantado.com" },
-  { logo: "/portfolio/alma-nativa.png", nombre: "Alma Nativa · Suites Campestres", url: "/h/hotel-alma-nativa" },
-  { logo: "/portfolio/magic-collinn.png", nombre: "Hotel Magic Collinn", url: "https://www.hotelmagicollinn.com" },
-  { logo: "/portfolio/huasteca-tours.png", nombre: "Huasteca Potosina Tours", url: "https://www.huasteca-potosina.com" },
-];
-
 export function SocialProofSection() {
   return (
     <section id="demo" className="py-20 sm:py-24 bg-white scroll-mt-20">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Negocios reales EN LÍNEA — hasta arriba: la primera señal tras el
-            hero es que esto ya lo usan hoteles de verdad. */}
-        <Reveal>
-          <div className="mb-14 pb-12 border-b border-gray-100">
-            <p className="text-center text-sm font-semibold text-kora-muted uppercase tracking-widest">
-              Negocios reales que ya están en línea con nosotros
-            </p>
-            <p className="mt-2 text-center text-kora-muted text-sm max-w-xl mx-auto">
-              Hoteles que reciben reservas con Kora y páginas que diseñamos y publicamos.{" "}
-              <span className="font-semibold text-kora-primary">La de tu hotel puede ser la siguiente.</span>
-            </p>
-            <div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-3xl mx-auto">
-              {sitiosCreados.map((s) => (
-                <a
-                  key={s.nombre}
-                  href={s.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={`Ver el sitio de ${s.nombre}`}
-                  className="group block"
-                >
-                  <TiltCard max={6} className="rounded-2xl">
-                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm h-28 flex items-center justify-center p-5 transition-shadow duration-300 group-hover:shadow-md">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={s.logo}
-                        alt={s.nombre}
-                        className="max-h-16 max-w-full w-auto object-contain"
-                      />
-                    </div>
-                  </TiltCard>
-                  <p className="mt-2 text-center text-xs text-kora-muted group-hover:text-kora-primary transition-colors">
-                    {s.nombre}
-                  </p>
-                </a>
-              ))}
-            </div>
-          </div>
-        </Reveal>
-
+        {/* Aquí iba la franja «Negocios reales que ya están en línea con
+            nosotros» (logos de Paraíso, Alma Nativa, Magic Collinn y Huasteca
+            Tours). Manolo la quitó el 22 oct 2026: la sección abre con el
+            video y la prueba real es el caso de Paraíso, con sus cifras. */}
         <Reveal delay={0.08}>
           <div className="text-center mb-8">
             <p className="text-xs font-bold text-kora-muted uppercase tracking-widest mb-2">

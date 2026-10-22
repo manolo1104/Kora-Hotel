@@ -139,8 +139,8 @@ export default function HomePage() {
       <JsonLd data={jsonLd} />
       <Hero />
       <TrustStrip />
-      {/* Demo + prueba real JUSTO bajo el hero: el "ajá" en 90 seg, el caso de
-          Paraíso y los negocios en línea mientras hay máxima atención. */}
+      {/* Demo + prueba real JUSTO bajo el hero: el "ajá" en 90 seg y el caso
+          de Paraíso mientras hay máxima atención. */}
       <SocialProofSection />
       <ProblemSection />
       {/* El agente de WhatsApp va PRIMERO entre los productos: es la razón por
