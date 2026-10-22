@@ -59,6 +59,7 @@ export async function POST(req: Request) {
     if (post.publicado) {
       revalidatePath(`/h/${slugHotel}/blog`);
       revalidatePath(`/h/${slugHotel}/blog/${post.slug}`);
+      revalidatePath(`/h/${slugHotel}/llms.txt`);
     }
     return NextResponse.json({ ok: true, publicado: post.publicado });
   }
@@ -84,6 +85,8 @@ export async function POST(req: Request) {
   revalidatePath(`/h/${slugHotel}/blog`);
   revalidatePath(`/h/${slugHotel}/blog/${data.slug}`);
   revalidatePath("/sitemap.xml");
+  // El llms.txt del hotel lista todos sus posts desde el 22 oct 2026.
+  revalidatePath(`/h/${slugHotel}/llms.txt`);
   if (publicado) {
     // CON await y tope de 3 s dentro de pingIndexNow: el `void` de antes hacía
     // que en Vercel el ping se cancelara al responder, así que las entradas

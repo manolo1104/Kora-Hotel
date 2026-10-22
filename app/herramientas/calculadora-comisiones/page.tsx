@@ -5,13 +5,15 @@ import { Reveal } from "@/components/shared/Reveal";
 import { FirmaKora } from "@/components/herramientas/FirmaKora";
 import { CalculadoraComisiones } from "@/components/herramientas/CalculadoraComisiones";
 import { JsonLd } from "@/components/shared/JsonLd";
+import { metaDescripcion } from "@/lib/seo";
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
 
 export const metadata: Metadata = {
   title: "Calculadora de comisiones de Booking y OTAs (gratis) | Kora",
-  description:
+  description: metaDescripcion(
     "¿Cuánto te quita Booking, Airbnb y Expedia al año? Calcula gratis lo que pagas en comisiones de OTAs y cuánto te ahorrarías con reservas directas. Hecha para hoteles en México.",
+  ),
   alternates: {
     canonical: "/herramientas/calculadora-comisiones",
   },

@@ -44,8 +44,9 @@ const WA_DUDAS = waLink("Hola, vi la página del PMS de Kora y tengo una duda");
 
 export const metadata: Metadata = {
   title: "PMS para hoteles pequeños en México | Kora",
+  // Cabe en 158 con el precio: la versión anterior se cortaba justo antes de él.
   description: metaDescripcion(
-    `PMS hotelero en español para hoteles pequeños: calendario, check-in y check-out, limpieza, huéspedes y equipo en una pantalla, conectado a tu motor de reservas y a tu WhatsApp. ${PRECIO} MXN/mes.`,
+    `PMS en español para hoteles pequeños: calendario, check-in, limpieza y huéspedes en una pantalla, conectado a tu motor y tu WhatsApp. ${PRECIO} MXN/mes.`,
   ),
   alternates: { canonical: "/pms" },
   openGraph: {

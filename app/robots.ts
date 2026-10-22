@@ -10,6 +10,11 @@ const AI_BOTS = [
   "OAI-SearchBot",
   "PerplexityBot",
   "ClaudeBot",
+  // Los agentes actuales de Anthropic y Perplexity (22 oct 2026). Ya pasaban
+  // por `*`; aquí quedan explícitos junto a los demás.
+  "Claude-SearchBot",
+  "Claude-User",
+  "Perplexity-User",
   "anthropic-ai",
   "Claude-Web",
   "Google-Extended",

@@ -10,8 +10,7 @@ import { personas } from "@/lib/personas";
 import { ciudades } from "@/lib/ciudades";
 import { AYUDA } from "@/lib/ayuda";
 import { resolverPaginas, type MiniExtras } from "@/lib/mini";
-import { TENANTS_PRUEBA } from "@/lib/seo";
-import { bloqueoDelHotel } from "@/lib/suscripcion";
+import { hotelAnunciable, habitacionesConPagina } from "@/lib/urls-hotel";
 import { SUPABASE_URL, SUPABASE_ANON_KEY, supabaseEnvReady } from "@/lib/supabase/env";
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
@@ -43,8 +42,8 @@ async function miniPaginas(): Promise<MetadataRoute.Sitemap> {
       // TODAS las habitaciones de un hotel muerto (14 URLs rotas medidas el 4
       // sep 2026) y nos gastábamos en 404 el poco rastreo que tiene un dominio
       // nuevo. El bloqueo se lee del MISMO sitio que el layout: `extras.bloqueo`.
-      .filter((h) => h.slug && !TENANTS_PRUEBA.has(h.slug))
-      .filter((h) => !bloqueoDelHotel(h.extras as Record<string, unknown> | null))
+      // La regla vive en lib/urls-hotel.ts, compartida con los llms.txt.
+      .filter((h) => hotelAnunciable(h.slug, h.extras))
       .flatMap((h) => {
         const lastModified = h.updated_at ? new Date(h.updated_at) : SITE_UPDATED;
         const hotel: MetadataRoute.Sitemap = [
@@ -55,12 +54,7 @@ async function miniPaginas(): Promise<MetadataRoute.Sitemap> {
             priority: 0.6,
           },
         ];
-        const habitaciones: { nombre?: string }[] = Array.isArray(h.habitaciones)
-          ? h.habitaciones
-          : [];
-        const cuartos: MetadataRoute.Sitemap = habitaciones
-          .map((room, idx) => ({ room, idx }))
-          .filter(({ room }) => (room?.nombre ?? "").trim())
+        const cuartos: MetadataRoute.Sitemap = habitacionesConPagina(h.habitaciones)
           .map(({ idx }) => ({
             url: `${BASE_URL}/h/${h.slug}/habitacion/${idx}`,
             lastModified,
@@ -110,10 +104,9 @@ async function blogsHoteles(): Promise<MetadataRoute.Sitemap> {
       hoteles: { slug: string; publicado: boolean; extras: unknown } | null;
     }[]) {
       const h = row.hoteles;
-      if (!h?.publicado || !h.slug || TENANTS_PRUEBA.has(h.slug)) continue;
       // Mismo motivo que en miniPaginas(): el blog de un hotel bloqueado también
       // devuelve 404 por el layout, así que tampoco se anuncia.
-      if (bloqueoDelHotel(h.extras as Record<string, unknown> | null)) continue;
+      if (!h?.publicado || !hotelAnunciable(h.slug, h.extras)) continue;
       const lastModified = new Date(row.updated_at || row.publicado_at || SITE_UPDATED);
       if (!indicesVistos.has(h.slug)) {
         indicesVistos.add(h.slug);
@@ -287,12 +280,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly",
       priority: 0.9,
     },
-    {
-      url: `${BASE_URL}/herramientas/mini-pagina`,
-      lastModified: SITE_UPDATED,
-      changeFrequency: "monthly",
-      priority: 0.8,
-    },
+    // /herramientas/mini-pagina estaba también aquí, a mano, y salía DOS veces:
+    // ya la emite herramientaEntries (está en herramientasDisponibles).
     {
       url: `${BASE_URL}/glosario`,
       lastModified: SITE_UPDATED,

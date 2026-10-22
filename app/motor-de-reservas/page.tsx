@@ -41,8 +41,9 @@ const WA_DUDAS = waLink("Hola, vi la página del motor de reservas de Kora y ten
 
 export const metadata: Metadata = {
   title: "Motor de reservas para hoteles sin comisión | Kora",
+  // Cabe en 158 con el precio: la versión anterior se cortaba justo antes de él.
   description: metaDescripcion(
-    `Motor de reservas para hoteles pequeños en México: el huésped reserva y paga directo en tu web, con tarjeta u OXXO, y Kora no cobra comisión. Incluido en el plan de ${PRECIO} MXN/mes.`,
+    `Motor de reservas para hoteles pequeños en México: el huésped paga directo en tu web, con tarjeta u OXXO, y Kora no cobra comisión. ${PRECIO} MXN/mes.`,
   ),
   alternates: { canonical: "/motor-de-reservas" },
   openGraph: {

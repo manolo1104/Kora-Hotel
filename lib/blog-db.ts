@@ -49,6 +49,11 @@ const PORTADAS: Record<string, { image: string; imageAlt: string }> = portadas.p
 
 function rowToArticle(row: BlogRow): Article {
   const publishedIso = row.published_at.slice(0, 10);
+  // `updated_at` se pedía en el select y nunca se copiaba: Google y el sitemap
+  // recibían siempre la fecha de publicación como «última modificación», aunque
+  // el artículo se hubiera corregido después. Sólo cuenta si es de otro día.
+  const updatedDia = row.updated_at ? row.updated_at.slice(0, 10) : null;
+  const updatedIso = updatedDia && updatedDia > publishedIso ? updatedDia : undefined;
   const portada = PORTADAS[row.slug];
   return {
     slug: row.slug,
@@ -57,6 +62,7 @@ function rowToArticle(row: BlogRow): Article {
     author: row.author,
     date: fechaLarga(publishedIso),
     publishedIso,
+    updatedIso,
     readTime: row.read_time,
     category: row.category,
     tags: row.tags ?? [],
@@ -81,9 +87,14 @@ async function fetchDbArticles(): Promise<Article[]> {
       )
       .eq("published", true)
       .order("published_at", { ascending: false });
-    if (error || !data) return [];
+    if (error) throw new Error(error.message);
+    if (!data) return [];
     return (data as BlogRow[]).map(rowToArticle);
-  } catch {
+  } catch (e) {
+    // Degradar a los artículos estáticos es DELIBERADO, pero ya no en
+    // silencio: el sitemap, /blog y los llms.txt perdían 12+ artículos sin
+    // que nada lo dijera.
+    console.error("[blog.articulos]", e instanceof Error ? e.message : e);
     return [];
   }
 }

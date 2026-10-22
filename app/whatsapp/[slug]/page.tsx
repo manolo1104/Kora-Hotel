@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowRight, Check } from "lucide-react";
 import { paginasWhatsApp, getPaginaWhatsApp } from "@/lib/whatsapp";
-import { metaDescripcion } from "@/lib/seo";
+import { conMarca, metaDescripcion } from "@/lib/seo";
 import { Reveal } from "@/components/shared/Reveal";
 import { BarraCTA } from "@/components/shared/BarraCTA";
 import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
@@ -24,7 +24,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const p = getPaginaWhatsApp(slug);
   if (!p) return { title: "Página no encontrada — Kora" };
   return {
-    title: `${p.titulo} | Kora`,
+    title: conMarca(p.tituloSeo ?? p.titulo),
     description: metaDescripcion(p.respuesta),
     alternates: { canonical: `/whatsapp/${p.slug}` },
     openGraph: {

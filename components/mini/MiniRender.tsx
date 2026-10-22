@@ -439,6 +439,10 @@ export function MiniRender({
     idiomas.length > 0;
 
   const portada = fotos?.[0];
+  // La portada «completa» (foto a todo lo ancho con el nombre encima) sólo
+  // existe si hay foto. Sin foto caía al bloque de color, la tarjeta de abajo
+  // creía que el nombre ya estaba arriba y la página se quedaba SIN H1.
+  const heroConFoto = heroCompleto && !!portada;
   const resto = fotos?.slice(1) ?? [];
 
   const aviso = extras.aviso;
@@ -1146,7 +1150,7 @@ export function MiniRender({
       )}
 
       {/* Portada */}
-      {pagina ? null : heroCompleto && portada ? (
+      {pagina ? null : heroConFoto ? (
         <section className="relative h-[68vh] min-h-[400px] flex items-end">
           <Image src={portada} alt={nombre} fill sizes="100vw" priority className="object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/30 to-black/10" />
@@ -1188,9 +1192,9 @@ export function MiniRender({
       {!pagina && (
       <div className="max-w-2xl mx-auto px-4 sm:px-6">
         <div
-          className={`${heroCompleto ? "mt-6" : "-mt-12"} relative bg-white rounded-2xl shadow-lg border border-gray-100 p-6`}
+          className={`${heroConFoto ? "mt-6" : "-mt-12"} relative bg-white rounded-2xl shadow-lg border border-gray-100 p-6`}
         >
-          {!heroCompleto && (
+          {!heroConFoto && (
             <>
               {logo && (
                 // eslint-disable-next-line @next/next/no-img-element

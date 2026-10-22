@@ -15,6 +15,8 @@ export interface FilaComparativa {
 
 export interface Comparativa {
   slug: string;
+  /** Título de pestaña cuando `titulo` no cabe en 60 caracteres con « | Kora». */
+  tituloSeo?: string;
   competidor: string;
   /**
    * Contra qué se compara, para el titular de la tarjeta del índice.
@@ -41,6 +43,7 @@ export const comparativas: Comparativa[] = [
     slug: "booking",
     competidor: "Booking.com",
     titulo: "Booking vs reservas directas: cómo dejar de pagar comisión",
+    tituloSeo: "Booking vs reservas directas: deja de pagar comisión",
     pregunta: "¿Conviene depender de Booking o tomar reservas directas?",
     resumen:
       "La diferencia real entre vender por Booking y captar reservas directas con tu propia página.",
@@ -305,6 +308,7 @@ export const comparativas: Comparativa[] = [
     competidor: "Excel y el cuaderno",
     contra: "un sistema hotelero",
     titulo: "Excel o cuaderno vs. un sistema hotelero: cuándo dejar de improvisar",
+    tituloSeo: "Excel o cuaderno vs. un sistema hotelero",
     pregunta: "¿Cuándo deja de alcanzar el Excel para llevar mi hotel?",
     resumen:
       "El método que funciona hasta que llegan dos canales de venta al mismo tiempo.",

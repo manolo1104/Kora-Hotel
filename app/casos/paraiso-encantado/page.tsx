@@ -18,10 +18,15 @@ import {
 import { waLink } from "@/lib/contacto";
 import { GARANTIA, RUTA_REGISTRO } from "@/lib/oferta";
 import { CtaLink } from "@/components/shared/CtaLink";
+import { metaDescripcion } from "@/lib/seo";
 
 export const metadata: Metadata = {
   title: "Caso de estudio: Hotel Paraíso Encantado — Kora",
-  description: `Hotel Paraíso Encantado, en Xilitla SLP, bajó su dependencia de las OTAs del ${OTA_ANTES}% al ${OTA_DESPUES}% en ${MESES} meses y dejó de pagar ${mxn(AHORRO_MENSUAL)} MXN al mes en comisiones. Es el hotel del fundador de Kora.`,
+  // Medía 181 y Google cortaba la cifra del ahorro: la frase del fundador va
+  // al final para que sea lo que se pierde si algo sobra.
+  description: metaDescripcion(
+    `Hotel Paraíso Encantado (Xilitla, SLP) bajó su dependencia de las OTAs del ${OTA_ANTES}% al ${OTA_DESPUES}% en ${MESES} meses: ${mxn(AHORRO_MENSUAL)} MXN al mes menos en comisiones. Es el hotel del fundador de Kora.`,
+  ),
   alternates: {
     canonical: "/casos/paraiso-encantado",
   },

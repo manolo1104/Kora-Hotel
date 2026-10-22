@@ -4,8 +4,17 @@ import { getBooking } from "@/lib/db/bookings";
 import { COLOR_DEFAULT, inkFor, fontStack, type MiniExtras } from "@/lib/mini";
 import { normalizeLang } from "@/lib/booking/i18n";
 import { ResenaForm } from "./ResenaForm";
+import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
+
+// El formulario de reseña llega por el correo post-estancia con el folio en la
+// URL: es una pantalla de flujo, como /reservar. No tenía metadata: salía como
+// «Sin título» y era indexable (22 oct 2026).
+export const metadata: Metadata = {
+  title: "Cuéntanos tu estancia",
+  robots: { index: false, follow: false },
+};
 
 const GOOGLE_REVIEW_FALLBACK = "https://search.google.com/local/writereview";
 

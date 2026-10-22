@@ -4,7 +4,8 @@ import { notFound } from "next/navigation";
 import { Check, X } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
 import { ciudades, getCiudad, TABLA_OTA_DIRECTO } from "@/lib/ciudades";
-import { metaDescripcion, TENANTS_PRUEBA } from "@/lib/seo";
+import { conMarca, metaDescripcion } from "@/lib/seo";
+import { hotelAnunciable } from "@/lib/urls-hotel";
 import { SUPABASE_URL, SUPABASE_ANON_KEY, supabaseEnvReady } from "@/lib/supabase/env";
 import { Reveal } from "@/components/shared/Reveal";
 import { BarraCTA } from "@/components/shared/BarraCTA";
@@ -26,13 +27,19 @@ async function hotelesEnCiudad(ciudad: string): Promise<{ slug: string; nombre: 
   if (!supabaseEnvReady) return [];
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    const { data } = await supabase
+    // `extras` para el bloqueo: con sólo `publicado` la página enlazaba hoteles
+    // que Kora bloqueó y cuya ficha da 404 (misma regla que sitemap y llms.txt).
+    const { data, error } = await supabase
       .from("hoteles")
-      .select("slug, nombre, ubicacion")
+      .select("slug, nombre, ubicacion, extras")
       .eq("publicado", true)
       .ilike("ubicacion", `%${ciudad}%`);
-    return (data ?? []).filter((h) => h.slug && h.nombre && !TENANTS_PRUEBA.has(h.slug));
-  } catch {
+    if (error) throw new Error(error.message);
+    return (data ?? [])
+      .filter((h) => h.nombre && hotelAnunciable(h.slug, h.extras))
+      .map(({ slug, nombre }) => ({ slug, nombre }));
+  } catch (e) {
+    console.error("[hoteles-en.hoteles]", e instanceof Error ? e.message : e);
     return [];
   }
 }
@@ -46,7 +53,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const c = getCiudad(ciudad);
   if (!c) return { title: "Ciudad no encontrada — Kora" };
   return {
-    title: `${c.ciudad}: reservas directas para hoteles | Kora`,
+    // `c.ciudad` puede empezar en minúscula («la Huasteca Potosina») porque se
+    // usa a media frase; en la pestaña va con mayúscula.
+    title: conMarca(
+      `${c.ciudad.charAt(0).toUpperCase()}${c.ciudad.slice(1)}: reservas directas para hoteles`,
+    ),
     description: metaDescripcion(c.intro),
     alternates: { canonical: `/hoteles-en/${c.slug}` },
     openGraph: {

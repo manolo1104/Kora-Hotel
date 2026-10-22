@@ -5,13 +5,15 @@ import { Reveal } from "@/components/shared/Reveal";
 import { FirmaKora } from "@/components/herramientas/FirmaKora";
 import { CalculadoraPuntoEquilibrio } from "@/components/herramientas/CalculadoraPuntoEquilibrio";
 import { JsonLd } from "@/components/shared/JsonLd";
+import { metaDescripcion } from "@/lib/seo";
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
 
 export const metadata: Metadata = {
-  title: "Calculadora de punto de equilibrio para hoteles (gratis) | Kora",
-  description:
+  title: "Punto de equilibrio para hoteles (gratis) | Kora",
+  description: metaDescripcion(
     "Calcula gratis cuántas noches necesitas vender al mes para no perder dinero en tu hotel. Punto de equilibrio y ocupación mínima rentable, hecho para México.",
+  ),
   alternates: {
     canonical: "/herramientas/punto-de-equilibrio",
   },

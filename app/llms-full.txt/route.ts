@@ -1,4 +1,5 @@
-import { articles } from "@/lib/articles";
+import type { Article } from "@/lib/articles";
+import { getAllArticles } from "@/lib/blog-db";
 import { herramientasDisponibles } from "@/lib/herramientas";
 import { glosario } from "@/lib/glosario";
 import { comparativas } from "@/lib/comparativas";
@@ -10,8 +11,13 @@ import { faqs } from "@/lib/faqs";
 import { PRECIO_DESDE, GARANTIA, PASOS_ALTA, AYUDA_ALTA, RUTA_REGISTRO } from "@/lib/oferta";
 
 // llms-full.txt dinámico: enumeración exhaustiva de todo el contenido del sitio,
-// generada de los mismos datos que renderizan las páginas. Se regenera en cada build.
-export const dynamic = "force-static";
+// generada de los mismos datos que renderizan las páginas.
+//
+// Era `force-static` y leía sólo los 5 artículos de lib/articles.ts: los que el
+// agente publica en la base (12+ al 22 oct 2026) no salían nunca, y el
+// encabezado decía «Blog (5)». Ahora lee el blog completo con ISR diario, y
+// /api/blog/create lo refresca al publicar.
+export const revalidate = 86400;
 
 const BASE = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
 
@@ -21,7 +27,27 @@ const BASE = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
 // como apoyo.
 const URL_REGISTRO = `${BASE}${RUTA_REGISTRO}`;
 
-function buildFull(): string {
+// Las páginas sueltas del sitio, con lo que el visitante encuentra en cada una.
+// Sin cifras del caso: ésas viven en lib/caso-paraiso.ts y se leen en la página.
+const PAGINAS_SUELTAS: { ruta: string; texto: string }[] = [
+  { ruta: "/caracteristicas", texto: "Los módulos de Kora: motor de reservas, bot de WhatsApp, PMS, dashboard y CRM" },
+  { ruta: "/como-funciona", texto: "Cómo empezar: crear la cuenta, cargar el hotel y probarlo por dentro" },
+  { ruta: "/precios", texto: "El plan único, qué incluye y las recargas de mensajes de Camila" },
+  { ruta: "/casos/paraiso-encantado", texto: "Caso de estudio del Hotel Paraíso Encantado (Xilitla, SLP), el hotel del fundador, con sus cifras medidas" },
+  { ruta: "/guia", texto: "Guía gratis: el plan de 90 días, semana por semana, para depender menos de Booking" },
+  { ruta: "/blog", texto: "Artículos sobre reservas directas, comisiones de OTAs, WhatsApp y operación hotelera" },
+  { ruta: "/herramientas", texto: "Calculadoras y generadores gratis para hoteles" },
+  { ruta: "/glosario", texto: "Glosario hotelero en español" },
+  { ruta: "/comparativas", texto: "Kora frente a las OTAs, los chatbots genéricos y las hojas de cálculo" },
+  { ruta: "/para", texto: "Kora según el tipo de alojamiento" },
+  { ruta: "/hoteles-en", texto: "Reservas directas por destino de México" },
+  { ruta: "/ayuda", texto: "Centro de ayuda: cuenta, página de reservas, pagos y soporte" },
+  { ruta: "/contacto", texto: "Contacto y ayuda para dejar Kora listo con tu hotel" },
+  { ruta: "/terminos", texto: "Términos de servicio" },
+  { ruta: "/privacidad", texto: "Aviso de privacidad (LFPDPPP)" },
+];
+
+function buildFull(articulos: Article[]): string {
   const L: string[] = [];
   L.push("# Kora — detalle completo");
   L.push("");
@@ -96,8 +122,8 @@ function buildFull(): string {
   });
   L.push("");
 
-  L.push(`## Blog (${articles.length})`);
-  articles.forEach((a) => {
+  L.push(`## Blog (${articulos.length})`);
+  articulos.forEach((a) => {
     L.push(`- ${a.title} — ${a.excerpt} — ${BASE}/blog/${a.slug}`);
   });
   L.push("");
@@ -108,6 +134,10 @@ function buildFull(): string {
   });
   L.push("");
 
+  L.push("## Otras páginas del sitio");
+  PAGINAS_SUELTAS.forEach((p) => L.push(`- ${p.texto}: ${BASE}${p.ruta}`));
+  L.push("");
+
   L.push("## Empezar y contacto");
   L.push(`- Crear cuenta y probar gratis: ${URL_REGISTRO}`);
   L.push("- Dudas o ayuda para dejar el hotel listo (apoyo opcional, no hace falta para empezar): WhatsApp +52 489 125 1458");
@@ -116,8 +146,8 @@ function buildFull(): string {
   return L.join("\n");
 }
 
-export function GET() {
-  return new Response(buildFull(), {
+export async function GET() {
+  return new Response(buildFull(await getAllArticles()), {
     headers: {
       "Content-Type": "text/plain; charset=utf-8",
       "Cache-Control": "public, max-age=3600, s-maxage=86400",

@@ -5,13 +5,15 @@ import { Reveal } from "@/components/shared/Reveal";
 import { FirmaKora } from "@/components/herramientas/FirmaKora";
 import { CalculadoraImpuestos } from "@/components/herramientas/CalculadoraImpuestos";
 import { JsonLd } from "@/components/shared/JsonLd";
+import { metaDescripcion } from "@/lib/seo";
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
 
 export const metadata: Metadata = {
-  title: "Calculadora de IVA e Impuesto al Hospedaje para hoteles (gratis) | Kora",
-  description:
+  title: "Calculadora de IVA e ISH para hoteles (gratis) | Kora",
+  description: metaDescripcion(
     "Calcula gratis el IVA y el Impuesto al Hospedaje (ISH) de tus reservas y desglosa cualquier monto. Hecha para hoteles en México.",
+  ),
   alternates: {
     canonical: "/herramientas/calculadora-impuestos",
   },

@@ -22,6 +22,7 @@ import {
 } from "@/lib/mini";
 import { SUPABASE_URL, SUPABASE_ANON_KEY, supabaseEnvReady } from "@/lib/supabase/env";
 import { JsonLd } from "@/components/shared/JsonLd";
+import { tituloQueCabe } from "@/lib/seo";
 
 export const revalidate = 3600;
 
@@ -57,7 +58,7 @@ export async function generateMetadata({
   if (!hotel) return { title: "Artículo no encontrado" };
   const post = await getPostPublicado(hotel.id, slugPost);
   if (!post) return { title: "Artículo no encontrado" };
-  const title = `${post.titulo} · ${hotel.nombre}`;
+  const title = tituloQueCabe(`${post.titulo} · ${hotel.nombre}`, post.titulo);
   const description = post.excerpt || `${post.titulo} — del blog de ${hotel.nombre}.`;
   // OG image: la portada del post, o la portada del hotel si no puso una.
   const ogImage = post.portada || hotel.fotos?.[0] || null;

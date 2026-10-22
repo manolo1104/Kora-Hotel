@@ -5,13 +5,15 @@ import { Reveal } from "@/components/shared/Reveal";
 import { FirmaKora } from "@/components/herramientas/FirmaKora";
 import { GeneradorIA, type CampoDef } from "@/components/herramientas/GeneradorIA";
 import { JsonLd } from "@/components/shared/JsonLd";
+import { metaDescripcion } from "@/lib/seo";
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
 
 export const metadata: Metadata = {
-  title: "Generador de mensajes para huéspedes con IA (pre-llegada, check-out, reseña) | Kora",
-  description:
+  title: "Mensajes para huéspedes con IA (gratis) | Kora",
+  description: metaDescripcion(
     "Crea con IA los mensajes para tus huéspedes en cada etapa: pre-llegada, bienvenida, check-out y pedir reseña. En español, listos para WhatsApp. Gratis, para hoteles en México.",
+  ),
   alternates: { canonical: "/herramientas/mensajes-huesped" },
   openGraph: {
     title: "Generador de mensajes para huéspedes con IA (gratis)",

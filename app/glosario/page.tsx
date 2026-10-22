@@ -7,7 +7,7 @@ import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 import { JsonLd } from "@/components/shared/JsonLd";
 
 export const metadata: Metadata = {
-  title: "Glosario hotelero: términos que todo hotelero debe conocer | Kora",
+  title: "Glosario hotelero: términos clave en español | Kora",
   description:
     "Qué es un PMS, un motor de reservas, el RevPAR, el overbooking y más. Glosario claro y en español para hoteles boutique en México.",
   alternates: { canonical: "/glosario" },

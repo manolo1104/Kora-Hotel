@@ -11,6 +11,7 @@ import { JsonLd } from "@/components/shared/JsonLd";
 import { sanitizarHtmlArticulo } from "@/lib/sanitizar-html";
 import { CtaLink } from "@/components/shared/CtaLink";
 import { GARANTIA, RUTA_REGISTRO } from "@/lib/oferta";
+import { conMarca, metaDescripcion } from "@/lib/seo";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -33,8 +34,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   // «— Blog Kora»: con títulos de 88 caracteres, ese sufijo era justo lo que
   // empujaba la cifra fuera de lo que el buscador alcanza a enseñar (~60).
   return {
-    title: article.metaTitle ?? `${article.title} — Blog Kora`,
-    description: article.metaDescription ?? article.excerpt,
+    title: article.metaTitle ?? conMarca(article.title),
+    // Crudo, un extracto de 170 caracteres salía cortado a media palabra.
+    description: metaDescripcion(article.metaDescription ?? article.excerpt),
     alternates: {
       canonical: `/blog/${article.slug}`,
     },
@@ -115,13 +117,12 @@ export default async function BlogArticlePage({ params }: Props) {
           jobTitle: "Fundador de Kora",
           sameAs: [FUNDADOR.linkedin, FUNDADOR.instagram],
         },
+        // La MISMA organización que declara app/layout.tsx, por su @id: antes
+        // era un nodo suelto y Google veía dos «Kora» distintas.
         publisher: {
           "@type": "Organization",
+          "@id": `${siteUrl}/#organization`,
           name: "Kora",
-          logo: {
-            "@type": "ImageObject",
-            url: `${siteUrl}/opengraph-image`,
-          },
         },
         mainEntityOfPage: {
           "@type": "WebPage",

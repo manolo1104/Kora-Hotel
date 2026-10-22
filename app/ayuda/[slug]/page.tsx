@@ -5,6 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import { Reveal } from "@/components/shared/Reveal";
 import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 import { AYUDA, articuloPorSlug } from "@/lib/ayuda";
+import { conMarca, metaDescripcion } from "@/lib/seo";
 
 export function generateStaticParams() {
   return AYUDA.map((a) => ({ slug: a.slug }));
@@ -19,8 +20,13 @@ export async function generateMetadata({
   const articulo = articuloPorSlug(slug);
   if (!articulo) return { title: "Ayuda | Kora" };
   return {
-    title: `${articulo.titulo} | Ayuda de Kora`,
-    description: articulo.resumen,
+    // El resumen (36–68 caracteres) era toda la descripción: Google la
+    // rellenaba con lo que quisiera. Ahora resumen + el inicio del artículo.
+    // Y «Precios y plan de Kora | Ayuda de Kora» decía la marca dos veces.
+    title: /kora/i.test(articulo.titulo)
+      ? `${articulo.titulo} | Ayuda`
+      : conMarca(`${articulo.titulo} | Ayuda`),
+    description: metaDescripcion(`${articulo.resumen} ${articulo.contenido.join(" ")}`),
     alternates: { canonical: `/ayuda/${articulo.slug}` },
   };
 }

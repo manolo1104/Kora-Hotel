@@ -5,13 +5,15 @@ import { Reveal } from "@/components/shared/Reveal";
 import { FirmaKora } from "@/components/herramientas/FirmaKora";
 import { DescuentoMaximo } from "@/components/herramientas/DescuentoMaximo";
 import { JsonLd } from "@/components/shared/JsonLd";
+import { metaDescripcion } from "@/lib/seo";
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
 
 export const metadata: Metadata = {
-  title: "¿Hasta cuánto puedo descontar en mi hotel sin perder? (gratis) | Kora",
-  description:
+  title: "¿Cuánto puedo descontar en mi hotel? (gratis) | Kora",
+  description: metaDescripcion(
     "Calcula gratis el descuento máximo que puedes dar en tu hotel sin trabajar a pérdida. Ideal para negociar grupos, convenios y tarifas de last-minute en México.",
+  ),
   alternates: {
     canonical: "/herramientas/descuento-maximo",
   },

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 import { glosario, getTermino } from "@/lib/glosario";
-import { metaDescripcion } from "@/lib/seo";
+import { conMarca, metaDescripcion } from "@/lib/seo";
 import { Reveal } from "@/components/shared/Reveal";
 import { BarraCTA } from "@/components/shared/BarraCTA";
 import { JsonLd } from "@/components/shared/JsonLd";
@@ -23,7 +23,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const t = getTermino(termino);
   if (!t) return { title: "Término no encontrado — Kora" };
   return {
-    title: `${t.pregunta} | Glosario hotelero Kora`,
+    // Decía «| Glosario hotelero Kora»: 24 caracteres que dejaban 12 de los 26
+    // términos por encima de 60 y Google les cortaba la pregunta.
+    title: conMarca(t.pregunta),
     // `metaDescripcion` corta por la última palabra entera; existe en lib/seo.ts
     // justo para esto y aquí seguía el `.slice(0, 155)` que parte a media
     // palabra. Se veía en producción: la descripción de /glosario/reservas-

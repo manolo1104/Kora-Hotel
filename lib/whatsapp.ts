@@ -37,6 +37,11 @@ export interface PaginaWhatsApp {
   slug: string;
   /** H1 de la página */
   titulo: string;
+  /**
+   * Título de pestaña cuando el H1 no cabe en 60 caracteres con « | Kora».
+   * Al 22 oct 2026, 7 de las 12 guías pasaban de 60 y Google las cortaba.
+   */
+  tituloSeo?: string;
   /** Pregunta-título para metadata y tarjetas ("¿Cómo…?") */
   pregunta: string;
   /** Resumen corto para la tarjeta del índice */
@@ -129,6 +134,7 @@ export const paginasWhatsApp: PaginaWhatsApp[] = [
   {
     slug: "responder-whatsapp-fuera-de-horario",
     titulo: "Cómo contestar el WhatsApp de tu hotel de noche y en fin de semana",
+    tituloSeo: "Responder el WhatsApp del hotel fuera de horario",
     pregunta: "¿Cómo contesto los WhatsApp que llegan cuando ya cerré?",
     resumen:
       "El turno de noche es cuando más se pierde. Tres formas de cubrirlo y cuánto cuesta cada una.",
@@ -238,6 +244,7 @@ export const paginasWhatsApp: PaginaWhatsApp[] = [
   {
     slug: "cobrar-anticipo-por-whatsapp",
     titulo: "Cobrar el anticipo por WhatsApp sin transferencias ni capturas",
+    tituloSeo: "Cobrar el anticipo de una reserva por WhatsApp",
     pregunta: "¿Cómo cobro un anticipo por WhatsApp de forma segura?",
     resumen:
       "Se acabó el \"mándame el comprobante\". Un link de pago que confirma solo.",
@@ -295,6 +302,7 @@ export const paginasWhatsApp: PaginaWhatsApp[] = [
   {
     slug: "chatbot-vs-agente-ia",
     titulo: "Chatbot vs. agente de IA: por qué uno vende y el otro no",
+    tituloSeo: "Chatbot vs. agente de IA para hoteles",
     pregunta: "¿Cuál es la diferencia entre un chatbot y un agente de IA?",
     resumen:
       "Un chatbot responde. Un agente hace cosas: consulta, aparta y cobra.",
@@ -356,6 +364,7 @@ export const paginasWhatsApp: PaginaWhatsApp[] = [
   {
     slug: "reservas-por-whatsapp",
     titulo: "Cómo recibir reservas por WhatsApp sin capturarlas a mano",
+    tituloSeo: "Reservas por WhatsApp sin capturarlas a mano",
     pregunta: "¿Cómo convierto los WhatsApp en reservas registradas?",
     resumen:
       "El hueco entre la conversación y el sistema es donde se pierden y se duplican reservas.",
@@ -406,6 +415,7 @@ export const paginasWhatsApp: PaginaWhatsApp[] = [
   {
     slug: "whatsapp-business-api-hotel",
     titulo: "WhatsApp Business, API y agente de IA: cuál necesita tu hotel",
+    tituloSeo: "WhatsApp Business API para hoteles: cuál necesitas",
     pregunta: "¿Necesito la API de WhatsApp Business para mi hotel?",
     resumen:
       "Los tres niveles de WhatsApp para hotel, en español y sin jerga.",
@@ -525,6 +535,7 @@ export const paginasWhatsApp: PaginaWhatsApp[] = [
   {
     slug: "whatsapp-vs-recepcionista-nocturno",
     titulo: "Agente de IA o recepcionista de noche: qué le conviene a un hotel chico",
+    tituloSeo: "Agente de IA o recepcionista de noche para tu hotel",
     pregunta: "¿Me conviene más contratar guardia nocturna o un agente de IA?",
     resumen: "La comparación honesta, incluyendo lo que la IA no puede hacer.",
     respuesta:
@@ -585,6 +596,7 @@ export const paginasWhatsApp: PaginaWhatsApp[] = [
   {
     slug: "whatsapp-en-varios-idiomas",
     titulo: "Atender huéspedes extranjeros por WhatsApp sin hablar su idioma",
+    tituloSeo: "Atender en inglés por WhatsApp a tus huéspedes",
     pregunta: "¿Cómo atiendo por WhatsApp a un huésped que escribe en inglés?",
     resumen:
       "El mensaje en inglés a las 11 de la noche no tiene por qué costarte la reserva.",

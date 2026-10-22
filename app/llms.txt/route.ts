@@ -6,6 +6,9 @@ import { personas } from "@/lib/personas";
 import { ciudades } from "@/lib/ciudades";
 import { comparativas } from "@/lib/comparativas";
 import { paginasWhatsApp } from "@/lib/whatsapp";
+import { AYUDA } from "@/lib/ayuda";
+import { getAllArticles } from "@/lib/blog-db";
+import type { Article } from "@/lib/articles";
 import {
   PRECIO_DESDE,
   GARANTIA,
@@ -14,7 +17,7 @@ import {
   AYUDA_ALTA,
   RUTA_REGISTRO,
 } from "@/lib/oferta";
-import { TENANTS_PRUEBA } from "@/lib/seo";
+import { hotelAnunciable } from "@/lib/urls-hotel";
 import { SUPABASE_URL, SUPABASE_ANON_KEY, supabaseEnvReady } from "@/lib/supabase/env";
 
 // llms.txt dinámico con ISR diario: incluye los hoteles publicados (que cambian
@@ -42,13 +45,19 @@ async function hotelesPublicados(): Promise<HotelListado[]> {
   if (!supabaseEnvReady) return [];
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    const data = await leer<Array<{ slug: string; nombre: string; ubicacion: string | null }>>(
+    // `extras` para leer el bloqueo: sólo con `publicado` se listaban hoteles
+    // que Kora bloqueó y cuya página da 404 (misma regla que el sitemap).
+    const data = await leer<Array<{ slug: string; nombre: string; ubicacion: string | null; extras: unknown }>>(
       "llms.hoteles",
-      supabase.from("hoteles").select("slug, nombre, ubicacion").eq("publicado", true),
+      supabase
+        .from("hoteles")
+        .select("slug, nombre, ubicacion, extras")
+        .eq("publicado", true)
+        .order("nombre"),
     );
-    return (data ?? []).filter(
-      (h) => h.slug && h.nombre && !TENANTS_PRUEBA.has(h.slug),
-    );
+    return (data ?? [])
+      .filter((h) => h.nombre && hotelAnunciable(h.slug, h.extras))
+      .map(({ slug, nombre, ubicacion }) => ({ slug, nombre, ubicacion }));
   } catch (e) {
     // Degradar a vacío es DELIBERADO (no romper la página por esto), pero
     // ya no en silencio: sin este log, un fallo aquí se publica como "no
@@ -58,7 +67,11 @@ async function hotelesPublicados(): Promise<HotelListado[]> {
   }
 }
 
-function buildLlms(hoteles: HotelListado[]): string {
+// 22 oct 2026: este archivo no tenía NI UN artículo del blog, ni el glosario,
+// la ayuda o 17 de las 18 herramientas: sólo los índices. Ahora cada página del
+// sitemap sale aquí o en /llms-full.txt (tests/llms-cobertura.test.ts lo exige),
+// y las de cada hotel en su propio /h/{slug}/llms.txt, enlazado abajo.
+function buildLlms(hoteles: HotelListado[], articulos: Article[]): string {
   const L: string[] = [];
   L.push("# Kora");
   L.push("");
@@ -146,13 +159,33 @@ function buildLlms(hoteles: HotelListado[]): string {
   L.push(`- Cómo funciona: ${BASE}/como-funciona`);
   L.push(`- Precios: ${BASE}/precios`);
   L.push(`- Caso de estudio (Hotel Paraíso Encantado): ${BASE}/casos/paraiso-encantado`);
+  L.push(`- Guía gratis: plan de 90 días para depender menos de Booking: ${BASE}/guia`);
   L.push(`- Herramientas gratis para hoteles (${herramientasDisponibles.length}): ${BASE}/herramientas`);
   L.push(`- Glosario hotelero (${glosario.length} términos): ${BASE}/glosario`);
+  L.push(`- Centro de ayuda (${AYUDA.length} artículos): ${BASE}/ayuda`);
+  L.push(`- Kora por tipo de hotel (${personas.length}): ${BASE}/para`);
+  L.push(`- Contacto: ${BASE}/contacto`);
+  L.push(`- Términos de servicio: ${BASE}/terminos`);
+  L.push(`- Aviso de privacidad: ${BASE}/privacidad`);
   L.push(`- Comparativas (${comparativas.length}) — OTAs, chatbots y hojas de cálculo vs Kora: ${BASE}/comparativas`);
   comparativas.forEach((c) => L.push(`  - ${c.competidor} vs ${c.contra ?? "reservas directas"}: ${BASE}/comparativas/${c.slug}`));
   L.push(`- Blog: ${BASE}/blog`);
   L.push(`- Reservas directas por ciudad (${ciudades.length} destinos de México): ${BASE}/hoteles-en`);
   personas.forEach((p) => L.push(`- ${p.titulo}: ${BASE}/para/${p.slug}`));
+  L.push("");
+  if (articulos.length) {
+    L.push(`## Blog (${articulos.length} artículos)`);
+    articulos.forEach((a) => L.push(`- ${a.title}: ${BASE}/blog/${a.slug}`));
+    L.push("");
+  }
+  L.push(`## Herramientas gratis para hoteles (${herramientasDisponibles.length})`);
+  herramientasDisponibles.forEach((h) => L.push(`- ${h.titulo}: ${BASE}/herramientas/${h.slug}`));
+  L.push("");
+  L.push(`## Glosario hotelero (${glosario.length} términos)`);
+  glosario.forEach((t) => L.push(`- ${t.pregunta} → ${BASE}/glosario/${t.slug}`));
+  L.push("");
+  L.push(`## Centro de ayuda (${AYUDA.length})`);
+  AYUDA.forEach((a) => L.push(`- ${a.titulo}: ${BASE}/ayuda/${a.slug}`));
   L.push("");
   L.push("## Cobertura por ciudad");
   ciudades.forEach((c) =>
@@ -164,9 +197,11 @@ function buildLlms(hoteles: HotelListado[]): string {
     L.push(
       "Cada hotel tiene su página pública con habitaciones, precios en MXN, disponibilidad y motor de reserva directa (sin comisiones de OTA):"
     );
+    // Cada hotel con su propio llms.txt: ahí están sus habitaciones, páginas y
+    // blog, que son cientos de URLs que no caben aquí.
     hoteles.forEach((h) =>
       L.push(
-        `- ${h.nombre}${h.ubicacion ? ` (${h.ubicacion})` : ""}: ${BASE}/h/${h.slug}`
+        `- ${h.nombre}${h.ubicacion ? ` (${h.ubicacion})` : ""}: ${BASE}/h/${h.slug} (detalle: ${BASE}/h/${h.slug}/llms.txt)`
       )
     );
     L.push("");
@@ -183,7 +218,8 @@ function buildLlms(hoteles: HotelListado[]): string {
 }
 
 export async function GET() {
-  return new Response(buildLlms(await hotelesPublicados()), {
+  const [hoteles, articulos] = await Promise.all([hotelesPublicados(), getAllArticles()]);
+  return new Response(buildLlms(hoteles, articulos), {
     headers: {
       "Content-Type": "text/plain; charset=utf-8",
       "Cache-Control": "public, max-age=3600, s-maxage=86400",

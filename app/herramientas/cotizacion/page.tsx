@@ -5,13 +5,15 @@ import { Reveal } from "@/components/shared/Reveal";
 import { FirmaKora } from "@/components/herramientas/FirmaKora";
 import { Cotizacion } from "@/components/herramientas/Cotizacion";
 import { JsonLd } from "@/components/shared/JsonLd";
+import { metaDescripcion } from "@/lib/seo";
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
 
 export const metadata: Metadata = {
   title: "Generador de cotización para hotel en PDF (gratis) | Kora",
-  description:
+  description: metaDescripcion(
     "Crea gratis una cotización profesional para tu hotel en PDF: fechas, habitaciones, tarifa y total, lista para enviar por WhatsApp. Sin registro, hecha para México.",
+  ),
   alternates: { canonical: "/herramientas/cotizacion" },
   openGraph: {
     title: "Generador de cotización para hotel en PDF (gratis)",

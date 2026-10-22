@@ -5,6 +5,7 @@ import { createClient } from "@supabase/supabase-js";
 import { getPostsPublicados } from "@/lib/hotel-blog";
 import { AMENIDADES_MAP } from "@/lib/amenidades";
 import { resolverPaginas, type MiniExtras } from "@/lib/mini";
+import { hotelAnunciable, habitacionesConPagina } from "@/lib/urls-hotel";
 import { SUPABASE_URL, SUPABASE_ANON_KEY, supabaseEnvReady } from "@/lib/supabase/env";
 
 // llms.txt POR HOTEL (/h/{slug}/llms.txt): la ficha del hotel en el formato que
@@ -41,17 +42,29 @@ export async function GET(
 ) {
   const { slug } = await params;
   if (!supabaseEnvReady) return new Response("Not found", { status: 404 });
-  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  const hotel = await leer<HotelFicha>(
-    "llms.hotel",
-    supabase
-      .from("hoteles")
-      .select("id, slug, nombre, ubicacion, descripcion, habitaciones, extras")
-      .eq("slug", slug)
-      .eq("publicado", true)
-      .maybeSingle(),
-  );
-  if (!hotel) return new Response("Not found", { status: 404 });
+  // Un route handler NO pasa por app/h/[slug]/layout.tsx, que es quien apaga con
+  // 404 los hoteles bloqueados y pone noindex a los de prueba: hasta el 22 oct
+  // 2026 este archivo servía con 200 la ficha de ambos. Y `leer` lanza si la
+  // base falla, lo que salía como un 500 que se quedaba en la caché.
+  let hotel: HotelFicha | null = null;
+  try {
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    hotel = await leer<HotelFicha>(
+      "llms.hotel",
+      supabase
+        .from("hoteles")
+        .select("id, slug, nombre, ubicacion, descripcion, habitaciones, extras")
+        .eq("slug", slug)
+        .eq("publicado", true)
+        .maybeSingle(),
+    );
+  } catch (e) {
+    console.error("[llms.hotel]", e instanceof Error ? e.message : e);
+    return new Response("Not found", { status: 404 });
+  }
+  if (!hotel || !hotelAnunciable(hotel.slug, hotel.extras)) {
+    return new Response("Not found", { status: 404 });
+  }
 
   const extras = hotel.extras ?? {};
   const url = `${BASE}/h/${hotel.slug}`;
@@ -70,15 +83,18 @@ export async function GET(
   ].filter(Boolean);
   L.push(`> ${partes.join(". ")}.`);
 
-  const habitaciones = (hotel.habitaciones ?? []).filter((h) => (h.nombre ?? "").trim());
+  // Cada habitación con su página (la misma lista que el sitemap): antes salía
+  // el nombre sin enlace y la IA no tenía a dónde mandar al huésped.
+  const habitaciones = habitacionesConPagina(hotel.habitaciones);
   if (habitaciones.length) {
     L.push("");
     L.push("## Habitaciones");
-    for (const h of habitaciones) {
+    for (const { idx } of habitaciones) {
+      const h = hotel.habitaciones![idx];
       const desde = precioDesde(h);
       const cap = (h.capacidad ?? "").trim();
       L.push(
-        `- ${h.nombre}${cap ? ` (hasta ${cap} personas)` : ""}${
+        `- [${(h.nombre ?? "").trim()}](${url}/habitacion/${idx})${cap ? ` (hasta ${cap} personas)` : ""}${
           desde ? `: desde $${desde.toLocaleString("es-MX")} MXN por noche` : ""
         }`
       );
@@ -124,13 +140,17 @@ export async function GET(
   const posts = await getPostsPublicados(hotel.id);
   if (posts.length) {
     L.push(`- [Blog](${url}/blog)`);
-    for (const post of posts.slice(0, 20)) {
+    // Todos, como el sitemap: con el tope de 20 los más viejos no los veía nadie.
+    for (const post of posts) {
       L.push(`- [${post.titulo}](${url}/blog/${post.slug})`);
     }
   }
   L.push("");
 
   return new Response(L.join("\n"), {
-    headers: { "Content-Type": "text/plain; charset=utf-8" },
+    headers: {
+      "Content-Type": "text/plain; charset=utf-8",
+      "Cache-Control": "public, max-age=3600, s-maxage=86400",
+    },
   });
 }

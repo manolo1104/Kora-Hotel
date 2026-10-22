@@ -21,7 +21,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY, supabaseEnvReady } from "@/lib/supabas
 import { ownerTienePlanActivo, accesoDelHotel } from "@/lib/suscripcion";
 import { getResenasPublicadas } from "@/lib/db/reviews";
 import { tienePostsPublicados } from "@/lib/hotel-blog";
-import { metaDescripcion } from "@/lib/seo";
+import { metaDescripcion, tituloDeHotel } from "@/lib/seo";
 import { extraerCoords } from "@/lib/maps";
 import { JsonLd } from "@/components/shared/JsonLd";
 
@@ -64,23 +64,31 @@ function aNumero(p?: string): number {
 
 export async function generateMetadata({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ preview?: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
+  // `?preview=1` enseña lo que el dueño todavía no publica (hotel o página
+  // ocultos). La metadata sólo lee lo publicado, así que esa vista salía con
+  // título «no encontrado», sin canonical y SIN noindex: indexable.
+  if ((await searchParams).preview === "1") {
+    return { title: "Vista previa", robots: { index: false, follow: false } };
+  }
   const hotel = await getHotel(slug, false);
   if (!hotel) return { title: "Hotel no encontrado" };
   const description = hotel.descripcion
     ? metaDescripcion(hotel.descripcion)
     : `Reserva directo en ${hotel.nombre}${hotel.ubicacion ? `, ${hotel.ubicacion}` : ""}: confirmación inmediata y pago seguro, sin comisiones.`;
   return {
-    title: `${hotel.nombre}${hotel.ubicacion ? ` — ${hotel.ubicacion}` : ""}`,
+    title: tituloDeHotel(hotel.nombre, hotel.ubicacion),
     description,
     alternates: { canonical: `/h/${slug}` },
     // La imagen OG la genera opengraph-image.tsx (portada branded 1200×630);
     // no se fija aquí para no pisar la convención de archivo.
     openGraph: {
-      title: `${hotel.nombre}${hotel.ubicacion ? ` — ${hotel.ubicacion}` : ""}`,
+      title: tituloDeHotel(hotel.nombre, hotel.ubicacion),
       description,
       type: "website",
       locale: "es_MX",

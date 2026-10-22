@@ -90,6 +90,9 @@ export async function POST(req: NextRequest) {
     revalidatePath("/blog");
     revalidatePath(`/blog/${slug}`);
     revalidatePath("/sitemap.xml");
+    // Los dos archivos para IA listan el blog completo desde el 22 oct 2026.
+    revalidatePath("/llms.txt");
+    revalidatePath("/llms-full.txt");
 
     return NextResponse.json({ success: true, post: data });
   } catch (err: unknown) {
@@ -156,6 +159,8 @@ export async function DELETE(req: NextRequest) {
 
     revalidatePath("/blog");
     revalidatePath("/sitemap.xml");
+    revalidatePath("/llms.txt");
+    revalidatePath("/llms-full.txt");
     return NextResponse.json({ success: true, deleted: slug });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Error";

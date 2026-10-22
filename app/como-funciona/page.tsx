@@ -56,7 +56,7 @@ const PRECIO = PRECIO_DESDE.toLocaleString("es-MX");
 // WhatsApp/Facebook (`inheritFromMetadata`). Definirlo aquí lo REEMPLAZARÍA y
 // habría que repetir siteName y locale a mano.
 export const metadata: Metadata = {
-  title: "Cómo funciona Kora — Regístrate y pruébalo gratis con tu hotel",
+  title: "Cómo funciona Kora: pruébalo gratis con tu hotel",
   description: `Crea tu cuenta, carga tu hotel y prueba Kora por dentro ${DIAS} días gratis, sin tarjeta: una reserva de prueba y tu panel. Camila se enciende con tu plan.`,
   alternates: {
     canonical: "/como-funciona",

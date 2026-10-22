@@ -5,13 +5,15 @@ import { Reveal } from "@/components/shared/Reveal";
 import { FirmaKora } from "@/components/herramientas/FirmaKora";
 import { Anticipo } from "@/components/herramientas/Anticipo";
 import { JsonLd } from "@/components/shared/JsonLd";
+import { metaDescripcion } from "@/lib/seo";
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
 
 export const metadata: Metadata = {
-  title: "Generador de mensaje de anticipo para reservas de hotel (gratis) | Kora",
-  description:
+  title: "Mensaje para cobrar anticipo de reserva (gratis) | Kora",
+  description: metaDescripcion(
     "Crea gratis el mensaje de WhatsApp para pedir el anticipo de una reserva, con el desglose y tus datos de pago. Listo para copiar y enviar. Hecho para hoteles en México.",
+  ),
   alternates: { canonical: "/herramientas/anticipo" },
   openGraph: {
     title: "Generador de mensaje de anticipo para reservas (gratis)",

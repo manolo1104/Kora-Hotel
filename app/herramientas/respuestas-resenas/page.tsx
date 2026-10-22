@@ -5,13 +5,15 @@ import { Reveal } from "@/components/shared/Reveal";
 import { FirmaKora } from "@/components/herramientas/FirmaKora";
 import { GeneradorIA, type CampoDef } from "@/components/herramientas/GeneradorIA";
 import { JsonLd } from "@/components/shared/JsonLd";
+import { metaDescripcion } from "@/lib/seo";
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
 
 export const metadata: Metadata = {
-  title: "Generador de respuestas a reseñas de hotel con IA (gratis) | Kora",
-  description:
+  title: "Respuestas a reseñas de hotel con IA (gratis) | Kora",
+  description: metaDescripcion(
     "Responde reseñas de Booking, Airbnb y Google en segundos con IA. Pega la reseña y obtén una respuesta profesional y empática en español. Gratis, para hoteles en México.",
+  ),
   alternates: { canonical: "/herramientas/respuestas-resenas" },
   openGraph: {
     title: "Generador de respuestas a reseñas de hotel con IA (gratis)",

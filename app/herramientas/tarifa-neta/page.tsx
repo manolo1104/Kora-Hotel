@@ -5,13 +5,15 @@ import { Reveal } from "@/components/shared/Reveal";
 import { FirmaKora } from "@/components/herramientas/FirmaKora";
 import { TarifaNeta } from "@/components/herramientas/TarifaNeta";
 import { JsonLd } from "@/components/shared/JsonLd";
+import { metaDescripcion } from "@/lib/seo";
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
 
 export const metadata: Metadata = {
-  title: "Calculadora de tarifa neta: ¿a qué precio publicar en Booking? | Kora",
-  description:
+  title: "Tarifa neta: ¿a qué precio publicar en Booking? | Kora",
+  description: metaDescripcion(
     "Calcula gratis a qué precio publicar en Booking o Airbnb para recibir lo que quieres después de la comisión, y cuánto más te deja cada reserva directa. Para hoteles en México.",
+  ),
   alternates: {
     canonical: "/herramientas/tarifa-neta",
   },

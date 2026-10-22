@@ -19,6 +19,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY, supabaseEnvReady } from "@/lib/supabas
 import { ownerTienePlanActivo, accesoDelHotel } from "@/lib/suscripcion";
 import { tienePostsPublicados } from "@/lib/hotel-blog";
 import { JsonLd } from "@/components/shared/JsonLd";
+import { tituloQueCabe } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 
@@ -61,14 +62,22 @@ async function getHotelYPagina(
 
 export async function generateMetadata({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string; pagina: string }>;
+  searchParams: Promise<{ preview?: string }>;
 }): Promise<Metadata> {
   const { slug, pagina: slugPagina } = await params;
+  // `?preview=1` enseña lo que el dueño todavía no publica (hotel o página
+  // ocultos). La metadata sólo lee lo publicado, así que esa vista salía con
+  // título «no encontrado», sin canonical y SIN noindex: indexable.
+  if ((await searchParams).preview === "1") {
+    return { title: "Vista previa", robots: { index: false, follow: false } };
+  }
   const res = await getHotelYPagina(slug, slugPagina, false);
   if (!res) return { title: "Página no encontrada" };
   const { hotel, pagina } = res;
-  const title = `${pagina.titulo} · ${hotel.nombre}`;
+  const title = tituloQueCabe(`${pagina.titulo} · ${hotel.nombre}`, pagina.titulo);
   const description = metaDescripcionPagina(pagina, hotel.nombre);
   return {
     title,

@@ -6,13 +6,15 @@ import { Reveal } from "@/components/shared/Reveal";
 import { JsonLd } from "@/components/shared/JsonLd";
 import { CtaLink } from "@/components/shared/CtaLink";
 import { RUTA_REGISTRO } from "@/lib/oferta";
+import { metaDescripcion } from "@/lib/seo";
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
 
 export const metadata: Metadata = {
   title: "Crea la página de reservas de tu hotel gratis | Kora",
-  description:
+  description: metaDescripcion(
     "Crea gratis una página de reservas directas por WhatsApp con tu logo y color, reseñas, formulario de fechas y una guía digital del huésped con QR. Sin comisiones, sin saber de tecnología. Para México.",
+  ),
   alternates: { canonical: "/herramientas/mini-pagina" },
   openGraph: {
     title: "Crea la página de reservas de tu hotel gratis",

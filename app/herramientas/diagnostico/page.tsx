@@ -5,13 +5,15 @@ import { Reveal } from "@/components/shared/Reveal";
 import { FirmaKora } from "@/components/herramientas/FirmaKora";
 import { DiagnosticoHotel } from "@/components/herramientas/DiagnosticoHotel";
 import { JsonLd } from "@/components/shared/JsonLd";
+import { metaDescripcion } from "@/lib/seo";
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
 
 export const metadata: Metadata = {
-  title: "Diagnóstico: ¿qué tan dependiente eres de Booking? (gratis) | Kora",
-  description:
+  title: "¿Qué tan dependiente eres de Booking? (gratis) | Kora",
+  description: metaDescripcion(
     "Responde 6 preguntas y descubre qué tan dependiente es tu hotel de Booking y las OTAs. Recibe un puntaje de salud y un plan de acción gratis, hecho para México.",
+  ),
   alternates: {
     canonical: "/herramientas/diagnostico",
   },

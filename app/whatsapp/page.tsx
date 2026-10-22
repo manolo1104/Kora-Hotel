@@ -47,8 +47,9 @@ const WA_DUDAS = waLink("Hola, vi la página de Camila y tengo una duda");
 
 export const metadata: Metadata = {
   title: "Bot de WhatsApp para hoteles con IA | Kora",
+  // Cabe en 158 con el precio: la versión anterior se cortaba justo antes de él.
   description: metaDescripcion(
-    `Camila contesta el WhatsApp de tu hotel 24/7, cotiza con disponibilidad real y cierra la reserva con link de pago. En español, incluido en el plan de ${PRECIO} MXN/mes.`,
+    `Bot de WhatsApp para hoteles: Camila contesta 24/7, cotiza con tu disponibilidad real y cierra la reserva con link de pago. En el plan de ${PRECIO} MXN/mes.`,
   ),
   keywords: [
     "bot de whatsapp para hoteles",

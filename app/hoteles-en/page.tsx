@@ -7,9 +7,9 @@ import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 import { JsonLd } from "@/components/shared/JsonLd";
 
 export const metadata: Metadata = {
-  title: "Sistema de reservas para hoteles en la Huasteca Potosina | Kora",
+  title: "Reservas directas para hoteles en la Huasteca | Kora",
   description:
-    "Reservas directas sin comisión, WhatsApp con IA y operación simple para hoteles, cabañas y ecolodges en Xilitla, Ciudad Valles, Aquismón, Tamasopo y toda la Huasteca.",
+    "Reservas directas sin comisión y WhatsApp con IA para hoteles, cabañas y ecolodges en Xilitla, Ciudad Valles, Aquismón, Tamasopo y toda la Huasteca.",
   alternates: { canonical: "/hoteles-en" },
 };
 
