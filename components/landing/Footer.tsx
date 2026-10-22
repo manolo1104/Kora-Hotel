@@ -24,7 +24,9 @@ const INSTAGRAM_URL = ""; // e.g. "https://instagram.com/korahotel"
 
 const navLinks = [
   { label: "Inicio", href: "/" },
-  { label: "Agente de WhatsApp con IA", href: "/whatsapp" },
+  { label: "Bot de WhatsApp para hoteles", href: "/whatsapp" },
+  { label: "Motor de reservas", href: "/motor-de-reservas" },
+  { label: "PMS hotelero", href: "/pms" },
   { label: "Características", href: "/caracteristicas" },
   { label: "Cómo empezar", href: "/como-funciona" },
   { label: "Precios", href: "/precios" },

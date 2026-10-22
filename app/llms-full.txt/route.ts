@@ -45,7 +45,16 @@ function buildFull(): string {
     L.push("");
   });
 
-  L.push(`## Agente de WhatsApp con IA — Camila (${paginasWhatsApp.length} guías)`);
+  L.push("## Motor de reservas y PMS");
+  L.push(
+    `- Motor de reservas para hoteles: el huésped ve la disponibilidad real, elige su cuarto y paga en línea (tarjeta u OXXO vía Stripe) en la web del hotel; Kora no cobra comisión por reserva. ${BASE}/motor-de-reservas`
+  );
+  L.push(
+    `- PMS para hoteles pequeños: calendario de reservas, check-in y check-out, limpieza y mantenimiento por cuarto, huéspedes y equipo con permisos por puesto, en español. Sin channel manager: no se sincroniza con Booking, Airbnb ni Expedia. ${BASE}/pms`
+  );
+  L.push("");
+
+  L.push(`## Bot de WhatsApp con IA para hoteles — Camila (${paginasWhatsApp.length} guías)`);
   L.push(`Página principal: ${BASE}/whatsapp`);
   paginasWhatsApp.forEach((w) => {
     L.push(`### ${w.pregunta}`);

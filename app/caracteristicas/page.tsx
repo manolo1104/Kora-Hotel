@@ -58,6 +58,8 @@ interface ModuleSectionProps {
   reverse?: boolean;
   dark?: boolean;
   tool?: { label: string; href: string };
+  /** La página propia del módulo, cuando la tiene (/motor-de-reservas, /pms, /whatsapp). */
+  mas?: { label: string; href: string };
 }
 
 function ModuleSection({
@@ -71,6 +73,7 @@ function ModuleSection({
   reverse = false,
   dark = false,
   tool,
+  mas,
 }: ModuleSectionProps) {
   return (
     <section
@@ -121,6 +124,19 @@ function ModuleSection({
                 </li>
               ))}
             </ul>
+            {mas && (
+              <Link
+                href={mas.href}
+                className={`mt-6 mr-6 inline-flex items-center gap-1.5 text-sm font-semibold transition-colors ${
+                  dark
+                    ? "text-kora-accent hover:text-white"
+                    : "text-kora-primary hover:text-kora-primary-dark"
+                }`}
+              >
+                {mas.label}
+                <ArrowRight size={14} aria-hidden="true" />
+              </Link>
+            )}
             {tool && (
               <Link
                 href={tool.href}
@@ -210,6 +226,7 @@ export default function CaracteristicasPage() {
           "Widget embebible en tu sitio web actual",
         ]}
         mockup={<ReservaMockup />}
+        mas={{ label: "Ver el motor de reservas", href: "/motor-de-reservas" }}
         tool={{
           label: "Calcula cuánto pierdes en comisiones",
           href: "/herramientas/calculadora-comisiones",
@@ -235,6 +252,7 @@ export default function CaracteristicasPage() {
         mockup={<WhatsAppMockup />}
         reverse
         dark
+        mas={{ label: "Ver el bot de WhatsApp", href: "/whatsapp" }}
         tool={{
           label: "Prueba el generador de mensajes con IA",
           href: "/herramientas/mensajes-whatsapp",
@@ -255,6 +273,7 @@ export default function CaracteristicasPage() {
           "Historial completo de cada huésped",
         ]}
         mockup={<PMSMockup />}
+        mas={{ label: "Ver el PMS", href: "/pms" }}
       />
 
       {/* Module 4 */}

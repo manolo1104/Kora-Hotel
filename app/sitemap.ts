@@ -19,6 +19,10 @@ const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
 // Fecha estable de última actualización (no usar new Date() por entrada: cambiaría
 // en cada build y le manda a Google señales falsas de "página modificada").
 const SITE_UPDATED = new Date("2026-06-03");
+// Lo que cambió el 21 oct 2026: las dos páginas pilar nuevas y /whatsapp, que
+// dejó de llamarse «agente» para decir «bot de WhatsApp para hoteles». Fecha
+// propia para no marcar como recién editado todo lo que lleva SITE_UPDATED.
+const PILARES_UPDATED = new Date("2026-10-21");
 
 // Mini-páginas de hoteles publicadas (/h/slug) + la página propia de cada
 // habitación (/h/slug/habitacion/idx). Si el env de Supabase no está listo o
@@ -218,8 +222,22 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       // Página pilar del agente de WhatsApp: el motivo por el que entran los
       // prospectos, así que compite en prioridad con /precios.
       url: `${BASE_URL}/whatsapp`,
-      lastModified: SITE_UPDATED,
+      lastModified: PILARES_UPDATED,
       changeFrequency: "weekly",
+      priority: 0.9,
+    },
+    {
+      // Páginas pilar del motor y del PMS (21 oct 2026): las búsquedas
+      // comerciales que antes sólo tenían una definición del glosario.
+      url: `${BASE_URL}/motor-de-reservas`,
+      lastModified: PILARES_UPDATED,
+      changeFrequency: "monthly",
+      priority: 0.9,
+    },
+    {
+      url: `${BASE_URL}/pms`,
+      lastModified: PILARES_UPDATED,
+      changeFrequency: "monthly",
       priority: 0.9,
     },
     {

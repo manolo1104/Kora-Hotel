@@ -125,7 +125,7 @@ export default async function PaginaWhatsApp({ params }: Props) {
             <Breadcrumbs
               items={[
                 { name: "Inicio", href: "/" },
-                { name: "Agente de WhatsApp", href: "/whatsapp" },
+                { name: "Bot de WhatsApp para hoteles", href: "/whatsapp" },
                 { name: p.titulo, href: `/whatsapp/${p.slug}` },
               ]}
             />
@@ -287,7 +287,7 @@ export default async function PaginaWhatsApp({ params }: Props) {
                   href="/whatsapp"
                   className="inline-flex items-center gap-1.5 text-sm font-semibold text-kora-primary underline underline-offset-4 hover:text-kora-primary-dark transition-colors"
                 >
-                  Todo sobre el agente de WhatsApp de Kora
+                  Camila, el bot de WhatsApp para hoteles de Kora
                   <ArrowRight size={13} aria-hidden="true" />
                 </Link>
               </li>

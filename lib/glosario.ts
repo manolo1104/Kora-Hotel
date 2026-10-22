@@ -51,7 +51,7 @@ export const glosario: TerminoGlosario[] = [
     ],
     relacionado: {
       texto: "Conoce el PMS de Kora",
-      href: "/caracteristicas",
+      href: "/pms",
     },
   },
   {
@@ -76,9 +76,11 @@ export const glosario: TerminoGlosario[] = [
         a: `Con Kora está incluido en el plan mensual, y lo puedes probar ${GARANTIA.diasPrueba} días gratis y sin tarjeta al registrarte.`,
       },
     ],
+    // Mandaba a /herramientas/mini-pagina; desde el 21 oct 2026 hay página
+    // propia del motor, y ésa enlaza a la mini-página.
     relacionado: {
-      texto: "Crea tu página de reservas gratis",
-      href: "/herramientas/mini-pagina",
+      texto: "Conoce el motor de reservas de Kora",
+      href: "/motor-de-reservas",
     },
   },
   {

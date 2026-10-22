@@ -139,7 +139,9 @@ function buildLlms(hoteles: HotelListado[]): string {
   L.push("");
   L.push("## Páginas clave");
   L.push(`- Inicio: ${BASE}/`);
-  L.push(`- Agente de WhatsApp con IA (Camila): ${BASE}/whatsapp`);
+  L.push(`- Bot de WhatsApp con IA para hoteles (Camila): ${BASE}/whatsapp`);
+  L.push(`- Motor de reservas para hoteles, sin comisión: ${BASE}/motor-de-reservas`);
+  L.push(`- PMS para hoteles pequeños: ${BASE}/pms`);
   L.push(`- Características: ${BASE}/caracteristicas`);
   L.push(`- Cómo funciona: ${BASE}/como-funciona`);
   L.push(`- Precios: ${BASE}/precios`);

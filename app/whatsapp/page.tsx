@@ -36,25 +36,30 @@ const PRECIO = `$${PRECIO_DESDE.toLocaleString("es-MX")}`;
 // Página pilar del agente de WhatsApp. Existe porque es la razón por la que
 // entran los prospectos y hasta ahora sólo vivía como una sección de la home:
 // sin URL propia no puede rankear ni ser citada por una IA.
-const RESPUESTA_CITABLE = `Camila es el agente de WhatsApp con IA de Kora para hoteles en México. Contesta los mensajes de tus huéspedes en segundos las 24 horas, consulta la disponibilidad y el precio reales de tu hotel, y cierra la reserva generando el link de pago. Viene incluida en el plan de ${PRECIO} MXN al mes.`;
+// 21 oct 2026: la página decía «agente» en el título, el H1 y la respuesta
+// citable, pero el hotelero busca «bot de WhatsApp para hoteles»: en 90 días esa
+// búsqueda no le dio a Kora ni una impresión y la página no salía en los
+// primeros 28 resultados. Se dice la frase que se busca y se sigue explicando
+// por qué Camila no es un bot de menús.
+const RESPUESTA_CITABLE = `Camila es el bot de WhatsApp con IA de Kora para hoteles en México. Contesta los mensajes de tus huéspedes en segundos las 24 horas, consulta la disponibilidad y el precio reales de tu hotel, y cierra la reserva generando el link de pago. Viene incluida en el plan de ${PRECIO} MXN al mes.`;
 
 const WA_DUDAS = waLink("Hola, vi la página de Camila y tengo una duda");
 
 export const metadata: Metadata = {
-  title: "Agente de WhatsApp con IA para hoteles | Kora",
+  title: "Bot de WhatsApp para hoteles con IA | Kora",
   description: metaDescripcion(
     `Camila contesta el WhatsApp de tu hotel 24/7, cotiza con disponibilidad real y cierra la reserva con link de pago. En español, incluido en el plan de ${PRECIO} MXN/mes.`,
   ),
   keywords: [
+    "bot de whatsapp para hoteles",
     "agente de whatsapp para hoteles",
-    "bot de whatsapp hotel",
     "chatbot hotel mexico",
     "contestar whatsapp hotel 24/7",
     "reservas por whatsapp",
   ],
   alternates: { canonical: "/whatsapp" },
   openGraph: {
-    title: "Camila: el agente de WhatsApp con IA para tu hotel",
+    title: "Camila: el bot de WhatsApp con IA para tu hotel",
     description:
       "Contesta en segundos las 24 horas, cotiza con disponibilidad real y cierra la reserva con link de pago.",
     type: "website",
@@ -182,7 +187,7 @@ export default function WhatsAppPage() {
     "@graph": [
       {
         "@type": "SoftwareApplication",
-        name: "Camila — Agente de WhatsApp con IA de Kora",
+        name: "Camila — Bot de WhatsApp con IA para hoteles, de Kora",
         applicationCategory: "BusinessApplication",
         operatingSystem: "Web, WhatsApp",
         url: `${SITE_URL}/whatsapp`,
@@ -228,10 +233,10 @@ export default function WhatsAppPage() {
               <Reveal direction="left">
                 <div>
                   <p className="text-xs font-bold uppercase tracking-widest text-kora-accent mb-4">
-                    Agente de WhatsApp con IA
+                    Bot de WhatsApp para hoteles
                   </p>
                   <h1 className="text-3xl sm:text-5xl font-bold tracking-tight leading-tight">
-                    El WhatsApp de tu hotel, contestado en segundos. Las 24 horas.
+                    El bot de WhatsApp para hoteles que contesta en segundos y cierra la reserva
                   </h1>
                   <p className="mt-5 text-white/75 text-base sm:text-lg leading-relaxed max-w-xl">
                     Camila no es un chatbot de menús. Consulta la disponibilidad y
@@ -282,7 +287,7 @@ export default function WhatsAppPage() {
             <Breadcrumbs
               items={[
                 { name: "Inicio", href: "/" },
-                { name: "Agente de WhatsApp", href: "/whatsapp" },
+                { name: "Bot de WhatsApp para hoteles", href: "/whatsapp" },
               ]}
             />
             <Reveal>

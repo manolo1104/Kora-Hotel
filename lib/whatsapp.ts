@@ -60,7 +60,10 @@ export const paginasWhatsApp: PaginaWhatsApp[] = [
   // ───────────────────────────────────────────────────────────────────────────
   {
     slug: "bot-whatsapp-hotel",
-    titulo: "Bot de WhatsApp para hoteles: qué sí resuelve y qué no",
+    // 21 oct 2026: se llamaba «Bot de WhatsApp para hoteles: qué sí resuelve y
+    // qué no» y competía con /whatsapp por la misma búsqueda. La pilar se queda
+    // la frase comercial; ésta, la pregunta de quien todavía está entendiendo.
+    titulo: "¿Qué resuelve un bot de WhatsApp en un hotel?",
     pregunta: "¿Cómo funciona un bot de WhatsApp para un hotel?",
     resumen:
       "La diferencia entre un bot de menús y un agente que consulta tu disponibilidad real.",
@@ -344,7 +347,7 @@ export const paginasWhatsApp: PaginaWhatsApp[] = [
       },
     ],
     relacionados: [
-      { texto: "Bot de WhatsApp para hoteles: qué sí resuelve", href: "/whatsapp/bot-whatsapp-hotel" },
+      { texto: "Qué resuelve un bot de WhatsApp en un hotel", href: "/whatsapp/bot-whatsapp-hotel" },
       { texto: "Qué es un agente de IA hotelero", href: "/glosario/agente-ia-hotelero" },
     ],
   },
