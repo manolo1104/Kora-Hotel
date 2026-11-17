@@ -7,10 +7,16 @@ import { hotelRooms, getRoomBasePrice, formatMXN, bookingRules, temporadasDe, po
 import { normalizeFaqs, type BotKnowledge } from "@/lib/bot/prompt";
 import type { HotelRow } from "@/lib/tenant";
 import type { Addon, Experiencia, ExperienciasBundle } from "@/lib/mini";
+import { AMENIDADES_MAP } from "@/lib/amenidades";
 
 const SITE = (process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com").replace(/\/$/, "");
 
-export function buildHotelKnowledge(hotel: HotelRow): BotKnowledge {
+/** Lo que el conocimiento no puede leer solo de la fila del hotel (vive en Stripe). */
+export interface ExtrasConocimiento {
+  pagos?: { enLinea?: boolean; oxxo?: boolean };
+}
+
+export function buildHotelKnowledge(hotel: HotelRow, extrasConocimiento: ExtrasConocimiento = {}): BotKnowledge {
   const cfg = (hotel.config ?? {}) as Record<string, unknown>;
   const extras = (hotel.extras ?? {}) as Record<string, unknown>;
   const bot = (extras.bot ?? {}) as Record<string, unknown>;
@@ -94,7 +100,10 @@ export function buildHotelKnowledge(hotel: HotelRow): BotKnowledge {
   }
   if (opts.weekdayDiscount && opts.weekdayDiscount > 0) {
     ajustesDia.entreSemana = {
-      texto: `${opts.weekdayDiscount}% de descuento de lunes a jueves`,
+      // Es un MONTO en pesos que el motor resta por noche (engine.ts:
+      // `weekdayDiscount` = "MXN a restar lun–jue"). Antes se describía como
+      // porcentaje: un descuento de $200 le llegaba a Camila como "200%".
+      texto: `${formatMXN(opts.weekdayDiscount)} menos por noche de lunes a jueves`,
       ...(opts.weekdayDiscountUntil ? { hasta: opts.weekdayDiscountUntil } : {}),
     };
   }
@@ -125,7 +134,23 @@ export function buildHotelKnowledge(hotel: HotelRow): BotKnowledge {
       caracteristicas: Array.isArray(r.features) ? r.features : [],
       accesibilidad: r.accesibilidad,
     })),
-    amenidades: (extras.amenidades as string[]) ?? [],
+    // Con su nombre legible ("Pet-friendly", "Recepción 24h"), no la clave interna
+    // (`pet_friendly`, `recepcion24`) que antes le llegaba a Camila.
+    amenidades: (Array.isArray(extras.amenidades) ? (extras.amenidades as unknown[]) : [])
+      .map((a) => (typeof a === "string" ? (AMENIDADES_MAP[a]?.label ?? a) : ""))
+      .filter(Boolean),
+    horarios: (() => {
+      const g = (hotel.guia ?? {}) as Record<string, unknown>;
+      const h = { checkin: str(g.checkin), checkout: str(g.checkout) };
+      return h.checkin || h.checkout ? h : undefined;
+    })(),
+    formasPago: Array.isArray(extras.formasPago) ? (extras.formasPago as unknown[]).filter((x): x is string => typeof x === "string" && !!x.trim()) : undefined,
+    idiomas: Array.isArray(extras.idiomas) ? (extras.idiomas as unknown[]).filter((x): x is string => typeof x === "string" && !!x.trim()) : undefined,
+    mapsUrl: (() => {
+      const u = str(extras.mapsUrl);
+      return u && /^https:\/\//.test(u) ? u : undefined;
+    })(),
+    ...(extrasConocimiento.pagos ? { pagos: extrasConocimiento.pagos } : {}),
     accesibilidad: str(extras.accesibilidad),
     // FIX: mezcla las FAQs del panel ({pregunta,respuesta}) + las solo-del-bot
     // (extras.bot.faqs {q,a}), normalizadas. Antes no llegaban al cerebro.

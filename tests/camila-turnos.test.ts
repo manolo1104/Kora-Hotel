@@ -110,42 +110,5 @@ describe("los chats inactivos se purgan", () => {
   });
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Parámetros de latencia por modelo. La lista de inclusión que había dejaba
-// fuera cada modelo nuevo sin avisar, y desactivar el pensamiento no es seguro
-// en todas las familias.
-// ─────────────────────────────────────────────────────────────────────────────
-
-describe("los parámetros que se le mandan a cada modelo", () => {
-  const conEffort = (m: string) => !/haiku|claude-3|claude-2/.test(m);
-  const sinPensar = (m: string) => conEffort(m) && !/claude-(opus-5|fable|mythos)/.test(m);
-
-  it("un modelo NUEVO recibe esfuerzo por defecto (lista de exclusión)", () => {
-    expect(conEffort("claude-opus-5")).toBe(true);
-    expect(conEffort("claude-sonnet-6")).toBe(true);
-  });
-
-  it("Haiku no recibe ninguno de los dos: le dan 400", () => {
-    expect(conEffort("claude-haiku-4-5")).toBe(false);
-    expect(sinPensar("claude-haiku-4-5")).toBe(false);
-  });
-
-  // En Fable/Mythos el pensamiento está SIEMPRE encendido y mandar `disabled`
-  // devuelve 400: dejaría a Camila muda en cuanto alguien cambiara el modelo.
-  it("Fable y Mythos NO reciben thinking:disabled", () => {
-    expect(sinPensar("claude-fable-5")).toBe(false);
-    expect(sinPensar("claude-mythos-5")).toBe(false);
-    expect(conEffort("claude-fable-5")).toBe(true);
-  });
-
-  // En Opus 5 lo acepta, pero con el pensamiento apagado a veces escribe la
-  // llamada a la herramienta como TEXTO y la herramienta nunca corre.
-  it("Opus 5 tampoco, aunque lo admita", () => {
-    expect(sinPensar("claude-opus-5")).toBe(false);
-  });
-
-  it("en los que sí es seguro, se sigue mandando", () => {
-    expect(sinPensar("claude-sonnet-5")).toBe(true);
-    expect(sinPensar("claude-opus-4-8")).toBe(true);
-  });
-});
+// Los parámetros por modelo se prueban en tests/camila-modelo.test.ts contra el
+// código REAL (antes este archivo copiaba la regex y no protegía nada).

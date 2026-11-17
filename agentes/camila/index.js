@@ -328,6 +328,17 @@ function arrancarHotel(hotel) {
     // que hace que la burbuja se pinte distinta.
     const dicho = (msg.body || "").trim();
     if (dicho) {
+      // Y Camila tiene que SABERLO. Antes sólo se guardaba en Kora: el historial
+      // en memoria no lo veía, así que cuando la pausa terminaba Camila retomaba
+      // sin saber qué le había prometido la persona del hotel, y podía decir lo
+      // contrario. Se agrega al final (nunca se edita lo anterior).
+      const previo = historiales.get(key);
+      if (previo) {
+        historiales.set(key, [
+          ...previo,
+          { role: "assistant", content: `(Esto lo escribió una persona del equipo del hotel:) ${dicho}` },
+        ]);
+      }
       kora
         .logConversacion({
           conv: chatId.split("@")[0],
@@ -631,7 +642,7 @@ async function procesarTurno(client, slug, kora, chatId, userText) {
   // turno y no dentro del conocimiento cacheado, para que un huésped no vea
   // nunca los datos de otro.
   const { huesped } = await estadoDelChat(kora, key, chatId);
-  const { reply, history: nuevo } = await handleTurn({ hotel, kora, history, userText, conv, huesped });
+  const { reply, history: nuevo, escalada } = await handleTurn({ hotel, kora, history, userText, conv, huesped });
   historiales.set(key, nuevo);
 
   if (chat) chat.clearState().catch((e) => console.warn(`[${slug}] clearState:`, e && e.message));
@@ -674,6 +685,42 @@ async function procesarTurno(client, slug, kora, chatId, userText) {
       ],
     })
     .catch((e) => console.error(`[${slug}] no se guardó la conversación de ${conv}:`, e && e.message));
+
+  if (escalada) await avisarAlHotel(client, slug, key, escalada);
+}
+
+/**
+ * Camila pasó el chat a una persona: se calla en él y le escribe al hotelero.
+ *
+ * Antes Camila le decía al huésped «ya le avisé al equipo» y no avisaba a nadie.
+ * Kora ya marcó el chat «Atender yo» y guardó la pausa (acción `escalar`); aquí
+ * va lo que sólo puede hacer este proceso: callarse YA en memoria y mandar el
+ * WhatsApp al número de aviso del hotel.
+ */
+async function avisarAlHotel(client, slug, key, escalada) {
+  const hasta = Date.parse(escalada.pausadoHasta || "") || Date.now() + 12 * 60 * 60_000;
+  pausados.set(key, hasta);
+  chatConsultado.delete(key); // que la caché no resucite a Camila
+  if (!escalada.avisarA || !escalada.aviso) {
+    console.warn(`[${slug}] escalada sin número de aviso: queda marcada «Atender yo» en el panel`);
+    return;
+  }
+  try {
+    // `getNumberId` resuelve el id real de WhatsApp (en México los móviles
+    // pueden ir con o sin el 1 después del 52): mandar a un id inventado falla
+    // en silencio.
+    const wid = await client.getNumberId(escalada.avisarA);
+    if (!wid || !wid._serialized) {
+      console.error(`[${slug}] el número de aviso ${escalada.avisarA} no tiene WhatsApp`);
+      return;
+    }
+    // Que el eco de este envío no se tome por "el hotelero escribió" en ESE chat.
+    botEnvioAt.set(`${slug}::${wid._serialized}`, Date.now());
+    await client.sendMessage(wid._serialized, escalada.aviso);
+    console.log(`[${slug}] 🔔 avisé a una persona del hotel (${escalada.avisarA})`);
+  } catch (e) {
+    console.error(`[${slug}] no pude avisar al hotel:`, e && e.message);
+  }
 }
 
 // ── Servidor: estado/QR, salud, y mandar/pausar desde el panel ──

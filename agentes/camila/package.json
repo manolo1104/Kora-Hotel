@@ -9,7 +9,7 @@
   "scripts": {
     "start": "node index.js",
     "dev": "node --watch index.js",
-    "check": "node --check index.js && node --check brain.js && node --check kora.js && node --check fleet.js && node --check comandos.js && node --check medios.js && node --check enlace.js && node --check sesiones.js && node --check historial.js && node --check servidor.js && node --check saldo.js"
+    "check": "node --check index.js && node --check brain.js && node --check kora.js && node --check fleet.js && node --check comandos.js && node --check medios.js && node --check enlace.js && node --check sesiones.js && node --check historial.js && node --check servidor.js && node --check saldo.js && node --check modelo.js && node --check turno.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.122.0",

@@ -2095,6 +2095,47 @@ export async function guardarEstadoChat(
 }
 
 /**
+ * Camila pide a una persona: el chat queda marcado «Atender yo» y Camila se
+ * calla en él hasta `hasta` (o hasta que el hotelero la reactive).
+ *
+ * A diferencia de `guardarEstadoChat`, aquí SÍ se crea la fila si no existe: la
+ * escalada puede llegar en el primer mensaje del huésped, antes de que el turno
+ * se haya guardado. `mensajes` tiene default en la tabla, así que el upsert no
+ * pisa el historial de una fila que ya existe (sólo toca estas dos columnas).
+ * Las etiquetas que ya tuviera el chat se conservan.
+ */
+export async function escalarChat(hotelId: string, chatId: string, hasta: string): Promise<boolean> {
+  const id = (chatId ?? "").trim().slice(0, 80);
+  if (!id) return false;
+  try {
+    const supabase = createAdminClient();
+    const { data: fila, error: errLeer } = await supabase
+      .from("camila_conversaciones")
+      .select("etiquetas")
+      .eq("hotel_id", hotelId)
+      .eq("chat_id", id)
+      .maybeSingle();
+    if (errLeer) console.error("escalarChat (leer):", errLeer.message);
+    const previas = limpiarEtiquetas((fila as { etiquetas?: unknown } | null)?.etiquetas);
+    const etiquetas = limpiarEtiquetas([...previas.filter((e) => e !== "Atender yo"), "Atender yo"]);
+    const { error } = await supabase
+      .from("camila_conversaciones")
+      .upsert(
+        { hotel_id: hotelId, chat_id: id, etiquetas, pausado_hasta: hasta, ultimo_at: new Date().toISOString() },
+        { onConflict: "hotel_id,chat_id" },
+      );
+    if (error) {
+      console.error("escalarChat:", error.message);
+      return false;
+    }
+    return true;
+  } catch (e) {
+    console.error("escalarChat:", e);
+    return false;
+  }
+}
+
+/**
  * Hasta cuándo Camila NO debe contestar en este chat. `null` = puede contestar.
  *
  * FAIL-OPEN a propósito, igual que `kora.status()`: si la base tiene un hipo, es

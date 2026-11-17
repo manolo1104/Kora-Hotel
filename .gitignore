@@ -53,3 +53,6 @@ PLAN_ARREGLO_KORA.md
 
 # Intermedios del generador de portadas del blog (HTML + PNG antes del JPG final)
 scripts/portadas-blog/.build/
+
+# Reportes del banco de pruebas de Camila (cuestan dinero; se generan local)
+tests-eval/camila/resultados/

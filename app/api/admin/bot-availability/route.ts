@@ -23,6 +23,9 @@ const CONSULTA_SCHEMA = z.object({
   // en un hotel con tarifas por persona le enseñaba un número y el bot vivo
   // daba otro — y el hotelero no tenía dónde verlo.
   huespedes: z.coerce.number().int().min(1).max(20).optional(),
+  // Igual que las herramientas de Camila: adultos + niños por separado.
+  adultos: z.coerce.number().int().min(1).max(20).optional(),
+  ninos: z.coerce.number().int().min(0).max(20).optional(),
 });
 
 export async function POST(req: Request) {
@@ -33,14 +36,17 @@ export async function POST(req: Request) {
 
   const c = await leerCuerpo(req, CONSULTA_SCHEMA);
   if (!c.ok) return c.respuesta;
-  const { checkin, checkout, huespedes } = c.datos;
+  const { checkin, checkout, huespedes, adultos, ninos } = c.datos;
   // El formato lo comprueba `zFecha`; aquí sólo queda el orden.
   if (checkout <= checkin) {
     return NextResponse.json({ error: "fechas-invalidas" }, { status: 400 });
   }
 
   try {
-    const disp = await botAvailability(ctx.hotel, checkin, checkout, huespedes ?? 2);
+    const disp = await botAvailability(ctx.hotel, checkin, checkout, {
+      adultos: adultos ?? huespedes ?? 2,
+      ninos: ninos ?? 0,
+    });
     return NextResponse.json({ ok: true, ...disp });
   } catch (e) {
     console.error("bot-availability error:", e);

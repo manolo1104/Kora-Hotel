@@ -121,6 +121,8 @@ const CheckoutBody = z.object({
     .string()
     .regex(/^web_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/)
     .optional(),
+  // El huésped llegó con un link que le mandó Camila por WhatsApp.
+  origen: z.enum(["camila"]).optional(),
 });
 
 // Crea la sesión de pago (Stripe Checkout hospedado) del motor público. El precio
@@ -202,7 +204,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   if (!parsed.success) {
     return NextResponse.json({ error: "Datos de reserva inválidos" }, { status: 400 });
   }
-  const { cart, addons, experiencias, checkin, checkout, customerName, customerEmail, customerPhone, adults, children, ratePlan, payMode, lang, prevSession, promoCode } =
+  const { cart, addons, experiencias, checkin, checkout, customerName, customerEmail, customerPhone, adults, children, ratePlan, payMode, lang, prevSession, promoCode, origen } =
     parsed.data;
 
   const rooms = hotelRooms(hotel);
@@ -556,6 +558,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     // la reserva se crea igual, el panel de Pagos del hotelero sólo consulta su
     // cuenta conectada, y ese dinero es invisible para él (K-21).
     cobroEn: direct ? "hotel" : "plataforma",
+    // Venta cerrada por Camila con el link del motor: el webhook la marca "bot",
+    // igual que las que cierra con su propio link de pago.
+    ...(origen === "camila" ? { origen: "bot" } : {}),
   };
 
   // Y que alguien se entere el mismo día. Cuatro de los seis hoteles publicados

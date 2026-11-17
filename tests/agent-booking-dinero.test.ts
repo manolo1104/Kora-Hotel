@@ -15,17 +15,28 @@ const freeUnitsByTypeResult = vi.fn();
 const apartarUnidades = vi.fn();
 const getConnectState = vi.fn();
 const releaseHold = vi.fn(async () => true);
+const anotarSesionStripe = vi.fn(async () => {});
+const sesionStripeDelApartado = vi.fn(async (): Promise<string | null> => null);
+const expirarSesion = vi.fn(async () => ({}));
+const crearSesion = vi.fn(async () => ({ id: "cs_1", url: "https://pago.test/cs_1" }));
 
 vi.mock("@/lib/db/availability", () => ({
   freeUnitsByTypeResult: (...a: unknown[]) => freeUnitsByTypeResult(...(a as [])),
   apartarUnidades: (...a: unknown[]) => apartarUnidades(...(a as [])),
   releaseHold: (...a: unknown[]) => releaseHold(...(a as [])),
+  anotarSesionStripe: (...a: unknown[]) => anotarSesionStripe(...(a as [])),
+  sesionStripeDelApartado: (...a: unknown[]) => sesionStripeDelApartado(...(a as [])),
 }));
 vi.mock("@/lib/stripe/connect", () => ({ getConnectState: (...a: unknown[]) => getConnectState(...(a as [])) }));
 vi.mock("@/lib/stripe/server", () => ({
   stripeEnvReady: true,
   getStripe: () => ({
-    checkout: { sessions: { create: async () => ({ id: "cs_1", url: "https://pago.test/cs_1" }) } },
+    checkout: {
+      sessions: {
+        create: (...a: unknown[]) => crearSesion(...(a as [])),
+        expire: (...a: unknown[]) => expirarSesion(...(a as [])),
+      },
+    },
   }),
 }));
 vi.mock("@/lib/alertas", () => ({ alertar: async () => {} }));
@@ -200,5 +211,78 @@ describe("un apartado por conversación, no uno por cambio de opinión", () => {
     await crearLinkReservaAgente(HOTEL, { ...RESERVA, huespedes: 2 }, "https://kora.test");
     expect(releaseHold).not.toHaveBeenCalled();
     expect(String(apartarUnidades.mock.calls[0][4])).toMatch(/^bot_[0-9a-f-]{36}$/);
+  });
+});
+
+describe("pedir otro link en el mismo chat", () => {
+  // EL DEFECTO: el pre-chequeo de disponibilidad contaba el apartado de ESTE
+  // mismo chat como ocupado. En un tipo de una sola unidad, quien pedía otro link
+  // (se equivocó de correo) oía «ya no hay ese cuarto» justo antes de pagar.
+  it("su propio apartado no cuenta como ocupado", async () => {
+    await crearLinkReservaAgente(HOTEL, { ...RESERVA, huespedes: 2, conv: "5214811234567" }, "https://kora.test");
+    const excluir = freeUnitsByTypeResult.mock.calls[0][4];
+    expect(excluir).toBe("bot_c_5214811234567");
+  });
+
+  // Y el link ANTERIOR se apaga: si no, quedaban dos links vivos para la misma
+  // estancia y el huésped podía pagar los dos.
+  it("apaga la sesión de pago anterior antes de crear la nueva", async () => {
+    sesionStripeDelApartado.mockResolvedValueOnce("cs_viejo");
+    await crearLinkReservaAgente(HOTEL, { ...RESERVA, huespedes: 2, conv: "5214811234567" }, "https://kora.test");
+    expect(expirarSesion).toHaveBeenCalledWith("cs_viejo", undefined, { stripeAccount: "acct_1" });
+    expect(anotarSesionStripe).toHaveBeenCalledWith("h1", "bot_c_5214811234567", "cs_1");
+  });
+
+  it("si no se puede anotar la sesión, el link de pago sale igual", async () => {
+    anotarSesionStripe.mockRejectedValueOnce(new Error("columna no existe"));
+    const r = await crearLinkReservaAgente(HOTEL, { ...RESERVA, huespedes: 2, conv: "5214811234567" }, "https://kora.test");
+    expect(r.ok).toBe(true);
+  });
+});
+
+describe("el teléfono ya lo tenemos", () => {
+  // Camila le pedía el teléfono a alguien que le estaba escribiendo por WhatsApp.
+  it("sin teléfono explícito usa el del chat", async () => {
+    const { telefono: _t, ...sinTel } = RESERVA;
+    void _t;
+    const r = await crearLinkReservaAgente(HOTEL, { ...sinTel, adultos: 2, conv: "5214811234567" }, "https://kora.test");
+    expect(r.ok).toBe(true);
+    const md = (crearSesion.mock.calls[0] as unknown as [{ metadata: Record<string, string> }])[0].metadata;
+    expect(Object.values(md).join("|")).toContain("+5214811234567");
+  });
+
+  it("sin teléfono y sin chat que lo sea, lo pide", async () => {
+    const { telefono: _t, ...sinTel } = RESERVA;
+    void _t;
+    const r = await crearLinkReservaAgente(HOTEL, { ...sinTel, adultos: 2 }, "https://kora.test");
+    expect(r.ok).toBe(false);
+    if (r.ok) return;
+    expect(r.error).toBe("datos-incompletos");
+  });
+});
+
+describe("el código de descuento sí se cobra con descuento", () => {
+  // El prompt le decía al huésped que su código «se aplica», y el link de pago
+  // de Camila lo ignoraba: cobraba el precio completo.
+  const CON_PROMO = {
+    ...HOTEL,
+    extras: { reglas: { promos: [{ code: "VUELVE10", tipo: "porcentaje", valor: 10, activa: true }] } },
+  };
+
+  it("un código válido baja el total", async () => {
+    const sin = await crearLinkReservaAgente(CON_PROMO, { ...RESERVA, adultos: 2 }, "https://kora.test");
+    const con = await crearLinkReservaAgente(CON_PROMO, { ...RESERVA, adultos: 2, codigo: "vuelve10" }, "https://kora.test");
+    expect(sin.ok && con.ok).toBe(true);
+    if (!sin.ok || !con.ok) return;
+    expect(con.total).toBe(Math.round(sin.total * 0.9));
+    expect(con.descuento).toBe(sin.total - con.total);
+  });
+
+  it("un código inventado no descuenta nada", async () => {
+    const sin = await crearLinkReservaAgente(CON_PROMO, { ...RESERVA, adultos: 2 }, "https://kora.test");
+    const otro = await crearLinkReservaAgente(CON_PROMO, { ...RESERVA, adultos: 2, codigo: "GRATIS100" }, "https://kora.test");
+    expect(sin.ok && otro.ok).toBe(true);
+    if (!sin.ok || !otro.ok) return;
+    expect(otro.total).toBe(sin.total);
   });
 });

@@ -6,7 +6,7 @@
 
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { logAgentActivity, setBotStatus, logCamilaConversacion, getHiloCamila, pausaDeChat, guardarEstadoChat } from "@/lib/db/admin";
+import { logAgentActivity, setBotStatus, logCamilaConversacion, getHiloCamila, pausaDeChat, guardarEstadoChat, escalarChat } from "@/lib/db/admin";
 import type { TurnoConversacion } from "@/lib/db/admin";
 import { accesoDelHotel } from "@/lib/suscripcion";
 import { hotelIdPorBotToken } from "@/lib/db/bot-token";
@@ -15,6 +15,8 @@ import { crearLinkReservaAgente } from "@/lib/agent-booking";
 import { buildBotSystemPrompt, ABRE_DATOS, CIERRA_DATOS } from "@/lib/bot/prompt";
 import { buildHotelKnowledge } from "@/lib/bot/knowledge";
 import { botAvailability } from "@/lib/bot/tools";
+import { BOT_TOOLS, personasDeArgs } from "@/lib/bot/herramientas";
+import { getConnectState } from "@/lib/stripe/connect";
 import { contextoHuesped } from "@/lib/bot/huesped";
 import type { HotelRow } from "@/lib/tenant";
 import { limitado } from "@/lib/api/rate-limit";
@@ -31,7 +33,19 @@ export const dynamic = "force-dynamic";
 // —que es una sola credencial— cualquiera podía llenarle la tabla de basura al
 // hotel y envenenar lo que su dueño lee en el panel. El runtime siempre manda
 // el secreto (`agentes/camila/kora.js:_post`), así que exigirlo no lo rompe.
-const ACCIONES_PROTEGIDAS = new Set(["set-status", "reservar", "log-conv", "historial", "pausar-chat"]);
+const ACCIONES_PROTEGIDAS = new Set(["set-status", "reservar", "log-conv", "historial", "pausar-chat", "escalar"]);
+
+/** Cuánto se calla Camila en un chat que pasó a una persona, si nadie la reactiva antes. */
+const PAUSA_ESCALADA_MS = 12 * 60 * 60_000;
+
+const MOTIVOS_ESCALADA: Record<string, string> = {
+  "problema-hospedado": "Huésped hospedado con un problema",
+  "comprobante-pago": "Comprobante de pago por revisar",
+  grupo: "Grupo o caso especial",
+  "pide-persona": "Pide hablar con una persona",
+  "sin-respuesta": "Pregunta que Camila no pudo contestar",
+  otro: "Necesita a una persona",
+};
 
 // Cuántos turnos se le devuelven al runtime al rehidratar. Suficiente para
 // retomar una reserva a medias sin inflar el prompt de cada mensaje.
@@ -57,6 +71,20 @@ async function hotelPorToken(token: string): Promise<HotelRow | null> {
   );
 }
 
+/**
+ * Qué cobros en línea funcionan DE VERDAD en la cuenta Stripe del hotel. Antes el
+ * prompt prometía "tarjeta u OXXO" a todos. Si no se puede leer, se dice "tarjeta
+ * sí, OXXO no": prometer de menos es mejor que prometer lo que no existe.
+ */
+async function pagosDelHotel(hotel: HotelRow): Promise<{ enLinea: boolean; oxxo: boolean }> {
+  try {
+    const c = await getConnectState(hotel.id, hotel.stripe_account_id);
+    return { enLinea: Boolean(c.chargesEnabled && c.accountId), oxxo: Boolean(c.chargesEnabled && c.oxxoEnabled) };
+  } catch {
+    return { enLinea: true, oxxo: false };
+  }
+}
+
 export async function POST(req: Request) {
   let body: {
     token?: string;
@@ -67,8 +95,14 @@ export async function POST(req: Request) {
     // Campos de la acción "reservar" (el bot cierra la reserva):
     cuarto?: string | number; // id del tipo o su nombre
     unidades?: number; // cuántas unidades del tipo
+    adultos?: number;
+    /** Nombre viejo de `adultos` (runtime sin redesplegar). */
     huespedes?: number; // adultos
     ninos?: number; // menores
+    codigo?: string; // código de descuento que dio el huésped
+    idioma?: "es" | "en"; // idioma del huésped (reservar)
+    motivo?: string; // acción "escalar"
+    resumen?: string; // acción "escalar"
     nombre?: string;
     email?: string;
     telefono?: string;
@@ -340,10 +374,15 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "fechas-requeridas" }, { status: 400 });
     }
     // Disponibilidad real (helper compartido con el chat de prueba del panel).
-    // `huespedes` viaja hasta el cálculo del precio: sin él se cotizaba a
-    // ocupación máxima y el link de pago cobraba otra cosa.
-    const huespedes = Math.max(1, Math.floor(Number(body.huespedes) || 2));
-    return NextResponse.json(await botAvailability(hotel, checkin, checkout, huespedes));
+    // Las personas viajan hasta el precio, y `conv` hace que el apartado de ESTE
+    // chat no cuente como ocupado (si no, pedir otro link decía "ya no hay").
+    return NextResponse.json(
+      await botAvailability(hotel, checkin, checkout, {
+        ...personasDeArgs(body as Record<string, unknown>),
+        conv,
+        codigo: typeof body.codigo === "string" ? body.codigo : null,
+      }),
+    );
   }
 
   // Acción "reservar": el bot CIERRA la reserva. Apartamos el cuarto y devolvemos
@@ -373,12 +412,14 @@ export async function POST(req: Request) {
         checkin: body.checkin ?? "",
         checkout: body.checkout ?? "",
         unidades: body.unidades,
-        huespedes: body.huespedes,
-        ninos: body.ninos,
+        ...personasDeArgs(body as Record<string, unknown>),
+        codigo: typeof body.codigo === "string" ? body.codigo : null,
         nombre: body.nombre ?? null,
         email: body.email ?? null,
         telefono: body.telefono ?? null,
-        lang: body.lang,
+        // El idioma del HUÉSPED (lo decide el modelo), no el del hotel: la
+        // página de pago y el correo de confirmación salen en ese idioma.
+        lang: body.idioma ?? body.lang,
         // El teléfono del chat, para que este huésped reuse SU apartado en vez
         // de bloquear un cuarto más cada vez que cambia de opinión.
         conv,
@@ -398,14 +439,51 @@ export async function POST(req: Request) {
     return NextResponse.json(resultado);
   }
 
+  // Camila pide a una PERSONA: el chat queda "Atender yo", Camila se calla en él
+  // y el runtime le manda un WhatsApp al hotelero con el resumen.
+  //
+  // Antes el prompt le hacía decir «ya le avisé al equipo» y no avisaba a nadie:
+  // ni una alerta, ni una etiqueta. El huésped con el agua fría esperaba una
+  // respuesta que nunca iba a llegar.
+  if (body.action === "escalar") {
+    if (!conv) return NextResponse.json({ ok: false, error: "conv-requerido" }, { status: 400 });
+    const hasta = new Date(Date.now() + PAUSA_ESCALADA_MS).toISOString();
+    const marcado = await escalarChat(hotel.id, conv, hasta);
+    const bot = (((hotel.extras ?? {}) as Record<string, unknown>).bot ?? {}) as Record<string, unknown>;
+    const nombreBot = (typeof bot.nombre === "string" && bot.nombre.trim()) || "Camila";
+    const digitos = (v: unknown) => (typeof v === "string" ? v.replace(/\D/g, "") : "");
+    const propio = digitos(hotel.whatsapp).slice(-10);
+    // A quién avisar: el número de "pasar con una persona"; si no hay (o es el
+    // mismo que atiende Camila, que no se puede escribir a sí misma), el
+    // teléfono de control del dueño.
+    const candidatos = [digitos(bot.escalarWhatsapp), digitos(cfg.bot_admin_phone)].filter(
+      (d) => d.length >= 10 && d.slice(-10) !== propio,
+    );
+    const avisarA = candidatos[0] ?? null;
+    const motivo = MOTIVOS_ESCALADA[body.motivo ?? ""] ?? MOTIVOS_ESCALADA.otro;
+    const resumen = String(body.resumen ?? "").trim().slice(0, 600);
+    const site = (process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com").replace(/\/$/, "");
+    const aviso =
+      `🔔 *${nombreBot} necesita a una persona*\n` +
+      `${motivo}\n` +
+      `Huésped: +${conv.replace(/\D/g, "")}\n` +
+      (resumen ? `\n${resumen}\n` : "") +
+      `\nContéstale desde el panel: ${site}/panel/${hotel.slug}/camila?chat=${encodeURIComponent(conv)}\n` +
+      `(${nombreBot} no le escribe a ese huésped hasta que tú le contestes o la reactives.)`;
+    if (!marcado) console.error(`[agent] no pude marcar la escalada de ${conv} en ${hotel.slug}`);
+    return NextResponse.json({ ok: true, avisarA, aviso, pausadoHasta: hasta, marcado });
+  }
+
   // Por defecto: conocimiento del hotel (para que el bot responda preguntas).
   // El `systemPrompt` (cerebro de Camila) se arma del lado servidor con los datos
   // REALES del hotel + su entrenamiento (extras.bot) — fuente única que consumen
-  // el runtime de WhatsApp y el chat de prueba del panel.
-  const knowledge = buildHotelKnowledge(hotel);
+  // el runtime de WhatsApp y el chat de prueba del panel. Las HERRAMIENTAS viajan
+  // también desde aquí: antes el runtime tenía su propia copia y ya no coincidían.
+  const knowledge = buildHotelKnowledge(hotel, { pagos: await pagosDelHotel(hotel) });
   return NextResponse.json({
     ...knowledge,
     linkReserva: `/h/${hotel.slug}/reservar`,
     systemPrompt: buildBotSystemPrompt(knowledge),
+    tools: BOT_TOOLS,
   });
 }

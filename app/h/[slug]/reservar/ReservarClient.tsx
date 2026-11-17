@@ -363,6 +363,7 @@ export default function ReservarClient({
       // Habitación pre-seleccionada desde el CTA de la mini-página.
       const qHab = (q.get("habitacion") ?? "").trim().toLowerCase();
       if (qHab) preselRef.current = qHab;
+      if (q.get("origen") === "camila") desdeCamilaRef.current = true;
     } catch {
       /* sin URL válida */
     }
@@ -525,6 +526,8 @@ export default function ReservarClient({
   const stepHeadingRef = useRef<HTMLHeadingElement>(null);
   // Pre-selección de habitación (viene del CTA "Reservar esta habitación" por ?habitacion=).
   const preselRef = useRef<string>("");
+  // Llegó desde un link de Camila (WhatsApp): la reserva se cuenta como suya.
+  const desdeCamilaRef = useRef(false);
   const autoSearchDoneRef = useRef(false);
   const autoAddDoneRef = useRef(false);
 
@@ -1015,6 +1018,9 @@ export default function ReservarClient({
           // huésped que llega a Stripe y vuelve con el botón "atrás" se
           // encuentra sus propias fechas agotadas por su propio apartado.
           ...(prevApartado() ? { prevSession: prevApartado() } : {}),
+          // Atribución: el link vino de Camila. Sin esto, las ventas que Camila
+          // cerraba mandando el link del motor contaban como "web".
+          ...(desdeCamilaRef.current ? { origen: "camila" } : {}),
         }),
       });
 

@@ -47,7 +47,7 @@ async function getDemoPrompt(): Promise<string | null> {
     ...knowledge,
     bot: { ...(knowledge.bot ?? {}), pago: {}, instrucciones: undefined },
   };
-  const base = buildBotSystemPrompt(paraDemo, { modoPrueba: true });
+  const base = buildBotSystemPrompt(paraDemo, { modoPrueba: true, sinHerramientas: true });
   const prompt = `${base}
 
 DEMOSTRACIÓN EN LA WEB DE KORA

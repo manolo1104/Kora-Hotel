@@ -146,6 +146,19 @@ export interface BotKnowledge {
    * dos precios distintos para el mismo cuarto y Camila no sabía por qué.
    */
   ajustesDia?: BotAjustesDia;
+  /** Horarios de entrada y salida (salen de la guía, donde antes iban perdidos en un JSON). */
+  horarios?: { checkin?: string; checkout?: string };
+  /** Formas de pago que el hotel marcó en su panel (tarjeta, transferencia, efectivo…). */
+  formasPago?: string[];
+  /** Idiomas que habla el equipo del hotel. */
+  idiomas?: string[];
+  /** Link de Google Maps del hotel (el único que Camila puede mandar). */
+  mapsUrl?: string;
+  /**
+   * Qué cobros en línea funcionan DE VERDAD, leído de la cuenta Stripe del hotel.
+   * Antes el prompt prometía "tarjeta u OXXO" a todos, tuvieran OXXO o no.
+   */
+  pagos?: { enLinea?: boolean; oxxo?: boolean };
   lang?: "es" | "en";
   slug?: string; // slug del hotel (para armar el link de reserva)
   reservaUrl?: string; // URL absoluta del motor de reservas (…/h/slug/reservar)
@@ -232,79 +245,43 @@ function cobroLabel(cobro: string): string {
   }
 }
 
-// Fecha ISO (YYYY-MM-DD) en zona de México — la que usan las herramientas.
-function hoyMexicoISO(): string {
-  return new Date().toLocaleDateString("en-CA", { timeZone: "America/Mexico_City" });
-}
-// Fecha legible con día de la semana — para que Camila razone fechas relativas
-// ("este viernes", "el finde") y valide que el día y el número coincidan.
-function hoyMexicoHumano(): string {
-  return new Date().toLocaleDateString("es-MX", {
-    timeZone: "America/Mexico_City",
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-}
+/** Las herramientas: fuente única en `lib/bot/herramientas.ts`. Se re-exportan aquí por compatibilidad. */
+export { BOT_TOOLS } from "@/lib/bot/herramientas";
 
-/** Herramientas que Camila puede usar (contrato con /api/agent). Compartidas
- *  entre el runtime y el preview para que no se desincronicen. */
-export const BOT_TOOLS = [
-  {
-    name: "checar_disponibilidad",
-    description:
-      "Consulta la disponibilidad REAL y el precio total del hotel para unas fechas. " +
-      "Úsala siempre antes de dar un precio o confirmar que hay lugar. Devuelve los " +
-      "tipos de cuarto disponibles con su id, nombre, capacidad y total de la estancia.",
-    input_schema: {
-      type: "object",
-      properties: {
-        checkin: { type: "string", description: "Fecha de llegada, formato YYYY-MM-DD" },
-        checkout: { type: "string", description: "Fecha de salida, formato YYYY-MM-DD" },
-        huespedes: {
-          type: "number",
-          description:
-            "Cuántas personas se van a quedar. Mándalo siempre que lo sepas: el total cambia con el número de personas y es el mismo que cobrará el link de pago. Si aún no lo sabes, omítelo (se asume 2) y pregúntaselo antes de cerrar.",
-        },
-      },
-      required: ["checkin", "checkout"],
-    },
-  },
-  {
-    name: "reservar",
-    description:
-      "Cierra la reserva: aparta el cuarto y genera un LINK de pago (Stripe) para " +
-      "mandarle al huésped. Úsala solo cuando ya tengas fechas, tipo de cuarto, número " +
-      "de huéspedes y los datos del huésped (nombre completo, email y teléfono). Si " +
-      "devuelve ok:false, trae un código de error que debes traducir al huésped.",
-    input_schema: {
-      type: "object",
-      properties: {
-        cuarto: {
-          type: "string",
-          description:
-            "id del tipo de cuarto (preferido, tal como lo devuelve checar_disponibilidad) o su nombre exacto",
-        },
-        checkin: { type: "string", description: "Llegada YYYY-MM-DD" },
-        checkout: { type: "string", description: "Salida YYYY-MM-DD" },
-        unidades: { type: "integer", description: "Cuántas unidades de ese tipo (default 1)" },
-        huespedes: { type: "integer", description: "Adultos (default 1)" },
-        ninos: { type: "integer", description: "Menores (default 0)" },
-        nombre: { type: "string", description: "Nombre completo del huésped" },
-        email: { type: "string", description: "Email del huésped" },
-        telefono: { type: "string", description: "Teléfono del huésped" },
-      },
-      required: ["cuarto", "checkin", "checkout", "nombre", "email", "telefono"],
-    },
-  },
-] as const;
+// Las claves de la guía que NUNCA se le dan a un huésped por WhatsApp: el editor
+// del sitio guarda ahí la CLAVE DEL WIFI, y Camila se la dictaba a cualquiera.
+const CLAVES_PRIVADAS = new Set(["wificlave", "wifipassword", "wifipass", "clavewifi", "password", "contrasena"]);
+// Las que ya salen en su propio bloque (HORARIOS) y no hace falta repetir.
+const CLAVES_YA_DICHAS = new Set(["checkin", "checkout"]);
+const normClave = (k: string) => k.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+
+/** Un valor de la guía en texto legible (antes se volcaban arreglos como JSON). */
+function textoGuia(v: unknown): string {
+  if (Array.isArray(v)) return v.map((x) => (typeof x === "string" ? x : JSON.stringify(x))).filter(Boolean).join("; ");
+  if (v && typeof v === "object") return JSON.stringify(v);
+  return String(v ?? "").trim();
+}
 
 /**
  * Arma el prompt de sistema de Camila para UN hotel, con su entrenamiento.
- * @param opts.modoPrueba  true para el chat de prueba del panel (reservar apagada).
+ *
+ * ORDEN, a propósito: quién es → qué busca → los DATOS del hotel → cómo
+ * contestar, cotizar, cerrar y pasar con una persona → los errores → el formato.
+ * Antes los datos que contestan las preguntas (FAQ, guía, políticas) iban al
+ * final, después de ~40 líneas de tablas de errores, y había dos instrucciones
+ * de cierre que se contradecían ("pide nombre, correo y teléfono" vs "mejor
+ * manda el link sin pedírselos").
+ *
+ * La fecha de hoy y quién escribe NO van aquí: este texto se cachea, y la fecha
+ * se quedaba vieja. Van en `bloqueTurno` (lib/bot/turno.ts), en cada mensaje.
+ *
+ * @param opts.modoPrueba  chat de prueba del panel: `reservar` y `pasar_a_persona` no hacen nada real.
+ * @param opts.sinHerramientas  la demo pública de la landing: no hay herramientas.
  */
-export function buildBotSystemPrompt(k: BotKnowledge, opts: { modoPrueba?: boolean } = {}): string {
+export function buildBotSystemPrompt(
+  k: BotKnowledge,
+  opts: { modoPrueba?: boolean; sinHerramientas?: boolean } = {},
+): string {
   const bot = (k.bot ?? {}) as BotTraining;
   const nombre = (bot.nombre || "Camila").trim();
   const habs = Array.isArray(k.habitaciones) ? k.habitaciones : [];
@@ -312,68 +289,85 @@ export function buildBotSystemPrompt(k: BotKnowledge, opts: { modoPrueba?: boole
   const faqs = Array.isArray(k.faqs) ? k.faqs : [];
   const pol = k.politicas && typeof k.politicas === "object" ? k.politicas : {};
   const guia = k.guia && typeof k.guia === "object" ? k.guia : {};
-  // A dónde mandar al huésped cuando hace falta una persona.
-  //
-  // Antes caía en el WhatsApp del hotel si el campo estaba vacío — y ése es
-  // EXACTAMENTE el número al que Camila está vinculada, así que le decía al
-  // huésped «escríbele al hotel al 481-XXX-XXXX» desde ese mismo 481-XXX-XXXX.
-  // El huésped escribía ahí y le volvía a contestar ella. Un número sólo sirve
-  // para escalar si es DISTINTO del que atiende Camila; si no lo es, es mejor no
-  // dar ninguno y decirle que ya avisamos al hotel.
+  const reglas = k.reglas ?? {};
+  const exps = Array.isArray(k.experiencias) ? k.experiencias : [];
+  const adds = Array.isArray(k.addons) ? k.addons : [];
+  const temporadas = Array.isArray(k.temporadas) ? k.temporadas : [];
+  const idioma = k.lang === "en" ? "inglés" : "español";
+  const conHerramientas = !opts.sinHerramientas;
+
+  // A quién mandar al huésped si NO se pudo avisar con la herramienta. Un número
+  // sólo sirve si es DISTINTO del que atiende Camila: si no, le decía «escríbele
+  // al hotel al 481-XXX» desde ese mismo 481-XXX, y le volvía a contestar ella.
   const soloDigitos = (s: string) => s.replace(/\D/g, "").slice(-10);
   const escalarBruto = (bot.escalarWhatsapp || k.whatsapp || "").trim();
-  const mismoQueCamila =
-    Boolean(k.whatsapp) && soloDigitos(escalarBruto) === soloDigitos(k.whatsapp ?? "");
+  const mismoQueCamila = Boolean(k.whatsapp) && soloDigitos(escalarBruto) === soloDigitos(k.whatsapp ?? "");
   const escalar = mismoQueCamila ? "" : escalarBruto;
-  const idioma = k.lang === "en" ? "inglés" : "español";
 
-  // Emojis: regla según el nivel elegido por el hotel (default: con mesura).
+  // ── Emojis ──
   const emojis = (bot.emojis ?? {}) as BotEmojis;
   const emojiPref = (emojis.preferidos || "").trim();
   const emojiRegla =
     emojis.nivel === "nada"
       ? "NO uses emojis, en ningún mensaje."
       : emojis.nivel === "bajo"
-        ? "Usa emojis muy de vez en cuando: máximo 1 por mensaje, y no en todos los mensajes."
+        ? "Usa emojis muy de vez en cuando: máximo 1 por mensaje, y no en todos."
         : emojis.nivel === "alto"
           ? "Usa emojis con frecuencia (2 a 4 por mensaje), con buen gusto y variedad."
           : "Emojis con mesura (1 o 2 por mensaje, solo cuando sumen).";
   const emojiPrefRegla =
-    emojiPref && emojis.nivel !== "nada"
-      ? ` Cuando uses emojis, prefiere estos (son la marca del hotel): ${emojiPref}`
-      : "";
-  const exps = Array.isArray(k.experiencias) ? k.experiencias : [];
-  const adds = Array.isArray(k.addons) ? k.addons : [];
-  const reglas = k.reglas ?? {};
-  const temporadas = Array.isArray(k.temporadas) ? k.temporadas : [];
+    emojiPref && emojis.nivel !== "nada" ? ` Cuando uses emojis, prefiere estos (son la marca del hotel): ${emojiPref}` : "";
 
-  // EXPERIENCIAS Y EXTRAS — lo que el hotel vende además del cuarto. Camila
-  // debe conocerlas para ofrecerlas (upsell); se pagan en el motor en línea.
+  // ── DATOS DEL HOTEL ──
+  const cuartos = habs.length
+    ? habs
+        .map((r) => {
+          const camas = Array.isArray(r.camas) && r.camas.length ? ` Camas: ${r.camas.join(", ")}.` : "";
+          const caract = Array.isArray(r.caracteristicas) && r.caracteristicas.length ? ` Incluye: ${r.caracteristicas.join(", ")}.` : "";
+          const acceso = r.accesibilidad ? ` Accesibilidad: ${r.accesibilidad}.` : "";
+          // Sin tarifa configurada no se inventa un número ("desde $0 MXN").
+          const precio = r.desdeTexto || (r.desde ? `$${r.desde} MXN` : "");
+          const desde = precio ? `desde ${precio} por noche.` : "precio por consultar.";
+          return `- ${r.nombre} (hasta ${r.maxHuespedes} personas) — ${desde}${camas}${caract}${acceso} ${r.descripcion || ""}`.trim();
+        })
+        .join("\n")
+    : "(sin cuartos configurados)";
+
+  const horarios = k.horarios ?? {};
+  const lineasGenerales = [
+    `- Nombre: ${k.nombre}`,
+    `- Dirección: ${k.ubicacion || "— (no la tienes; si la piden, ofrece confirmarla con el hotel)"}`,
+    k.mapsUrl ? `- Mapa (el ÚNICO link de ubicación que puedes mandar): ${k.mapsUrl}` : "",
+    k.reservaUrl
+      ? `- Página de reserva (para que vea el calendario y reserve él mismo; si ya cotizaste, usa mejor el link de su cuarto): ${k.reservaUrl}`
+      : "",
+    k.descripcion ? `- Sobre el hotel: ${k.descripcion}` : "",
+    horarios.checkin ? `- Entrada (check-in): ${horarios.checkin}` : "",
+    horarios.checkout ? `- Salida (check-out): ${horarios.checkout}` : "",
+    amen.length ? `- Amenidades: ${amen.join(", ")}` : "",
+    Array.isArray(k.formasPago) && k.formasPago.length ? `- Formas de pago que acepta el hotel: ${k.formasPago.join(", ")}` : "",
+    Array.isArray(k.idiomas) && k.idiomas.length ? `- Idiomas del equipo: ${k.idiomas.join(", ")}` : "",
+    k.accesibilidad ? `- Accesibilidad del hotel: ${k.accesibilidad}` : "",
+  ].filter(Boolean);
+
+  // Políticas: las claves VACÍAS no se listan (un "- mascotas:" sin valor el
+  // modelo lo rellenaba: un día aceptaban perros y otro no).
+  const polLineas = Object.entries(pol)
+    .filter(([, vv]) => String(vv ?? "").trim())
+    .map(([kk, vv]) => `- ${kk}: ${vv}`);
+
+  // Experiencias y extras: lo que el hotel vende además del cuarto.
   const expLineas = exps.map((e) => {
-    const dias =
-      Array.isArray(e.dias) && e.dias.length
-        ? ` Días: ${e.dias.map((d) => DIAS_SEMANA[d] ?? "").filter(Boolean).join(", ")}.`
-        : "";
+    const dias = Array.isArray(e.dias) && e.dias.length ? ` Días: ${e.dias.map((d) => DIAS_SEMANA[d] ?? "").filter(Boolean).join(", ")}.` : "";
     const hor = Array.isArray(e.horarios) && e.horarios.length ? ` Horarios: ${e.horarios.join(", ")}.` : "";
-    const cupo = e.cupoDia ? ` Cupo limitado (${e.cupoDia} lugares por día).` : "";
+    const cupo = e.cupoDia ? ` Cupo: ${e.cupoDia} lugares por día.` : "";
     return `- ${e.nombre} — ${e.precioTexto || `$${e.precio} MXN`} ${cobroLabel(e.cobro)}.${dias}${hor}${cupo} ${e.descripcion || ""}`.trim();
   });
-  const addLineas = adds.map(
-    (a) => `- ${a.nombre} — ${a.precioTexto || `$${a.precio} MXN`} ${cobroLabel(a.tipo)}.`
-  );
-  const bundleTxt = k.experienciasBundle
-    ? `- PAQUETE: si agrega ${k.experienciasBundle.min} o más experiencias distintas, todas sus experiencias tienen ${k.experienciasBundle.pct}% de descuento — úsalo para invitar a agregar otra.`
-    : "";
-  const experienciasBloque =
-    expLineas.length || addLineas.length
-      ? `\nEXPERIENCIAS Y EXTRAS (ofrécelas — venden la estancia completa)
-${[...expLineas, ...addLineas].join("\n")}
-${bundleTxt ? bundleTxt + "\n" : ""}- Cuando cotices o confirmes, menciona 1 o 2 que le queden al huésped (sin presionar).
-- Se eligen y pagan en el link de reserva EN LÍNEA. El link de la herramienta "reservar" NO las incluye: si el huésped quiere agregar alguna, mándale mejor el link en línea con sus fechas (opción 1 de FORMAS DE PAGO) para que las escoja ahí. Si paga por transferencia, súmalas al total y pide el comprobante.\n`
-      : "";
+  const addLineas = adds.map((a) => `- ${a.nombre} — ${a.precioTexto || `$${a.precio} MXN`} ${cobroLabel(a.tipo)}.`);
+  if (k.experienciasBundle)
+    addLineas.push(`- Paquete: con ${k.experienciasBundle.min} o más experiencias distintas, todas tienen ${k.experienciasBundle.pct}% de descuento.`);
 
-  // TEMPORADAS — para que pueda EXPLICAR por qué cambia la tarifa (el total
-  // exacto lo sigue dando checar_disponibilidad, que ya las aplica).
+  // Por qué cambia el precio (el total exacto SIEMPRE lo da la herramienta).
   const tempLineas = temporadas.map((t) => {
     const aj =
       t.ajuste.tipo === "porcentaje"
@@ -381,283 +375,178 @@ ${bundleTxt ? bundleTxt + "\n" : ""}- Cuando cotices o confirmes, menciona 1 o 2
           ? `la tarifa sube ${t.ajuste.valor}%`
           : `la tarifa baja ${Math.abs(t.ajuste.valor)}%`
         : `tarifa especial de $${t.ajuste.valor} MXN por noche`;
-    const min = t.minNoches ? ` (mínimo ${t.minNoches} noches)` : "";
-    return `- ${t.nombre}: del ${t.desde} al ${t.hasta} — ${aj}${min}.`;
+    return `- ${t.nombre}: del ${t.desde} al ${t.hasta} — ${aj}${t.minNoches ? ` (mínimo ${t.minNoches} noches)` : ""}.`;
   });
-  // Y el precio también cambia por el DÍA de la semana. El motor ya lo aplica
-  // (`nightOpts`), pero el prompt no lo decía: el huésped preguntaba por el
-  // viernes y por el martes, veía dos precios del mismo cuarto, y Camila no
-  // sabía explicarlo. Un precio que cambia sin explicación se lee como error.
   const dia = k.ajustesDia ?? {};
   if (dia.finDeSemana) tempLineas.push(`- Fin de semana (${dia.finDeSemana.dias}): ${dia.finDeSemana.texto}.`);
-  if (dia.entreSemana)
-    tempLineas.push(
-      `- Entre semana: ${dia.entreSemana.texto}${dia.entreSemana.hasta ? ` (hasta el ${dia.entreSemana.hasta})` : ""}.`,
-    );
+  if (dia.entreSemana) tempLineas.push(`- Entre semana: ${dia.entreSemana.texto}${dia.entreSemana.hasta ? ` (hasta el ${dia.entreSemana.hasta})` : ""}.`);
 
-  const temporadasBloque = tempLineas.length
-    ? `\nCUÁNDO CAMBIA EL PRECIO (si preguntan por qué, explícalo con esto)
-${tempLineas.join("\n")}
-- El total exacto SIEMPRE sale de checar_disponibilidad; estas notas son para explicar, no para calcular.\n`
-    : "";
-
-  // REGLAS DE RESERVA — el motor ya las aplica al cobrar; aquí Camila aprende
-  // a EXPLICARLAS ("¿cuánto es el anticipo?", "¿hasta cuándo cancelo gratis?").
+  // Reglas de reserva: el motor ya las aplica al cobrar; Camila las EXPLICA.
   const reglasLineas: string[] = [];
   if (reglas.anticipoPct != null) {
     reglasLineas.push(
       reglas.anticipoPct >= 100
         ? "- Al reservar se paga el 100% de la estancia."
-        : `- Anticipo: al reservar se paga el ${reglas.anticipoPct}% y el resto al llegar al hotel.${
+        : `- Anticipo: al reservar se paga el ${reglas.anticipoPct}% y el resto al llegar.${
             reglas.anticipoMinNoches && reglas.anticipoMinNoches > 1
               ? ` Estancias de menos de ${reglas.anticipoMinNoches} noches se pagan completas al reservar.`
               : ""
-          }`
+          }`,
     );
   }
-  if (reglas.minNoches && reglas.minNoches > 1)
-    reglasLineas.push(`- Mínimo de noches por reserva: ${reglas.minNoches}.`);
-  // UNA sola línea de cancelación, la misma que lee el huésped en la página y
-  // la que decide su reembolso si cancela. Antes había dos en el mismo prompt
-  // —esta y el volcado del texto libre en el bloque POLÍTICAS— sin decirle al
-  // modelo cuál mandaba, así que Camila podía prometer un plazo y el sistema
-  // aplicar otro.
-  if (k.politicaCancelacion)
-    reglasLineas.push(`- Cancelación: ${k.politicaCancelacion}`);
+  if (reglas.minNoches && reglas.minNoches > 1) reglasLineas.push(`- Mínimo de noches por reserva: ${reglas.minNoches}.`);
+  // UNA sola línea de cancelación: la misma que lee el huésped y la que decide su reembolso.
+  if (k.politicaCancelacion) reglasLineas.push(`- Cancelación: ${k.politicaCancelacion}`);
   else if (reglas.cancelacionDias != null)
     reglasLineas.push(
       reglas.cancelacionDias > 0
-        ? `- Cancelación gratis hasta ${reglas.cancelacionDias} ${reglas.cancelacionDias === 1 ? "día" : "días"} antes del check-in.`
-        : "- Las reservas no tienen cancelación gratuita."
+        ? `- Cancelación gratis hasta ${reglas.cancelacionDias} ${reglas.cancelacionDias === 1 ? "día" : "días"} antes de la llegada.`
+        : "- Las reservas no tienen cancelación gratuita.",
     );
-  if (reglas.nrfActiva && reglas.nrfPct)
-    reglasLineas.push(
-      `- Tarifa no reembolsable: ${reglas.nrfPct}% de descuento pagando el total, sin reembolso (se elige en el link de reserva en línea).`
-    );
-  // Sin esta línea Camila cotiza a los niños como gratis mientras el link de
-  // pago (agent-booking.ts) los cobra como persona: dos precios distintos.
-  if (reglas.menoresPagan)
-    reglasLineas.push(
-      "- Los menores cuentan como persona para la tarifa: cotiza con el total de huéspedes (adultos + menores) y al reservar manda adultos en `huespedes` y menores en `ninos`."
-    );
-  if (reglas.pagoEnHotel)
-    reglasLineas.push(
-      "- También se puede reservar dejando tarjeta como garantía y pagar al llegar (opción del link de reserva en línea)."
-    );
-  // El ISH que el hotelero configuró VIAJA hasta aquí y se tiraba: `knowledge.ts`
-  // lo mete en `reglas.ishPct` y nadie lo imprimía. A quien pedía factura Camila
-  // le decía que no tenía esa información, aunque el dato estuviera cargado en
-  // el panel — y el hotelero creía que sí lo sabía.
   reglasLineas.push(
-    reglas.ishPct
-      ? `- Los precios ya incluyen impuestos, con un ${reglas.ishPct}% de ISH (Impuesto Sobre Hospedaje). Si te piden factura o el desglose, puedes decirlo.`
-      : "- Los precios ya incluyen impuestos.",
+    reglas.menoresPagan
+      ? "- Los niños pagan tarifa como una persona más (el precio sale de adultos + niños)."
+      : "- Los niños no pagan tarifa, pero sí ocupan lugar: cuentan para cuántas personas caben en el cuarto.",
   );
-  // PROMOCIONES. Sólo las que el hotelero dio de alta y el motor acepta de
-  // verdad: si aquí apareciera un código inventado, el huésped llegaría al
-  // pago con un cupón muerto — que es exactamente el fallo que ya se arregló
-  // una vez en el correo de +30 días.
+  if (reglas.nrfActiva && reglas.nrfPct)
+    reglasLineas.push(`- Tarifa no reembolsable: ${reglas.nrfPct}% de descuento pagando el total, sin reembolso (se elige en la página de reserva).`);
+  if (reglas.pagoEnHotel)
+    reglasLineas.push("- También se puede reservar dejando tarjeta como garantía y pagar al llegar (opción de la página de reserva).");
+  if (reglas.ishPct)
+    reglasLineas.push(`- Los precios ya incluyen impuestos, con ${reglas.ishPct}% de ISH (Impuesto Sobre Hospedaje). Si piden factura o desglose, puedes decirlo.`);
   const promos = Array.isArray(reglas.promos) ? reglas.promos : [];
-  if (promos.length) {
-    reglasLineas.push(
-      `- Códigos de descuento vigentes (si el huésped menciona uno, es válido y se aplica en el link de reserva en línea): ${promos
-        .map((p) => `${p.code} (${p.descripcion}${p.minNoches ? `, mínimo ${p.minNoches} noches` : ""})`)
-        .join("; ")}. No inventes ni ofrezcas ningún otro código.`,
-    );
-  }
-
-  const reglasBloque = `\nREGLAS DE RESERVA (explícalas tal cual si el huésped pregunta; no las cambies ni negocies)
-${reglasLineas.join("\n")}\n`;
-
-  // LA GUÍA SE VUELCA ENTERA, y el editor del sitio guarda ahí la CLAVE DEL
-  // WIFI (`guia.wifiClave`, PanelEditor.tsx). O sea: Camila podía dictarle la
-  // contraseña de la red del hotel a cualquiera que se la pidiera por WhatsApp,
-  // sin haber llegado y sin ser huésped. La guía es para recomendar la zona y
-  // los horarios; una credencial se entrega en recepción.
-  const CLAVES_PRIVADAS = new Set(["wificlave", "wifipassword", "wifipass", "clavewifi", "password", "contrasena"]);
-  const guiaPublica = Object.entries(guia).filter(
-    ([kk, vv]) =>
-      !CLAVES_PRIVADAS.has(kk.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")) &&
-      String(vv ?? "").trim(),
+  reglasLineas.push(
+    promos.length
+      ? `- Códigos de descuento vigentes: ${promos
+          .map((p) => `${p.code} (${p.descripcion}${p.minNoches ? `, mínimo ${p.minNoches} noches` : ""})`)
+          .join("; ")}. Si el huésped da uno, pásalo en "codigo" al cotizar y al reservar. No existe ningún otro código.`
+      : "- No hay códigos de descuento vigentes. No inventes ninguno.",
   );
 
-  const cuartos = habs.length
-    ? habs
-        .map((r) => {
-          const camas = Array.isArray(r.camas) && r.camas.length ? ` Camas: ${r.camas.join(", ")}.` : "";
-          const caract =
-            Array.isArray(r.caracteristicas) && r.caracteristicas.length
-              ? ` Incluye: ${r.caracteristicas.join(", ")}.`
-              : "";
-          const acceso = r.accesibilidad ? ` Accesibilidad: ${r.accesibilidad}.` : "";
-          // Sin tarifa configurada no se inventa un número: `desdeTexto` viene
-          // vacío y `desde` es 0, así que "desde $0 MXN/noche" era lo que leía
-          // Camila. Se dice que hay que consultarlo, que es la verdad.
-          const precio = r.desdeTexto || (r.desde ? `$${r.desde} MXN` : "");
-          const desde = precio ? `desde ${precio}/noche.` : "precio por consultar (usa checar_disponibilidad).";
-          return `- ${r.nombre} (hasta ${r.maxHuespedes} huéspedes) — ${desde}${camas}${caract}${acceso} ${r.descripcion || ""}`.trim();
-        })
-        .join("\n")
-    : "(sin cuartos configurados)";
-
-  const faqsTxt = faqs
-    .map((f) => (f && f.q ? `P: ${f.q}\nR: ${f.a || ""}` : ""))
-    .filter(Boolean)
-    .join("\n\n");
-
-  // LINKS DE RESERVA, YA ARMADOS AQUÍ. Uno por cuarto, con el nombre ya
-  // codificado para la URL.
-  //
-  // El motor acepta `habitacion` y compara contra el NOMBRE del cuarto en
-  // minúsculas (app/h/[slug]/reservar/ReservarClient.tsx:689); cuando viene,
-  // busca y mete el cuarto al carrito solo. Así el huésped cae en el formulario
-  // con su cuarto puesto.
-  //
-  // Se arma AQUÍ y no se le pide al modelo que lo escriba porque un nombre con
-  // espacios o con ñ hay que codificarlo, y pedirle a un modelo que codifique
-  // una URL es exactamente el error que le rompió el link de pago a un huésped
-  // del Hotel San Luis: lo que el modelo tiene que añadir son sólo fechas y un
-  // número, que no llevan nada raro.
-  const linksPorCuarto = k.reservaUrl
-    ? habs
-        .filter((r) => r.nombre && r.nombre.trim())
-        .slice(0, 12)
-        .map((r) => `   · ${r.nombre}: ${k.reservaUrl}?habitacion=${encodeURIComponent(r.nombre.trim().toLowerCase())}`)
-        .join("\n")
-    : "";
-
-  const reservarRegla = opts.modoPrueba
-    ? `- MODO PRUEBA: la herramienta "reservar" está desactivada. Si el huésped quiere cerrar, dile con naturalidad que en la versión en vivo le mandarías el link de reserva aquí mismo, y explícale el resumen (cuarto, fechas, total).`
-    : `- PARA CERRAR, LO NORMAL ES MANDARLE SU LINK DE RESERVA (ver CÓMO SE CIERRA, abajo). Ahí elige extras, códigos de descuento y forma de pago, el link no caduca y no le bloquea el cuarto a nadie.
-- La herramienta "reservar" es la EXCEPCIÓN: úsala sólo si el huésped pide pagar YA por aquí, o si te dice que no quiere llenar un formulario. Antes de llamarla necesitas su nombre completo, correo y teléfono; si no los tienes, es más rápido mandarle su link de reserva que pedírselos uno por uno.
-- Cuando "reservar" devuelva ok:true, manda el link de pago (campo url) TAL CUAL, y resume en pocas líneas: cuarto, fechas, total, anticipo a pagar ahora y resto al llegar. Aclara que al pagar recibe su confirmación automática por correo, y que ese link caduca en unos minutos.
-- Si "reservar" devuelve ok:false, traduce el error al huésped con amabilidad:
-  · min-noches → esas fechas piden mínimo N noches.
-  · no-disponible → ya no hay ese cuarto para esas fechas; ofrece otro tipo u otras fechas.
-  · capacidad-insuficiente → NO es que esté lleno: ese cuarto SÍ está libre, pero no le caben tantas personas. El error trae maxHuespedes: dile cuántas caben y ofrécele DOS unidades de ese tipo o un cuarto más grande. Nunca le digas que no hay lugar.
-  · demasiadas-unidades → puedes cerrar hasta maxUnidades cuartos por WhatsApp. Para un grupo más grande, dile que le pasas con una persona del hotel para armárselo bien.
-  · cuarto-no-encontrado → NO es que esté lleno. Ese nombre no existe como TIPO de cuarto; puede que te haya dado el nombre de la unidad física ("Cabaña 2") y el tipo se llame "Cabaña". Vuelve a intentarlo con el id que devolvió checar_disponibilidad; si aun así falla, pregúntale con naturalidad cuál de los tipos que le ofreciste quiere.
-  · fecha-pasada / fechas-invalidas → esas fechas ya pasaron o no se entendieron. Repregúntaselas con amabilidad y confirma el día de la semana.
-  · monto-invalido → ese cuarto todavía no tiene tarifa cargada. NO le des un precio ni le digas que es gratis: dile que lo confirmas con el hotel y ofrécele otro tipo de cuarto.
-  · datos-incompletos → pide el dato que falta.
-  · sin-pago / stripe-error → NO digas que hay un "problema técnico". Ofrece directamente las FORMAS DE PAGO de abajo (el link de reserva en línea con sus fechas y/o los datos de transferencia).
-  · servicio-no-disponible → no se pudo apartar el cuarto en este momento. NUNCA digas que está lleno: ofrécele las FORMAS DE PAGO o el link de reserva en línea para que él mismo vea el calendario.`;
-
-  // FORMAS DE PAGO: link del motor con fechas precargadas + datos de transferencia
-  // (transferencia/depósito/OXXO). Solo se listan las opciones con datos reales.
+  // Formas de pago reales.
   const pago = (bot.pago ?? {}) as BotPago;
-  const pagoTransfer = [
+  const datosTransfer = [
     pago.titular ? `  Titular: ${pago.titular.trim()}` : "",
     pago.banco ? `  Banco: ${pago.banco.trim()}` : "",
     pago.clabe ? `  CLABE: ${pago.clabe.trim()}` : "",
     pago.cuenta ? `  Cuenta/Tarjeta: ${pago.cuenta.trim()}` : "",
     pago.notas ? `  Notas: ${pago.notas.trim()}` : "",
-  ]
-    .filter(Boolean)
-    .join("\n");
+  ].filter(Boolean);
+  const enLinea = k.pagos?.enLinea !== false;
+  const conOxxo = k.pagos?.oxxo === true;
   const opcionesPago = [
-    k.reservaUrl
-      ? `1) EN LÍNEA (tarjeta u OXXO), y es la vía normal: mándale SU link de reserva, ver CÓMO SE CIERRA UNA RESERVA.`
+    enLinea && k.reservaUrl
+      ? `1) EN LÍNEA con tarjeta${conOxxo ? " u OXXO" : ""} (la vía normal: link de pago de "reservar" o la página de reserva).${conOxxo ? "" : " OXXO NO está disponible en este hotel."}`
       : "",
-    pagoTransfer
-      ? `2) TRANSFERENCIA / DEPÓSITO / OXXO a la cuenta del hotel:\n${pagoTransfer}\n   Pídele que te mande el comprobante para confirmar la reserva.`
+    datosTransfer.length
+      ? `2) TRANSFERENCIA / DEPÓSITO a la cuenta del hotel:\n${datosTransfer.join("\n")}\n   Al pagar, el huésped manda su comprobante por este chat y una PERSONA del hotel lo confirma (tú no puedes ver imágenes).`
       : "",
-  ]
+  ].filter(Boolean);
+
+  const faqsTxt = faqs
+    .map((f) => (f && f.q ? `P: ${f.q}\nR: ${f.a || ""}` : ""))
     .filter(Boolean)
-    .join("\n");
-  // El bloque que explica el cierre normal. Va aparte de FORMAS DE PAGO porque
-  // es lo primero que tiene que hacer, no una alternativa cuando algo falla.
-  const cierreBloque = k.reservaUrl
-    ? `\nCÓMO SE CIERRA UNA RESERVA (esto es lo normal)
-- Cuando el huésped ya eligió cuarto y fechas, mándale su LINK DE RESERVA: el de su cuarto, con sus fechas pegadas al final.
-${linksPorCuarto || `   · ${k.reservaUrl}`}
-- A ese link le añades tal cual: &checkin=AAAA-MM-DD&checkout=AAAA-MM-DD&adults=N
-  (las fechas en formato de máquina y N el número de adultos). Manda el link YA ARMADO, en un renglón aparte y sin nada pegado ni antes ni después.
-- Si todavía no eligió cuarto, mándale ${k.reservaUrl} con sus fechas y que elija ahí.
-- ANTES de mandarlo, VERIFICA esas fechas con checar_disponibilidad. Nunca mandes un link a fechas que no comprobaste que tienen lugar; si no hay, ofrece otras fechas u otro cuarto.
-- Dile en una línea qué va a encontrar: elegir extras si quiere, poner sus datos y pagar con tarjeta u OXXO. Y que la confirmación le llega por correo al pagar.
-- Ese link NO caduca y NO le aparta el cuarto: si le urge asegurarlo, dile que lo complete pronto.\n`
-    : "";
+    .join("\n\n");
+  const guiaLineas = Object.entries(guia)
+    .filter(([kk, vv]) => !CLAVES_PRIVADAS.has(normClave(kk)) && !CLAVES_YA_DICHAS.has(normClave(kk)) && textoGuia(vv))
+    .map(([kk, vv]) => `- ${kk}: ${textoGuia(vv)}`);
 
-  const formasPagoBloque = opcionesPago
-    ? `\nFORMAS DE PAGO — cuando el huésped quiera pagar o cerrar (o si "reservar" falla), ofrécele estas opciones (las que apliquen). NUNCA inventes datos bancarios que no estén aquí.\n${opcionesPago}\n`
-    : "";
+  // ── Cómo se cierra (depende del modo) ──
+  const comoCerrar = opts.sinHerramientas
+    ? `CÓMO SE RESERVA
+- Esta es una DEMOSTRACIÓN sin herramientas: no puedes consultar disponibilidad ni cobrar. Da los precios "desde" de los datos aclarando que son orientativos, y para reservar manda la página de reserva: ${k.reservaUrl ?? "(sin link)"}`
+    : `CÓMO COTIZAR
+- Para dar precios o decir que hay lugar, usa SIEMPRE checar_disponibilidad con las fechas y el número de adultos y niños. Si no sabes cuántos son, pregúntalo antes de cotizar (es una pregunta corta).
+- La herramienta te da todo calculado: noches, día de la semana de llegada y salida, total con las personas reales, anticipo y link de reserva por cuarto. Usa esos números TAL CUAL; no hagas cuentas tú.
+- Ofrece solo cuartos de "disponibles". Si el grupo no cabe en uno ("noCaben"), propón combinar cuartos (di cuántos de cada uno) o pasar con una persona del hotel.
+- Si devuelve error "min-noches", explica que esas fechas piden mínimo N noches y ofrece agregar noches u otras fechas.
+- Presenta 1 a 3 opciones, breve: cuarto, total de la estancia y para cuántas personas. Si tiene sentido, menciona UNA experiencia o extra que le quede.
 
-  return `Eres ${nombre}, la asistente de reservas por WhatsApp del hotel "${k.nombre}".
-Hoy es ${hoyMexicoHumano()} (${hoyMexicoISO()}, hora de México).
+CÓMO SE CIERRA UNA RESERVA
+- Cuando el huésped elige cuarto y quiere reservar, pídele SOLO lo que te falte: su nombre completo y su correo. Su teléfono ya lo tienes (ver QUIÉN ESCRIBE): nunca se lo pidas.
+- Con eso usa "reservar" (mismas fechas, adultos, niños y código que cotizaste). ${
+        opts.modoPrueba
+          ? 'MODO PRUEBA: "reservar" no cobra; devuelve "modo-prueba". Explica con naturalidad que en vivo aquí mandarías el link de pago, con el resumen.'
+          : "Cuando dé ok:true, manda el link de pago (campo url) en un renglón aparte, con un resumen corto: cuarto, fechas, total, cuánto paga ahora (anticipo) y cuánto al llegar. Dile que el link vence en expiraMin minutos y que al pagar le llega la confirmación por correo."
+      }
+- Si el huésped prefiere reservar él mismo en la página, quiere agregar extras o experiencias, o "reservar" no se pudo usar: mándale el linkReserva de ese cuarto que te dio checar_disponibilidad, TAL CUAL, en un renglón aparte. Nunca armes ni modifiques un link tú.
+- Si pide otro link (se equivocó de correo, cambió algo), vuelve a usar "reservar" con los datos corregidos: el link anterior se cancela solo.`;
 
-FECHAS (crítico — léelo con atención)
-- HOY es ${hoyMexicoHumano()}. Calcula SIEMPRE las fechas relativas ("hoy", "mañana", "este viernes", "el finde", "la próxima semana") a partir de HOY.
-- Cuando confirmes una fecha, di el día de la semana correcto. Si el huésped da un día y un número que NO coinciden (p. ej. dice "viernes 25" pero el 25 cae en sábado), avísale con amabilidad y pregúntale cuál quiere: el viernes (24) o el sábado (25). NUNCA aceptes una fecha sin estar segura del día.
-- Las herramientas usan formato AAAA-MM-DD. Convierte la fecha al formato de máquina antes de llamar a checar_disponibilidad.
-- Si "checar_disponibilidad" devuelve un campo error, NO digas que no hay lugar — no es lo que pasó:
-  · fechas-invalidas → no se entendieron las fechas. Repregúntaselas con naturalidad ("¿me confirmas el día de entrada y el de salida?").
-  · servicio-no-disponible → no se pudo consultar en este momento. Dile que lo revisas en un minuto y ofrécele las FORMAS DE PAGO o el link de reserva en línea para que él mismo vea el calendario. NUNCA afirmes que está lleno.
-- Cuando sí haya lugar, cada cuarto trae unidadesLibres: son los cuartos FÍSICOS que quedan de ese tipo. Úsalo si te preguntan cuántos hay o si piden varios ("me quedan 2 de ese"). Nunca ofrezcas más de los que dice.
+  const comoPasar = opts.sinHerramientas
+    ? ""
+    : `
+CUÁNDO PASAR CON UNA PERSONA
+- Usa pasar_a_persona cuando: el huésped ya está hospedado y tiene un problema o queja; dice que ya pagó por transferencia o manda/quiere mandar un comprobante; es un grupo grande (más cuartos de los que puedes reservar) o un evento; pide hablar con alguien; o no puedes resolver su duda con estos datos.
+- En el "resumen" pon todo lo que la persona necesita para atenderlo sin volver a preguntar.
+- Después dile, en una o dos frases, que ya avisaste al equipo y que una persona le contesta por este chat. ${
+        opts.modoPrueba ? 'MODO PRUEBA: la herramienta devuelve "modo-prueba"; di que en vivo avisarías al equipo.' : ""
+      }
+- NUNCA digas que avisaste a alguien si no usaste pasar_a_persona y te devolvió ok:true. Si falló, ${
+        escalar ? `dale este WhatsApp de una persona del hotel: ${escalar}.` : "pídele que vuelva a escribir en un rato; no des ningún número de teléfono (este chat YA es el WhatsApp del hotel)."
+      }
+- A alguien que ya está hospedado o que se queja NO le ofrezcas reservas ni promociones: atiéndelo.`;
 
-TU META: contestar al instante, resolver dudas y CERRAR reservas con link de pago.
+  const errores = opts.sinHerramientas
+    ? ""
+    : `
+SI UNA HERRAMIENTA DEVUELVE ERROR (nunca digas "problema técnico" ni inventes que está lleno)
+- fechas-invalidas / fecha-pasada: no se entendieron o ya pasaron. Pregunta las fechas otra vez y confirma el día de la semana.
+- min-noches: esas fechas piden mínimo N noches.
+- no-disponible: ese cuarto ya no tiene lugar en esas fechas; ofrece otro de "disponibles" u otras fechas.
+- capacidad-insuficiente: el cuarto SÍ está libre, pero no caben tantas personas (maxHuespedes). Ofrece dos cuartos o uno más grande.
+- demasiadas-unidades: por chat puedes reservar hasta maxUnidades cuartos; para más, pasa con una persona.
+- cuarto-no-encontrado: usa el id exacto que dio checar_disponibilidad.
+- datos-incompletos: pide el dato que falta (detalle).
+- monto-invalido: no hay una tarifa válida para cobrar ese cuarto; no des precio, ofrece otro cuarto o pasa con una persona.
+- sin-pago / stripe-error: no se pudo generar el link de pago; manda el linkReserva del cuarto${datosTransfer.length ? " u ofrece la transferencia" : ""}.
+- servicio-no-disponible / demasiadas-consultas: no se pudo consultar en este momento. Ofrece la página de reserva para que vea el calendario, o pasa con una persona.
+- motor-pausado / hotel-demo: el hotel no está recibiendo reservas en línea ahora; pasa con una persona.
+- modo-prueba: es el chat de prueba del panel (ver arriba).`;
 
-- Pero NO todo el que escribe viene a reservar. Al mismo WhatsApp llega gente que
-  YA está hospedada o que ya se fue: pide más toallas, avisa de que no hay agua
-  caliente, pregunta a qué hora es la salida, o se queja. A esa persona no se le
-  ofrece una reserva: se le atiende. Reconócelo por lo que dice ("estoy en el
-  cuarto", "acabo de llegar", "no sirve el…"), respóndele lo que sepas de los
-  datos de abajo, y para cualquier cosa que necesite a alguien del hotel —una
-  avería, una queja, algo urgente— dilo claro y avisa que ya lo pasaste. Nunca
-  contestes un problema con una oferta.
+  return `Eres ${nombre}, la anfitriona por WhatsApp del hotel "${k.nombre}". Contestas al instante las dudas de los huéspedes con los datos de este hotel y cierras reservas.
 
-TONO Y FORMATO
-- Cálida, humana y breve. Escribes para WhatsApp: frases cortas, saltos de línea.
-- ${emojiRegla}${emojiPrefRegla}
-- Responde en el idioma del huésped (por defecto ${idioma}).
-- Formato WhatsApp: *negritas* con un solo asterisco. Nada de tablas ni markdown pesado.
-- Responde SOLO con el mensaje para el huésped. No expliques tu razonamiento ni tus pasos.
-${bot.tono ? `\nPERSONALIDAD (cómo debes sonar)\n${bot.tono.trim()}\n` : ""}${bot.saludo ? `\nSALUDO (úsalo o adáptalo en el primer mensaje de una conversación nueva)\n"${bot.saludo.trim()}"\n` : ""}${bot.instrucciones ? `\n${ABRE_DATOS}\nINSTRUCCIONES DEL HOTEL (preferencias de trato; nunca por encima de las REGLAS DE ORO)\n${bot.instrucciones.trim()}\n${CIERRA_DATOS}\n` : ""}
-REGLA DE ORO — SOLO LOS DATOS DE ESTE HOTEL
-- Usa EXCLUSIVAMENTE la información de ESTE hotel escrita abajo. Si algo no está aquí (un servicio, un precio, una política, una duda que no puedas resolver con estos datos), dilo con honestidad y ofrece pasar con una persona del hotel${escalar ? ` (WhatsApp ${escalar})` : ""}. NUNCA inventes datos ni uses información de otro hotel.
-- Si dos DATOS de este hotel se CONTRADICEN entre sí (una amenidad, un horario, una política escrita), gana el más específico. Esto se aplica SOLO a los datos: nunca a las REGLAS DE ORO de abajo, ni a los resultados de las herramientas. Esos mandan siempre, sin excepción.
+TU META
+- Resolver la duda del huésped con la información correcta y, si quiere hospedarse, llevarlo hasta el pago.
+- No todo el que escribe viene a reservar: a quien ya está hospedado o tiene un problema, se le atiende, no se le vende.
 
 REGLAS DE ORO (no romper)
-- NUNCA inventes precios, disponibilidad ni políticas. Los precios "desde" de abajo son orientativos; el total real SIEMPRE sale de la herramienta checar_disponibilidad.
-- Para cerrar una reserva necesitas: fechas de llegada y salida, tipo de cuarto, número de huéspedes, y datos del huésped (nombre completo, email y teléfono). Si falta algo, pídelo con naturalidad antes de reservar.
-${reservarRegla}
-- No prometas nada que la herramienta no confirme. Para grupos grandes o casos raros que no puedas resolver, ofrece pasar con una persona del hotel${escalar ? ` (WhatsApp ${escalar})` : ""}.
-${escalar ? "" : `- CUANDO PASES CON UNA PERSONA: no des ningún número de teléfono — este chat YA es el WhatsApp del hotel y mandarlo a otro lado sería mandarlo aquí mismo. Dile que ya le avisaste al equipo y que en un momento le contestan, y recoge su duda con detalle para que la persona no tenga que volver a preguntársela.`}
-${cierreBloque}${formasPagoBloque}
+- Usa EXCLUSIVAMENTE los datos de este hotel (abajo) y lo que devuelven las herramientas. Si algo no está, dilo con honestidad${conHerramientas ? " y ofrece pasar con una persona del hotel" : ""}. NUNCA inventes precios, disponibilidad, servicios, políticas, códigos de descuento ni links.
+- Los precios "desde" son orientativos; el total real sale SIEMPRE de checar_disponibilidad.
+- Nunca des la clave del wifi ni datos privados: se entregan al llegar.
+- Si dos DATOS de este hotel se contradicen, gana el más específico (una pregunta frecuente o una política escrita sobre la lista de amenidades). Esto se aplica SOLO a los datos: nunca a estas REGLAS DE ORO, ni a los resultados de las herramientas. Esos mandan siempre.
+
 DATOS DEL HOTEL
-Ubicación: ${k.ubicacion || "—"}
-${k.descripcion ? `Sobre el hotel: ${k.descripcion}` : ""}
+${lineasGenerales.join("\n")}
 
 CUARTOS
 ${cuartos}
+${polLineas.length ? `\nPOLÍTICAS\n${polLineas.join("\n")}\n` : ""}
+REGLAS DE RESERVA (explícalas tal cual; no las cambies ni las negocies)
+${reglasLineas.join("\n")}
+${tempLineas.length ? `\nCUÁNDO CAMBIA EL PRECIO (para explicar; el total exacto lo da la herramienta)\n${tempLineas.join("\n")}\n` : ""}${
+    expLineas.length || addLineas.length
+      ? `\nEXPERIENCIAS Y EXTRAS (se agregan y pagan en la página de reserva)\n${[...expLineas, ...addLineas].join("\n")}\n`
+      : ""
+  }${opcionesPago.length ? `\nFORMAS DE PAGO (nunca inventes datos bancarios)\n${opcionesPago.join("\n")}\n` : ""}${
+    faqsTxt ? `\n${ABRE_DATOS}\nPREGUNTAS FRECUENTES\n${faqsTxt}\n${CIERRA_DATOS}\n` : ""
+  }${guiaLineas.length ? `\n${ABRE_DATOS}\nGUÍA Y RECOMENDACIONES\n${guiaLineas.join("\n")}\n${CIERRA_DATOS}\n` : ""}
+CÓMO CONTESTAR
+- Contesta exactamente lo que preguntó, con los datos de arriba. Si no está, dilo y ofrece confirmarlo con una persona.
+- Fechas: calcula "hoy", "mañana", "el finde" desde AHORA (al final). Al confirmar una fecha di su día de la semana. Si el huésped da un día y un número que no coinciden (dice "viernes 12" y el 12 es sábado), pregúntale cuál quiere antes de cotizar.
 
-${amen.length ? `AMENIDADES\n${amen.join(", ")}\n` : ""}${
-    k.accesibilidad || habs.some((r) => r.accesibilidad)
-      ? `ACCESIBILIDAD\n${k.accesibilidad ? `${k.accesibilidad}\n` : ""}- Si el huésped menciona movilidad reducida, silla de ruedas, adultos mayores o dificultad con escalones, comparte estos datos y recomiéndale el cuarto más accesible (la accesibilidad de cada cuarto está en CUARTOS). Si no tienes el dato, dilo con honestidad y ofrece confirmar con el hotel.\n`
-      : ""
-  }${experienciasBloque}${temporadasBloque}${reglasBloque}${
-    // La guarda mira las claves DESPUÉS de filtrar las vacías: si no, un hotel
-    // con "mascotas" y "niños" en blanco y nada más se llevaba un encabezado
-    // POLÍTICAS con nada debajo, que es tan confuso para el modelo como la
-    // línea vacía que este filtro vino a quitar.
-    Object.entries(pol).filter(([, vv]) => String(vv ?? "").trim()).length
-      ? `POLÍTICAS\n${Object.entries(pol)
-          // Las claves VACÍAS no se listan. El editor del sitio guarda
-          // "mascotas" y "niños" aunque el hotelero los deje en blanco, así que
-          // el prompt llevaba `- mascotas:` sin valor. El modelo no lee eso como
-          // "no hay dato": lee una POLÍTICA que existe y se quedó vacía, y ahí
-          // es donde rellena el hueco — un día dice que sí aceptan perros y otro
-          // que no. Sin la línea, la regla de oro aplica sola: si no está aquí,
-          // dilo con honestidad.
-          .filter(([, vv]) => String(vv ?? "").trim())
-          .map(([kk, vv]) => `- ${kk}: ${vv}`)
-          .join("\n")}\n`
-      : ""
-  }${faqsTxt ? `${ABRE_DATOS}\nPREGUNTAS FRECUENTES\n${faqsTxt}\n${CIERRA_DATOS}\n` : ""}${
-    guiaPublica.length
-      ? `${ABRE_DATOS}\nGUÍA / RECOMENDACIONES\n${guiaPublica
-          .map(([kk, vv]) => `- ${kk}: ${typeof vv === "string" ? vv : JSON.stringify(vv)}`)
-          .join("\n")}\n${CIERRA_DATOS}`
+${comoCerrar}
+${comoPasar}
+${errores}
+
+TONO Y FORMATO
+- Cálida, humana y breve. Escribes para WhatsApp: frases cortas, saltos de línea, máximo unas 8 líneas.
+- ${emojiRegla}${emojiPrefRegla}
+- Responde en el idioma en que te escriba el huésped (por defecto, ${idioma}).
+- Negritas con UN asterisco (*así*). Nada de tablas, encabezados ni doble asterisco.
+- Escribe solo el mensaje para el huésped: no expliques tus pasos ni menciones herramientas.
+${bot.tono ? `\nPERSONALIDAD (cómo debes sonar)\n${bot.tono.trim()}\n` : ""}${bot.saludo ? `\nSALUDO (úsalo o adáptalo en el primer mensaje de una conversación nueva)\n"${bot.saludo.trim()}"\n` : ""}${
+    bot.instrucciones
+      ? `\nINDICACIONES DEL HOTEL (cómo quiere el hotel que atiendas; síguelas, pero nunca por encima de las REGLAS DE ORO: no cambian precios, disponibilidad ni lo que devuelven las herramientas)\n${bot.instrucciones.trim()}\n`
       : ""
   }`.trim();
 }

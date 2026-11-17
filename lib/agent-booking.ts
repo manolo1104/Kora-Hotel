@@ -30,8 +30,17 @@ import {
   personasQuePagan,
   asignarUnidades,
   candidatasPorTipo,
+  validatePromo,
+  calcPromoDiscount,
 } from "@/lib/booking";
-import { freeUnitsByTypeResult, apartarUnidades, releaseHold } from "@/lib/db/availability";
+import {
+  freeUnitsByTypeResult,
+  apartarUnidades,
+  releaseHold,
+  anotarSesionStripe,
+  sesionStripeDelApartado,
+} from "@/lib/db/availability";
+import { sesionDelChat } from "@/lib/bot/tools";
 import { getConnectState } from "@/lib/stripe/connect";
 import { getStripe, stripeEnvReady } from "@/lib/stripe/server";
 import type { HotelRow } from "@/lib/tenant";
@@ -75,8 +84,12 @@ export interface AgentBookingInput {
   checkin: string; // YYYY-MM-DD
   checkout: string;
   unidades?: number; // cuántas unidades del tipo (default 1)
-  huespedes?: number; // adultos (default 2, igual que botAvailability)
+  adultos?: number; // adultos (default 2, igual que botAvailability)
+  /** Nombre viejo de `adultos`; se sigue aceptando por si el runtime no se ha redesplegado. */
+  huespedes?: number;
   ninos?: number; // menores (default 0)
+  /** Código de descuento que dio el huésped; se valida contra las promos del hotel. */
+  codigo?: string | null;
   nombre?: string | null;
   email?: string | null;
   telefono?: string | null;
@@ -97,7 +110,8 @@ export type AgentBookingResult =
       habitacion: string;
       unidades: string[]; // nombres de las unidades apartadas
       noches: number;
-      total: number; // total de la estancia
+      total: number; // total de la estancia (ya con el descuento, si hubo código)
+      descuento?: number; // cuánto descontó el código, si aplicó
       anticipo: number; // lo que paga ahora
       pendiente: number; // lo que paga al llegar
       oxxo: boolean; // si el link acepta OXXO además de tarjeta
@@ -144,9 +158,16 @@ export async function crearLinkReservaAgente(
   // debe pedírselos antes de llamar aquí.
   const nombre = (input.nombre ?? "").trim();
   const email = (input.email ?? "").trim();
-  const telefono = (input.telefono ?? "").trim();
-  if (nombre.length < 2 || !email.includes("@") || telefono.length < 7) {
-    return { ok: false, error: "datos-incompletos", detalle: "nombre, email y teléfono" };
+  // El teléfono YA lo tenemos: el huésped está escribiendo por WhatsApp. Pedírselo
+  // era una pregunta de más justo antes de pagar. Si el modelo no lo manda, se
+  // usa el del chat (cuando el id del chat es un teléfono y no un @lid).
+  const delChat = (input.conv ?? "").replace(/\D/g, "");
+  const telefono = ((input.telefono ?? "").trim() || (delChat.length >= 10 && delChat.length <= 13 ? `+${delChat}` : "")).trim();
+  if (nombre.length < 2 || !email.includes("@")) {
+    return { ok: false, error: "datos-incompletos", detalle: "nombre completo y correo" };
+  }
+  if (telefono.length < 7) {
+    return { ok: false, error: "datos-incompletos", detalle: "teléfono" };
   }
 
   // Fechas.
@@ -172,7 +193,7 @@ export async function crearLinkReservaAgente(
   // defaults distintos, cotizar y cobrar salían de dos ocupaciones distintas en
   // los hoteles con tarifa por persona, que es justo lo que este archivo existe
   // para evitar.
-  const adults = Math.max(1, Math.floor(Number(input.huespedes) || 2));
+  const adults = Math.max(1, Math.floor(Number(input.adultos ?? input.huespedes) || 2));
   const children = Math.max(0, Math.floor(Number(input.ninos) || 0));
   // RECHAZAR, no recortar. `Math.min(unidades, MAX_UNIDADES)` convertía «7
   // cabañas» en 5 y devolvía `ok:true`: se apartaban 5, se cobraban 5, y nada en
@@ -218,7 +239,14 @@ export async function crearLinkReservaAgente(
   // momento exacto de máxima intención de compra. Ese arreglo ya se había hecho
   // en el camino de CONSULTAR (lib/bot/tools.ts:64-67) y nunca se propagó al de
   // COBRAR, que es donde duele.
-  const disp = await freeUnitsByTypeResult(hotel.id, hotel, input.checkin, input.checkout);
+  //
+  // El apartado de ESTA conversación no cuenta como ocupado. Sin esto, quien
+  // pedía otro link (se equivocó de correo, cambió de nombre) en un tipo de una
+  // sola unidad chocaba con su propio apartado y Camila le decía «ya no hay ese
+  // cuarto» justo antes de pagar. El candado de abajo ya soltaba ese apartado;
+  // el pre-chequeo no lo sabía.
+  const sesionChat = sesionDelChat(input.conv);
+  const disp = await freeUnitsByTypeResult(hotel.id, hotel, input.checkin, input.checkout, sesionChat);
   if (!disp.ok) {
     console.error(`[agent-booking] no pude leer disponibilidad de ${hotel.slug}`);
     return { ok: false, error: "servicio-no-disponible", detalle: "disponibilidad-ilegible" };
@@ -256,7 +284,16 @@ export async function crearLinkReservaAgente(
   // con las CANDIDATAS: Camila tarda minutos en cerrar una conversación y el
   // motor web puede vender el mismo cuarto en ese rato.
   const candidatas = candidatasPorTipo(cart, typesAvail);
-  const stayTotal = calcCartSubtotal(rooms, cart, input.checkin, input.checkout, rules.nightOpts);
+  const subtotal = calcCartSubtotal(rooms, cart, input.checkin, input.checkout, rules.nightOpts);
+  // Código de descuento: el MISMO cálculo que la caja del motor web. Antes el
+  // prompt le decía al huésped que su código «se aplica», y el link de pago de
+  // Camila lo ignoraba: cobraba el precio completo.
+  const codigo = (input.codigo ?? "").trim();
+  const promoRule = codigo ? validatePromo(rules.promos, codigo, nights, cart.length).rule : undefined;
+  const promoDiscount = promoRule
+    ? calcPromoDiscount(rooms, promoRule, cart, input.checkin, input.checkout, nights, rules.nightOpts)
+    : 0;
+  const stayTotal = Math.max(0, subtotal - promoDiscount);
   const deposit = calcDepositAmount(stayTotal, nights, {
     pct: rules.anticipoPct,
     minNights: rules.anticipoMinNoches,
@@ -305,9 +342,19 @@ export async function crearLinkReservaAgente(
   // Con el id atado al teléfono, pedir otro link libera el anterior. El pagado
   // no corre peligro: `releaseHold` sólo borra filas en estado HOLD, y el
   // webhook ya convirtió la del huésped que pagó.
-  const conv = (input.conv ?? "").replace(/[^a-zA-Z0-9]/g, "").slice(0, 32);
-  const sessionId = conv ? `bot_c_${conv}` : `bot_${crypto.randomUUID()}`;
-  if (conv) await releaseHold(hotel.id, sessionId);
+  const sessionId = sesionChat ?? `bot_${crypto.randomUUID()}`;
+  if (sesionChat) {
+    // Y el link de pago ANTERIOR se apaga. Si no, quedaban dos links vivos para
+    // la misma estancia: el huésped podía pagar los dos, y cuando el primero
+    // caducaba el webhook soltaba el apartado del segundo.
+    const anterior = await sesionStripeDelApartado(hotel.id, sessionId);
+    if (anterior && stripeEnvReady) {
+      await getStripe()
+        .checkout.sessions.expire(anterior, undefined, { stripeAccount: connect.accountId as string })
+        .catch((e) => console.warn("[agent-booking] no pude apagar el link anterior:", e?.message ?? e));
+    }
+    await releaseHold(hotel.id, sessionId);
+  }
   const apartado = await apartarUnidades(hotel.id, candidatas, input.checkin, input.checkout, sessionId, {
     minutos: HOLD_MIN,
     // El bot ya tiene su tope por hotel (MAX_HOLDS_BOT, arriba) y nunca pide más
@@ -352,6 +399,9 @@ export async function crearLinkReservaAgente(
       lang,
     }),
     origen: "bot",
+    // Igual que la caja del motor web: queda el código, no sólo el monto.
+    promoDiscount: String(promoDiscount),
+    promoCode: promoRule?.code ?? "",
   };
 
   const conOxxo = connect.oxxoEnabled && amountCents <= OXXO_MAX_CENTS;
@@ -395,6 +445,11 @@ export async function crearLinkReservaAgente(
       requestOptions,
     );
     if (!session.url) throw new Error("sesión sin url");
+    // Se anota la sesión EN el apartado: es lo que permite apagarla si el
+    // huésped pide otro link (arriba) o suelta el cuarto.
+    await anotarSesionStripe(hotel.id, sessionId, session.id).catch((e) =>
+      console.warn("[agent-booking] no pude anotar la sesión de pago:", e?.message ?? e),
+    );
     return {
       ok: true,
       url: session.url,
@@ -403,6 +458,7 @@ export async function crearLinkReservaAgente(
       unidades,
       noches: nights,
       total: stayTotal,
+      ...(promoDiscount > 0 ? { descuento: promoDiscount } : {}),
       anticipo: deposit,
       pendiente: pending,
       oxxo: conOxxo,

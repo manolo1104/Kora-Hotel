@@ -7,7 +7,11 @@ import { negar } from "@/lib/panel/permisos";
 import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { getActiveHotel } from "@/lib/panel/active-hotel";
-import { buildBotSystemPrompt, BOT_TOOLS } from "@/lib/bot/prompt";
+import { buildBotSystemPrompt } from "@/lib/bot/prompt";
+import { BOT_TOOLS, personasDeArgs } from "@/lib/bot/herramientas";
+import { opcionesModelo, maxTokensModelo, MODELO_CAMILA_DEFAULT } from "@/lib/bot/modelo";
+import { bloqueTurno } from "@/lib/bot/turno";
+import { getConnectState } from "@/lib/stripe/connect";
 import { buildHotelKnowledge } from "@/lib/bot/knowledge";
 import { botAvailability } from "@/lib/bot/tools";
 import { accesoDelHotel, puedeUsarCamila } from "@/lib/suscripcion";
@@ -23,7 +27,7 @@ export const dynamic = "force-dynamic";
 
 // Mismo modelo que el runtime de Camila (brain.js) para que el chat de prueba
 // del panel refleje lo que reciben los huéspedes. Override con CAMILA_MODEL.
-const MODEL = process.env.CAMILA_MODEL || "claude-sonnet-5";
+const MODEL = process.env.CAMILA_MODEL || MODELO_CAMILA_DEFAULT;
 const MAX_TOOL_ITERS = 6;
 const MAX_CHARS_MENSAJE = 2000;
 
@@ -38,25 +42,12 @@ const MAX_CHARS_MENSAJE = 2000;
 const VENTANA_MS = 60 * 60_000; // 1 hora
 const MAX_POR_VENTANA = 30;
 
-/**
- * Parámetros de latencia, iguales a los del bot vivo (`brain.js`), para que el
- * chat de prueba refleje de verdad lo que recibe un huésped.
- *
- * ⚠️ En Claude Opus 5 NO se desactiva el pensamiento aunque lo admita: con
- * `thinking: disabled`, el modelo a veces escribe la llamada a la herramienta
- * como TEXTO en vez de emitir un bloque `tool_use`. El turno "sale bien", la
- * herramienta nunca corre y nadie ve un error — en un chat que consulta
- * disponibilidad real, eso es Camila inventando un precio. Con esfuerzo bajo se
- * consigue casi la misma latencia sin ese riesgo.
- */
-function opcionesDeLatencia(model: string): Record<string, unknown> {
-  const admiteEsfuerzo = !/haiku|claude-3|claude-2/.test(model);
-  if (!admiteEsfuerzo) return {};
-  const esOpus5 = /claude-opus-5/.test(model);
-  return esOpus5
-    ? { output_config: { effort: "low" } }
-    : { thinking: { type: "disabled" }, output_config: { effort: "low" } };
-}
+// Los parámetros del modelo salen de `lib/bot/modelo.ts`, la misma tabla que usa
+// el bot vivo (`agentes/camila/modelo.js`): así el chat de prueba refleja de
+// verdad lo que recibe un huésped, y cambiar CAMILA_MODEL no rompe ninguno.
+
+/** Lo que Camila hizo en el turno, para que el panel lo enseñe como chips. */
+type Accion = "disponibilidad" | "link-pago" | "persona";
 
 // Sin tope, un mensaje de 200 KB pegado en el chat de prueba se cobra entero, y
 // el historial completo viaja en CADA vuelta de herramienta del mismo turno.
@@ -125,22 +116,35 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "sin-mensaje" }, { status: 400 });
   }
 
-  const knowledge = buildHotelKnowledge(ctx.hotel);
+  let pagos: { enLinea: boolean; oxxo: boolean } = { enLinea: true, oxxo: false };
+  try {
+    const cs = await getConnectState(ctx.hotel.id, ctx.hotel.stripe_account_id);
+    pagos = { enLinea: Boolean(cs.chargesEnabled && cs.accountId), oxxo: Boolean(cs.chargesEnabled && cs.oxxoEnabled) };
+  } catch {
+    /* se queda en "tarjeta sí, OXXO no" */
+  }
+  const knowledge = buildHotelKnowledge(ctx.hotel, { pagos });
   const system = buildBotSystemPrompt(knowledge, { modoPrueba: true });
   const client = new Anthropic({ apiKey });
+  const acciones: Accion[] = [];
 
   try {
     for (let i = 0; i < MAX_TOOL_ITERS; i++) {
       const res = await client.messages.create({
         model: MODEL,
-        max_tokens: 1024,
+        max_tokens: maxTokensModelo(MODEL),
         // El prompt del hotel es IDÉNTICO entre turnos de una misma sesión de
         // prueba y entre vueltas de herramienta del mismo turno: cachearlo es
         // gratis y se paga solo desde el segundo mensaje.
-        system: [{ type: "text", text: system, cache_control: { type: "ephemeral" } }],
+        // El segundo bloque es la fecha de AHORA: cambia en cada mensaje y por
+        // eso va fuera de la caché (el bot vivo hace lo mismo).
+        system: [
+          { type: "text", text: system, cache_control: { type: "ephemeral" } },
+          { type: "text", text: bloqueTurno() },
+        ],
         tools: BOT_TOOLS as unknown as Anthropic.Tool[],
         messages,
-        ...opcionesDeLatencia(MODEL),
+        ...(opcionesModelo(MODEL) as object),
       });
       messages.push({ role: "assistant", content: res.content });
 
@@ -151,24 +155,28 @@ export async function POST(req: Request) {
         const results: Anthropic.ToolResultBlockParam[] = [];
         for (const tu of toolUses) {
           let out: unknown;
+          const inp = (tu.input ?? {}) as Record<string, unknown>;
           if (tu.name === "checar_disponibilidad") {
-            // `huespedes` viaja hasta el precio: en un hotel con tarifas por
-            // número de personas, el total de 2 no es el de 5. Sin esto el chat
-            // de prueba cotizaba SIEMPRE para 2, así que el hotelero no tenía
-            // forma de detectar el desfase desde el panel — la pantalla donde
-            // justamente se le promete que verá "lo mismo que diría en vivo".
-            const inp = (tu.input ?? {}) as { checkin?: string; checkout?: string; huespedes?: number };
-            out = await botAvailability(
-              ctx.hotel,
-              inp.checkin ?? "",
-              inp.checkout ?? "",
-              Math.max(1, Math.floor(Number(inp.huespedes) || 2)),
-            ).catch(() => ({ error: "servicio-no-disponible" }));
+            // Las personas viajan hasta el precio: en un hotel con tarifas por
+            // número de personas, el total de 2 no es el de 5.
+            acciones.push("disponibilidad");
+            out = await botAvailability(ctx.hotel, String(inp.checkin ?? ""), String(inp.checkout ?? ""), {
+              ...personasDeArgs(inp),
+              codigo: typeof inp.codigo === "string" ? inp.codigo : null,
+            }).catch(() => ({ error: "servicio-no-disponible" }));
           } else if (tu.name === "reservar") {
+            acciones.push("link-pago");
             out = {
               ok: false,
               error: "modo-prueba",
-              detalle: "En la versión en vivo, aquí Camila te mandaría el link de pago.",
+              detalle: "En la versión en vivo, aquí Camila mandaría el link de pago.",
+            };
+          } else if (tu.name === "pasar_a_persona") {
+            acciones.push("persona");
+            out = {
+              ok: false,
+              error: "modo-prueba",
+              detalle: "En la versión en vivo, aquí Camila avisaría por WhatsApp a una persona del hotel.",
             };
           } else {
             out = { error: "herramienta-desconocida" };
@@ -183,18 +191,29 @@ export async function POST(req: Request) {
         continue;
       }
 
-      const reply = res.content
+      const texto = res.content
         .filter((b): b is Anthropic.TextBlock => b.type === "text")
         .map((b) => b.text)
         .join("\n")
         .trim();
+      // Una negativa del modelo o una respuesta vacía no se pinta como silencio:
+      // el hotelero tiene que ver que ahí pasó algo.
+      const reply =
+        texto ||
+        (res.stop_reason === "refusal"
+          ? "(El modelo no quiso contestar este mensaje. En vivo, aquí avisaría a una persona del hotel.)"
+          : "(Sin respuesta.)");
       // Se cobra DESPUÉS de tener la respuesta y sólo si la hay, como en
       // WhatsApp. Con `await`: en Vercel la función se congela al responder.
       // `cobrarMensaje` nunca lanza. Sin `ref`: cada respuesta de prueba es una.
       if (reply) await cobrarMensaje(ctx.hotel, "");
-      return NextResponse.json({ ok: true, reply });
+      return NextResponse.json({ ok: true, reply, acciones: [...new Set(acciones)] });
     }
-    return NextResponse.json({ ok: true, reply: "Dame un momento, déjame confirmarlo. 🌿" });
+    return NextResponse.json({
+      ok: true,
+      reply: "(Se me complicó contestar esto. En vivo, aquí avisaría a una persona del hotel.)",
+      acciones: [...new Set(acciones)],
+    });
   } catch (e) {
     console.error("bot-preview error:", e);
     return NextResponse.json({ ok: false, error: "ia-error" }, { status: 502 });

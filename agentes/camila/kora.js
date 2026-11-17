@@ -199,10 +199,38 @@ export class KoraHotel {
     }
   }
 
-  /** Disponibilidad real por fechas (YYYY-MM-DD). Devuelve cuartos con id,
-   *  nombre, capacidad y total de la estancia. */
-  async availability(checkin, checkout, { conv } = {}) {
-    return this._post({ action: "availability", checkin, checkout, ...(conv ? { conv } : {}) });
+  /** Disponibilidad real por fechas (YYYY-MM-DD) y personas. Devuelve cuartos con
+   *  id, nombre, total, anticipo y link de reserva ya armado.
+   *
+   *  Las personas TIENEN que viajar: antes sólo se mandaban las fechas y el
+   *  servidor cotizaba siempre para 2, mientras el link de pago cobraba a los
+   *  reales. `conv` hace que el apartado de este chat no cuente como ocupado. */
+  async availability(checkin, checkout, { conv, adultos, ninos, codigo } = {}) {
+    return this._post({
+      action: "availability",
+      checkin,
+      checkout,
+      ...(conv ? { conv } : {}),
+      ...(adultos != null ? { adultos, huespedes: adultos } : {}),
+      ...(ninos != null ? { ninos } : {}),
+      ...(codigo ? { codigo } : {}),
+    });
+  }
+
+  /**
+   * Camila pide a una persona: Kora marca el chat «Atender yo», lo pausa, y
+   * devuelve a quién avisar (`avisarA`) y el texto del aviso. El WhatsApp al
+   * hotelero lo manda index.js, que es quien tiene la sesión de WhatsApp.
+   * Nunca lanza: si falla, `ok:false` y Camila NO dice que avisó.
+   */
+  async escalar(conv, { motivo, resumen } = {}) {
+    if (!conv) return { ok: false, error: "conv-requerido" };
+    try {
+      return await this._post({ action: "escalar", conv, motivo, resumen });
+    } catch (e) {
+      console.error(`[${this.slug}] no pude escalar ${conv}:`, e && e.message);
+      return { ok: false, error: "servicio-no-disponible" };
+    }
   }
 
   /** Guarda el texto de un turno (mensaje del huésped + respuesta de Camila) en
