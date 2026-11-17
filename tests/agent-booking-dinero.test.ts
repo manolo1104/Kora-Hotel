@@ -145,6 +145,33 @@ describe("cotizar y cobrar parten del mismo supuesto de ocupación", () => {
   });
 });
 
+describe("hotel que cobra por ocupación total (menoresPagan)", () => {
+  // Un espacio para 4 con tarifa por número de personas: 2 adultos + 2 niños se
+  // cobraban con la tarifa de 2. Con la opción del hotel encendida, Camila cobra
+  // lo mismo que el motor web: la tarifa de 4.
+  const HOTEL_OCUPACION_TOTAL = { ...HOTEL, extras: { reglas: { menoresPagan: true } } };
+
+  it("2 adultos + 2 niños cobran la tarifa de 4 personas", async () => {
+    const familia = await crearLinkReservaAgente(
+      HOTEL_OCUPACION_TOTAL, { ...RESERVA, huespedes: 2, ninos: 2 }, "https://kora.test",
+    );
+    const cuatroAdultos = await crearLinkReservaAgente(
+      HOTEL_OCUPACION_TOTAL, { ...RESERVA, huespedes: 4 }, "https://kora.test",
+    );
+    expect(familia.ok && cuatroAdultos.ok).toBe(true);
+    if (!familia.ok || !cuatroAdultos.ok) return;
+    expect(familia.total).toBe(cuatroAdultos.total);
+  });
+
+  it("apagado (default), los niños no suben la tarifa", async () => {
+    const familia = await crearLinkReservaAgente(HOTEL, { ...RESERVA, huespedes: 2, ninos: 2 }, "https://kora.test");
+    const dosAdultos = await crearLinkReservaAgente(HOTEL, { ...RESERVA, huespedes: 2 }, "https://kora.test");
+    expect(familia.ok && dosAdultos.ok).toBe(true);
+    if (!familia.ok || !dosAdultos.ok) return;
+    expect(familia.total).toBe(dosAdultos.total);
+  });
+});
+
 describe("un apartado por conversación, no uno por cambio de opinión", () => {
   // Antes cada llamada creaba un `bot_<uuid>` nuevo y nada soltaba el anterior:
   // «mejor una noche más» + «mejor la otra cabaña» dejaba tres cuartos

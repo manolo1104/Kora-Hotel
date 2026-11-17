@@ -153,6 +153,7 @@ export function buildHotelKnowledge(hotel: HotelRow): BotKnowledge {
       cancelacionDias: reglas.cancelacionDias,
       pagoEnHotel: reglas.pagoEnHotel,
       ishPct: reglas.ishPct,
+      menoresPagan: reglas.menoresPagan,
       promos,
     },
     temporadas,

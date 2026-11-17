@@ -380,6 +380,8 @@ export function PanelEditor({
   const [nrfActiva, setNrfActiva] = useState(false);
   const [nrfPct, setNrfPct] = useState(10);
   const [cancelacionDias, setCancelacionDias] = useState(2);
+  // ¿Los menores cuentan como persona para la tarifa? (extras.reglas.menoresPagan)
+  const [menoresPagan, setMenoresPagan] = useState(false);
   // Los escalones de la política («7 días → 100 %, 3 días → 50 %»). Vacío =
   // sigue mandando `cancelacionDias`, que es lo que tienen todos los hoteles
   // hoy y lo que se deriva solo. Sólo al añadir el primero se pasa al modelo
@@ -663,6 +665,7 @@ export function PanelEditor({
         setNrfActiva(rg.nrfActiva === true);
         setNrfPct(typeof rg.nrfPct === "number" ? rg.nrfPct : 10);
         setCancelacionDias(typeof rg.cancelacionDias === "number" ? rg.cancelacionDias : 2);
+        setMenoresPagan(rg.menoresPagan === true);
         setPagoEnHotel(rg.pagoEnHotel === true);
         const pr = Array.isArray(rg.promos) ? rg.promos[0] : null;
         if (pr) {
@@ -1301,6 +1304,7 @@ export function PanelEditor({
         nrfActiva,
         nrfPct,
         cancelacionDias,
+        menoresPagan,
         pagoEnHotel,
         // Sin código no se guarda regla: una promo sin code es un cupón que
         // nadie puede teclear, y el motor la descartaría igual.
@@ -3035,6 +3039,22 @@ export function PanelEditor({
                 <p className="mt-1.5 text-xs text-kora-muted">
                   El huésped paga menos a cambio de no poder cancelar. Llena más
                   noches con anticipación.
+                </p>
+              </div>
+              <div className="sm:col-span-2">
+                <label className="flex items-center gap-2.5 text-sm font-semibold text-kora-text mb-1.5">
+                  <input
+                    type="checkbox"
+                    checked={menoresPagan}
+                    onChange={(e) => setMenoresPagan(e.target.checked)}
+                    className="h-4 w-4 accent-kora-primary"
+                  />
+                  Los menores cuentan como persona para la tarifa
+                </label>
+                <p className="mt-1.5 text-xs text-kora-muted">
+                  Actívalo si cobras por ocupación total (p. ej. cabaña para 4:
+                  2 adultos + 2 niños se cobran con la tarifa de 4). Apagado, los
+                  niños ocupan lugar pero no suben el precio.
                 </p>
               </div>
               <div className="sm:col-span-2">

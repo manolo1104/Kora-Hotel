@@ -263,9 +263,14 @@ export interface CapacidadCarrito {
  *     pedir un cuarto de 4 con `guestCount: 1` y `adults: 4` para pagar la
  *     tarifa de una persona y llegar cuatro.
  *
- * Los menores NO suben la ocupación que se cobra, a propósito: hacerlo subiría
- * el precio de toda reserva con niños, que es otra cosa distinta de lo que este
- * arreglo persigue.
+ * Por DEFECTO los menores NO suben la ocupación que se cobra: hacerlo para
+ * todos subiría el precio de toda reserva con niños en todos los hoteles, que
+ * es otra cosa distinta de lo que este arreglo persigue.
+ *
+ * Pero hay hoteles que cobran por OCUPACIÓN TOTAL (una cabaña para 4 con
+ * tarifa de 1, 2, 3 y 4 personas): para ellos 2 adultos + 2 niños son 4 y se
+ * cobran como 4. Eso lo decide CADA hotel con `extras.reglas.menoresPagan`
+ * (apagado por defecto), y llega aquí como `opts.menoresPagan`.
  *
  * Función pura: la usan igual el motor web, el checkout público y Camila, que
  * es lo que evita que los tres canales cobren distinto por la misma estancia.
@@ -275,6 +280,7 @@ export function validarCapacidadCarrito(
   cart: CartItem[],
   adults: number,
   children = 0,
+  opts: { menoresPagan?: boolean } = {},
 ): CapacidadCarrito {
   let capacidadFisica = 0;
   let ocupacionPagada = 0;
@@ -292,10 +298,22 @@ export function validarCapacidadCarrito(
   if (capacidadFisica < personas) {
     return { ok: false, motivo: "capacidad-insuficiente", capacidadFisica, ocupacionPagada };
   }
-  if (ocupacionPagada < adults) {
+  if (ocupacionPagada < personasQuePagan(adults, children, opts.menoresPagan)) {
     return { ok: false, motivo: "ocupacion-declarada-insuficiente", capacidadFisica, ocupacionPagada };
   }
   return { ok: true, capacidadFisica, ocupacionPagada };
+}
+
+/**
+ * Cuántas personas entran en la TARIFA (el escalón de `priceTiers`). Siempre
+ * los adultos; los menores sólo si el hotel activó `menoresPagan`. Una sola
+ * fórmula para el motor web, la caja y Camila: si cada canal la escribiera a su
+ * manera, cotizar y cobrar volverían a salir de ocupaciones distintas.
+ */
+export function personasQuePagan(adults: number, children: number, menoresPagan?: boolean): number {
+  const a = Math.max(0, Math.floor(adults) || 0);
+  const c = Math.max(0, Math.floor(children) || 0);
+  return menoresPagan ? a + c : a;
 }
 
 /** Lo que el motor sabe de un TIPO al asignar: cuántas unidades libres y cuáles. */

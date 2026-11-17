@@ -46,6 +46,7 @@ import {
   type RecargoFinDeSemana,
   type PromoRule,
   validarCapacidadCarrito,
+  personasQuePagan,
 } from "@/lib/booking";
 import { t, localeOf, normalizeLang, LANG_KEY, type Lang } from "@/lib/booking/i18n";
 import { HotelImage } from "@/components/HotelImage";
@@ -95,6 +96,8 @@ interface Props {
     nrfPct: number;
     cancelacionDias: number;
     ishPct: number;
+    /** Los menores cuentan como persona para la tarifa (ocupación total). */
+    menoresPagan: boolean;
     weekdayDiscount: number;
     weekdayDiscountUntil?: string;
     temporadas: Temporada[];
@@ -538,8 +541,13 @@ export default function ReservarClient({
   const isUnavailable = (r: BookingRoom) => unavailable.includes(r.name);
   const inCart = (id: number | string) => cart.some((c) => c.roomId === id);
 
+  // Personas que entran en la TARIFA: los adultos y, si el hotel cobra por
+  // ocupación total (`menoresPagan`), también los menores. La misma fórmula que
+  // la caja del servidor y Camila.
+  const pagan = personasQuePagan(adults, children, reglas.menoresPagan);
+
   function getRoomGuests(room: BookingRoom): number {
-    return Math.max(1, Math.min(adults, room.maxGuests || adults));
+    return Math.max(1, Math.min(pagan, room.maxGuests || pagan));
   }
 
   // Unidades libres del TIPO para las fechas buscadas. Si aún no hay datos por
@@ -633,7 +641,7 @@ export default function ReservarClient({
   function addToCart(room: BookingRoom) {
     if (inCart(room.id)) return;
     const assigned = cart.reduce((s, i) => s + i.guestCount, 0);
-    const remaining = Math.max(1, adults - assigned);
+    const remaining = Math.max(1, pagan - assigned);
     const guestCount = Math.min(remaining, room.maxGuests || remaining);
     setCart((prev) => [...prev, { roomId: room.id, guestCount, quantity: 1 }]);
   }
@@ -827,8 +835,11 @@ export default function ReservarClient({
   // `maxGuests` y el servidor cobraba por `guestCount`: se podía bajar el
   // contador de personas de una habitación, seguir adelante sin ningún aviso, y
   // pagar la tarifa de menos. Ahora la pantalla dice que no en el momento.
-  const capacityOk =
-    cart.length === 0 || validarCapacidadCarrito(rooms, cart, adults, children).ok;
+  const capacidad =
+    cart.length === 0
+      ? null
+      : validarCapacidadCarrito(rooms, cart, adults, children, { menoresPagan: reglas.menoresPagan });
+  const capacityOk = !capacidad || capacidad.ok;
   const canContinue =
     cart.length > 0 && checkin && checkout && nights > 0 && !cartHasUnavailable && capacityOk;
 
@@ -1330,8 +1341,17 @@ export default function ReservarClient({
                   <span className="text-xs font-semibold text-kora-muted">{t(lang, "menores")}</span>
                   <Counter
                     value={children}
-                    onDec={() => setChildren((c) => Math.max(0, c - 1))}
-                    onInc={() => setChildren((c) => Math.min(20, c + 1))}
+                    // Si los menores pagan tarifa, cambiarlos cambia el precio
+                    // de cada cuarto y el `guestCount` del carrito: se rehace
+                    // la búsqueda igual que con los adultos.
+                    onDec={() => {
+                      setChildren((c) => Math.max(0, c - 1));
+                      if (reglas.menoresPagan) resetSearch();
+                    }}
+                    onInc={() => {
+                      setChildren((c) => Math.min(20, c + 1));
+                      if (reglas.menoresPagan) resetSearch();
+                    }}
                     min={0}
                     decLabel="−"
                     incLabel="+"
@@ -1614,18 +1634,25 @@ export default function ReservarClient({
                               onClick={() => updateGuests(item.roomId, -1)}
                               disabled={item.guestCount <= 1}
                               className="relative grid h-9 w-9 place-items-center rounded-full border border-gray-200 after:absolute after:-inset-1.5 after:content-[''] disabled:opacity-40"
-                              aria-label={t(lang, "menosAdultos")}
+                              aria-label={t(lang, reglas.menoresPagan ? "menosPersonas" : "menosAdultos")}
                             >
                               <Minus size={12} />
                             </button>
                             <span className="tabular-nums">
-                              {item.guestCount} {item.guestCount === 1 ? t(lang, "adulto") : t(lang, "adultos_pl")}
+                              {item.guestCount}{" "}
+                              {reglas.menoresPagan
+                                ? item.guestCount === 1
+                                  ? t(lang, "persona")
+                                  : t(lang, "personas_pl")
+                                : item.guestCount === 1
+                                  ? t(lang, "adulto")
+                                  : t(lang, "adultos_pl")}
                             </span>
                             <button
                               onClick={() => updateGuests(item.roomId, 1)}
                               disabled={item.guestCount >= room.maxGuests}
                               className="relative grid h-9 w-9 place-items-center rounded-full border border-gray-200 after:absolute after:-inset-1.5 after:content-[''] disabled:opacity-40"
-                              aria-label={t(lang, "masAdultos")}
+                              aria-label={t(lang, reglas.menoresPagan ? "masPersonas" : "masAdultos")}
                             >
                               <Plus size={12} />
                             </button>
@@ -1647,7 +1674,13 @@ export default function ReservarClient({
                 {!capacityOk && (
                   <p className="mt-3 flex items-start gap-1.5 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
                     <AlertTriangle size={13} className="mt-0.5 shrink-0" aria-hidden="true" />
-                    {t(lang, "capacidadAviso", { a: groupSize, c: cartCapacity })}
+                    {/* Dos fallos distintos, dos avisos: «no caben» pide otra
+                        habitación; «la tarifa elegida no cubre al grupo» pide
+                        subir las personas del cuarto. Con un solo texto salía
+                        «tu grupo es de 4 y la capacidad es 4». */}
+                    {capacidad?.motivo === "ocupacion-declarada-insuficiente"
+                      ? t(lang, "ocupacionAviso", { a: pagan, c: capacidad.ocupacionPagada })
+                      : t(lang, "capacidadAviso", { a: groupSize, c: cartCapacity })}
                   </p>
                 )}
 

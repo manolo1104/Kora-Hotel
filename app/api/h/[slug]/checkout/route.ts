@@ -224,7 +224,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   // precio sale de `guestCount`, y `guestCount` LO MANDA EL NAVEGADOR: un cuarto
   // de 4 pedido con `guestCount: 1` y `adults: 4` pagaba la tarifa de UNA
   // persona (K-16). Los menores, además, no contaban para nada (K-99).
-  const capacidad = validarCapacidadCarrito(rooms, cleanCart, adults, children);
+  //
+  // Reglas del hotel (anticipo, mínimo de noches, si los menores pagan tarifa)
+  // — fuente autoritativa server-side. Se leen ANTES de la capacidad porque un
+  // hotel con `menoresPagan` exige que la ocupación pagada cubra también a los
+  // menores, no sólo a los adultos.
+  const rules = bookingRules(hotel);
+  const capacidad = validarCapacidadCarrito(rooms, cleanCart, adults, children, {
+    menoresPagan: rules.menoresPagan,
+  });
   if (!capacidad.ok) {
     return NextResponse.json({ error: capacidad.motivo }, { status: 400 });
   }
@@ -238,9 +246,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     return NextResponse.json({ error: "Fechas inválidas" }, { status: 400 });
   }
 
-  // Reglas del hotel (anticipo, mínimo de noches) — fuente autoritativa server-side.
-  // El mínimo puede ser mayor si la estancia LLEGA en una temporada con min-noches.
-  const rules = bookingRules(hotel);
+  // El mínimo de noches puede ser mayor si la estancia LLEGA en una temporada
+  // con min-noches.
   const minNochesEfectivo = Math.max(rules.minNoches, seasonMinNoches(hotel, checkin));
   if (nights < minNochesEfectivo) {
     return NextResponse.json(

@@ -67,6 +67,8 @@ export interface BotReglasReserva {
   cancelacionDias?: number;
   pagoEnHotel?: boolean;
   ishPct?: number;
+  /** Los menores cuentan como persona para la tarifa (ocupación total). */
+  menoresPagan?: boolean;
   /**
    * Los códigos de descuento vivos del hotel.
    *
@@ -431,6 +433,12 @@ ${tempLineas.join("\n")}
   if (reglas.nrfActiva && reglas.nrfPct)
     reglasLineas.push(
       `- Tarifa no reembolsable: ${reglas.nrfPct}% de descuento pagando el total, sin reembolso (se elige en el link de reserva en línea).`
+    );
+  // Sin esta línea Camila cotiza a los niños como gratis mientras el link de
+  // pago (agent-booking.ts) los cobra como persona: dos precios distintos.
+  if (reglas.menoresPagan)
+    reglasLineas.push(
+      "- Los menores cuentan como persona para la tarifa: cotiza con el total de huéspedes (adultos + menores) y al reservar manda adultos en `huespedes` y menores en `ninos`."
     );
   if (reglas.pagoEnHotel)
     reglasLineas.push(

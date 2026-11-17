@@ -7,7 +7,7 @@
 // cuatro. En un hotel con tarifas por persona, eso es la diferencia entre lo que
 // se cobra y lo que se debía cobrar, en cada reserva.
 import { describe, it, expect } from "vitest";
-import { validarCapacidadCarrito, type BookingRoom } from "@/lib/booking/engine";
+import { validarCapacidadCarrito, personasQuePagan, type BookingRoom } from "@/lib/booking/engine";
 
 function cuarto(p: Partial<BookingRoom> = {}): BookingRoom {
   return {
@@ -56,6 +56,39 @@ describe("los niños cuentan para la capacidad física", () => {
   // encubierta y no lo que este hallazgo pide arreglar.
   it("un niño no obliga a pagar una persona más", () =>
     expect(validarCapacidadCarrito(ROOMS, [{ roomId: "1", guestCount: 2, quantity: 1 }], 2, 1).ok).toBe(true));
+});
+
+// Hoteles que cobran por OCUPACIÓN TOTAL (`extras.reglas.menoresPagan`): un
+// espacio para 4 con tarifa de 1, 2, 3 y 4 personas cobraba 2 adultos + 2 niños
+// con la tarifa de 2. Con la opción encendida, los niños entran en la tarifa.
+describe("hotel con menoresPagan: los niños cuentan para la tarifa", () => {
+  const OPC = { menoresPagan: true };
+
+  it("2 adultos + 2 niños pagando por 2 → RECHAZADO", () => {
+    const r = validarCapacidadCarrito(ROOMS, [{ roomId: "1", guestCount: 2, quantity: 1 }], 2, 2, OPC);
+    expect(r.ok).toBe(false);
+    expect(r.motivo).toBe("ocupacion-declarada-insuficiente");
+  });
+
+  it("2 adultos + 2 niños pagando por 4 → pasa", () =>
+    expect(validarCapacidadCarrito(ROOMS, [{ roomId: "1", guestCount: 4, quantity: 1 }], 2, 2, OPC).ok).toBe(true));
+
+  it("2 adultos + 3 niños siguen sin caber en un cuarto de 4", () => {
+    const r = validarCapacidadCarrito(ROOMS, [{ roomId: "1", guestCount: 4, quantity: 1 }], 2, 3, OPC);
+    expect(r.ok).toBe(false);
+    expect(r.motivo).toBe("capacidad-insuficiente");
+  });
+
+  it("apagado (default) se comporta como siempre", () =>
+    expect(
+      validarCapacidadCarrito(ROOMS, [{ roomId: "1", guestCount: 2, quantity: 1 }], 2, 2, { menoresPagan: false }).ok,
+    ).toBe(true));
+
+  it("personasQuePagan suma a los menores sólo si el hotel lo pide", () => {
+    expect(personasQuePagan(2, 2, true)).toBe(4);
+    expect(personasQuePagan(2, 2, false)).toBe(2);
+    expect(personasQuePagan(2, 2)).toBe(2);
+  });
 });
 
 describe("bordes", () => {

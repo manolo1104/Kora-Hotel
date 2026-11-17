@@ -27,6 +27,7 @@ import {
   calcDepositAmount,
   type CartItem,
   validarCapacidadCarrito,
+  personasQuePagan,
   asignarUnidades,
   candidatasPorTipo,
 } from "@/lib/booking";
@@ -190,18 +191,19 @@ export async function crearLinkReservaAgente(
   // unidades lo hace este archivo más abajo, así que la ocupación pagada ya
   // cubre a los adultos; lo que esto añade es que los MENORES cuenten para la
   // capacidad física, que antes se ignoraban por completo (K-99).
+  const rules = bookingRules(hotel);
   const capacidad = validarCapacidadCarrito(
     rooms,
     [{ roomId: room.id, guestCount: room.maxGuests, quantity }],
     adults,
     children,
+    { menoresPagan: rules.menoresPagan },
   );
   if (!capacidad.ok) {
     return { ok: false, error: "capacidad-insuficiente", maxHuespedes: room.maxGuests };
   }
 
   // Mínimo de noches (regla del hotel, o mayor si la llegada cae en temporada).
-  const rules = bookingRules(hotel);
   const minNoches = Math.max(rules.minNoches, seasonMinNoches(hotel, input.checkin));
   if (nights < minNoches) return { ok: false, error: "min-noches", minNoches };
 
@@ -230,8 +232,14 @@ export async function crearLinkReservaAgente(
   // hotel con tarifas por número de personas eso es dinero de más en la tarjeta
   // del huésped. La capacidad ya se validó arriba (maxGuests × quantity ≥
   // adults), así que ninguna unidad rebasa su máximo.
-  const base = Math.floor(adults / quantity);
-  const resto = adults % quantity;
+  //
+  // Lo que se reparte son las personas que entran en la TARIFA: los adultos y,
+  // si el hotel cobra por ocupación total (`menoresPagan`), también los menores.
+  // Es la misma fórmula del motor web; sin ella Camila cobraría 2 personas
+  // donde la web cobra 4.
+  const pagan = personasQuePagan(adults, children, rules.menoresPagan);
+  const base = Math.floor(pagan / quantity);
+  const resto = pagan % quantity;
   const repartos = Array.from({ length: quantity }, (_, i) =>
     Math.max(1, Math.min(room.maxGuests, base + (i < resto ? 1 : 0))),
   );

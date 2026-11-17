@@ -192,6 +192,7 @@ export default async function ReservarPage({
           nrfPct: rules.nrfPct,
           cancelacionDias: rules.cancelacionDias,
           ishPct: rules.ishPct,
+          menoresPagan: rules.menoresPagan,
           weekdayDiscount: rules.nightOpts.weekdayDiscount ?? 0,
           weekdayDiscountUntil: rules.nightOpts.weekdayDiscountUntil,
           temporadas: rules.nightOpts.temporadas ?? [],

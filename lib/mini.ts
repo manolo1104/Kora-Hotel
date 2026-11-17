@@ -56,6 +56,7 @@ export interface Reglas {
   nrfPct?: number; // % de descuento de la tarifa no reembolsable (5..50); default 10
   cancelacionDias?: number; // días antes del check-in con cancelación gratis (tarifa flexible); default 2
   pagoEnHotel?: boolean; // permitir "pagar al llegar" con tarjeta como garantía; default no
+  menoresPagan?: boolean; // los menores cuentan como persona para la tarifa por ocupación; default no
 }
 
 // Impuestos del hotel para el desglose del motor. Los precios cargados por el

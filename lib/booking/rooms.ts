@@ -292,6 +292,12 @@ export interface BookingRules {
   pagoEnHotel: boolean; // ¿permite reservar con tarjeta como garantía y pagar al llegar?
   ishPct: number; // % de ISH del estado para el desglose (0..10)
   /**
+   * ¿Los menores cuentan como persona para la TARIFA? Apagado (default) = sólo
+   * ocupan lugar, el precio sale de los adultos. Encendido = la tarifa sale de
+   * adultos + menores, para hoteles que cobran por ocupación total.
+   */
+  menoresPagan: boolean;
+  /**
    * Códigos de descuento que el hotel decidió ofrecer. Vacío = el motor no
    * acepta ningún código, que era el estado de TODOS los hoteles hasta el
    * 31 ago 2026: `calcPromoDiscount` y `validatePromo` llevaban meses escritos
@@ -400,6 +406,7 @@ export function bookingRules(hotel: HotelLike): BookingRules {
     pagoEnHotel: PAGO_EN_HOTEL_DISPONIBLE && reglas.pagoEnHotel === true,
     // ISH admite decimales (hay estados con 2.5%): no usar toNum (solo enteros).
     ishPct: Math.max(0, Math.min(10, Number(impuestos.ishPct) || 0)),
+    menoresPagan: reglas.menoresPagan === true,
     promos: promosDe(hotel),
     nightOpts: nightOpts(hotel),
   };
