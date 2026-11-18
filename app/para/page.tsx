@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { conSocial } from "@/lib/seo";
 import { personas } from "@/lib/personas";
 import { Reveal } from "@/components/shared/Reveal";
 import { BarraCTA } from "@/components/shared/BarraCTA";
@@ -11,12 +12,12 @@ import { JsonLd } from "@/components/shared/JsonLd";
 // la correlación era exacta — las 2 enlazadas eran las 2 únicas indexadas por
 // Google, y las otras 7 no existían para nadie. Esta página es la puerta que le
 // faltaba a la sección.
-export const metadata: Metadata = {
+export const metadata: Metadata = conSocial({
   title: "Kora para tu tipo de hotel | Sistema hotelero en México",
   description:
     "Hotel boutique, cabañas, glamping, hostal o hotel de ciudad: lo que cambia en cada tipo de alojamiento y cómo lo resuelve Kora.",
   alternates: { canonical: "/para" },
-};
+});
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
 

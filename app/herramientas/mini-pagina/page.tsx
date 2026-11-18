@@ -6,11 +6,11 @@ import { Reveal } from "@/components/shared/Reveal";
 import { JsonLd } from "@/components/shared/JsonLd";
 import { CtaLink } from "@/components/shared/CtaLink";
 import { RUTA_REGISTRO } from "@/lib/oferta";
-import { metaDescripcion } from "@/lib/seo";
+import { metaDescripcion, conSocial } from "@/lib/seo";
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = conSocial({
   title: "Crea la página de reservas de tu hotel gratis | Kora",
   description: metaDescripcion(
     "Crea gratis una página de reservas directas por WhatsApp con tu logo y color, reseñas, formulario de fechas y una guía digital del huésped con QR. Sin comisiones, sin saber de tecnología. Para México.",
@@ -25,7 +25,7 @@ export const metadata: Metadata = {
     siteName: "Kora",
     url: `${BASE_URL}/herramientas/mini-pagina`,
   },
-};
+});
 
 const pasos = [
   // Decía «en un minuto»: nadie lo midió, y el alta depende de un correo de

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { faqs } from "@/lib/faqs";
+import { conSocial } from "@/lib/seo";
 import { Hero } from "@/components/landing/Hero";
 import { TrustStrip } from "@/components/landing/TrustStrip";
 import { ProblemSection } from "@/components/landing/ProblemSection";
@@ -28,7 +29,7 @@ const PRECIO = PRECIO_DESDE.toLocaleString("es-MX");
 // la cuenta y probando Kora por dentro (decisión de Manolo, 15 sep 2026).
 const DESCRIPCION = `Camila contesta tu WhatsApp 24/7 con IA: cotiza con tu disponibilidad real y cobra. Reservas directas 0% comisión. Pruébalo ${GARANTIA.diasPrueba} días gratis, sin tarjeta.`;
 
-export const metadata: Metadata = {
+export const metadata: Metadata = conSocial({
   title: "Kora — Sistema hotelero con IA para hoteles en México",
   description: DESCRIPCION,
   openGraph: {
@@ -46,7 +47,7 @@ export const metadata: Metadata = {
   alternates: {
     canonical: "/",
   },
-};
+});
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";

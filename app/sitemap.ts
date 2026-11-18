@@ -22,6 +22,40 @@ const SITE_UPDATED = new Date("2026-06-03");
 // dejó de llamarse «agente» para decir «bot de WhatsApp para hoteles». Fecha
 // propia para no marcar como recién editado todo lo que lleva SITE_UPDATED.
 const PILARES_UPDATED = new Date("2026-10-21");
+// 18 nov 2026: enlace por iCal con Airbnb/Booking/Vrbo. Sólo las URLs cuyo
+// CONTENIDO cambió ese día llevan esta fecha (Google deja de creerle a un
+// lastmod que se mueve sin cambios). Si tocas una página, añádela aquí o dale
+// su propia fecha.
+const CANALES_UPDATED = new Date("2026-11-18");
+const CAMBIADAS_18NOV = new Set([
+  "/",
+  "/sincronizar-airbnb-booking",
+  "/pms",
+  "/motor-de-reservas",
+  "/como-funciona",
+  "/precios",
+  "/hoteles-en",
+  "/glosario",
+  "/ayuda",
+  "/glosario/channel-manager",
+  "/glosario/ical",
+  "/glosario/overbooking",
+  "/ayuda/enlazar-airbnb-booking",
+  "/para/cabanas-ecoturismo",
+  "/para/hoteles-de-ciudad",
+  "/hoteles-en/aquismon",
+  "/hoteles-en/bacalar",
+  "/hoteles-en/el-naranjo",
+  "/comparativas/expedia",
+  "/comparativas/vrbo",
+  "/whatsapp/reservas-por-whatsapp",
+]);
+function fechar(entradas: MetadataRoute.Sitemap): MetadataRoute.Sitemap {
+  return entradas.map((e) => {
+    const ruta = e.url.slice(BASE_URL.length) || "/";
+    return CAMBIADAS_18NOV.has(ruta) ? { ...e, lastModified: CANALES_UPDATED } : e;
+  });
+}
 
 // Mini-páginas de hoteles publicadas (/h/slug) + la página propia de cada
 // habitación (/h/slug/habitacion/idx). Si el env de Supabase no está listo o
@@ -96,7 +130,7 @@ async function blogsHoteles(): Promise<MetadataRoute.Sitemap> {
     );
     if (!data) return [];
     const entradas: MetadataRoute.Sitemap = [];
-    const indicesVistos = new Set<string>();
+    const indicesVistos = new Map<string, { url: string; lastModified: Date; changeFrequency: "weekly"; priority: number }>();
     for (const row of data as unknown as {
       slug: string;
       updated_at: string | null;
@@ -108,14 +142,20 @@ async function blogsHoteles(): Promise<MetadataRoute.Sitemap> {
       // devuelve 404 por el layout, así que tampoco se anuncia.
       if (!h?.publicado || !hotelAnunciable(h.slug, h.extras)) continue;
       const lastModified = new Date(row.updated_at || row.publicado_at || SITE_UPDATED);
-      if (!indicesVistos.has(h.slug)) {
-        indicesVistos.add(h.slug);
-        entradas.push({
+      // El índice del blog lleva la fecha del post MÁS reciente del hotel, no la
+      // del primero que devolvió la consulta.
+      const indice = indicesVistos.get(h.slug);
+      if (!indice) {
+        const entrada = {
           url: `${BASE_URL}/h/${h.slug}/blog`,
           lastModified,
-          changeFrequency: "weekly",
+          changeFrequency: "weekly" as const,
           priority: 0.5,
-        });
+        };
+        indicesVistos.set(h.slug, entrada);
+        entradas.push(entrada);
+      } else if (lastModified > (indice.lastModified as Date)) {
+        indice.lastModified = lastModified;
       }
       entradas.push({
         url: `${BASE_URL}/h/${h.slug}/blog/${row.slug}`,
@@ -135,6 +175,10 @@ async function blogsHoteles(): Promise<MetadataRoute.Sitemap> {
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  return fechar(await entradasBase());
+}
+
+async function entradasBase(): Promise<MetadataRoute.Sitemap> {
   const hotelEntries = [...(await miniPaginas()), ...(await blogsHoteles())];
   // Estáticos (lib/articles.ts) + generados por el agente (blog_articles).
   const articles = await getAllArticles();
@@ -230,6 +274,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     {
       url: `${BASE_URL}/pms`,
       lastModified: PILARES_UPDATED,
+      changeFrequency: "monthly",
+      priority: 0.9,
+    },
+    {
+      // Página pilar del enlace con OTAs por iCal (18 nov 2026).
+      url: `${BASE_URL}/sincronizar-airbnb-booking`,
+      lastModified: CANALES_UPDATED,
       changeFrequency: "monthly",
       priority: 0.9,
     },

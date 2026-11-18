@@ -5,11 +5,11 @@ import { Reveal } from "@/components/shared/Reveal";
 import { FirmaKora } from "@/components/herramientas/FirmaKora";
 import { CalculadoraTarifa } from "@/components/herramientas/CalculadoraTarifa";
 import { JsonLd } from "@/components/shared/JsonLd";
-import { metaDescripcion } from "@/lib/seo";
+import { metaDescripcion, conSocial } from "@/lib/seo";
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = conSocial({
   title: "Calculadora de RevPAR y tarifa de hotel (gratis) | Kora",
   description: metaDescripcion(
     "Calcula gratis tu RevPAR y descubre si estás cobrando de más o de menos por tus habitaciones. Herramienta de pricing para hoteles boutique en México.",
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
     siteName: "Kora",
     url: `${BASE_URL}/herramientas/calculadora-tarifa`,
   },
-};
+});
 
 const faqs = [
   {

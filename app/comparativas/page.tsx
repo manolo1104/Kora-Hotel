@@ -1,17 +1,18 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { conSocial } from "@/lib/seo";
 import { comparativas } from "@/lib/comparativas";
 import { Reveal } from "@/components/shared/Reveal";
 import { BarraCTA } from "@/components/shared/BarraCTA";
 import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 import { JsonLd } from "@/components/shared/JsonLd";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = conSocial({
   title: "Comparativas: OTAs vs reservas directas para tu hotel | Kora",
   description:
     "Booking y Airbnb vs reservas directas: comisiones, control y relación con el huésped. Comparativas honestas para hoteles boutique en México.",
   alternates: { canonical: "/comparativas" },
-};
+});
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
 

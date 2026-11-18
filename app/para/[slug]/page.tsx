@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowRight, AlertCircle, Check } from "lucide-react";
 import { personas, getPersona } from "@/lib/personas";
-import { metaDescripcion } from "@/lib/seo";
+import { metaDescripcion, conSocial } from "@/lib/seo";
 import { Reveal } from "@/components/shared/Reveal";
 import { BarraCTA } from "@/components/shared/BarraCTA";
 import { JsonLd } from "@/components/shared/JsonLd";
@@ -23,8 +23,8 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const p = getPersona(slug);
-  if (!p) return { title: "Página no encontrada — Kora" };
-  return {
+  if (!p) return conSocial({ title: "Página no encontrada — Kora" });
+  return conSocial({
     title: `${p.titulo} | Kora`,
     description: metaDescripcion(p.intro),
     alternates: { canonical: `/para/${p.slug}` },
@@ -34,7 +34,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       type: "website",
       locale: "es_MX",
     },
-  };
+  });
 }
 
 export default async function PersonaPage({ params }: Props) {

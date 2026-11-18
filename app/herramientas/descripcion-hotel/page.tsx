@@ -5,11 +5,11 @@ import { Reveal } from "@/components/shared/Reveal";
 import { FirmaKora } from "@/components/herramientas/FirmaKora";
 import { GeneradorIA, type CampoDef } from "@/components/herramientas/GeneradorIA";
 import { JsonLd } from "@/components/shared/JsonLd";
-import { metaDescripcion } from "@/lib/seo";
+import { metaDescripcion, conSocial } from "@/lib/seo";
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = conSocial({
   title: "Descripción de hotel con IA para Booking (gratis) | Kora",
   description: metaDescripcion(
     "Crea una descripción atractiva para tu hotel en segundos: para Booking, Airbnb o tu página web. Con IA, en español, honesta y que vende. Gratis, para hoteles en México.",
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
     siteName: "Kora",
     url: `${BASE_URL}/herramientas/descripcion-hotel`,
   },
-};
+});
 
 const campos: CampoDef[] = [
   {

@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+
 // Utilidades de SEO compartidas.
 
 // Slugs de hoteles de PRUEBA/semilla que no deben aparecer en sitemap, llms.txt
@@ -57,4 +59,84 @@ export function metaDescripcion(texto: string, max = 158): string {
   const ultimoEspacio = corte.lastIndexOf(" ");
   const base = ultimoEspacio > 40 ? corte.slice(0, ultimoEspacio) : corte;
   return base.replace(/[\s.,;:–—-]+$/, "") + "…";
+}
+
+// ── Etiquetas sociales completas en una sola llamada ────────────────────────
+//
+// SEO (18 nov 2026): 14 páginas públicas no declaraban `openGraph` (al
+// compartirlas en WhatsApp salían sin título ni descripción propios) y las que
+// sí lo declaraban REEMPLAZABAN el del layout entero, perdiendo `siteName`;
+// sólo una ponía `og:url`. Este envoltorio deriva openGraph y twitter de lo
+// que cada página ya declara (title, description, canónica) sin pisar nada que
+// la página haya puesto a propósito. Las imágenes siguen viniendo de los
+// archivos `opengraph-image.tsx` de cada ruta.
+function textoDeTitulo(t: Metadata["title"]): string | undefined {
+  if (!t) return undefined;
+  if (typeof t === "string") return t;
+  if ("absolute" in t && t.absolute) return t.absolute;
+  if ("default" in t && t.default) return t.default;
+  return undefined;
+}
+
+export function conSocial(m: Metadata): Metadata {
+  const titulo = textoDeTitulo(m.title);
+  const descripcion = m.description ?? undefined;
+  const canonica = m.alternates?.canonical;
+  const url = typeof canonica === "string" ? canonica : canonica instanceof URL ? canonica.toString() : undefined;
+  const og = (m.openGraph ?? {}) as Record<string, unknown>;
+  const tw = (m.twitter ?? {}) as Record<string, unknown>;
+  return {
+    ...m,
+    openGraph: {
+      siteName: "Kora",
+      locale: "es_MX",
+      type: "website",
+      ...(titulo ? { title: titulo } : {}),
+      ...(descripcion ? { description: descripcion } : {}),
+      ...(url ? { url } : {}),
+      ...og,
+    } as Metadata["openGraph"],
+    twitter: {
+      card: "summary_large_image",
+      ...(og.title || titulo ? { title: (og.title as string) ?? titulo } : {}),
+      ...(og.description || descripcion ? { description: (og.description as string) ?? descripcion } : {}),
+      ...tw,
+    } as Metadata["twitter"],
+  };
+}
+
+// ── Dirección del hotel para schema.org ─────────────────────────────────────
+//
+// `hoteles.ubicacion` es texto libre («Cda. 6 22, Deportivo Pensil, Miguel
+// Hidalgo, 11480 Ciudad de México, CDMX» o «Xilitla, SLP, México.»). Antes iba
+// ENTERA a `addressLocality`, que Google lee como el nombre de la ciudad. Se
+// parte por comas: lo último es el estado, lo penúltimo la ciudad, lo de antes
+// la calle; el código postal y «México» se sacan aparte.
+export function direccionPostal(ubicacion: string): Record<string, string> {
+  let cp = "";
+  const partes = (ubicacion ?? "")
+    .split(",")
+    .map((p) => p.trim().replace(/\.+$/, ""))
+    .map((p) => {
+      const m = p.match(/^(\d{5})\s+(.*)$/);
+      if (m) {
+        cp = m[1];
+        return m[2];
+      }
+      return p;
+    })
+    .filter((p) => p && !/^m[ée]xico$/i.test(p));
+  const dir: Record<string, string> = { "@type": "PostalAddress", addressCountry: "MX" };
+  if (partes.length >= 3) {
+    dir.streetAddress = partes.slice(0, -2).join(", ");
+    dir.addressLocality = partes[partes.length - 2];
+    dir.addressRegion = partes[partes.length - 1];
+  } else if (partes.length === 2) {
+    dir.addressLocality = partes[0];
+    dir.addressRegion = partes[1];
+  } else if (partes.length === 1) {
+    dir.addressLocality = partes[0];
+  }
+  if (cp) dir.postalCode = cp;
+  return dir;
 }

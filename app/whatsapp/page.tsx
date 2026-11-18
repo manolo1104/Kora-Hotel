@@ -24,7 +24,7 @@ import {
   TEXTO_RECARGAS_CAMILA,
 } from "@/lib/oferta";
 import { waLink } from "@/lib/contacto";
-import { metaDescripcion } from "@/lib/seo";
+import { metaDescripcion, conSocial } from "@/lib/seo";
 import { JsonLd } from "@/components/shared/JsonLd";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
@@ -45,7 +45,7 @@ const RESPUESTA_CITABLE = `Camila es el bot de WhatsApp con IA de Kora para hote
 
 const WA_DUDAS = waLink("Hola, vi la página de Camila y tengo una duda");
 
-export const metadata: Metadata = {
+export const metadata: Metadata = conSocial({
   title: "Bot de WhatsApp para hoteles con IA | Kora",
   // Cabe en 158 con el precio: la versión anterior se cortaba justo antes de él.
   description: metaDescripcion(
@@ -68,7 +68,7 @@ export const metadata: Metadata = {
     siteName: "Kora",
     url: `${SITE_URL}/whatsapp`,
   },
-};
+});
 
 const CAPACIDADES = [
   {

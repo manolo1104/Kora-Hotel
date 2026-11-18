@@ -1,4 +1,5 @@
-import { CalendarCheck, RefreshCw, ShieldCheck, Link2, ArrowLeftRight } from "lucide-react";
+import Link from "next/link";
+import { CalendarCheck, RefreshCw, ShieldCheck, Link2, ArrowLeftRight, ArrowRight } from "lucide-react";
 import { Reveal } from "@/components/shared/Reveal";
 import { CANALES_OTA_DISPONIBLES } from "@/lib/panel/canales-ota";
 import { ENLACE_OTA } from "@/lib/integraciones";
@@ -171,6 +172,13 @@ export function CanalesSection() {
           <p className="mt-6 text-xs text-kora-muted leading-relaxed max-w-3xl">
             {ENLACE_OTA.limites} En Expedia, el iCal sólo existe para anuncios de Vrbo.
           </p>
+          <Link
+            href="/sincronizar-airbnb-booking"
+            className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-kora-primary underline decoration-kora-accent underline-offset-4"
+          >
+            Cómo se sincronizan Airbnb, Booking y Vrbo, paso a paso
+            <ArrowRight size={14} aria-hidden="true" />
+          </Link>
         </Reveal>
       </div>
     </section>

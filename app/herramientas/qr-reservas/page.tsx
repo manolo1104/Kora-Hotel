@@ -5,11 +5,11 @@ import { Reveal } from "@/components/shared/Reveal";
 import { FirmaKora } from "@/components/herramientas/FirmaKora";
 import { QrReservas } from "@/components/herramientas/QrReservas";
 import { JsonLd } from "@/components/shared/JsonLd";
-import { metaDescripcion } from "@/lib/seo";
+import { metaDescripcion, conSocial } from "@/lib/seo";
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = conSocial({
   title: "Generador de QR para reservas de hotel (gratis) | Kora",
   description: metaDescripcion(
     "Crea gratis un código QR que lleve a tu WhatsApp o a tu página de reservas. Imprímelo para recepción, habitaciones y redes. Sin registro, hecho para hoteles en México.",
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
     siteName: "Kora",
     url: `${BASE_URL}/herramientas/qr-reservas`,
   },
-};
+});
 
 const faqs = [
   {

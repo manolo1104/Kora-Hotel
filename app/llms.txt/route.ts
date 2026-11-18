@@ -157,6 +157,7 @@ function buildLlms(hoteles: HotelListado[], articulos: Article[]): string {
   L.push(`- Bot de WhatsApp con IA para hoteles (Camila): ${BASE}/whatsapp`);
   L.push(`- Motor de reservas para hoteles, sin comisión: ${BASE}/motor-de-reservas`);
   L.push(`- PMS para hoteles pequeños: ${BASE}/pms`);
+  L.push(`- Sincronizar Airbnb, Booking y Expedia (Vrbo) por iCal: ${BASE}/sincronizar-airbnb-booking`);
   L.push(`- Características: ${BASE}/caracteristicas`);
   L.push(`- Cómo funciona: ${BASE}/como-funciona`);
   L.push(`- Precios: ${BASE}/precios`);

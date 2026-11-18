@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
+import { pingIndexNow } from "@/lib/indexnow";
 import { createAdminClient, adminEnvReady } from "@/lib/supabase/admin";
 import { articles as staticArticles, calculateReadTime } from "@/lib/articles";
 
@@ -93,6 +94,10 @@ export async function POST(req: NextRequest) {
     // Los dos archivos para IA listan el blog completo desde el 22 oct 2026.
     revalidatePath("/llms.txt");
     revalidatePath("/llms-full.txt");
+    // Avisar a Bing/Yandex/Seznam al momento (IndexNow). Antes sólo lo hacían
+    // los blogs de los hoteles: el blog de Kora esperaba a que el rastreador
+    // pasara solo. Con await: pingIndexNow tiene su propio tope de 3 s y no lanza.
+    await pingIndexNow([`/blog/${slug}`, "/blog"]);
 
     return NextResponse.json({ success: true, post: data });
   } catch (err: unknown) {

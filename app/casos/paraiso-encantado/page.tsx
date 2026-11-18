@@ -18,9 +18,9 @@ import {
 import { waLink } from "@/lib/contacto";
 import { GARANTIA, RUTA_REGISTRO } from "@/lib/oferta";
 import { CtaLink } from "@/components/shared/CtaLink";
-import { metaDescripcion } from "@/lib/seo";
+import { metaDescripcion, conSocial } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = conSocial({
   title: "Caso de estudio: Hotel Paraíso Encantado — Kora",
   // Medía 181 y Google cortaba la cifra del ahorro: la frase del fundador va
   // al final para que sea lo que se pierde si algo sobra.
@@ -30,7 +30,7 @@ export const metadata: Metadata = {
   alternates: {
     canonical: "/casos/paraiso-encantado",
   },
-};
+});
 
 // El cierre del caso decía «Escríbeme y en 20 minutos te enseño cómo se vería
 // Kora con tus cuartos cargados», con un botón «Quiero ver el demo» a WhatsApp.

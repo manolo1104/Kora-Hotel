@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Quote } from "lucide-react";
 import { Reveal } from "@/components/shared/Reveal";
+import Image from "next/image";
 import { FUNDADOR } from "@/lib/fundador";
 
 // Iconos de marca (lucide ya no los incluye).
@@ -43,10 +44,14 @@ export function FundadorSection() {
             <div className="flex flex-col items-center text-center">
               <div className="relative w-44 h-44 sm:w-52 sm:h-52 rounded-3xl overflow-hidden bg-kora-primary shadow-lg">
                 {!imgError ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
+                  // next/image: el original pesa 372 KB a 2000×1600 y aquí se
+                  // pinta a 208 px. Ahora se sirve redimensionado y en WebP/AVIF.
+                  <Image
                     src={FUNDADOR.foto}
                     alt={`Foto de ${FUNDADOR.nombre}`}
+                    width={416}
+                    height={416}
+                    sizes="(min-width: 640px) 208px, 176px"
                     className="w-full h-full object-cover"
                     onError={() => setImgError(true)}
                   />

@@ -5,11 +5,11 @@ import { Reveal } from "@/components/shared/Reveal";
 import { FirmaKora } from "@/components/herramientas/FirmaKora";
 import { AuditoriaFicha } from "@/components/herramientas/AuditoriaFicha";
 import { JsonLd } from "@/components/shared/JsonLd";
-import { metaDescripcion } from "@/lib/seo";
+import { metaDescripcion, conSocial } from "@/lib/seo";
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = conSocial({
   title: "Auditoría gratis de tu ficha en Booking y Google | Kora",
   description: metaDescripcion(
     "Revisa gratis qué tan optimizada está la ficha de tu hotel en Booking, Airbnb y Google. Checklist interactivo con puntaje y lista priorizada de mejoras, para México.",
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
     siteName: "Kora",
     url: `${BASE_URL}/herramientas/auditoria-ficha`,
   },
-};
+});
 
 const faqs = [
   {

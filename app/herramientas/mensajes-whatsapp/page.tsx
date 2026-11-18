@@ -5,11 +5,11 @@ import { Reveal } from "@/components/shared/Reveal";
 import { FirmaKora } from "@/components/herramientas/FirmaKora";
 import { GeneradorIA, type CampoDef } from "@/components/herramientas/GeneradorIA";
 import { JsonLd } from "@/components/shared/JsonLd";
-import { metaDescripcion } from "@/lib/seo";
+import { metaDescripcion, conSocial } from "@/lib/seo";
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = conSocial({
   title: "Mensajes de WhatsApp para hoteles con IA | Kora",
   description: metaDescripcion(
     "Crea mensajes de WhatsApp profesionales para tu hotel en segundos: confirmar reservas, cotizar, pedir anticipo o responder dudas. Con IA, en español, gratis, para México.",
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
     siteName: "Kora",
     url: `${BASE_URL}/herramientas/mensajes-whatsapp`,
   },
-};
+});
 
 const campos: CampoDef[] = [
   {

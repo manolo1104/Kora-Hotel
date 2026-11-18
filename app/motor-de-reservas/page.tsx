@@ -19,7 +19,7 @@ import { VsBooking } from "@/components/caracteristicas/VsBooking";
 import { DemoMotorSection } from "@/components/landing/DemoMotorSection";
 import { AYUDA_ALTA, GARANTIA, PRECIO_DESDE, RUTA_REGISTRO } from "@/lib/oferta";
 import { waLink } from "@/lib/contacto";
-import { metaDescripcion } from "@/lib/seo";
+import { metaDescripcion, conSocial } from "@/lib/seo";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
 
@@ -39,7 +39,7 @@ const RESPUESTA_CITABLE = `El motor de reservas de Kora es la herramienta que po
 
 const WA_DUDAS = waLink("Hola, vi la página del motor de reservas de Kora y tengo una duda");
 
-export const metadata: Metadata = {
+export const metadata: Metadata = conSocial({
   title: "Motor de reservas para hoteles sin comisión | Kora",
   // Cabe en 158 con el precio: la versión anterior se cortaba justo antes de él.
   description: metaDescripcion(
@@ -55,7 +55,7 @@ export const metadata: Metadata = {
     siteName: "Kora",
     url: `${SITE_URL}/motor-de-reservas`,
   },
-};
+});
 
 // Cada capacidad sale de lo que el motor hace hoy (ver /caracteristicas,
 // MotorReservasSection y lib/integraciones.ts). Nada de «próximamente».
@@ -134,6 +134,7 @@ const NO_HACE = [
 const RELACIONADOS = [
   { texto: "PMS para hoteles pequeños", href: "/pms" },
   { texto: "Bot de WhatsApp para hoteles", href: "/whatsapp" },
+  { texto: "Sincronizar Airbnb, Booking y Vrbo", href: "/sincronizar-airbnb-booking" },
   { texto: "Calculadora: cuánto pierdes en comisiones", href: "/herramientas/calculadora-comisiones" },
   { texto: "Booking vs. reservas directas", href: "/comparativas/booking" },
   { texto: "Crea tu página de reservas gratis", href: "/herramientas/mini-pagina" },

@@ -87,6 +87,21 @@ export const AYUDA: ArticuloAyuda[] = [
     ],
   },
   {
+    // 18 nov 2026: el enlace por iCal con OTAs (lib/canales/ical.ts). Los pasos
+    // de cada OTA son los mismos que enseña el panel (GUIA_PLATAFORMA).
+    slug: "enlazar-airbnb-booking",
+    titulo: "Cómo enlazar Airbnb, Booking y Vrbo",
+    resumen: "Un calendario por habitación para no vender dos veces el mismo cuarto.",
+    contenido: [
+      "Entra a tu panel → “Canales”. Cada habitación física de tu hotel tiene una tarjeta con dos cosas: su enlace de Kora y los calendarios que tiene enlazados.",
+      "1. Trae tu OTA a Kora: en la tarjeta de la habitación pulsa “Enlazar Airbnb, Booking o Expedia”, elige la plataforma y pega el enlace iCal de exportación de ese anuncio. Al guardar, Kora lo lee al momento y bloquea esas noches.",
+      "2. Lleva Kora a tu OTA: copia el enlace de Kora de esa habitación e impórtalo en la OTA (en Airbnb: Disponibilidad → Conectar calendarios → Importar; en Booking: Tarifas y disponibilidad → Sincronizar calendarios; en Vrbo: Calendario → Importar y exportar).",
+      "Kora vuelve a leer tus OTAs justo antes de apartar cada reserva, y si dos reservas llegan a chocar te manda un correo para que lo resuelvas antes de que llegue el huésped.",
+      "Ten en cuenta: iCal sólo mueve fechas ocupadas (las tarifas las sigues poniendo en cada OTA); Booking sólo ofrece la opción si cada tipo de habitación tiene una unidad y no usas otro channel manager; y de Expedia sólo se enlazan los anuncios de Vrbo.",
+      "Más detalle en kora-hotel.com/sincronizar-airbnb-booking.",
+    ],
+  },
+  {
     slug: "reservas-por-whatsapp",
     titulo: "Cómo llegan las reservas de tu página",
     resumen: "Por tu motor de reservas o por WhatsApp, sin comisiones.",

@@ -44,6 +44,10 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
+  // Red de seguridad: una página que olvide su title no sale sin <title>.
+  // template "%s": los títulos ya traen « | Kora» (conMarca), no se duplica.
+  title: { default: "Kora — Sistema hotelero con IA para hoteles en México", template: "%s" },
+  applicationName: "Kora",
   openGraph: {
     siteName: "Kora",
     locale: "es_MX",
@@ -64,7 +68,8 @@ const orgJsonLd = {
       "@id": `${SITE_URL}/#organization`,
       name: "Kora",
       url: SITE_URL,
-      logo: { "@type": "ImageObject", url: `${SITE_URL}/opengraph-image` },
+      // Logo CUADRADO (Google lo pide así); antes apuntaba a la tarjeta OG 1200×630.
+      logo: { "@type": "ImageObject", url: `${SITE_URL}/icon.png`, width: 512, height: 512 },
       description:
         "Sistema hotelero todo-en-uno con IA para hoteles boutique en México.",
       email: EMAIL_CONTACTO,
@@ -125,7 +130,7 @@ export default function RootLayout({
   const gaId = process.env.NEXT_PUBLIC_GA_ID;
   return (
     <html
-      lang="es"
+      lang="es-MX"
       className={`${jakarta.variable} ${playfair.variable} ${lora.variable} ${poppins.variable}`}
     >
       <body className="antialiased">

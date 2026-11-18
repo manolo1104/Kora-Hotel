@@ -5,11 +5,11 @@ import { Reveal } from "@/components/shared/Reveal";
 import { FirmaKora } from "@/components/herramientas/FirmaKora";
 import { DocumentosLegales } from "@/components/herramientas/DocumentosLegales";
 import { JsonLd } from "@/components/shared/JsonLd";
-import { metaDescripcion } from "@/lib/seo";
+import { metaDescripcion, conSocial } from "@/lib/seo";
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = conSocial({
   title: "Política de cancelación y reglamento de hotel | Kora",
   description: metaDescripcion(
     "Genera gratis la política de cancelación, el aviso de privacidad y el reglamento interno de tu hotel. Plantillas editables listas para copiar o imprimir, para México.",
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
     siteName: "Kora",
     url: `${BASE_URL}/herramientas/documentos`,
   },
-};
+});
 
 const faqs = [
   {

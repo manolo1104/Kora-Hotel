@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { ArrowRight, MessageCircle, Phone } from "lucide-react";
+import { conSocial } from "@/lib/seo";
 import { ContactForm } from "@/components/landing/ContactForm";
 import { Reveal } from "@/components/shared/Reveal";
 import { CtaLink } from "@/components/shared/CtaLink";
@@ -33,12 +34,12 @@ import { waLink } from "@/lib/contacto";
 // prefiere hablar con alguien, pero lo PRIMERO que ve es el aviso de que puede
 // probarlo solo, ahora mismo.
 
-export const metadata: Metadata = {
+export const metadata: Metadata = conSocial({
   title: "Contacto — Kora",
   description:
     "¿Tienes dudas o prefieres que te acompañemos? Déjanos tus datos y te ayudamos a dejar Kora listo con tu hotel. O crea tu cuenta gratis y pruébalo tú mismo.",
   alternates: { canonical: "/contacto" },
-};
+});
 
 const WA_URL = waLink("Hola, quiero más información de Kora");
 

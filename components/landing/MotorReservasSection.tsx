@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Globe, Code2, CreditCard, ArrowRight, Lock } from "lucide-react";
 import { Reveal } from "@/components/shared/Reveal";
 import { CtaLink } from "@/components/shared/CtaLink";
@@ -87,7 +88,10 @@ export function MotorReservasSection() {
               <p className="mt-3 text-xs text-kora-muted">
                 {GARANTIA.diasPrueba} días gratis, sin tarjeta. Durante tu prueba, y
                 mientras no conectes tus cobros, las reservas de prueba en tu motor no
-                cobran nada.
+                cobran nada.{" "}
+                <Link href="/motor-de-reservas" className="font-semibold text-kora-primary underline underline-offset-2">
+                  Todo sobre el motor de reservas
+                </Link>
               </p>
             </div>
           </Reveal>

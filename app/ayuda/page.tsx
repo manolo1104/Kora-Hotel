@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { conSocial } from "@/lib/seo";
 import { ArrowRight, LifeBuoy } from "lucide-react";
 import { Reveal } from "@/components/shared/Reveal";
 import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
@@ -7,12 +8,12 @@ import { CtaLink } from "@/components/shared/CtaLink";
 import { AYUDA } from "@/lib/ayuda";
 import { GARANTIA, RUTA_REGISTRO } from "@/lib/oferta";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = conSocial({
   title: "Centro de ayuda | Kora",
   description:
     "Respuestas rápidas sobre tu página de reservas, los planes de Kora, pagos y soporte. Y si no encuentras algo, el chat te ayuda al instante.",
   alternates: { canonical: "/ayuda" },
-};
+});
 
 export default function AyudaPage() {
   return (

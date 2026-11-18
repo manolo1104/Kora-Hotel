@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { conSocial } from "@/lib/seo";
 import {
   Globe,
   MessageCircle,
@@ -29,14 +30,14 @@ import {
 } from "@/lib/oferta";
 import { waLink } from "@/lib/contacto";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = conSocial({
   title: "Características de Kora: PMS, IA y reservas directas",
   description:
     "Motor de reservas directo, agente WhatsApp con IA, PMS y dashboard con CRM. El sistema todo-en-uno para hoteles boutique en México.",
   alternates: {
     canonical: "/caracteristicas",
   },
-};
+});
 
 // Hasta el 15 sep 2026 los dos botones de esta página eran «Ver demo en vivo» y
 // «Solicitar demo por WhatsApp»: la única forma de ver Kora era esperar a que

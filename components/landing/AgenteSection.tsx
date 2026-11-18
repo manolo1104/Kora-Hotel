@@ -76,6 +76,16 @@ export function AgenteSection() {
                   Ver todo sobre Camila
                 </Link>
               </div>
+              {/* SEO (18 nov 2026): la portada no enlazaba a ninguna página del
+                  cluster /whatsapp; sólo el pie al índice. */}
+              <p className="mt-4 text-xs text-white/60 leading-relaxed">
+                Más:{" "}
+                <Link href="/whatsapp/bot-whatsapp-hotel" className="underline underline-offset-2 hover:text-white">cómo funciona un bot de WhatsApp para hotel</Link>
+                {" · "}
+                <Link href="/whatsapp/responder-whatsapp-fuera-de-horario" className="underline underline-offset-2 hover:text-white">contestar fuera de horario</Link>
+                {" · "}
+                <Link href="/whatsapp/cobrar-anticipo-por-whatsapp" className="underline underline-offset-2 hover:text-white">cobrar el anticipo por WhatsApp</Link>
+              </p>
               {/* Qué pasa al registrarse, dicho aquí: quien llega por Camila quiere
                   saber si puede probarla antes de conectar su WhatsApp. Hasta el
                   23 sep 2026 decía «N días gratis: dentro de tu cuenta la pruebas

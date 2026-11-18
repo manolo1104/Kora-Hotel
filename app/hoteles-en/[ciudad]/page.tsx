@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { Check, X } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
 import { ciudades, getCiudad, TABLA_OTA_DIRECTO } from "@/lib/ciudades";
-import { conMarca, metaDescripcion } from "@/lib/seo";
+import { conMarca, metaDescripcion, conSocial } from "@/lib/seo";
 import { hotelAnunciable } from "@/lib/urls-hotel";
 import { SUPABASE_URL, SUPABASE_ANON_KEY, supabaseEnvReady } from "@/lib/supabase/env";
 import { Reveal } from "@/components/shared/Reveal";
@@ -51,8 +51,8 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { ciudad } = await params;
   const c = getCiudad(ciudad);
-  if (!c) return { title: "Ciudad no encontrada — Kora" };
-  return {
+  if (!c) return conSocial({ title: "Ciudad no encontrada — Kora" });
+  return conSocial({
     // `c.ciudad` puede empezar en minúscula («la Huasteca Potosina») porque se
     // usa a media frase; en la pestaña va con mayúscula.
     title: conMarca(
@@ -66,7 +66,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       type: "article",
       locale: "es_MX",
     },
-  };
+  });
 }
 
 export default async function CiudadPage({ params }: Props) {

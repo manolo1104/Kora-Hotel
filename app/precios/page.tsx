@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { conSocial } from "@/lib/seo";
 import { ArrowRight } from "lucide-react";
 import { CalculadoraROI } from "@/components/landing/CalculadoraROI";
 import { PricingSection } from "@/components/landing/PricingSection";
@@ -15,13 +16,13 @@ import { JsonLd } from "@/components/shared/JsonLd";
 const PRECIO = PRECIO_DESDE.toLocaleString("es-MX");
 const DIAS = GARANTIA.diasPrueba;
 
-export const metadata: Metadata = {
+export const metadata: Metadata = conSocial({
   title: `Precios de Kora — $${PRECIO} MXN/mes, todo incluido`,
   description: `Un solo plan: $${PRECIO} MXN al mes, todo incluido y con habitaciones ilimitadas. Crea tu cuenta y pruébalo ${DIAS} días gratis, sin tarjeta.`,
   alternates: {
     canonical: "/precios",
   },
-};
+});
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";

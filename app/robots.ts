@@ -31,6 +31,8 @@ export default function robots(): MetadataRoute.Robots {
       { userAgent: AI_BOTS, allow: "/", disallow: NO_INDEX },
     ],
     sitemap: `${SITE}/sitemap.xml`,
-    host: SITE,
+    // Sin `host:`: es una directiva sólo de Yandex. /g/ (guía del huésped)
+    // sigue bloqueada a propósito aunque lleve noindex: puede traer datos del
+    // hotel (wifi, accesos) que ningún bot tiene por qué leer.
   };
 }

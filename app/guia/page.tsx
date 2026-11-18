@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Reveal } from "@/components/shared/Reveal";
+import { conSocial } from "@/lib/seo";
 import { CtaLink } from "@/components/shared/CtaLink";
 import { GARANTIA, PRECIO_DESDE, RUTA_REGISTRO } from "@/lib/oferta";
 import { SuscripcionForm } from "@/components/shared/SuscripcionForm";
@@ -7,7 +8,7 @@ import { JsonLd } from "@/components/shared/JsonLd";
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = conSocial({
   title: "El Plan de 90 días para dejar de depender de Booking | Kora",
   description:
     "Cómo bajé la dependencia de OTAs de mi hotel del 40% al 25% en tres meses. El plan completo semana por semana, gratis, con las plantillas de WhatsApp que usé.",
@@ -21,7 +22,7 @@ export const metadata: Metadata = {
     siteName: "Kora",
     url: `${BASE_URL}/guia`,
   },
-};
+});
 
 // La página de la guía. Es el imán de toda la captación por correo.
 //

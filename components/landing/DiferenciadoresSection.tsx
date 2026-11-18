@@ -1,6 +1,7 @@
 import { UserCheck, Languages, LifeBuoy, Percent, CalendarSync } from "lucide-react";
 import { Reveal } from "@/components/shared/Reveal";
 import { GlowCard } from "@/components/shared/GlowCard";
+import Image from "next/image";
 import { FUNDADOR } from "@/lib/fundador";
 
 type Tile = {
@@ -115,10 +116,12 @@ export function DiferenciadoresSection() {
                       <Icon size={20} className={s.icon} aria-hidden="true" />
                     </div>
                     {founder && (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
+                      <Image
                         src={FUNDADOR.foto}
                         alt={`Foto de ${FUNDADOR.nombre}`}
+                        width={112}
+                        height={112}
+                        sizes="56px"
                         className="w-14 h-14 rounded-full object-cover ring-2 ring-kora-accent/60 flex-shrink-0"
                       />
                     )}

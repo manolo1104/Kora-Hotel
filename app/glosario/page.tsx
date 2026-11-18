@@ -1,17 +1,18 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { conSocial } from "@/lib/seo";
 import { glosario } from "@/lib/glosario";
 import { Reveal } from "@/components/shared/Reveal";
 import { BarraCTA } from "@/components/shared/BarraCTA";
 import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 import { JsonLd } from "@/components/shared/JsonLd";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = conSocial({
   title: "Glosario hotelero: términos clave en español | Kora",
   description:
     "Qué es un PMS, un motor de reservas, el RevPAR, el overbooking y más. Glosario claro y en español para hoteles boutique en México.",
   alternates: { canonical: "/glosario" },
-};
+});
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
 

@@ -5,11 +5,11 @@ import { Reveal } from "@/components/shared/Reveal";
 import { FirmaKora } from "@/components/herramientas/FirmaKora";
 import { CalendarioPuentes } from "@/components/herramientas/CalendarioPuentes";
 import { JsonLd } from "@/components/shared/JsonLd";
-import { metaDescripcion } from "@/lib/seo";
+import { metaDescripcion, conSocial } from "@/lib/seo";
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = conSocial({
   title: "Calendario de puentes y temporada alta (gratis) | Kora",
   description: metaDescripcion(
     "Calendario de puentes, vacaciones y temporada alta en México con el porcentaje de alza sugerido para tu hotel. Pon tu tarifa y ve el precio recomendado en cada fecha.",
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
     siteName: "Kora",
     url: `${BASE_URL}/herramientas/calendario-puentes`,
   },
-};
+});
 
 const faqs = [
   {

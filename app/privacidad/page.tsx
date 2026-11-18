@@ -1,15 +1,16 @@
 import type { Metadata } from "next";
 import { Reveal } from "@/components/shared/Reveal";
+import { conSocial } from "@/lib/seo";
 import { EMAIL_CONTACTO, WHATSAPP } from "@/lib/contacto";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = conSocial({
   title: "Política de privacidad — Kora",
   description:
     "Política de privacidad de Kora. Cómo recopilamos, usamos y protegemos tus datos personales conforme a la LFPDPPP.",
   alternates: {
     canonical: "/privacidad",
   },
-};
+});
 
 const WA_URL = `https://wa.me/${WHATSAPP.replace(/\D/g, "")}`;
 

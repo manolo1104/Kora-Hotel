@@ -27,6 +27,7 @@ const navLinks = [
   { label: "Bot de WhatsApp para hoteles", href: "/whatsapp" },
   { label: "Motor de reservas", href: "/motor-de-reservas" },
   { label: "PMS hotelero", href: "/pms" },
+  { label: "Sincronizar Airbnb y Booking", href: "/sincronizar-airbnb-booking" },
   { label: "Características", href: "/caracteristicas" },
   { label: "Cómo empezar", href: "/como-funciona" },
   { label: "Precios", href: "/precios" },
@@ -40,6 +41,8 @@ const navLinks = [
   { label: "Glosario hotelero", href: "/glosario" },
   { label: "Blog", href: "/blog" },
   { label: "Guía: plan de 90 días", href: "/guia" },
+  // /ayuda y sus artículos no tenían ni un enlace entrante (sólo sitemap y chat).
+  { label: "Centro de ayuda", href: "/ayuda" },
   { label: "Demo", href: "/casos/paraiso-encantado" },
 ];
 

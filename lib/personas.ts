@@ -175,7 +175,7 @@ export const personas: Persona[] = [
       {
         titulo: "Un solo inventario, sin overbooking",
         texto:
-          "Tu página de reservas, Camila y tu panel leen la misma disponibilidad, así que no vendes dos veces la misma noche. Las reservas de Airbnb o Booking las registras en el panel y bloquean igual.",
+          "Tu página de reservas, Camila y tu panel leen la misma disponibilidad, así que no vendes dos veces la misma noche. Y si también vendes en Airbnb, Booking o Vrbo, enlazas sus calendarios por iCal: lo que vendes allá se bloquea solo en Kora, cabaña por cabaña.",
       },
       {
         titulo: "Camila contesta 24/7",

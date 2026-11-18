@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowRight, Check } from "lucide-react";
 import { paginasWhatsApp, getPaginaWhatsApp } from "@/lib/whatsapp";
-import { conMarca, metaDescripcion } from "@/lib/seo";
+import { conMarca, metaDescripcion, conSocial } from "@/lib/seo";
 import { Reveal } from "@/components/shared/Reveal";
 import { BarraCTA } from "@/components/shared/BarraCTA";
 import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
@@ -22,8 +22,8 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const p = getPaginaWhatsApp(slug);
-  if (!p) return { title: "Página no encontrada — Kora" };
-  return {
+  if (!p) return conSocial({ title: "Página no encontrada — Kora" });
+  return conSocial({
     title: conMarca(p.tituloSeo ?? p.titulo),
     description: metaDescripcion(p.respuesta),
     alternates: { canonical: `/whatsapp/${p.slug}` },
@@ -35,7 +35,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       siteName: "Kora",
       url: `${SITE_URL}/whatsapp/${p.slug}`,
     },
-  };
+  });
 }
 
 // Los párrafos del cuerpo admiten **negritas** al inicio (se usan para nombrar
@@ -69,6 +69,11 @@ export default async function PaginaWhatsApp({ params }: Props) {
         description: p.respuesta,
         inLanguage: "es-MX",
         mainEntityOfPage: url,
+        // Fechas del cluster (rehecho el 21 oct 2026) e imagen de la ruta:
+        // sin ellas Google descarta el Article para resultados enriquecidos.
+        datePublished: "2026-10-21",
+        dateModified: "2026-11-18",
+        image: `${url}/opengraph-image`,
         author: { "@type": "Organization", name: "Kora", url: SITE_URL },
         publisher: { "@type": "Organization", name: "Kora", url: SITE_URL },
       },

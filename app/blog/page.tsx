@@ -1,19 +1,20 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { conSocial } from "@/lib/seo";
 import { getAllArticles } from "@/lib/blog-db";
 import { BarraCTA } from "@/components/shared/BarraCTA";
 import { Reveal } from "@/components/shared/Reveal";
 import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 import { JsonLd } from "@/components/shared/JsonLd";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = conSocial({
   title: "Blog Kora: gestión hotelera y reservas directas",
   description:
     "Artículos sobre gestión hotelera inteligente, revenue management y cómo los hoteles boutique en México pueden crecer con tecnología.",
   alternates: {
     canonical: "/blog",
   },
-};
+});
 
 // ISR: el índice se regenera cuando el agente publica (revalidatePath) o cada hora.
 export const revalidate = 3600;

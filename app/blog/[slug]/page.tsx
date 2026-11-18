@@ -11,7 +11,7 @@ import { JsonLd } from "@/components/shared/JsonLd";
 import { sanitizarHtmlArticulo } from "@/lib/sanitizar-html";
 import { CtaLink } from "@/components/shared/CtaLink";
 import { GARANTIA, RUTA_REGISTRO } from "@/lib/oferta";
-import { conMarca, metaDescripcion } from "@/lib/seo";
+import { conMarca, metaDescripcion, conSocial } from "@/lib/seo";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -28,12 +28,12 @@ export async function generateStaticParams() {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const article = await getArticleBySlug(slug);
-  if (!article) return { title: "Artículo no encontrado — Kora" };
+  if (!article) return conSocial({ title: "Artículo no encontrado — Kora" });
 
   // El título para Google manda sobre el de la página, y sin el sufijo
   // «— Blog Kora»: con títulos de 88 caracteres, ese sufijo era justo lo que
   // empujaba la cifra fuera de lo que el buscador alcanza a enseñar (~60).
-  return {
+  return conSocial({
     title: article.metaTitle ?? conMarca(article.title),
     // Crudo, un extracto de 170 caracteres salía cortado a media palabra.
     description: metaDescripcion(article.metaDescription ?? article.excerpt),
@@ -54,7 +54,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description: article.excerpt,
       images: [article.image],
     },
-  };
+  });
 }
 
 /**

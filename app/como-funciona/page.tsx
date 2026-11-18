@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { conSocial } from "@/lib/seo";
 import {
   UserPlus,
   BedDouble,
@@ -56,13 +57,13 @@ const PRECIO = PRECIO_DESDE.toLocaleString("es-MX");
 // hereda entero y Next copia este título y esta descripción a la tarjeta de
 // WhatsApp/Facebook (`inheritFromMetadata`). Definirlo aquí lo REEMPLAZARÍA y
 // habría que repetir siteName y locale a mano.
-export const metadata: Metadata = {
+export const metadata: Metadata = conSocial({
   title: "Cómo funciona Kora: pruébalo gratis con tu hotel",
   description: `Crea tu cuenta, carga tu hotel y prueba Kora por dentro ${DIAS} días gratis, sin tarjeta: una reserva de prueba y tu panel. Camila se enciende con tu plan.`,
   alternates: {
     canonical: "/como-funciona",
   },
-};
+});
 
 // Mensaje ya escrito para quien prefiere que lo acompañen. Es la vía secundaria:
 // el botón grande de la página es siempre el registro.

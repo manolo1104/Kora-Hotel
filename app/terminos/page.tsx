@@ -1,16 +1,17 @@
 import type { Metadata } from "next";
 import { Reveal } from "@/components/shared/Reveal";
+import { conSocial } from "@/lib/seo";
 import { GARANTIA, PRECIO_DESDE } from "@/lib/oferta";
 import { EMAIL_CONTACTO, WHATSAPP } from "@/lib/contacto";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = conSocial({
   title: "Términos de servicio — Kora",
   description:
     "Términos y condiciones de uso del sistema Kora para hoteles boutique en México.",
   alternates: {
     canonical: "/terminos",
   },
-};
+});
 
 const WA_URL = `https://wa.me/${WHATSAPP.replace(/\D/g, "")}`;
 

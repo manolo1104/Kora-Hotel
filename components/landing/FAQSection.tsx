@@ -2,13 +2,18 @@
 
 import { useState } from "react";
 import { ChevronDown, ArrowRight } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
+import { motion } from "motion/react";
 import { faqs } from "@/lib/faqs";
 import { CtaLink } from "@/components/shared/CtaLink";
 import { GARANTIA, PRECIO_DESDE, RUTA_ACTIVAR, RUTA_REGISTRO } from "@/lib/oferta";
 
 const EASE = [0.23, 1, 0.32, 1] as const;
 
+// SEO (18 nov 2026): el FAQPage de la portada (app/page.tsx) marca TODAS las
+// preguntas de lib/faqs.ts, así que aquí se pintan todas — antes se veían 8 de
+// 13 — y las respuestas viven SIEMPRE en el HTML, plegadas con CSS. Antes se
+// montaban sólo al abrir: Google no las veía y el marcado no casaba con la
+// página. `tests/seo-contrato.test.ts` vigila las dos cosas.
 export function FAQSection() {
   const [open, setOpen] = useState<number | null>(null);
 
@@ -20,7 +25,7 @@ export function FAQSection() {
         </h2>
 
         <div className="space-y-2" role="list">
-          {faqs.slice(0, 8).map((faq, i) => (
+          {faqs.map((faq, i) => (
             <div
               key={i}
               className={`border rounded-2xl overflow-hidden transition-colors duration-200 ${
@@ -51,25 +56,22 @@ export function FAQSection() {
                 </motion.span>
               </button>
 
-              <AnimatePresence initial={false}>
-                {open === i && (
-                  <motion.div
-                    key="content"
-                    id={`faq-answer-${i}`}
-                    role="region"
-                    aria-labelledby={`faq-question-${i}`}
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: "auto", opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.22, ease: EASE }}
-                    style={{ overflow: "hidden" }}
-                  >
-                    <div className="px-5 sm:px-6 pb-5 sm:pb-6 text-kora-muted text-sm sm:text-base leading-relaxed">
-                      {faq.answer}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              {/* Plegado con grid-rows (0fr ↔ 1fr): anima la altura sin
+                  sacar el texto del DOM. */}
+              <div
+                id={`faq-answer-${i}`}
+                role="region"
+                aria-labelledby={`faq-question-${i}`}
+                className={`grid transition-[grid-template-rows,opacity] duration-200 ease-out ${
+                  open === i ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+                }`}
+              >
+                <div className="overflow-hidden" inert={open !== i}>
+                  <div className="px-5 sm:px-6 pb-5 sm:pb-6 text-kora-muted text-sm sm:text-base leading-relaxed">
+                    {faq.answer}
+                  </div>
+                </div>
+              </div>
             </div>
           ))}
         </div>

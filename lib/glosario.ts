@@ -87,13 +87,14 @@ export const glosario: TerminoGlosario[] = [
     slug: "channel-manager",
     termino: "Channel manager",
     pregunta: "¿Qué es un channel manager?",
-    resumen: "Sincroniza tu disponibilidad entre tu web y las OTAs para evitar overbooking.",
+    resumen: "Sincroniza disponibilidad y tarifas entre tu web y las OTAs para evitar overbooking.",
     definicion:
       "Un channel manager es el software que sincroniza la disponibilidad y las tarifas de tu hotel entre todos tus canales de venta (tu página web, Booking, Airbnb, Expedia) en tiempo real. Cuando se vende una habitación en un canal, la descuenta de los demás, evitando el overbooking.",
     cuerpo: [
       "Sin un channel manager, tienes que actualizar la disponibilidad a mano en cada plataforma cada vez que entra una reserva. Eso es lento y propenso a errores: si dos personas reservan la misma habitación en canales distintos, terminas en overbooking.",
       "El channel manager conecta todos los canales a un solo inventario. Vendes una habitación en Booking y automáticamente deja de estar disponible en tu web y en Airbnb.",
       "Para un hotel boutique, lo ideal es que el channel manager venga integrado con el PMS y el motor de reservas, en lugar de ser una herramienta suelta más que pagar y configurar.",
+      "Hay un paso intermedio que muchos hoteles pequeños no conocen: el calendario iCal. Airbnb, Booking y Vrbo dan un enlace iCal por anuncio que sincroniza las fechas ocupadas, sin tarifas. Kora se enlaza así con tus OTAs, un calendario por habitación física: no es un channel manager completo, pero evita vender dos veces el mismo cuarto sin pagar otro sistema.",
     ],
     faqs: [
       {
@@ -106,8 +107,43 @@ export const glosario: TerminoGlosario[] = [
       },
     ],
     relacionado: {
-      texto: "Cómo funciona Kora",
-      href: "/como-funciona",
+      texto: "Sincronizar Airbnb, Booking y Expedia con Kora",
+      href: "/sincronizar-airbnb-booking",
+    },
+  },
+  {
+    // 18 nov 2026: término nuevo con el enlace por iCal de Kora
+    // (lib/canales/ical.ts). Los límites salen con las mismas palabras que el
+    // resto del sitio (ENLACE_OTA en lib/integraciones.ts).
+    slug: "ical",
+    termino: "Calendario iCal",
+    pregunta: "¿Qué es el calendario iCal y para qué sirve en un hotel?",
+    resumen: "Un enlace de calendario que Airbnb, Booking y Vrbo usan para compartir fechas ocupadas.",
+    definicion:
+      "iCal (iCalendar, archivos .ics) es un formato estándar de calendario. En hotelería, Airbnb, Booking y Vrbo dan un enlace iCal por anuncio con las noches ocupadas; si lo importas en otra plataforma, esas noches se bloquean ahí también. Es la forma más simple de sincronizar disponibilidad entre canales.",
+    cuerpo: [
+      "Cada anuncio tiene dos enlaces: uno de exportación (lo que se vendió en esa OTA) y la opción de importar el calendario de otro sistema. Enlazando los dos sentidos, una reserva en Airbnb cierra la fecha en tu sistema y una reserva directa la cierra en Airbnb.",
+      "iCal sólo mueve fechas ocupadas: no pasa tarifas, restricciones ni datos del huésped. Y no es instantáneo: cada plataforma lee los calendarios externos a su ritmo, de 30 minutos a 3 horas. Por eso conviene que tu sistema vuelva a leer las OTAs justo antes de confirmar una venta directa.",
+      "Funciona por habitación física: si tienes dos cabañas iguales, cada una necesita su anuncio y su calendario. Booking sólo lo ofrece si cada tipo de habitación tiene una unidad y no usas otro channel manager, y Expedia sólo en anuncios de Vrbo.",
+      "En Kora lo enlazas desde Panel → Canales: pegas el iCal de cada anuncio de Airbnb, Booking o Vrbo en su habitación y copias el enlace de Kora en la OTA. Kora relee tus OTAs antes de apartar cada reserva y te avisa por correo si dos reservas chocan.",
+    ],
+    faqs: [
+      {
+        q: "¿iCal es lo mismo que un channel manager?",
+        a: "No. Un channel manager sincroniza disponibilidad y tarifas por conexión directa (API) con cada OTA. iCal sólo comparte fechas ocupadas, sin tarifas, y con un retraso de minutos a horas. Para un hotel pequeño suele bastar para no vender dos veces el mismo cuarto.",
+      },
+      {
+        q: "¿Dónde encuentro el enlace iCal de mi anuncio?",
+        a: "En Airbnb: Anuncios → Disponibilidad → Conectar calendarios. En Booking: Extranet → Tarifas y disponibilidad → Sincronizar calendarios. En Vrbo: Calendario → Importar y exportar.",
+      },
+      {
+        q: "¿Por qué Booking no me deja sincronizar calendarios?",
+        a: "Booking sólo muestra la opción si cada tipo de habitación tiene una sola unidad y no usas otro channel manager; algunos contratos tampoco la incluyen.",
+      },
+    ],
+    relacionado: {
+      texto: "Sincronizar Airbnb, Booking y Expedia con Kora",
+      href: "/sincronizar-airbnb-booking",
     },
   },
   {

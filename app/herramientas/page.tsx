@@ -1,19 +1,20 @@
 import type { Metadata } from "next";
 import { BarraCTA } from "@/components/shared/BarraCTA";
+import { conSocial } from "@/lib/seo";
 import { Reveal } from "@/components/shared/Reveal";
 import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 import { HerramientasExplorador } from "@/components/herramientas/HerramientasExplorador";
 import { herramientasDisponibles } from "@/lib/herramientas";
 import { JsonLd } from "@/components/shared/JsonLd";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = conSocial({
   title: "Herramientas gratis para hoteles | Kora",
   description:
     "Calculadoras y herramientas gratuitas para dueños de hoteles boutique en México: comisiones de OTAs, tarifas, punto de equilibrio, impuestos y más.",
   alternates: {
     canonical: "/herramientas",
   },
-};
+});
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
 

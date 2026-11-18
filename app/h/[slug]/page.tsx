@@ -21,7 +21,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY, supabaseEnvReady } from "@/lib/supabas
 import { ownerTienePlanActivo, accesoDelHotel } from "@/lib/suscripcion";
 import { getResenasPublicadas } from "@/lib/db/reviews";
 import { tienePostsPublicados } from "@/lib/hotel-blog";
-import { metaDescripcion, tituloDeHotel } from "@/lib/seo";
+import { metaDescripcion, tituloDeHotel, direccionPostal } from "@/lib/seo";
 import { extraerCoords } from "@/lib/maps";
 import { JsonLd } from "@/components/shared/JsonLd";
 
@@ -243,7 +243,7 @@ export default async function MiniPagina({
       : {}),
     currenciesAccepted: "MXN",
     ...(hotel.ubicacion
-      ? { address: { "@type": "PostalAddress", addressLocality: hotel.ubicacion, addressCountry: "MX" } }
+      ? { address: direccionPostal(hotel.ubicacion) }
       : {}),
     ...(minPrecio ? { priceRange: `Desde $${minPrecio.toLocaleString("es-MX")} MXN` } : {}),
     ...((hotel.habitaciones ?? []).length

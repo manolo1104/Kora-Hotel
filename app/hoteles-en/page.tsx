@@ -1,24 +1,28 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { conSocial } from "@/lib/seo";
 import { ciudades } from "@/lib/ciudades";
 import { Reveal } from "@/components/shared/Reveal";
 import { BarraCTA } from "@/components/shared/BarraCTA";
 import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 import { JsonLd } from "@/components/shared/JsonLd";
 
-export const metadata: Metadata = {
-  title: "Reservas directas para hoteles en la Huasteca | Kora",
+export const metadata: Metadata = conSocial({
+  // Decía sólo «Huasteca» y la página lista 17 destinos de todo México
+  // (San Miguel, Bacalar, Oaxaca…). La Huasteca sigue nombrada primero: es
+  // donde nació Kora y donde está el caso de Paraíso.
+  title: `Reservas directas en ${ciudades.length} destinos de México | Kora`,
   description:
-    "Reservas directas sin comisión y WhatsApp con IA para hoteles, cabañas y ecolodges en Xilitla, Ciudad Valles, Aquismón, Tamasopo y toda la Huasteca.",
+    "Reservas sin comisión y WhatsApp con IA para hoteles y cabañas en la Huasteca Potosina, San Miguel de Allende, Bacalar, Oaxaca y más destinos de México.",
   alternates: { canonical: "/hoteles-en" },
-};
+});
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://kora-hotel.com";
 
 const itemListJsonLd = {
   "@context": "https://schema.org",
   "@type": "ItemList",
-  name: "Sistema de reservas para hoteles por ciudad — Huasteca Potosina",
+  name: "Sistema de reservas para hoteles por destino en México",
   itemListElement: ciudades.map((c, i) => ({
     "@type": "ListItem",
     position: i + 1,
@@ -40,7 +44,7 @@ export default function HotelesEnPage() {
           </Reveal>
           <Reveal delay={0.1}>
             <h1 className="text-3xl sm:text-5xl font-bold tracking-tight leading-tight">
-              Reservas directas para tu hotel en la Huasteca Potosina
+              Reservas directas para tu hotel, de la Huasteca a todo México
             </h1>
           </Reveal>
           <Reveal delay={0.2}>
