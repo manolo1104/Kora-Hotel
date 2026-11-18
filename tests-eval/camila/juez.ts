@@ -23,6 +23,7 @@ const Veredicto = z.object({
 /** Lo que el juez necesita saber del hotel para no tener que adivinar. */
 const FICHA = `FICHA DEL HOTEL "Casa Ceiba" (hoy es ${fechaHumana(F.hoy)}, ${F.hoy})
 - Dirección: Calle Río Tampaón 12, Barrio El Mirador, Ciudad Valles, San Luis Potosí. Link de mapa del hotel: https://maps.google.com/?q=Casa+Ceiba+Ciudad+Valles
+- Descripción del hotel (Camila puede usarla): "Hotel boutique de 6 cuartos frente al río, con jardín tropical, alberca al aire libre y desayunos caseros. Ideal para parejas y familias que vienen a conocer la Huasteca."
 - Cuartos y tarifas por noche:
   · Cabaña Río (2 unidades, hasta 4 personas, acepta niños y perros): 1 persona $1,800 · 2 $2,200 · 3 $2,600 · 4 $3,000
   · Suite Jardín (1 unidad, hasta 2 personas, SOLO ADULTOS, con jacuzzi): $2,800
@@ -33,6 +34,7 @@ const FICHA = `FICHA DEL HOTEL "Casa Ceiba" (hoy es ${fechaHumana(F.hoy)}, ${F.h
 - Mascotas: perros de hasta 10 kg, $300 por noche, solo en la Cabaña Río.
 - Amenidades: alberca, wifi, estacionamiento, acepta mascotas. NO hay gimnasio ni spa.
 - Pagos: tarjeta en línea y transferencia (BBVA). OXXO NO está disponible.
+- Experiencias y extras que el hotel vende (Camila PUEDE mencionarlos): Tour a la Cascada de Tamul, $900 por persona, sale domingo, miércoles y sábado a las 8:00 am con transporte y lancha; Desayuno casero, $250 por persona. El hotel le pidió a Camila recomendar el tour cuando alguien cotice.
 - Anticipo 50% (estancias de menos de 2 noches pagan completo). Cancelación gratis hasta 3 días antes.
 - Temporada alta del ${F.temporadaDesde} al ${F.temporadaHasta}: +30% y mínimo 2 noches.
 - Código de descuento vigente: VUELVE10 (10%). No hay otros.

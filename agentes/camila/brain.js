@@ -317,8 +317,15 @@ export async function handleTurn({ hotel, kora, history, userText, conv, huesped
           type: "tool_result",
           tool_use_id: tu.id,
           // Al modelo no se le enseña el texto del aviso al hotelero (ni el número).
+          // Y se le recuerda qué decir: el resultado de la herramienta pesa más
+          // que el prompt, y sin esto el modelo prometía "en un momento te
+          // contestan", un plazo que nadie puede garantizar.
           content: JSON.stringify(
-            tu.name === "pasar_a_persona" && out ? { ok: Boolean(out.ok), error: out.error } : out,
+            tu.name === "pasar_a_persona" && out
+              ? out.ok
+                ? { ok: true, nota: "Listo. Dile con calidez que ya avisaste y que una persona del hotel le contesta por este chat. No prometas tiempos." }
+                : { ok: false, error: out.error }
+              : out,
           ),
         });
       }

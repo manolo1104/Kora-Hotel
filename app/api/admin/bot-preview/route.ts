@@ -177,6 +177,7 @@ export async function POST(req: Request) {
               ok: false,
               error: "modo-prueba",
               detalle: "En la versión en vivo, aquí Camila avisaría por WhatsApp a una persona del hotel.",
+              nota: "Explica que en vivo avisarías al equipo y que una persona le contestaría por este chat. No prometas tiempos.",
             };
           } else {
             out = { error: "herramienta-desconocida" };
