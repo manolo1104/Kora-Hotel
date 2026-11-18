@@ -56,22 +56,22 @@ export function CanalesSection() {
     <section
       id="canales"
       aria-labelledby="canales-titulo"
-      className="section-divider py-20 sm:py-24 bg-kora-primary text-white scroll-mt-16 overflow-hidden"
+      className="py-20 sm:py-24 bg-kora-bg text-kora-text scroll-mt-16 overflow-hidden"
     >
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           <Reveal>
             <div>
-              <p className="text-xs font-bold uppercase tracking-widest text-kora-accent mb-3">
+              <p className="text-xs font-bold uppercase tracking-widest text-kora-primary/70 mb-3">
                 Se enlaza con tus OTAs
               </p>
               <h2
                 id="canales-titulo"
-                className="text-3xl sm:text-4xl font-bold tracking-tight leading-tight"
+                className="text-3xl sm:text-4xl font-bold tracking-tight leading-tight text-kora-text"
               >
                 Sigue en Airbnb, Booking y Expedia. Sin vender dos veces el mismo cuarto.
               </h2>
-              <p className="mt-4 text-white/70 text-base sm:text-lg leading-relaxed">
+              <p className="mt-4 text-kora-muted text-base sm:text-lg leading-relaxed">
                 No tienes que elegir entre tu canal directo y las OTAs. Kora enlaza sus
                 calendarios con el tuyo: lo que vendes allá se bloquea en Kora, y lo
                 que vendes directo —sin comisión— se cierra allá.
@@ -81,11 +81,11 @@ export function CanalesSection() {
                 {VALOR.map(({ Icon, titulo, texto }) => (
                   <li key={titulo} className="flex gap-3">
                     <span className="flex-shrink-0 w-9 h-9 rounded-xl bg-kora-accent/20 flex items-center justify-center">
-                      <Icon className="w-5 h-5 text-kora-accent" aria-hidden="true" />
+                      <Icon className="w-5 h-5 text-kora-primary" aria-hidden="true" />
                     </span>
                     <div>
                       <p className="font-semibold text-sm">{titulo}</p>
-                      <p className="text-sm text-white/65 leading-relaxed">{texto}</p>
+                      <p className="text-sm text-kora-muted leading-relaxed">{texto}</p>
                     </div>
                   </li>
                 ))}
@@ -95,7 +95,7 @@ export function CanalesSection() {
 
           {/* Diagrama: tres OTAs ⇄ el calendario de Kora. */}
           <Reveal delay={0.1}>
-            <div className="relative rounded-3xl bg-white/5 border border-white/10 p-6 sm:p-8">
+            <div className="relative rounded-3xl bg-kora-primary p-6 sm:p-8 shadow-xl">
               <ul className="grid grid-cols-3 gap-3" aria-label="OTAs que se enlazan con Kora">
                 {OTAS.map((o) => (
                   <li
@@ -156,19 +156,19 @@ export function CanalesSection() {
         <Reveal delay={0.15}>
           <ol className="mt-14 grid grid-cols-1 sm:grid-cols-3 gap-4" aria-label="Cómo se enlaza una OTA">
             {PASOS.map(({ Icon, titulo, texto }, i) => (
-              <li key={titulo} className="rounded-2xl border border-white/10 bg-white/5 p-5">
+              <li key={titulo} className="rounded-2xl border border-gray-100 bg-white shadow-sm p-5">
                 <div className="flex items-center gap-3 mb-2">
-                  <span className="w-7 h-7 rounded-full bg-kora-accent text-kora-primary text-xs font-bold flex items-center justify-center">
+                  <span className="w-7 h-7 rounded-full bg-kora-primary text-white text-xs font-bold flex items-center justify-center">
                     {i + 1}
                   </span>
-                  <Icon className="w-4 h-4 text-kora-accent" aria-hidden="true" />
+                  <Icon className="w-4 h-4 text-kora-primary" aria-hidden="true" />
                 </div>
                 <p className="font-semibold text-sm sm:text-base">{titulo}</p>
-                <p className="mt-1 text-sm text-white/65 leading-relaxed">{texto}</p>
+                <p className="mt-1 text-sm text-kora-muted leading-relaxed">{texto}</p>
               </li>
             ))}
           </ol>
-          <p className="mt-6 text-xs text-white/50 leading-relaxed max-w-3xl">
+          <p className="mt-6 text-xs text-kora-muted leading-relaxed max-w-3xl">
             {ENLACE_OTA.limites} En Expedia, el iCal sólo existe para anuncios de Vrbo.
           </p>
         </Reveal>

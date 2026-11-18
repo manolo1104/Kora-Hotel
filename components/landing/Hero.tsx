@@ -10,6 +10,7 @@ import {
 } from "motion/react";
 import { ArrowRight, Gift } from "lucide-react";
 import { WhatsAppMockup } from "@/components/landing/ProductMockups";
+import { OrbitaLogos } from "@/components/landing/OrbitaLogos";
 import { CtaLink } from "@/components/shared/CtaLink";
 import { trackCta } from "@/lib/analytics";
 import { GARANTIA, PRECIO_DESDE, RUTA_ACTIVAR, RUTA_REGISTRO } from "@/lib/oferta";
@@ -203,7 +204,10 @@ export function Hero() {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.8, delay: 0.1, ease: "easeOut" }}
             >
-              <WhatsAppMockup />
+              {/* Las integraciones giran en espiral alrededor del chat. */}
+              <OrbitaLogos>
+                <WhatsAppMockup />
+              </OrbitaLogos>
             </motion.div>
           </div>
         </div>

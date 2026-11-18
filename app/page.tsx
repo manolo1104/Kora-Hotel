@@ -139,23 +139,21 @@ export default function HomePage() {
     <main>
       <JsonLd data={jsonLd} />
       <Hero />
+      {/* Decisión de Manolo (18 nov 2026): JUSTO bajo el hero van los dos
+          ganchos de la propuesta de valor — Camila, el agente de WhatsApp (la
+          razón por la que llegan los prospectos), y el enlace con Airbnb,
+          Booking y Expedia (el miedo a vender dos veces el mismo cuarto). */}
+      <AgenteSection />
+      <CanalesSection />
       <TrustStrip />
-      {/* Demo + prueba real JUSTO bajo el hero: el "ajá" en 90 seg y el caso
-          de Paraíso mientras hay máxima atención. */}
+      {/* Demo + prueba real: el "ajá" en 90 seg y el caso de Paraíso. */}
       <SocialProofSection />
       <ProblemSection />
-      {/* El agente de WhatsApp va PRIMERO entre los productos: es la razón por
-          la que llegan los prospectos (dos de las últimas reuniones entraron
-          por ahí). Antes vivía cuatro bloques más abajo. */}
-      <AgenteSection />
       {/* Después el motor de reservas directas y su demo INTERACTIVO (el motor
           real, hotel de demostración): es lo que sostiene el precio. */}
       <MotorReservasSection />
       <DemoMotorSection />
       <SolutionSection />
-      {/* El enlace con Airbnb/Booking/Expedia: contesta el miedo de sumar un
-          canal directo (vender dos veces el mismo cuarto). */}
-      <CanalesSection />
       <DiferenciadoresSection />
       <FundadorSection />
       <IntegracionesSection />
