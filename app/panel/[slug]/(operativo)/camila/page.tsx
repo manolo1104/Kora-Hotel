@@ -3,11 +3,12 @@ import { motivoCierre } from "@/lib/panel/pantallas";
 import { SinPermiso, pantallaDe } from "@/components/panel/SinPermiso";
 import { diagnosticarHotel } from "@/lib/panel/diagnostico";
 import { accesoDelHotel, puedeUsarCamila } from "@/lib/suscripcion";
+import { cobrosListosDelHotel } from "@/lib/motor/modo-prueba";
 import CamilaClient from "./CamilaClient";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = { title: "Camila (bot) | Kora", robots: { index: false } };
+export const metadata = { title: "Tu asistente de WhatsApp | Kora", robots: { index: false } };
 
 export default async function CamilaPage({
   params,
@@ -26,7 +27,7 @@ export default async function CamilaPage({
   if (cierre) {
     return (
       <SinPermiso
-        titulo="Camila (bot)"
+        titulo="Camila · WhatsApp"
         quien="encargada"
         motivo={cierre}
         volverA={pantallaDe(ctx.rol, slug, ctx.pantallas)}
@@ -34,7 +35,12 @@ export default async function CamilaPage({
     );
   }
   const diagnostico = diagnosticarHotel(ctx.hotel);
-  const acceso = await accesoDelHotel(ctx.hotel);
+  const [acceso, cobrosListos] = await Promise.all([
+    accesoDelHotel(ctx.hotel),
+    // La cuenta de Stripe COBRA de verdad (no basta con que exista): es lo que
+    // decide si la asistente puede mandar link de pago.
+    cobrosListosDelHotel(ctx.hotel.id, ctx.hotel.stripe_account_id),
+  ]);
   return (
     <CamilaClient
       slug={slug}
@@ -42,6 +48,7 @@ export default async function CamilaPage({
       whatsappHotel={ctx.hotel.whatsapp ?? ""}
       diagnostico={diagnostico}
       camilaPermitida={puedeUsarCamila(acceso, ctx.hotel)}
+      cobrosListos={cobrosListos}
     />
   );
 }

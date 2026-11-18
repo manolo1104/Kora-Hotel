@@ -1,159 +1,44 @@
 "use client";
 
-import { RUTA_ACTIVAR, REGALO_CAMILA_MENSAJES } from "@/lib/oferta";
-import { useEffect, useRef, useState } from "react";
+// La pantalla de la asistente de WhatsApp.
+//
+// ANTES: un asistente de 6 pasos en un solo archivo de 1,750 líneas; lo que la
+// asistente SABE se editaba en otra pantalla (Mi sitio → Avanzado) y aquí sólo
+// se veía una lista de chequeo; cuatro maneras distintas de guardar y fallos
+// silenciosos; jerga («token», «IA», «bot»); y el chat de prueba escondido en el
+// paso 5.
+//
+// AHORA: un encabezado que dice en una línea si está contestando o no; pestañas
+// por TEMA (no pasos en orden); todo se guarda solo con un único indicador; y
+// «Pruébala» siempre a la mano para ver al instante cómo cambia lo que
+// configuras.
+
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Bot,
-  Sparkles,
+  BookOpen,
+  LayoutList,
   MessageCircle,
-  Check,
-  Loader2,
-  Copy,
-  Eye,
-  Send,
-  Power,
-  Phone,
+  MessagesSquare,
   QrCode,
-  Info,
-  CalendarDays,
-  AlertTriangle,
-  ArrowRight,
-  ChevronLeft,
-  ChevronRight,
-  Wallet,
+  Sparkles,
+  Store,
+  X,
+  Loader2,
 } from "lucide-react";
+import { Aviso, IndicadorGuardado, Pestanas, Switch, type Pestana } from "@/components/panel/ui";
+import type { DiagnosticoHotel } from "@/lib/panel/diagnostico";
 import Conversaciones from "./Conversaciones";
-import type { DiagnosticoHotel, DiagnosticoItem } from "@/lib/panel/diagnostico";
-import type { BotAvailability } from "@/lib/bot/tools";
-import { waLink } from "@/lib/contacto";
+import ChatPrueba from "./ChatPrueba";
+import { useCamila } from "./useCamila";
+import { mismoTelefono, telefonoValido, type Saldo, type Seccion } from "./tipos";
+import Resumen, { pendientesDe, type Pendiente } from "./secciones/Resumen";
+import Personalidad from "./secciones/Personalidad";
+import LoQueSabe from "./secciones/LoQueSabe";
+import ComoVende from "./secciones/ComoVende";
+import WhatsApp, { ESTADOS_CONEXION, type Motivo } from "./secciones/WhatsApp";
 
-interface BotFaq {
-  q: string;
-  a: string;
-}
-interface BotPagoFields {
-  titular: string;
-  banco: string;
-  clabe: string;
-  cuenta: string;
-  notas: string;
-}
-type EmojiNivel = "nada" | "bajo" | "medio" | "alto";
-interface BotEmojiFields {
-  nivel: EmojiNivel;
-  preferidos: string;
-}
-interface BotFields {
-  nombre: string;
-  tono: string;
-  saludo: string;
-  instrucciones: string;
-  escalarWhatsapp: string;
-  pago: BotPagoFields;
-  emojis: BotEmojiFields;
-  faqs: BotFaq[];
-  entrenadoAt: string | null;
-  probadoAt: string | null;
-}
-
-const EMPTY_PAGO: BotPagoFields = { titular: "", banco: "", clabe: "", cuenta: "", notas: "" };
-const EMPTY_EMOJIS: BotEmojiFields = { nivel: "medio", preferidos: "" };
-
-// Niveles de emoji que el hotel puede elegir para el estilo de Camila.
-const NIVELES_EMOJI: { key: EmojiNivel; label: string; hint: string }[] = [
-  { key: "nada", label: "Sin emojis", hint: "Nunca usa emojis" },
-  { key: "bajo", label: "Pocos", hint: "Máximo 1, de vez en cuando" },
-  { key: "medio", label: "Normal", hint: "1 o 2 por mensaje" },
-  { key: "alto", label: "Muchos", hint: "2 a 4 por mensaje" },
-];
-/** Lo que devuelve `GET /api/admin/saldo`. */
-interface Saldo {
-  /** `null` = no hay dato. NO es cero: ver el comentario del estado. */
-  mensajes: number | null;
-  consumo30d: number;
-  /** Días que le duran al ritmo que lleva; `null` si no hay con qué estimarlo. */
-  diasRestantes: number | null;
-  umbralBajo: number;
-  paquetes: { mxn: number; mensajes: number; destacado?: boolean }[];
-  /**
-   * ¿Está abierto el pago ya, para cualquiera? Lo decide Kora desde
-   * CRM → Prepago y vive en la base (`kora_ajustes.saldo_fases`); `SALDO_RECARGA`
-   * sólo manda mientras nadie haya tocado esos botones.
-   */
-  recargaAbierta: boolean;
-  /**
-   * ¿Un hotel sin saldo se queda mudo ya? Misma fuente que `recargaAbierta`
-   * (`SALDO_BLOQUEO` es sólo el respaldo). El nombre del campo se conserva a
-   * propósito para no romper a este panel: ver app/api/admin/saldo/route.ts.
-   */
-  bloqueoActivo: boolean;
-  /** Recargar es gastar dinero del hotel: sólo el dueño. */
-  puedeRecargar: boolean;
-}
-
-interface Msg {
-  role: "user" | "assistant";
-  content: string;
-}
-
-const EMPTY_BOT: BotFields = {
-  nombre: "",
-  tono: "",
-  saludo: "",
-  instrucciones: "",
-  escalarWhatsapp: "",
-  pago: { ...EMPTY_PAGO },
-  emojis: { ...EMPTY_EMOJIS },
-  faqs: [],
-  entrenadoAt: null,
-  probadoAt: null,
-};
-
-const TOTAL_PASOS = 6;
-
-// Interacciones de prueba exitosas necesarias para dar por "probada" a Camila.
-const META_PRUEBAS = 3;
-
-// Preguntas típicas de huésped: responderlas aquí "entrena" al bot sin pensar
-// qué escribir. Cada respuesta se guarda como una FAQ del bot ({q, a}).
-const PREGUNTAS_RAPIDAS = [
-  { q: "¿Aceptan mascotas?", ph: "Ej. Sí, con cargo de $200 por noche. / No, lo sentimos." },
-  { q: "¿Tienen estacionamiento?", ph: "Ej. Sí, gratis dentro del hotel." },
-  { q: "¿El desayuno está incluido?", ph: "Ej. Sí, de 8 a 11 am. / Se agrega por $150 por persona." },
-  { q: "¿Hacen descuento a grupos?", ph: "Ej. Desde 8 habitaciones, 10% de descuento." },
-  { q: "¿Puedo facturar mi estancia?", ph: "Ej. Sí, manda tu constancia fiscal al correo…" },
-  { q: "¿Qué hay cerca del hotel?", ph: "Ej. A 10 min de las cascadas, 5 min del centro…" },
-] as const;
-const PRESET_QS = new Set<string>(PREGUNTAS_RAPIDAS.map((p) => p.q));
-
-// Preguntas sugeridas para el chat de prueba (validar a Camila en 1 minuto).
-const SUGERENCIAS_PRUEBA = [
-  "¿Tienen disponibilidad este fin de semana?",
-  "¿Cuánto es el anticipo?",
-  "¿Qué experiencias o tours tienen?",
-  "¿Aceptan mascotas?",
-];
-
-// Lo que se manda al guardar (y se compara para el autoguardado).
-function serializarBot(b: BotFields): string {
-  return JSON.stringify({
-    nombre: b.nombre,
-    tono: b.tono,
-    saludo: b.saludo,
-    instrucciones: b.instrucciones,
-    escalarWhatsapp: b.escalarWhatsapp,
-    pago: b.pago,
-    emojis: b.emojis,
-    faqs: b.faqs.filter((f) => f.q.trim()),
-  });
-}
-
-// Fecha ISO a N días de hoy (para valores por defecto del verificador).
-function isoEnDias(dias: number): string {
-  const d = new Date();
-  d.setDate(d.getDate() + dias);
-  return d.toLocaleDateString("en-CA");
-}
+const SECCIONES: Seccion[] = ["resumen", "personalidad", "sabe", "vende", "conversaciones", "whatsapp"];
 
 export default function CamilaClient({
   slug,
@@ -161,179 +46,111 @@ export default function CamilaClient({
   whatsappHotel,
   diagnostico,
   camilaPermitida = true,
+  cobrosListos = false,
 }: {
   slug: string;
   hotelNombre: string;
   whatsappHotel: string;
   diagnostico: DiagnosticoHotel;
-  /**
-   * false = hotel en prueba gratis registrado desde el 2 oct 2026: tiene el
-   * panel, pero Camila (chat de prueba y QR) se abre al activar el plan.
-   */
+  /** false = hotel en prueba gratis: tiene el panel, pero el chat y el QR se abren al activar el plan. */
   camilaPermitida?: boolean;
+  /** La cuenta de Stripe del hotel cobra de verdad (no sólo existe). */
+  cobrosListos?: boolean;
 }) {
-  const [cargando, setCargando] = useState(true);
-  const [enabled, setEnabled] = useState(true);
-  const [lang, setLang] = useState<"es" | "en">("es");
-  const [bot, setBot] = useState<BotFields>(EMPTY_BOT);
+  const c = useCamila();
+  const nombreBot = c.bot.nombre.trim() || "Camila";
 
-  // Número autorizado para apagar/encender a Camila por WhatsApp.
-  const [adminPhone, setAdminPhone] = useState("");
-  const [adminGuardado, setAdminGuardado] = useState(false);
+  // ── pestaña activa (también desde la URL: ?tab=… o ?chat=… del aviso por WhatsApp) ──
+  const [seccion, setSeccionState] = useState<Seccion>("resumen");
+  const [chatInicial, setChatInicial] = useState<string | null>(null);
+  const [chatMovil, setChatMovil] = useState(false);
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search);
+    const chat = q.get("chat");
+    const tab = q.get("tab") as Seccion | null;
+    if (chat) {
+      setChatInicial(chat);
+      setSeccionState("conversaciones");
+    } else if (tab && SECCIONES.includes(tab)) setSeccionState(tab);
+  }, []);
+  const setSeccion = useCallback(
+    (s: Seccion) => {
+      // Al volver de las conversaciones, trae lo que se enseñó con «Corregir».
+      if (seccion === "conversaciones" && s !== "conversaciones") void c.recargarFaqs();
+      setSeccionState(s);
+      const url = new URL(window.location.href);
+      url.searchParams.set("tab", s);
+      url.searchParams.delete("chat");
+      window.history.replaceState({}, "", url);
+    },
+    [seccion, c],
+  );
 
-  // ¿El usuario ya probó a Camila? Criterio honesto: 3 interacciones de prueba
-  // exitosas (chat demo o verificador). El servidor lleva la cuenta (extras.bot.pruebas).
-  const [probado, setProbado] = useState(false);
-  const [pruebas, setPruebas] = useState(0);
-
-  // Autoguardado: snapshot de lo último guardado + flag "ya cargó del servidor".
-  const cargadoRef = useRef(false);
-  const ultimoGuardadoRef = useRef("");
-
-  // Paso activo del asistente (0..TOTAL_PASOS-1).
-  const [paso, setPaso] = useState(0);
-
-  // Configurar (el asistente) vs. leer lo que ya contestó. Se configura una vez
-  // y se leen las conversaciones a diario, así que no puede estar enterrado al
-  // final de seis pasos.
-  const [vista, setVista] = useState<"config" | "conversaciones">("config");
-
-  const [entrenando, setEntrenando] = useState(false);
-  const [guardando, setGuardando] = useState(false);
-  const [guardado, setGuardado] = useState(false);
-  const [aviso, setAviso] = useState<string | null>(null);
-
-  const [token, setToken] = useState("");
-  const [tokenCargando, setTokenCargando] = useState(false);
-  const [tokenCopiado, setTokenCopiado] = useState(false);
-
-  // Estado/QR del bot (viene del runtime en Railway vía /api/admin/bot-qr)
+  // ── conexión (QR) y saldo: se consultan cada 15 s mientras la pestaña está a la vista ──
   const [qrStatus, setQrStatus] = useState<string | null>(null);
   const [qrImg, setQrImg] = useState<string | null>(null);
-  // Lo que le falta a ESTE hotel para que Camila arranque. Viene de la misma
-  // lista que aplica el fleet, así que si está vacío es que sí es elegible.
-  const [motivos, setMotivos] = useState<{ clave: string; titulo: string; detalle: string }[]>([]);
-
-  // Saldo prepago de mensajes de WhatsApp.
-  //
-  // `mensajes: null` NO es "cero": es "no hay dato" (este hotel no está dado de
-  // alta en el prepago, o no se pudo leer). En ese caso no se pinta nada, que es
-  // lo correcto — decirle "0 mensajes" a un hotel que sí está contestando sería
-  // mentira y le haría recargar sin necesidad.
+  const [motivos, setMotivos] = useState<Motivo[]>([]);
   const [saldo, setSaldo] = useState<Saldo | null>(null);
   const [recargando, setRecargando] = useState(false);
-
-  // Chat de prueba
-  const [mensajes, setMensajes] = useState<Msg[]>([]);
-  const [input, setInput] = useState("");
-  const [enviando, setEnviando] = useState(false);
-  const chatFin = useRef<HTMLDivElement | null>(null);
-
-  // Verificador de disponibilidad (paso 5)
-  const [vChkin, setVChkin] = useState("");
-  const [vChkout, setVChkout] = useState("");
-  const [vCargando, setVCargando] = useState(false);
-  const [vError, setVError] = useState<string | null>(null);
-  const [vResultado, setVResultado] = useState<BotAvailability | null>(null);
+  const [avisoPago, setAvisoPago] = useState<{ tono: "ok" | "alerta" | "error"; texto: string } | null>(null);
 
   useEffect(() => {
-    // Fechas por defecto del verificador: dentro de una semana, dos noches.
-    setVChkin(isoEnDias(7));
-    setVChkout(isoEnDias(9));
-    fetch("/api/admin/bot-config")
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error("no-auth"))))
-      .then((d) => {
-        setEnabled(Boolean(d.enabled));
-        setLang(d.lang === "en" ? "en" : "es");
-        setAdminPhone(typeof d.adminPhone === "string" ? d.adminPhone : "");
-        setProbado(Boolean(d.bot?.probadoAt));
-        setPruebas(Number(d.bot?.pruebas) || 0);
-        const cargado: BotFields = {
-          ...EMPTY_BOT,
-          ...(d.bot ?? {}),
-          escalarWhatsapp: d.bot?.escalarWhatsapp || whatsappHotel || "",
-          pago: { ...EMPTY_PAGO, ...(d.bot?.pago ?? {}) },
-          emojis: { ...EMPTY_EMOJIS, ...(d.bot?.emojis ?? {}) },
-          faqs: Array.isArray(d.bot?.faqs) ? d.bot.faqs : [],
-        };
-        setBot(cargado);
-        ultimoGuardadoRef.current = serializarBot(cargado);
-        cargadoRef.current = true;
-      })
-      .catch(() => setAviso("No pude cargar la configuración."))
-      .finally(() => setCargando(false));
-  }, [whatsappHotel]);
-
-  useEffect(() => {
-    chatFin.current?.scrollIntoView({ behavior: "smooth" });
-  }, [mensajes, enviando]);
-
-  // Sondea el estado/QR del bot cada 15 s (el QR rota; así se refresca solo).
-  useEffect(() => {
-    let activo = true;
-    async function fetchQr() {
+    let vivo = true;
+    async function consultar() {
+      if (document.visibilityState !== "visible") return;
       try {
         const res = await fetch("/api/admin/bot-qr", { cache: "no-store" });
         const d = await res.json().catch(() => ({}));
-        if (!activo) return;
-        // Vincular el WhatsApp del hotel es cosa del dueño, así que la API
-        // responde 403 al resto del equipo. Sin este caso, el 403 caía en
-        // "sin-servicio" y a la recepcionista se le decía "estamos preparando tu
-        // conexión" — como si Camila estuviera caída, cuando lo único que pasa
-        // es que no le toca a ella.
+        if (!vivo) return;
         if (res.status === 403) {
           setQrStatus("sin-permiso");
           setQrImg(null);
-          return;
+        } else {
+          setQrStatus(typeof d.status === "string" ? d.status : "sin-servicio");
+          setQrImg(typeof d.qr === "string" ? d.qr : null);
+          setMotivos(Array.isArray(d.motivos) ? d.motivos : []);
         }
-        setQrStatus(typeof d.status === "string" ? d.status : "sin-servicio");
-        setQrImg(typeof d.qr === "string" ? d.qr : null);
-        setMotivos(Array.isArray(d.motivos) ? d.motivos : []);
       } catch {
-        if (activo) setQrStatus("sin-servicio");
+        if (vivo) setQrStatus("sin-servicio");
       }
-    }
-    // El saldo va en el MISMO sondeo, y no sólo al cargar: cuando el hotelero
-    // vuelve de pagar, el webhook de Stripe tarda un par de segundos en
-    // acreditar. Sin esto vería su saldo viejo justo después de haber pagado.
-    async function fetchSaldo() {
       try {
         const res = await fetch("/api/admin/saldo", { cache: "no-store" });
-        if (!res.ok) return; // 403 = no le toca ver el saldo; se calla, no alarma
-        const d = await res.json().catch(() => null);
-        if (activo && d?.ok) setSaldo(d as Saldo);
+        if (res.ok) {
+          const d = await res.json().catch(() => null);
+          if (vivo && d?.ok) setSaldo(d as Saldo);
+        }
       } catch {
-        /* el saldo es informativo: un fallo aquí no rompe la pantalla */
+        /* el saldo es informativo */
       }
     }
-    fetchQr();
-    fetchSaldo();
-    const id = setInterval(() => {
-      fetchQr();
-      fetchSaldo();
-    }, 15000);
+    void consultar();
+    const id = setInterval(consultar, 15000);
+    const alVolver = () => void consultar();
+    document.addEventListener("visibilitychange", alVolver);
     return () => {
-      activo = false;
+      vivo = false;
       clearInterval(id);
+      document.removeEventListener("visibilitychange", alVolver);
     };
   }, []);
 
-  // Vuelta del checkout de Stripe.
+  // Vuelta del checkout de Stripe (recarga de saldo).
   useEffect(() => {
     const p = new URLSearchParams(window.location.search).get("recarga");
     if (!p) return;
-    setAviso(
+    setAvisoPago(
       p === "ok"
-        ? "¡Listo! Tu recarga se está acreditando; el saldo se actualiza solo en unos segundos."
-        : "No se completó el pago. Tu saldo sigue igual.",
+        ? { tono: "ok", texto: "¡Listo! Tu recarga se está acreditando; el saldo se actualiza solo en unos segundos." }
+        : { tono: "alerta", texto: "No se completó el pago. Tu saldo sigue igual." },
     );
-    // Limpia el parámetro para que recargar la página no repita el aviso.
-    window.history.replaceState({}, "", window.location.pathname);
+    const url = new URL(window.location.href);
+    url.searchParams.delete("recarga");
+    window.history.replaceState({}, "", url);
   }, []);
 
   async function recargar(mxn: number) {
     setRecargando(true);
-    setAviso(null);
+    setAvisoPago(null);
     try {
       const res = await fetch("/api/admin/saldo", {
         method: "POST",
@@ -345,1408 +162,214 @@ export default function CamilaClient({
         window.location.href = d.url;
         return;
       }
-      setAviso(typeof d?.error === "string" ? d.error : "No se pudo abrir el pago.");
+      setAvisoPago({ tono: "error", texto: typeof d?.error === "string" ? d.error : "No se pudo abrir el pago." });
     } catch {
-      setAviso("No se pudo abrir el pago.");
+      setAvisoPago({ tono: "error", texto: "No se pudo abrir el pago." });
     } finally {
       setRecargando(false);
     }
   }
 
-  async function postConfig(body: Record<string, unknown>) {
-    const res = await fetch("/api/admin/bot-config", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-    return res.ok;
+  // ── qué le falta ──
+  const pendientes = useMemo(
+    () =>
+      pendientesDe({
+        nombreBot,
+        slug,
+        conectada: qrStatus === "ready",
+        personalidad: Boolean(c.bot.tono.trim() || c.bot.saludo.trim()),
+        basicos: Boolean(c.datos.ubicacion.trim() && c.datos.checkin && c.datos.checkout && c.datos.formasPago.length),
+        cuartosConPrecio: diagnostico.habitaciones.ok && diagnostico.precios.ok,
+        avisoConfigurado:
+          (telefonoValido(c.bot.escalarWhatsapp) && !mismoTelefono(c.bot.escalarWhatsapp, whatsappHotel)) ||
+          telefonoValido(c.adminPhone),
+        probada: Boolean(c.bot.probadoAt) || c.bot.pruebas >= 3,
+      }),
+    [nombreBot, slug, qrStatus, c.bot, c.datos, c.adminPhone, diagnostico, whatsappHotel],
+  );
+  const faltan = pendientes.filter((p) => !p.hecho).length;
+
+  function irA(p: Pendiente) {
+    if (p.ir.href) window.location.href = p.ir.href;
+    else if (p.ir.abrirChat) {
+      if (window.matchMedia("(min-width: 1024px)").matches) document.getElementById("chat-prueba")?.focus();
+      else setChatMovil(true);
+    } else if (p.ir.seccion) setSeccion(p.ir.seccion);
   }
 
-  async function toggleEnabled() {
-    const next = !enabled;
-    setEnabled(next);
-    if (!(await postConfig({ enabled: next }))) setEnabled(!next);
-  }
-
-  async function cambiarIdioma(l: "es" | "en") {
-    const prev = lang;
-    setLang(l);
-    if (!(await postConfig({ lang: l }))) setLang(prev);
-  }
-
-  async function guardarAdminPhone() {
-    const ok = await postConfig({ adminPhone });
-    if (ok) {
-      setAdminGuardado(true);
-      setTimeout(() => setAdminGuardado(false), 2000);
-    }
-  }
-
-  // Registra UNA interacción de prueba exitosa (chat demo o verificador). El
-  // servidor lleva la cuenta y marca probadoAt al llegar a META_PRUEBAS.
-  async function registrarPrueba() {
-    const siguiente = pruebas + 1;
-    setPruebas(siguiente);
-    if (siguiente >= META_PRUEBAS) setProbado(true);
-    await postConfig({ prueba: true });
-  }
-
-  async function entrenarIA() {
-    // Pedir permiso antes de pisar lo escrito a mano. La propuesta sobrescribe
-    // personalidad, saludo e instrucciones, y el autoguardado la persiste ~1.2 s
-    // después: sin confirmación, un clic de curiosidad borraba para siempre lo
-    // que el hotelero había redactado, sin deshacer y sin que se notara.
-    const hayTrabajo = [bot.tono, bot.saludo, bot.instrucciones].some((t) => t.trim().length > 0);
-    if (
-      hayTrabajo &&
-      !window.confirm(
-        "Camila va a reescribir la personalidad, el saludo y las instrucciones con una propuesta nueva.\n\nLo que escribiste a mano se reemplaza y no se puede deshacer. ¿Seguimos?",
-      )
-    ) {
-      return;
-    }
-    setEntrenando(true);
-    setAviso(null);
-    try {
-      const res = await fetch("/api/admin/bot-train", { method: "POST" });
-      const d = await res.json().catch(() => ({}));
-      if (res.ok && d.draft) {
-        setBot((b) => ({
-          ...b,
-          nombre: d.draft.nombre || b.nombre || "Camila",
-          tono: d.draft.tono || b.tono,
-          saludo: d.draft.saludo || b.saludo,
-          instrucciones: d.draft.instrucciones || b.instrucciones,
-        }));
-        setAviso("Camila redactó una propuesta con los datos de tu hotel. Revísala y ajústala. 👇");
-      } else {
-        setAviso(
-          d.error === "sin-ia" || res.status === 503
-            ? "Falta configurar la IA (contacta a Kora)."
-            : "No pude entrenar ahora, inténtalo de nuevo.",
-        );
-      }
-    } catch {
-      setAviso("No pude entrenar ahora, inténtalo de nuevo.");
-    } finally {
-      setEntrenando(false);
-    }
-  }
-
-  // Autoguardado: cualquier cambio del entrenamiento se guarda solo (~1.2 s
-  // después de dejar de escribir). Sin botón "Guardar" que se pueda olvidar.
-  useEffect(() => {
-    if (!cargadoRef.current) return;
-    const snap = serializarBot(bot);
-    if (snap === ultimoGuardadoRef.current) return;
-    const id = setTimeout(async () => {
-      setGuardando(true);
-      setGuardado(false);
-      const ok = await postConfig({ bot: JSON.parse(snap) });
-      setGuardando(false);
-      if (ok) {
-        ultimoGuardadoRef.current = snap;
-        setGuardado(true);
-        setTimeout(() => setGuardado(false), 2500);
-      } else {
-        setAviso("No pude guardar los últimos cambios. Revisa tu conexión.");
-      }
-    }, 1200);
-    return () => clearTimeout(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bot]);
-
-  async function verToken() {
-    setTokenCargando(true);
-    try {
-      const res = await fetch("/api/admin/agent-token");
-      const d = await res.json().catch(() => ({}));
-      if (res.ok && d.token) setToken(d.token);
-    } finally {
-      setTokenCargando(false);
-    }
-  }
-
-  async function copiarToken() {
-    try {
-      await navigator.clipboard.writeText(token);
-      setTokenCopiado(true);
-      setTimeout(() => setTokenCopiado(false), 1500);
-    } catch {
-      /* noop */
-    }
-  }
-
-  async function enviarPrueba(textoParam?: string) {
-    const texto = (textoParam ?? input).trim();
-    if (!texto || enviando) return;
-    const nuevos: Msg[] = [...mensajes, { role: "user", content: texto }];
-    setMensajes(nuevos);
-    setInput("");
-    setEnviando(true);
-    try {
-      const res = await fetch("/api/admin/bot-preview", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mensajes: nuevos }),
-      });
-      const d = await res.json().catch(() => ({}));
-      // Los dos motivos nuevos merecen su propio mensaje: un "no pude responder"
-      // genérico manda al hotelero a reintentar algo que nunca va a funcionar.
-      const reply =
-        res.ok && d.reply
-          ? d.reply
-          : d.error === "sin-pago"
-            ? `(Camila se activa con tu plan: al activarlo se abre este chat y la conexión con tu WhatsApp, con ${REGALO_CAMILA_MENSAJES} mensajes de regalo.)`
-          : d.error === "sin-saldo"
-            ? "(Se te acabaron los mensajes de Camila. Recarga desde tu panel y vuelve a probar.)"
-          : d.error === "motor-pausado"
-            ? "(Tu plan no está activo, así que Camila está en pausa —también con tus huéspedes. Reactívalo desde Suscripción y vuelve a probar.)"
-            : d.error === "demasiadas-pruebas"
-              ? "(Llevas muchas pruebas seguidas. Espera un rato y sigue: es para que el chat de prueba no se dispare.)"
-              : d.error === "sin-ia" || res.status === 503
-                ? "(Falta configurar la IA para la prueba.)"
-                : "(No pude responder ahora, inténtalo de nuevo.)";
-      setMensajes((m) => [...m, { role: "assistant", content: reply }]);
-      if (res.ok && d.reply) registrarPrueba();
-    } catch {
-      setMensajes((m) => [...m, { role: "assistant", content: "(Error de red.)" }]);
-    } finally {
-      setEnviando(false);
-    }
-  }
-
-  async function verificarDisponibilidad() {
-    if (vCargando) return;
-    if (!vChkin || !vChkout || vChkout <= vChkin) {
-      setVError("Elige una fecha de salida posterior a la de llegada.");
-      setVResultado(null);
-      return;
-    }
-    setVCargando(true);
-    setVError(null);
-    setVResultado(null);
-    try {
-      const res = await fetch("/api/admin/bot-availability", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ checkin: vChkin, checkout: vChkout }),
-      });
-      const d = await res.json().catch(() => ({}));
-      if (res.ok && d.ok) {
-        setVResultado(d as BotAvailability);
-        registrarPrueba();
-      } else {
-        setVError(
-          d.error === "fechas-invalidas"
-            ? "Esas fechas no son válidas."
-            : "No pude verificar ahora, inténtalo de nuevo.",
-        );
-      }
-    } catch {
-      setVError("Error de red al verificar.");
-    } finally {
-      setVCargando(false);
-    }
-  }
-
-  function setFaq(i: number, campo: "q" | "a", v: string) {
-    setBot((b) => {
-      const faqs = [...b.faqs];
-      faqs[i] = { ...faqs[i], [campo]: v };
-      return { ...b, faqs };
-    });
-  }
-
-  // Preguntas rápidas: cada respuesta vive como una FAQ del bot con la misma q.
-  function respuestaRapida(q: string): string {
-    return bot.faqs.find((f) => f.q === q)?.a ?? "";
-  }
-  function setRespuestaRapida(q: string, a: string) {
-    setBot((b) => {
-      const i = b.faqs.findIndex((f) => f.q === q);
-      const faqs = [...b.faqs];
-      if (i >= 0) {
-        if (a.trim()) faqs[i] = { q, a };
-        else faqs.splice(i, 1); // respuesta borrada = deja de existir la FAQ
-      } else if (a.trim()) {
-        faqs.push({ q, a });
-      }
-      return { ...b, faqs };
-    });
-  }
-
-  if (cargando) {
+  if (c.cargando) {
     return (
-      <div className="flex items-center justify-center py-24 text-kora-muted">
-        <Loader2 className="animate-spin" size={22} />
+      <div className="flex items-center justify-center py-24 text-kora-muted" role="status">
+        <Loader2 className="animate-spin" size={22} aria-hidden="true" />
+        <span className="sr-only">Cargando…</span>
       </div>
     );
   }
 
-  const nombreBot = bot.nombre.trim() || "Camila";
-  const editar = (tab?: string) => `/panel/${slug}/sitio${tab ? `?tab=${tab}` : ""}`;
-
-  // ── Progreso de configuración (los 6 pasos cuentan) ──
-  const e1Listo = enabled;
-  const e2Listo = Boolean(bot.nombre.trim() && (bot.tono.trim() || bot.saludo.trim()));
-  const e3Listo =
-    diagnostico.habitaciones.ok && diagnostico.precios.ok && diagnostico.fotos.ok;
-  const e4Listo = Boolean(bot.instrucciones.trim() || bot.faqs.some((f) => f.q.trim()));
-  const e5Listo = probado;
-  const e6Listo = qrStatus === "ready";
-  const listosArr = [e1Listo, e2Listo, e3Listo, e4Listo, e5Listo, e6Listo];
-  const listos = listosArr.filter(Boolean).length;
-
-  const temporadas = diagnostico.temporadas;
-  const sabeItems: DiagnosticoItem[] = [
-    diagnostico.habitaciones,
-    diagnostico.precios,
-    diagnostico.camas,
-    diagnostico.fotos,
-    diagnostico.amenidades,
-    diagnostico.politicas,
-    diagnostico.reglas,
-    diagnostico.experiencias,
-    diagnostico.accesibilidad,
-    diagnostico.faqs,
-    diagnostico.guia,
+  const pestanas: Pestana<Seccion>[] = [
+    {
+      id: "resumen",
+      label: "Inicio",
+      icono: <LayoutList size={15} />,
+      marca: faltan ? (
+        <span className="grid h-5 min-w-5 place-items-center rounded-full bg-kora-accent px-1.5 text-[11px] font-bold text-[#0E1A14]">{faltan}</span>
+      ) : null,
+    },
+    { id: "personalidad", label: "Personalidad", icono: <Sparkles size={15} /> },
+    { id: "sabe", label: "Lo que sabe", icono: <BookOpen size={15} /> },
+    { id: "vende", label: "Cómo vende", icono: <Store size={15} /> },
+    { id: "conversaciones", label: "Conversaciones", icono: <MessagesSquare size={15} /> },
+    { id: "whatsapp", label: "WhatsApp y ajustes", icono: <QrCode size={15} /> },
   ];
 
-  const PASOS = [
-    { n: 1, label: "Activar", titulo: "Enciende a Camila", icon: <Power size={18} />, listo: e1Listo },
-    { n: 2, label: "Identidad", titulo: `Identidad de ${nombreBot}`, icon: <Sparkles size={18} />, listo: e2Listo },
-    { n: 3, label: "Datos", titulo: `Lo que ${nombreBot} sabe de tu hotel`, icon: <Info size={18} />, listo: e3Listo },
-    { n: 4, label: "Reglas", titulo: "Reglas de conversación", icon: <MessageCircle size={18} />, listo: e4Listo },
-    { n: 5, label: "Probar", titulo: `Prueba a ${nombreBot}`, icon: <MessageCircle size={18} />, listo: e5Listo },
-    { n: 6, label: "Conectar", titulo: "Conecta tu WhatsApp", icon: <QrCode size={18} />, listo: e6Listo },
-  ];
-  const activo = PASOS[paso];
+  const conexion = ESTADOS_CONEXION[qrStatus ?? "desconocido"] ?? ESTADOS_CONEXION.desconocido;
+  const sinSaldo = saldo?.bloqueoActivo && saldo.mensajes !== null && saldo.mensajes <= 0;
+  const contestando = c.enabled && qrStatus === "ready" && !sinSaldo;
+  const estadoTexto = !c.enabled
+    ? `${nombreBot} está en pausa: no contesta a nadie.`
+    : sinSaldo
+      ? `Se acabó el saldo: ${nombreBot} no puede contestar hasta que recargues.`
+      : qrStatus === "ready"
+        ? `${nombreBot} está contestando a tus huéspedes.`
+        : `${nombreBot} está encendida, pero falta conectarla a tu WhatsApp.`;
+
+  const conChat = seccion !== "conversaciones";
 
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 space-y-6">
-      {/* Encabezado */}
-      <header>
-        <div className="flex items-center gap-3">
-          <div className="grid place-items-center w-11 h-11 rounded-2xl bg-kora-primary/10 text-kora-primary">
-            <Bot size={22} />
+    <div className="mx-auto max-w-6xl space-y-5 px-4 pb-24 pt-6 sm:px-6 sm:pt-8 lg:pb-8">
+      {/* ── Encabezado ── */}
+      <header className="rounded-2xl border border-panel-border-soft bg-panel-surface p-5 sm:p-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="flex min-w-0 items-center gap-3.5">
+            <span className="relative grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-kora-primary text-white" aria-hidden="true">
+              <Bot size={24} />
+              <span
+                className={`absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-panel-surface ${
+                  contestando ? "bg-kora-accent" : "bg-panel-faint"
+                }`}
+              />
+            </span>
+            <div className="min-w-0">
+              <h1 className="truncate text-2xl font-bold tracking-tight text-kora-text">{nombreBot}</h1>
+              <p className="text-sm text-kora-muted">Tu asistente de WhatsApp en {hotelNombre}</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-2xl font-bold text-kora-text tracking-tight">
-              {nombreBot} · tu asistente de WhatsApp
-            </h1>
-            <p className="text-sm text-kora-muted">
-              Contesta a tus huéspedes 24/7 con la información de <strong>{hotelNombre}</strong> y cierra reservas.
-            </p>
+          <IndicadorGuardado estado={c.estado} onReintentar={c.reintentar} />
+        </div>
+
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-4 rounded-xl bg-kora-bg px-4 py-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <Switch tamano="lg" checked={c.enabled} onChange={c.setEnabled} label={c.enabled ? `Pausar a ${nombreBot}` : `Encender a ${nombreBot}`} />
+            <p className="text-sm font-medium text-kora-text">{estadoTexto}</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setSeccion("whatsapp")}
+              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${
+                conexion.tono === "ok"
+                  ? "bg-[var(--chip-ok-bg)] text-[var(--chip-ok-text)]"
+                  : conexion.tono === "error"
+                    ? "bg-[var(--chip-mal-bg)] text-[var(--chip-mal-text)]"
+                    : conexion.tono === "alerta"
+                      ? "bg-[var(--chip-aviso-bg)] text-[var(--chip-aviso-text)]"
+                      : "bg-[var(--chip-neutro-bg)] text-[var(--chip-neutro-text)]"
+              }`}
+            >
+              <MessageCircle size={12} aria-hidden="true" />
+              {qrStatus === null ? "Revisando WhatsApp…" : conexion.txt(nombreBot)}
+            </button>
+            {saldo && saldo.mensajes !== null && (
+              <button
+                type="button"
+                onClick={() => setSeccion("whatsapp")}
+                className={`rounded-full px-3 py-1 text-xs font-semibold tabular-nums ${
+                  saldo.bloqueoActivo && saldo.mensajes <= saldo.umbralBajo
+                    ? "bg-[var(--chip-aviso-bg)] text-[var(--chip-aviso-text)]"
+                    : "bg-[var(--chip-neutro-bg)] text-[var(--chip-neutro-text)]"
+                }`}
+              >
+                {saldo.mensajes.toLocaleString("es-MX")} mensajes
+              </button>
+            )}
           </div>
         </div>
       </header>
 
-      {/* Configurar / Conversaciones */}
-      <div className="inline-flex rounded-xl border border-panel-contrast/10 bg-panel-surface p-1">
-        {([
-          { id: "config", label: "Configurar" },
-          { id: "conversaciones", label: "Conversaciones" },
-        ] as const).map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setVista(t.id)}
-            className={`btn-press px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
-              vista === t.id
-                ? "bg-kora-primary text-white"
-                : "text-kora-muted hover:text-kora-text"
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
-
-      {vista === "conversaciones" && <Conversaciones nombreBot={nombreBot} />}
-
-      {vista === "config" && (
-      <>
-      {/* Progreso + navegación por pasos (cabecera del asistente) */}
-      <div className="rounded-2xl border border-panel-contrast/10 bg-panel-surface p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <p className="text-sm font-semibold text-kora-text">Salud de {nombreBot}</p>
-          <p className="text-sm font-semibold text-kora-primary">
-            {Math.round((listos / TOTAL_PASOS) * 100)}% · {listos}/{TOTAL_PASOS} pasos
-          </p>
-        </div>
-        <div className="h-2 w-full overflow-hidden rounded-full bg-panel-contrast/5">
-          <div
-            className="h-full rounded-full bg-kora-primary transition-all"
-            style={{ width: `${(listos / TOTAL_PASOS) * 100}%` }}
-          />
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {PASOS.map((p, i) => (
-            <StepPill
-              key={p.n}
-              n={p.n}
-              label={p.label}
-              ok={p.listo}
-              activo={paso === i}
-              onClick={() => setPaso(i)}
-            />
-          ))}
-        </div>
-      </div>
-
-      {aviso && (
-        <div className="flex items-start gap-2 rounded-xl bg-kora-primary/5 border border-kora-primary/20 px-4 py-3 text-sm text-kora-text">
-          <Info size={16} className="mt-0.5 shrink-0 text-kora-primary" />
-          <span>{aviso}</span>
-        </div>
+      {c.errorCarga && <Aviso tono="error">{c.errorCarga}</Aviso>}
+      {avisoPago && (
+        <Aviso tono={avisoPago.tono} onCerrar={() => setAvisoPago(null)}>
+          {avisoPago.texto}
+        </Aviso>
+      )}
+      {saldo?.bloqueoActivo && saldo.mensajes !== null && saldo.mensajes > 0 && saldo.mensajes <= saldo.umbralBajo && (
+        <Aviso tono="alerta" accion={saldo.puedeRecargar && saldo.recargaAbierta ? <button type="button" onClick={() => setSeccion("whatsapp")} className="font-semibold underline">Recargar</button> : undefined}>
+          Te quedan <strong>{saldo.mensajes} mensajes</strong>
+          {saldo.diasRestantes !== null && ` (unos ${saldo.diasRestantes} días a tu ritmo)`}. Cuando lleguen a cero, {nombreBot} deja de contestar.
+        </Aviso>
       )}
 
-      {/* SIN SALDO / CON POCO: va aquí, fuera de los seis pasos, porque no es un
-          paso de configuración — es algo que está pasando AHORA y que el
-          hotelero tiene que ver entre en la pestaña por donde entre. */}
-      {/* Sólo se alarma cuando el bloqueo está encendido DE VERDAD. Mientras el
-          prepago se está midiendo, el saldo baja pero Camila contesta igual, y
-          enseñar «dejó de contestar» sería asustar con algo que no pasa. */}
-      {saldo !== null &&
-        saldo.mensajes !== null &&
-        saldo.bloqueoActivo &&
-        saldo.mensajes <= saldo.umbralBajo && (
-          <div
-            className={`flex flex-wrap items-center justify-between gap-3 rounded-xl border px-4 py-3 text-sm ${
-              saldo.mensajes <= 0
-                ? "border-red-200 bg-red-50 text-red-900"
-                : "border-amber-200 bg-amber-50 text-amber-900"
-            }`}
-          >
-            <div className="flex items-start gap-2">
-              <AlertTriangle size={16} className="mt-0.5 shrink-0" />
-              <span>
-                {saldo.mensajes <= 0 ? (
-                  <>
-                    <strong>{nombreBot} dejó de contestar: se acabó el saldo.</strong> A quien escriba se le
-                    avisa una vez de que en un momento lo atiende una persona. Recarga y vuelve sola.
-                  </>
-                ) : (
-                  <>
-                    Te quedan <strong>{saldo.mensajes} mensajes</strong>
-                    {saldo.diasRestantes !== null && ` (unos ${saldo.diasRestantes} días a tu ritmo)`}. Cuando
-                    lleguen a cero, {nombreBot} deja de contestar.
-                  </>
-                )}
-              </span>
+      <Pestanas items={pestanas} activa={seccion} onChange={setSeccion} etiqueta={`Secciones de ${nombreBot}`} />
+
+      <div className={conChat ? "grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_380px]" : ""}>
+        <div role="tabpanel" id={`panel-${seccion}`} aria-labelledby={`tab-${seccion}`} className="min-w-0">
+          {seccion === "resumen" && <Resumen pendientes={pendientes} nombreBot={nombreBot} onIr={irA} />}
+          {seccion === "personalidad" && <Personalidad c={c} nombreBot={nombreBot} />}
+          {seccion === "sabe" && <LoQueSabe c={c} nombreBot={nombreBot} slug={slug} diagnostico={diagnostico} />}
+          {seccion === "vende" && (
+            <ComoVende c={c} nombreBot={nombreBot} slug={slug} whatsappHotel={whatsappHotel} cobrosListos={cobrosListos} />
+          )}
+          {seccion === "conversaciones" && (
+            <Conversaciones nombreBot={nombreBot} chatInicial={chatInicial} onCorregido={c.recargarFaqs} />
+          )}
+          {seccion === "whatsapp" && (
+            <WhatsApp
+              c={c}
+              nombreBot={nombreBot}
+              qrStatus={qrStatus}
+              qrImg={qrImg}
+              motivos={motivos}
+              saldo={saldo}
+              onRecargar={recargar}
+              recargando={recargando}
+            />
+          )}
+        </div>
+
+        {conChat && (
+          <aside className="hidden lg:sticky lg:top-6 lg:block" aria-label="Pruébala">
+            <div className="h-[calc(100vh-7rem)] max-h-[760px]">
+              <ChatPrueba nombreBot={nombreBot} saludo={c.bot.saludo} permitida={camilaPermitida} onPrueba={c.registrarPrueba} />
             </div>
-            {saldo.puedeRecargar && saldo.recargaAbierta && (
-              <button
-                onClick={() => setPaso(0)}
-                className="shrink-0 rounded-lg bg-kora-primary px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90"
-              >
-                Recargar
-              </button>
-            )}
-          </div>
+          </aside>
         )}
-
-      {/* Paso activo (uno a la vez, para no abrumar) */}
-      <Etapa n={activo.n} titulo={activo.titulo} listo={activo.listo} icon={activo.icon}>
-        {paso === 0 && (
-          <>
-            <div className="flex items-center justify-between gap-4">
-              <p className="text-sm text-kora-muted">
-                {/* Con el saldo en cero, «responde a tus huéspedes» es falso, y
-                    justo encima el aviso rojo dice lo contrario. Dos frases que
-                    se contradicen en la misma pantalla es peor que ninguna. */}
-                {!enabled
-                  ? `${nombreBot} está apagada: no responderá aunque esté conectada.`
-                  : saldo?.mensajes === 0 && saldo.bloqueoActivo
-                    ? `El interruptor está encendido, pero ${nombreBot} no puede contestar hasta que recargues saldo.`
-                    : `${nombreBot} está encendida: responde a tus huéspedes cuando el bot esté conectado.`}
-              </p>
-              <button
-                onClick={toggleEnabled}
-                className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors ${enabled ? "bg-kora-primary" : "bg-panel-border"}`}
-                aria-label={enabled ? "Apagar bot" : "Encender bot"}
-              >
-                <span
-                  className={`inline-block h-5 w-5 rounded-full bg-panel-surface transition-transform ${enabled ? "translate-x-6" : "translate-x-1"}`}
-                />
-              </button>
-            </div>
-
-            {/* SALDO DE MENSAJES.
-                Va en el paso 1, junto al interruptor de encendido, porque son
-                las dos razones por las que Camila puede estar callada y conviene
-                verlas juntas. No se hizo un paso 7: meter uno renumeraría los
-                seis que ya existen y con ellos la barra de progreso. */}
-            {saldo && saldo.mensajes !== null && (
-              <div className="rounded-xl border border-panel-contrast/10 bg-kora-bg/40 p-4">
-                <div className="flex flex-wrap items-end justify-between gap-3">
-                  <div>
-                    <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-kora-muted">
-                      <Wallet size={14} /> Saldo de mensajes
-                    </div>
-                    <p className="mt-1 text-2xl font-semibold text-kora-text">
-                      {saldo.mensajes.toLocaleString("es-MX")}
-                      <span className="ml-1 text-sm font-normal text-kora-muted">mensajes</span>
-                    </p>
-                    <p className="mt-0.5 text-xs text-kora-muted">
-                      {saldo.consumo30d > 0
-                        ? `Gastaste ${saldo.consumo30d.toLocaleString("es-MX")} en los últimos 30 días`
-                        : "Todavía no has gastado mensajes este mes"}
-                      {/* Con el saldo en cero, «te duran unos 0 días» es ruido:
-                          el aviso de arriba ya dijo que se acabó. */}
-                      {saldo.mensajes > 0 &&
-                        saldo.diasRestantes !== null &&
-                        ` · te duran unos ${saldo.diasRestantes} días`}
-                    </p>
-                  </div>
-                </div>
-
-                <p className="mt-3 text-sm text-kora-muted">
-                  Cada respuesta que {nombreBot} le manda a un huésped, o que te da en el chat de prueba,
-                  cuenta como un mensaje. Lo demás —tu página de reservas, los cobros y los correos— no
-                  gasta saldo.
-                </p>
-
-                {!saldo.recargaAbierta ? (
-                  /* PRÓXIMAMENTE. El pago todavía no está abierto: se está
-                     midiendo cuánto usa cada hotel. Se dice tal cual —que el
-                     contador baja pero no se cobra ni se corta— porque un
-                     hotelero que ve bajar un número sin explicación se asusta,
-                     y con razón. */
-                  <div className="mt-3 rounded-lg border border-dashed border-panel-contrast/20 bg-panel-surface px-3 py-3">
-                    <p className="text-sm font-semibold text-kora-text">Próximamente: recarga desde aquí</p>
-                    <p className="mt-1 text-xs text-kora-muted">
-                      Todavía no se cobra nada y {nombreBot} contesta sin límite, aunque veas bajar el
-                      contador. Estamos midiendo cuántos mensajes usa cada hotel para afinar los paquetes.
-                      Te avisaremos por correo antes de que esto cambie.
-                    </p>
-                  </div>
-                ) : saldo.puedeRecargar ? (
-                  <>
-                    <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                      {saldo.paquetes.map((pq) => (
-                        <button
-                          key={pq.mxn}
-                          onClick={() => recargar(pq.mxn)}
-                          disabled={recargando}
-                          className={`rounded-lg border px-3 py-2 text-left transition hover:border-kora-primary disabled:opacity-50 ${
-                            pq.destacado ? "border-kora-primary bg-kora-primary/5" : "border-panel-border bg-panel-surface"
-                          }`}
-                        >
-                          <span className="block text-sm font-semibold text-kora-text">
-                            ${pq.mxn.toLocaleString("es-MX")}
-                          </span>
-                          <span className="block text-xs text-kora-muted">
-                            {pq.mensajes.toLocaleString("es-MX")} mensajes
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                    <p className="mt-2 text-xs text-kora-muted">
-                      {recargando ? "Abriendo el pago…" : "El saldo no caduca y se suma al que ya tengas."}
-                    </p>
-                  </>
-                ) : (
-                  <p className="mt-3 text-xs text-kora-muted">
-                    Para recargar, pídeselo a quien administra el hotel.
-                  </p>
-                )}
-              </div>
-            )}
-
-            <div className="flex items-center gap-2 text-sm">
-              <span className="text-kora-muted">Idioma principal:</span>
-              {(["es", "en"] as const).map((l) => (
-                <button
-                  key={l}
-                  onClick={() => cambiarIdioma(l)}
-                  className={`px-3 py-1 rounded-full font-semibold transition-colors ${lang === l ? "bg-kora-primary text-white" : "bg-panel-contrast/5 text-kora-text hover:bg-panel-contrast/10"}`}
-                >
-                  {l === "es" ? "Español" : "English"}
-                </button>
-              ))}
-            </div>
-
-            {/* Control por WhatsApp desde un número autorizado */}
-            <div className="rounded-xl border border-panel-contrast/10 bg-kora-bg/40 p-3 space-y-2">
-              <div className="flex items-center gap-2 text-sm font-semibold text-kora-text">
-                <Phone size={15} className="text-kora-primary" />
-                Apágala o enciéndela por WhatsApp
-              </div>
-              <p className="text-xs text-kora-muted">
-                Pon aquí tu WhatsApp personal. Desde ese número podrás manejar a {nombreBot} escribiéndole
-                al WhatsApp del hotel, sin entrar al panel. (Opcional.)
-              </p>
-              <div className="flex items-center gap-2">
-                <input
-                  value={adminPhone}
-                  onChange={(e) => setAdminPhone(e.target.value)}
-                  onBlur={guardarAdminPhone}
-                  inputMode="tel"
-                  placeholder="52 55 1234 5678"
-                  className="input-kora flex-1"
-                />
-                <button
-                  onClick={guardarAdminPhone}
-                  className="btn-press inline-flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-kora-text text-white font-semibold text-sm hover:opacity-90"
-                >
-                  {adminGuardado ? <Check size={15} /> : null}
-                  {adminGuardado ? "Guardado" : "Guardar"}
-                </button>
-              </div>
-
-              {/* La chuleta de comandos. Va aquí y no en un manual aparte porque
-                  es justo donde el hotelero acaba de poner su número: si tiene
-                  que buscarla en otro sitio, no la usa nadie. */}
-              <div className="rounded-xl border border-panel-contrast/10 bg-kora-bg/50 p-3 space-y-2">
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-kora-muted">
-                  Lo que le puedes escribir desde ese número
-                </p>
-                <ul className="space-y-1.5 text-xs text-kora-text">
-                  <li><code className="font-semibold">apagar</code> — deja de contestarle a tus huéspedes</li>
-                  <li><code className="font-semibold">encender</code> — vuelve a contestar</li>
-                  <li><code className="font-semibold">estado</code> — te dice si está encendida o apagada</li>
-                  <li><code className="font-semibold">ayuda</code> — te manda esta misma lista por WhatsApp</li>
-                </ul>
-                <p className="text-[11px] text-kora-muted leading-relaxed">
-                  Se escriben <strong>al WhatsApp del hotel</strong>, no aquí. Tiene que ser{" "}
-                  <strong>la palabra sola</strong> —así no la apagas sin querer al escribir
-                  &ldquo;hay que pausar las reservas del sábado&rdquo;—, aunque acepta
-                  &ldquo;{nombreBot}&rdquo; delante, acentos y signos.
-                </p>
-                <p className="text-[11px] text-kora-muted leading-relaxed">
-                  Y hay algo más que hace sola: <strong>si tú le contestas a un huésped desde tu
-                  teléfono, {nombreBot} se calla 2 horas en esa conversación</strong> para no
-                  escribir encima de ti. Vuelve sola, o antes si se lo dices desde la bandeja.
-                </p>
-              </div>
-            </div>
-          </>
-        )}
-
-        {paso === 1 && (
-          <>
-            <p className="text-sm text-kora-muted">
-              Cómo se llama, cómo suena y cómo saluda. Deja que la IA proponga una versión con los datos de tu hotel y ajústala.
-            </p>
-            <button
-              onClick={entrenarIA}
-              disabled={entrenando}
-              className="btn-press inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-kora-primary text-white font-semibold text-sm hover:bg-kora-primary-dark transition-colors disabled:opacity-60"
-            >
-              {entrenando ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
-              {entrenando ? "Redactando…" : "Proponer con IA"}
-            </button>
-
-            <div className="space-y-4 pt-1">
-              <Campo label="Nombre de la asistente">
-                <input
-                  value={bot.nombre}
-                  onChange={(e) => setBot((b) => ({ ...b, nombre: e.target.value }))}
-                  placeholder="Camila"
-                  className="input-kora"
-                />
-              </Campo>
-              <Campo label="Personalidad y tono (cómo debe sonar)">
-                <textarea
-                  value={bot.tono}
-                  onChange={(e) => setBot((b) => ({ ...b, tono: e.target.value }))}
-                  rows={3}
-                  placeholder="Cálida, cercana y profesional; transmite la calma del hotel…"
-                  className="input-kora"
-                />
-              </Campo>
-              <Campo label="Saludo de primer contacto">
-                <textarea
-                  value={bot.saludo}
-                  onChange={(e) => setBot((b) => ({ ...b, saludo: e.target.value }))}
-                  rows={2}
-                  placeholder="¡Hola! 🌿 Soy Camila, del Hotel…"
-                  className="input-kora"
-                />
-              </Campo>
-
-              {/* Estilo de emojis: cuánto usa y cuáles prefiere (marca del hotel) */}
-              <div className="rounded-2xl border border-panel-contrast/10 bg-panel-contrast/[0.015] p-4 space-y-3">
-                <div>
-                  <p className="text-sm font-bold text-kora-text">Emojis en sus mensajes</p>
-                  <p className="mt-0.5 text-xs text-kora-muted">
-                    Elige cuánto emoji usa {nombreBot} al escribir por WhatsApp.
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {NIVELES_EMOJI.map((n) => (
-                    <button
-                      key={n.key}
-                      onClick={() =>
-                        setBot((b) => ({ ...b, emojis: { ...b.emojis, nivel: n.key } }))
-                      }
-                      title={n.hint}
-                      className={`btn-press rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
-                        bot.emojis.nivel === n.key
-                          ? "border-kora-primary bg-kora-primary/10 text-kora-primary"
-                          : "border-panel-contrast/10 text-kora-muted hover:bg-panel-contrast/5"
-                      }`}
-                    >
-                      {n.label}
-                    </button>
-                  ))}
-                </div>
-                <p className="text-xs text-kora-muted">
-                  {NIVELES_EMOJI.find((n) => n.key === bot.emojis.nivel)?.hint}
-                </p>
-                {bot.emojis.nivel !== "nada" && (
-                  <Campo label="Emojis preferidos (opcional — los de tu marca)">
-                    <input
-                      value={bot.emojis.preferidos}
-                      onChange={(e) =>
-                        setBot((b) => ({ ...b, emojis: { ...b.emojis, preferidos: e.target.value } }))
-                      }
-                      placeholder="Ej. 🌿🦜🌺 (los usará antes que otros)"
-                      className="input-kora"
-                    />
-                  </Campo>
-                )}
-              </div>
-            </div>
-            <AutoGuardado guardando={guardando} guardado={guardado} />
-          </>
-        )}
-
-        {paso === 2 && (
-          <>
-            <p className="text-sm text-kora-muted">
-              Todo esto sale <strong>estrictamente</strong> de tu hotel. {nombreBot} nunca inventa ni mezcla datos de otro. Completa lo que falte para que responda mejor.
-            </p>
-
-            <div
-              className={`rounded-xl border px-4 py-3 text-sm ${
-                temporadas.estado === "ok"
-                  ? "border-green-200 bg-green-50 text-green-800"
-                  : "border-amber-200 bg-amber-50 text-amber-800"
-              }`}
-            >
-              <div className="flex items-start gap-2">
-                {temporadas.estado === "ok" ? (
-                  <Check size={16} className="mt-0.5 shrink-0" />
-                ) : (
-                  <AlertTriangle size={16} className="mt-0.5 shrink-0" />
-                )}
-                <div className="min-w-0">
-                  <p className="font-semibold">Precios por fecha (temporadas)</p>
-                  <p>{temporadas.mensaje}</p>
-                  <a
-                    href={editar("avanzado")}
-                    className="mt-1 inline-flex items-center gap-1 font-semibold underline"
-                  >
-                    {temporadas.tiene ? "Editar temporadas" : "Cargar temporadas"} <ArrowRight size={13} />
-                  </a>
-                </div>
-              </div>
-            </div>
-
-            <ul className="grid sm:grid-cols-2 gap-2 text-sm text-kora-text">
-              {sabeItems.map((it) => (
-                <SabeItem key={it.label} item={it} editar={editar} />
-              ))}
-            </ul>
-          </>
-        )}
-
-        {paso === 3 && (
-          <>
-            <p className="text-sm text-kora-muted">
-              Instrucciones especiales, a quién pasar los casos que no resuelva, y respuestas extra solo para el bot.
-            </p>
-            <div className="space-y-4">
-              <Campo label="Instrucciones especiales del hotel">
-                <textarea
-                  value={bot.instrucciones}
-                  onChange={(e) => setBot((b) => ({ ...b, instrucciones: e.target.value }))}
-                  rows={4}
-                  placeholder="- Destaca el desayuno incluido&#10;- Si preguntan por mascotas, di que sí se permiten…"
-                  className="input-kora"
-                />
-              </Campo>
-              <Campo label="Pasar con una persona (WhatsApp para casos que no resuelva)">
-                <input
-                  value={bot.escalarWhatsapp}
-                  onChange={(e) => setBot((b) => ({ ...b, escalarWhatsapp: e.target.value }))}
-                  placeholder={whatsappHotel || "52 55 1234 5678"}
-                  className="input-kora"
-                />
-              </Campo>
-
-              {/* Formas de pago: para que Camila ofrezca transferencia/depósito/OXXO */}
-              <div className="rounded-2xl border border-panel-contrast/10 bg-panel-contrast/[0.015] p-4">
-                <p className="text-sm font-bold text-kora-text">Datos para pago por transferencia</p>
-                <p className="mb-3 mt-0.5 text-xs text-kora-muted">
-                  Si los llenas, Camila podrá ofrecer pago por transferencia, depósito u OXXO
-                  (además del link de reserva en línea). Déjalos en blanco si solo usas pago en
-                  línea.
-                </p>
-                <div className="space-y-3">
-                  <Campo label="Titular / beneficiario">
-                    <input
-                      value={bot.pago.titular}
-                      onChange={(e) =>
-                        setBot((b) => ({ ...b, pago: { ...b.pago, titular: e.target.value } }))
-                      }
-                      placeholder="Nombre de la cuenta"
-                      className="input-kora"
-                    />
-                  </Campo>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <Campo label="Banco">
-                      <input
-                        value={bot.pago.banco}
-                        onChange={(e) =>
-                          setBot((b) => ({ ...b, pago: { ...b.pago, banco: e.target.value } }))
-                        }
-                        placeholder="BBVA, Banorte…"
-                        className="input-kora"
-                      />
-                    </Campo>
-                    <Campo label="CLABE (18 dígitos)">
-                      <input
-                        value={bot.pago.clabe}
-                        onChange={(e) =>
-                          setBot((b) => ({ ...b, pago: { ...b.pago, clabe: e.target.value } }))
-                        }
-                        inputMode="numeric"
-                        placeholder="0000 0000 0000 0000 00"
-                        className="input-kora"
-                      />
-                    </Campo>
-                  </div>
-                  <Campo label="Número de cuenta o tarjeta (opcional)">
-                    <input
-                      value={bot.pago.cuenta}
-                      onChange={(e) =>
-                        setBot((b) => ({ ...b, pago: { ...b.pago, cuenta: e.target.value } }))
-                      }
-                      placeholder="Opcional"
-                      className="input-kora"
-                    />
-                  </Campo>
-                  <Campo label="Notas de pago (OXXO, referencia, instrucciones)">
-                    <textarea
-                      value={bot.pago.notas}
-                      onChange={(e) =>
-                        setBot((b) => ({ ...b, pago: { ...b.pago, notas: e.target.value } }))
-                      }
-                      rows={2}
-                      placeholder="Ej. También aceptamos depósito en OXXO a la tarjeta. Manda tu comprobante para confirmar."
-                      className="input-kora"
-                    />
-                  </Campo>
-                </div>
-              </div>
-
-              {/* Preguntas rápidas: entrenamiento guiado sin pensar qué escribir.
-                  Cada respuesta se guarda como FAQ del bot; en blanco = no aplica. */}
-              <div className="rounded-2xl border border-panel-contrast/10 bg-panel-contrast/[0.015] p-4">
-                <p className="text-sm font-bold text-kora-text">
-                  Preguntas típicas de huésped — responde las que apliquen
-                </p>
-                <p className="mb-3 mt-0.5 text-xs text-kora-muted">
-                  Con cada respuesta, {nombreBot} aprende a contestarla con tus palabras. Las que
-                  dejes en blanco, las pasará con una persona del hotel.
-                </p>
-                <div className="grid gap-2 sm:grid-cols-2">
-                  {PREGUNTAS_RAPIDAS.map((p) => {
-                    const val = respuestaRapida(p.q);
-                    return (
-                      <div
-                        key={p.q}
-                        className={`rounded-xl border p-2.5 ${val.trim() ? "border-green-200 bg-green-50/50" : "border-panel-contrast/10 bg-panel-surface"}`}
-                      >
-                        <p className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-kora-text">
-                          {val.trim() ? <Check size={13} className="shrink-0 text-green-600" /> : null}
-                          {p.q}
-                        </p>
-                        <textarea
-                          value={val}
-                          onChange={(e) => setRespuestaRapida(p.q, e.target.value)}
-                          rows={2}
-                          placeholder={p.ph}
-                          className="input-kora text-sm"
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <Campo label="Otras preguntas y respuestas (las que quieras, 100% tuyas)">
-                <div className="space-y-2">
-                  {bot.faqs.map((f, i) => PRESET_QS.has(f.q) ? null : (
-                    <div key={i} className="grid gap-1.5 rounded-xl border border-panel-contrast/10 p-2">
-                      <input
-                        value={f.q}
-                        onChange={(e) => setFaq(i, "q", e.target.value)}
-                        placeholder="Pregunta (ej. ¿Tienen estacionamiento?)"
-                        className="input-kora text-sm"
-                      />
-                      <textarea
-                        value={f.a}
-                        onChange={(e) => setFaq(i, "a", e.target.value)}
-                        rows={2}
-                        placeholder="Respuesta"
-                        className="input-kora text-sm"
-                      />
-                      <button
-                        onClick={() => setBot((b) => ({ ...b, faqs: b.faqs.filter((_, j) => j !== i) }))}
-                        className="self-end text-xs text-red-500 hover:underline"
-                      >
-                        Quitar
-                      </button>
-                    </div>
-                  ))}
-                  <button
-                    onClick={() => setBot((b) => ({ ...b, faqs: [...b.faqs, { q: "", a: "" }] }))}
-                    className="text-sm font-semibold text-kora-primary hover:underline"
-                  >
-                    + Agregar pregunta
-                  </button>
-                </div>
-              </Campo>
-            </div>
-            <AutoGuardado guardando={guardando} guardado={guardado} />
-          </>
-        )}
-
-        {paso === 4 && (
-          <>
-            <p className="text-sm text-kora-muted">
-              Platica con ella aquí mismo (sin WhatsApp) para ver cómo responde con tus datos.
-              Tus cambios se guardan solos. Responde con los datos reales de tu hotel; lo único
-              que cambia es que aquí no manda links de pago — eso sólo lo hace en WhatsApp.
-            </p>
-            <span
-              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${
-                probado ? "bg-green-100 text-green-700" : "bg-amber-50 text-amber-800"
-              }`}
-            >
-              {probado ? (
-                <>
-                  <Check size={13} /> Probada: ya validaste cómo responde
-                </>
-              ) : (
-                `Hazle ${META_PRUEBAS} preguntas para darla por probada (${Math.min(pruebas, META_PRUEBAS)}/${META_PRUEBAS})`
-              )}
-            </span>
-            {!camilaPermitida ? (
-              <div className="rounded-xl border border-amber-200 bg-amber-50 p-5 space-y-2">
-                <p className="text-sm font-semibold text-amber-900">
-                  Camila se activa con tu plan
-                </p>
-                <p className="text-sm text-amber-900/80">
-                  Durante tu prueba puedes usar todo el panel y dejar a Camila entrenada. Al
-                  activar tu plan se abren este chat de prueba y la conexión con tu WhatsApp,
-                  con {REGALO_CAMILA_MENSAJES} mensajes de regalo.
-                </p>
-                <a
-                  href={RUTA_ACTIVAR}
-                  className="btn-press inline-flex items-center rounded-full bg-kora-primary px-4 py-2 text-sm font-semibold text-white"
-                >
-                  Activar mi plan
-                </a>
-              </div>
-            ) : (
-            <>
-            <div className="rounded-xl border border-panel-contrast/10 bg-kora-bg/50 h-72 overflow-y-auto p-3 space-y-2">
-              {mensajes.length === 0 && (
-                <p className="text-sm text-kora-muted text-center py-8">
-                  Escribe algo como <em>&ldquo;¿Tienen disponibilidad este fin?&rdquo;</em>
-                </p>
-              )}
-              {mensajes.map((m, i) => (
-                <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-                  <div
-                    className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm whitespace-pre-wrap ${m.role === "user" ? "bg-kora-primary text-white" : "bg-panel-surface border border-panel-contrast/10 text-kora-text"}`}
-                  >
-                    {m.content}
-                  </div>
-                </div>
-              ))}
-              {enviando && (
-                <div className="flex justify-start">
-                  <div className="rounded-2xl px-3 py-2 bg-panel-surface border border-panel-contrast/10 text-kora-muted">
-                    <Loader2 size={14} className="animate-spin" />
-                  </div>
-                </div>
-              )}
-              <div ref={chatFin} />
-            </div>
-            {/* Preguntas sugeridas: validar a Camila en 1 minuto, sin pensar qué escribir */}
-            <div className="flex flex-wrap gap-1.5">
-              {SUGERENCIAS_PRUEBA.map((s) => (
-                <button
-                  key={s}
-                  onClick={() => enviarPrueba(s)}
-                  disabled={enviando}
-                  className="btn-press rounded-full border border-kora-primary/25 bg-kora-primary/5 px-3 py-1.5 text-xs font-semibold text-kora-primary hover:bg-kora-primary/10 disabled:opacity-50"
-                >
-                  {s}
-                </button>
-              ))}
-            </div>
-            <div className="flex items-center gap-2">
-              <input
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && enviarPrueba()}
-                placeholder="Escríbele a Camila…"
-                className="input-kora flex-1"
-              />
-              <button
-                onClick={() => enviarPrueba()}
-                disabled={enviando || !input.trim()}
-                className="btn-press grid place-items-center w-11 h-11 rounded-full bg-kora-primary text-white disabled:opacity-50"
-                aria-label="Enviar"
-              >
-                <Send size={17} />
-              </button>
-            </div>
-            </>
-            )}
-
-            {/* Verificador de disponibilidad: exactamente lo que Camila ofrecería */}
-            <div className="rounded-xl border border-panel-contrast/10 bg-panel-surface p-4 space-y-3">
-              <div className="flex items-center gap-2">
-                <CalendarDays size={16} className="text-kora-primary" />
-                <p className="text-sm font-semibold text-kora-text">
-                  Verifica qué fechas y precios ofrecería {nombreBot}
-                </p>
-              </div>
-              <p className="text-xs text-kora-muted">
-                Elige unas fechas y confirma con tus ojos qué cuartos y precios cotizaría: es el
-                mismo cálculo que usa el bot en vivo y el mismo que cobrará el link de pago.
-              </p>
-              <div className="flex flex-wrap items-end gap-2">
-                <label className="text-xs font-semibold text-kora-muted">
-                  Llegada
-                  <input
-                    type="date"
-                    value={vChkin}
-                    min={isoEnDias(0)}
-                    onChange={(e) => setVChkin(e.target.value)}
-                    className="input-kora mt-1 block"
-                  />
-                </label>
-                <label className="text-xs font-semibold text-kora-muted">
-                  Salida
-                  <input
-                    type="date"
-                    value={vChkout}
-                    min={vChkin || isoEnDias(1)}
-                    onChange={(e) => setVChkout(e.target.value)}
-                    className="input-kora mt-1 block"
-                  />
-                </label>
-                <button
-                  onClick={verificarDisponibilidad}
-                  disabled={vCargando}
-                  className="btn-press inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-kora-text text-white font-semibold text-sm hover:opacity-90 disabled:opacity-60"
-                >
-                  {vCargando ? <Loader2 size={15} className="animate-spin" /> : <Eye size={15} />}
-                  Ver qué ofrecería
-                </button>
-              </div>
-
-              {vError && <p className="text-sm text-red-600">{vError}</p>}
-
-              {vResultado && (
-                <div className="rounded-lg border border-panel-contrast/10 bg-kora-bg/40 p-3">
-                  {vResultado.hayDisponibilidad ? (
-                    <>
-                      <p className="text-xs font-semibold text-kora-text mb-2">
-                        {nombreBot} ofrecería estas opciones para esas fechas:
-                      </p>
-                      <ul className="space-y-1.5">
-                        {vResultado.disponibles.map((r) => (
-                          <li
-                            key={r.id}
-                            className="flex items-center justify-between gap-3 text-sm border-b border-panel-contrast/5 pb-1.5 last:border-0 last:pb-0"
-                          >
-                            <span className="min-w-0">
-                              <span className="font-semibold text-kora-text">{r.nombre}</span>
-                              <span className="text-kora-muted"> · hasta {r.maxHuespedes} huésp.</span>
-                            </span>
-                            <span className="shrink-0 font-bold tabular-nums text-kora-primary">{r.totalTexto}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </>
-                  ) : (
-                    <p className="flex items-start gap-2 text-sm text-amber-800">
-                      <AlertTriangle size={15} className="mt-0.5 shrink-0" />
-                      Para esas fechas {nombreBot} diría que <strong>no hay disponibilidad</strong>. Revisa que no estén bloqueadas en tu calendario.
-                    </p>
-                  )}
-                </div>
-              )}
-            </div>
-          </>
-        )}
-
-        {paso === 5 && (
-          <>
-            <div className="flex items-center gap-2">
-              <BadgeEstado status={qrStatus} nombreBot={nombreBot} />
-            </div>
-
-            {qrStatus === "ready" ? (
-              <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
-                <p className="font-semibold">¡Listo! {nombreBot} está conectada a tu WhatsApp.</p>
-                <p>Ya responde a tus huéspedes 24/7 (si está encendida en el paso 1).</p>
-              </div>
-            ) : qrStatus === "sin-permiso" ? (
-              <div className="rounded-xl border border-panel-border bg-panel-surface-2 px-4 py-3 text-sm text-kora-text">
-                <p className="font-semibold">Esto lo hace el dueño del hotel.</p>
-                <p>
-                  Escanear el código vincula un teléfono al WhatsApp del hotel de forma permanente, así
-                  que solo el dueño puede verlo. Pídele que entre a esta misma pantalla.
-                </p>
-              </div>
-            ) : qrStatus === "requisitos" ? (
-              // El hotel NO es elegible todavía. Antes esto caía en «Estamos
-              // preparando tu conexión» y el hotelero esperaba indefinidamente
-              // por algo que dependía de él y que nadie le pedía.
-              <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-                <p className="font-semibold">
-                  Falta {motivos.length === 1 ? "un paso" : `${motivos.length} pasos`} para que aparezca tu código QR
-                </p>
-                <ul className="mt-2 space-y-2">
-                  {motivos.map((m) => (
-                    <li key={m.clave}>
-                      <span className="font-semibold">{m.titulo}.</span>{" "}
-                      <span className="text-amber-800">{m.detalle}</span>
-                      {m.clave === "sin-pago" && (
-                        <a href={RUTA_ACTIVAR} className="ml-1 font-semibold underline">
-                          Activar mi plan
-                        </a>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-                <p className="mt-2 text-xs text-amber-700">
-                  En cuanto lo resuelvas, el código aparece solo aquí — esta pantalla se
-                  actualiza sola cada 15 segundos.
-                </p>
-              </div>
-            ) : qrStatus === "error" ? (
-              // El runtime SÍ intentó levantar este hotel y su arranque falló.
-              // Antes caía en el genérico «estamos preparando tu conexión», que
-              // le pedía esperar por algo que no iba a pasar solo.
-              <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">
-                <p className="font-semibold">Tu conexión de WhatsApp no pudo arrancar</p>
-                {/* Decía "y ya quedó registrado". No era cierto: nada en este
-                    camino avisa a nadie —el motivo del fallo muere en los logs—
-                    así que el hotelero se quedaba esperando una reacción que no
-                    iba a llegar, sin escribirnos. Mientras no haya una alerta de
-                    verdad, lo honesto es pedirle que nos avise él. */}
-                <p className="mt-1 text-red-800">
-                  Tu hotel está bien configurado — el problema es de nuestro lado. Avísanos y lo
-                  levantamos hoy mismo.
-                </p>
-                <a
-                  href={waLink("Hola, mi Camila no pudo arrancar y no me sale el código QR")}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-2 inline-block font-semibold text-red-900 underline"
-                >
-                  Avisar por WhatsApp
-                </a>
-              </div>
-            ) : qrStatus === "sin-servicio" || qrStatus === "desconocido" ? (
-              // "sin-servicio" NO es "está arrancando": es que no se pudo hablar
-              // con el servicio de WhatsApp (caído, sin responder, o sin
-              // configurar). Decirle al hotelero que espere un QR que puede no
-              // llegar nunca lo deja mirando la pantalla sin saber que hay algo
-              // que arreglar — y sin pedir ayuda, que es lo que sí destraba esto.
-              <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 space-y-1">
-                <p className="font-semibold">No estamos pudiendo conectar con WhatsApp.</p>
-                <p>
-                  Tu hotel ya cumple todo lo necesario, así que esto es de nuestro lado. Si en unos
-                  minutos sigue igual, avísanos y lo levantamos.
-                </p>
-                <a
-                  href={waLink(`Hola, la pantalla de ${nombreBot} dice que no conecta con WhatsApp`)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn-press inline-block font-semibold underline underline-offset-2 pt-1"
-                >
-                  Avisar por WhatsApp
-                </a>
-              </div>
-            ) : qrStatus === "auth_failure" ? (
-              // Antes caía al `else` de abajo, que pide escanear un QR — pero el
-              // runtime sólo publica el QR cuando el estado es "qr", así que el
-              // hotelero se quedaba mirando un "Preparando el código…" eterno.
-              <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900 space-y-1">
-                <p className="font-semibold">La vinculación con WhatsApp se cayó.</p>
-                <p>
-                  El teléfono desvinculó el dispositivo, o la sesión caducó. Hay que volver a
-                  escanear el código: avísanos y lo preparamos para ti en unos minutos.
-                </p>
-                <a
-                  href={waLink(`Hola, ${nombreBot} perdió la vinculación con WhatsApp y necesito escanear de nuevo`)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn-press inline-block font-semibold underline underline-offset-2 pt-1"
-                >
-                  Avisar por WhatsApp
-                </a>
-              </div>
-            ) : qrStatus === "disconnected" ? (
-              <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                <p className="font-semibold">{nombreBot} se desconectó de WhatsApp.</p>
-                <p>
-                  Suele reconectarse sola en unos minutos. Si sigue así en un rato, avísanos —
-                  mientras tanto tus huéspedes no la tienen contestando.
-                </p>
-              </div>
-            ) : (
-              <>
-                <p className="text-sm text-kora-muted">
-                  Escanea este código <strong>una sola vez</strong> con el WhatsApp del teléfono de tu hotel:
-                </p>
-                <ol className="ml-4 list-decimal space-y-1 text-sm text-kora-text">
-                  <li>Abre <strong>WhatsApp</strong> en el teléfono de tu hotel.</li>
-                  <li>Entra a <strong>Ajustes</strong> → <strong>Dispositivos vinculados</strong>.</li>
-                  <li>Toca <strong>Vincular un dispositivo</strong>.</li>
-                  <li>Apunta la cámara al código de aquí abajo.</li>
-                </ol>
-                <div className="flex justify-center py-2">
-                  {qrImg ? (
-                    <div className="rounded-xl border border-panel-contrast/10 bg-panel-surface p-3">
-                      {/* QR = data URL que rota; <img> plano es lo correcto (no next/image) */}
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={qrImg} alt="Código QR para vincular WhatsApp" width={240} height={240} />
-                    </div>
-                  ) : (
-                    <div className="flex h-[240px] w-[240px] flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-panel-contrast/15 text-kora-muted">
-                      <Loader2 size={22} className="animate-spin" />
-                      <span className="text-xs">Preparando el código…</span>
-                    </div>
-                  )}
-                </div>
-                <p className="text-center text-xs text-kora-muted">
-                  El código se actualiza solo cada pocos segundos. Si expira, espera a que aparezca uno nuevo.
-                </p>
-              </>
-            )}
-
-            {/* Token (avanzado): respaldo por si el equipo Kora lo necesita */}
-            <details className="rounded-lg bg-kora-bg/40 px-3 py-2">
-              <summary className="cursor-pointer text-xs font-semibold text-kora-muted">
-                Token de mi bot (avanzado)
-              </summary>
-              <div className="pt-2">
-                {token ? (
-                  <div className="flex items-center gap-2">
-                    <input readOnly value={token} className="input-kora flex-1 font-mono text-xs" />
-                    <button
-                      onClick={copiarToken}
-                      className="btn-press inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-panel-contrast/5 text-kora-text text-sm font-semibold hover:bg-panel-contrast/10"
-                    >
-                      {tokenCopiado ? <Check size={15} /> : <Copy size={15} />}
-                      {tokenCopiado ? "Copiado" : "Copiar"}
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    onClick={verToken}
-                    disabled={tokenCargando}
-                    className="btn-press inline-flex items-center gap-2 px-4 py-2 rounded-full bg-panel-contrast/5 text-kora-text font-semibold text-sm hover:bg-panel-contrast/10 disabled:opacity-60"
-                  >
-                    {tokenCargando ? <Loader2 size={15} className="animate-spin" /> : <Eye size={15} />}
-                    Ver el token de mi bot
-                  </button>
-                )}
-                <p className="mt-1 text-xs text-kora-muted">Trátalo como una contraseña.</p>
-              </div>
-            </details>
-          </>
-        )}
-      </Etapa>
-
-      {/* Navegación del asistente */}
-      <div className="flex items-center justify-between gap-3">
-        <button
-          onClick={() => setPaso((p) => Math.max(0, p - 1))}
-          disabled={paso === 0}
-          className="btn-press inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-panel-contrast/5 text-kora-text font-semibold text-sm hover:bg-panel-contrast/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          <ChevronLeft size={16} /> Atrás
-        </button>
-        <span className="text-xs font-semibold text-kora-muted">
-          Paso {paso + 1} de {TOTAL_PASOS}
-        </span>
-        <button
-          onClick={() => setPaso((p) => Math.min(TOTAL_PASOS - 1, p + 1))}
-          disabled={paso === TOTAL_PASOS - 1}
-          className="btn-press inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-kora-primary text-white font-semibold text-sm hover:bg-kora-primary-dark transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          Siguiente <ChevronRight size={16} />
-        </button>
       </div>
-      </>
+
+      {/* Móvil: «Pruébala» como hoja inferior */}
+      {conChat && (
+        <button
+          type="button"
+          onClick={() => setChatMovil(true)}
+          className="btn-press fixed bottom-5 right-5 z-30 inline-flex items-center gap-2 rounded-full bg-kora-primary px-5 py-3 text-sm font-semibold text-white shadow-lg lg:hidden"
+        >
+          <MessageCircle size={17} aria-hidden="true" /> Pruébala
+        </button>
+      )}
+      {chatMovil && (
+        <div className="fixed inset-0 z-50 flex items-end bg-panel-contrast/40 lg:hidden" role="dialog" aria-modal="true" aria-label="Pruébala" onClick={(e) => e.target === e.currentTarget && setChatMovil(false)}>
+          <div className="relative h-[88vh] w-full animate-[subir_220ms_cubic-bezier(.23,1,.32,1)] motion-reduce:animate-none">
+            <button
+              type="button"
+              onClick={() => setChatMovil(false)}
+              className="absolute right-3 top-3 z-10 grid h-8 w-8 place-items-center rounded-full bg-panel-surface text-kora-muted shadow"
+              aria-label="Cerrar"
+            >
+              <X size={16} aria-hidden="true" />
+            </button>
+            <ChatPrueba nombreBot={nombreBot} saludo={c.bot.saludo} permitida={camilaPermitida} onPrueba={c.registrarPrueba} />
+          </div>
+        </div>
       )}
     </div>
-  );
-}
-
-function BadgeEstado({ status, nombreBot }: { status: string | null; nombreBot: string }) {
-  const map: Record<string, { dot: string; txt: string }> = {
-    ready: { dot: "bg-green-500", txt: `${nombreBot} está conectada` },
-    qr: { dot: "bg-amber-500", txt: "Escanea el código QR" },
-    starting: { dot: "bg-panel-faint", txt: "Preparando la conexión…" },
-    disconnected: { dot: "bg-red-500", txt: "Desconectada — reconectando…" },
-    auth_failure: { dot: "bg-red-500", txt: "Falló la vinculación — escanea de nuevo" },
-    error: { dot: "bg-red-500", txt: "No pudo arrancar" },
-    // El servidor de Kora está lleno: NO es culpa del hotelero y no hay nada
-    // que él pueda hacer, así que no se le manda a escanear nada ni se le
-    // enseña un error rojo como si hubiera roto algo.
-    "sin-sitio": { dot: "bg-amber-500", txt: "En cola — la estamos conectando" },
-    requisitos: { dot: "bg-amber-500", txt: "Falta un paso tuyo" },
-    "sin-servicio": { dot: "bg-panel-faint", txt: "Preparando tu conexión" },
-    // Nunca ha vinculado, así que no tenía navegador abierto: se le abre uno al
-    // entrar a este paso. Dura un par de segundos, hasta que sale el QR.
-    "sin-vincular": { dot: "bg-panel-faint", txt: "Abriendo tu conexión…" },
-    desconocido: { dot: "bg-panel-faint", txt: "Preparando tu conexión" },
-    "sin-permiso": { dot: "bg-panel-faint", txt: "Solo el dueño puede vincular" },
-  };
-  const s = map[status ?? "sin-servicio"] ?? map["sin-servicio"];
-  return (
-    <span className="inline-flex items-center gap-2 rounded-full bg-panel-contrast/5 px-3 py-1 text-xs font-semibold text-kora-text">
-      <span className={`h-2 w-2 rounded-full ${s.dot} ${status === "qr" || status === "starting" ? "animate-pulse" : ""}`} />
-      {status === null ? "Consultando estado…" : s.txt}
-    </span>
-  );
-}
-
-function Etapa({
-  n,
-  titulo,
-  listo,
-  icon,
-  children,
-}: {
-  n: number;
-  titulo: string;
-  listo?: boolean;
-  icon: React.ReactNode;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="rounded-2xl border border-panel-contrast/10 bg-panel-surface p-5 space-y-4">
-      <div className="flex items-center gap-3">
-        <span
-          className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-sm font-bold ${
-            listo ? "bg-green-100 text-green-700" : "bg-kora-primary/10 text-kora-primary"
-          }`}
-        >
-          {listo ? <Check size={16} /> : n}
-        </span>
-        <div className="flex items-center gap-2 text-kora-primary">
-          {icon}
-          <h2 className="text-lg font-bold text-kora-text">{titulo}</h2>
-        </div>
-      </div>
-      {children}
-    </section>
-  );
-}
-
-function StepPill({
-  n,
-  label,
-  ok,
-  activo,
-  onClick,
-}: {
-  n: number;
-  label: string;
-  ok?: boolean;
-  activo?: boolean;
-  onClick?: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold transition-colors ${
-        activo
-          ? "border-kora-primary bg-kora-primary/10 text-kora-primary"
-          : "border-panel-contrast/10 text-kora-muted hover:bg-panel-contrast/5"
-      }`}
-    >
-      <span
-        className={`grid h-4 w-4 place-items-center rounded-full text-[9px] font-bold ${
-          ok ? "bg-green-500 text-white" : activo ? "bg-kora-primary text-white" : "bg-panel-contrast/10 text-kora-muted"
-        }`}
-      >
-        {ok ? <Check size={10} /> : n}
-      </span>
-      {label}
-    </button>
-  );
-}
-
-/** Indicador de autoguardado: sin botón "Guardar" que se pueda olvidar. */
-function AutoGuardado({ guardando, guardado }: { guardando: boolean; guardado: boolean }) {
-  return (
-    <p className="flex items-center gap-1.5 text-xs font-semibold text-kora-muted" aria-live="polite">
-      {guardando ? (
-        <>
-          <Loader2 size={13} className="animate-spin" /> Guardando…
-        </>
-      ) : guardado ? (
-        <>
-          <Check size={13} className="text-green-600" /> Guardado
-        </>
-      ) : (
-        <span className="opacity-70">Tus cambios se guardan solos</span>
-      )}
-    </p>
-  );
-}
-
-function Campo({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label className="block">
-      <span className="block text-sm font-semibold text-kora-text mb-1">{label}</span>
-      {children}
-    </label>
-  );
-}
-
-function SabeItem({
-  item,
-  editar,
-}: {
-  item: DiagnosticoItem;
-  editar: (tab?: string) => string;
-}) {
-  return (
-    <li className="flex items-start gap-2">
-      <span className={`mt-0.5 shrink-0 ${item.ok ? "text-green-600" : "text-panel-faint"}`}>
-        <Check size={15} />
-      </span>
-      <span className={item.ok ? "" : "text-kora-muted"}>
-        {item.label}
-        {item.detalle ? <span className="text-kora-muted"> · {item.detalle}</span> : null}
-        {!item.ok && (
-          <a href={editar(item.tab)} className="ml-1 font-semibold text-kora-primary hover:underline">
-            Completar
-          </a>
-        )}
-        {!item.ok && item.aviso ? (
-          <span className="mt-0.5 block text-xs text-kora-muted/80">{item.aviso}</span>
-        ) : null}
-      </span>
-    </li>
   );
 }

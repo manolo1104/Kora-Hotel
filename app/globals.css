@@ -485,8 +485,10 @@ summary:focus-visible {
 @layer components {
 
   /* Campo de formulario reutilizable (panel de Camila, etc.) */
+  /* Superficie y borde con los tokens del panel: con `bg-white` fijo, en modo
+     oscuro el texto (que sí cambia a claro) quedaba casi invisible (~1.2:1). */
   .input-kora {
-    @apply w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm text-kora-text placeholder:text-kora-muted/60 focus:outline-none focus:ring-2 focus:ring-kora-primary/30 focus:border-kora-primary transition-colors;
+    @apply w-full rounded-xl border border-panel-border bg-panel-surface px-3 py-2 text-sm text-kora-text placeholder:text-kora-muted/60 focus:outline-none focus:ring-2 focus:ring-kora-primary/30 focus:border-kora-primary transition-colors disabled:cursor-not-allowed disabled:opacity-60;
   }
 
   /* TL;DR / resumen al inicio */
@@ -593,4 +595,10 @@ summary:focus-visible {
     @apply border-0;
   }
 
+}
+
+/* Hoja inferior del panel (Pruébala en móvil): sube desde abajo, sólo transform. */
+@keyframes subir {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
 }

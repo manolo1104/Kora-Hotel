@@ -17,6 +17,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { leer, escribir, escribirMejorEsfuerzo, DbError} from "@/lib/db/result";
 import { generarConfirmacion } from "@/lib/db/bookings";
 import { blockDates, unblock } from "@/lib/db/availability";
+import { normalizeFaqs } from "@/lib/bot/prompt";
+import { mergeFaqs } from "@/lib/bot/faqs";
 
 // ── HELPERS PUROS ───────────────────────────────────────────────────────────
 
@@ -1628,6 +1630,12 @@ export async function saveBotConfig(
     probadoAt?: string; // marca "ya probé el bot" (extras.bot.probadoAt) — NO toca entrenadoAt
     prueba?: boolean; // una interacción de prueba exitosa: incrementa extras.bot.pruebas
     bot?: BotTrainingInput;
+    /**
+     * Cambio de preguntas frecuentes como DIFERENCIA (lo que la pantalla tenía al
+     * cargar vs. lo que tiene ahora), para no borrar lo que se agregó desde
+     * «Corregir» mientras la pantalla estaba abierta. Ver lib/bot/faqs.ts.
+     */
+    faqsCambio?: { base: { q: string; a: string }[]; nuevo: { q: string; a: string }[] };
   },
 ): Promise<boolean> {
   const supabase = createAdminClient();
@@ -1649,11 +1657,30 @@ export async function saveBotConfig(
   if (input.enabled !== undefined) config.bot_enabled = input.enabled;
   if (input.lang) config.bot_lang = input.lang;
   if (input.adminPhone !== undefined) config.bot_admin_phone = input.adminPhone;
-  if (input.bot || input.probadoAt !== undefined || input.prueba) {
+  if (input.bot || input.faqsCambio || input.probadoAt !== undefined || input.prueba) {
     const prev = (extras.bot as Record<string, unknown>) ?? {};
     const merged: Record<string, unknown> = { ...prev };
     // Guardar entrenamiento marca entrenadoAt; probar el bot solo marca probadoAt.
-    if (input.bot) Object.assign(merged, input.bot, { entrenadoAt: new Date().toISOString() });
+    //
+    // SÓLO lo que vino. Antes `Object.assign(merged, input.bot)` escribía el
+    // objeto entero, y la ruta construía `pago` aunque no viniera (con todos sus
+    // campos en undefined): cada autoguardado de la encargada —que no puede ver
+    // ni tocar los datos bancarios— BORRABA la CLABE del dueño.
+    if (input.bot) {
+      const { pago, emojis, faqs, ...resto } = input.bot;
+      for (const [k, v] of Object.entries(resto)) if (v !== undefined) merged[k] = v;
+      const definidos = (o: Record<string, unknown>) =>
+        Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined));
+      if (pago) merged.pago = { ...((prev.pago as Record<string, unknown>) ?? {}), ...definidos(pago) };
+      if (emojis) merged.emojis = { ...((prev.emojis as Record<string, unknown>) ?? {}), ...definidos(emojis) };
+      if (faqs) merged.faqs = faqs;
+      merged.entrenadoAt = new Date().toISOString();
+    }
+    if (input.faqsCambio) {
+      const actuales = normalizeFaqs(prev.faqs).map((f) => ({ q: f.q, a: f.a ?? "" }));
+      merged.faqs = mergeFaqs(actuales, input.faqsCambio.base, input.faqsCambio.nuevo).slice(0, 40);
+      merged.entrenadoAt = new Date().toISOString();
+    }
     if (input.probadoAt !== undefined) merged.probadoAt = input.probadoAt;
     // Criterio honesto de "probada": cuenta interacciones de prueba exitosas
     // (chat demo o verificador) y solo marca probadoAt al llegar a 3.

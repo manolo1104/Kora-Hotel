@@ -20,7 +20,7 @@ import { CANALES_OTA_DISPONIBLES } from '@/lib/panel/canales-ota';
 // `pantallasPermitidas(rol, pantallas)`, no el permiso suelto.
 const NAV: { seg: PantallaId; label: string; icon: typeof Calendar }[] = [
   { seg: 'insights',     label: 'Inicio',         icon: LayoutDashboard },
-  { seg: 'camila',       label: 'Camila (bot)',   icon: Bot },
+  { seg: 'camila',       label: 'Camila · WhatsApp', icon: Bot },
   { seg: 'calendario',   label: 'Calendario',     icon: Calendar },
   { seg: 'reservas',     label: 'Reservas',       icon: BookOpen },
   { seg: 'cotizaciones', label: 'Cotizaciones',   icon: FileText },
@@ -200,7 +200,7 @@ export default function AdminSidebar({
           title="Activar, pausar y entrenar a Camila"
         >
           <div className={styles.botToggleInfo}>
-            <span className={styles.botToggleLabel}>Camila (bot)</span>
+            <span className={styles.botToggleLabel}>Camila · WhatsApp</span>
             <span className={`${styles.botToggleDot} ${bot.dot}`} />
             <span className={styles.botToggleStatus}>{bot.txt}</span>
           </div>

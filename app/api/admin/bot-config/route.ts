@@ -139,12 +139,17 @@ export async function POST(req: Request) {
     probadoAt?: string;
     prueba?: boolean;
     bot?: BotTrainingInput;
+    faqsCambio?: { base: { q: string; a: string }[]; nuevo: { q: string; a: string }[] };
   } = {};
   if (typeof body.enabled === "boolean") input.enabled = body.enabled;
   if (body.lang === "es" || body.lang === "en") input.lang = body.lang;
   // Número admin para controlar a Camila por WhatsApp: guardamos solo dígitos.
   if (typeof body.adminPhone === "string") {
-    input.adminPhone = body.adminPhone.replace(/\D/g, "").slice(0, 20);
+    const d = body.adminPhone.replace(/\D/g, "").slice(0, 20);
+    if (d && (d.length < 10 || d.length > 13)) {
+      return NextResponse.json({ ok: false, error: "telefono-invalido", campo: "adminPhone" }, { status: 400 });
+    }
+    input.adminPhone = d;
   }
   // Una interacción de prueba exitosa (chat demo o verificador): el servidor
   // lleva la cuenta y marca probadoAt al llegar a 3 (criterio honesto).
@@ -152,36 +157,68 @@ export async function POST(req: Request) {
   // Compat: el flag viejo marcaba probadoAt directo con un solo mensaje.
   else if (body.probado === true) input.prueba = true;
 
+  // GUARDADO POR CAMPOS: sólo se escribe lo que vino. Antes la pantalla mandaba
+  // el objeto entero en cada autoguardado y aquí se construía `pago` aunque no
+  // viniera: la encargada (que no ve los datos bancarios) borraba la CLABE del
+  // dueño cada vez que tocaba el saludo.
   if (body.bot && typeof body.bot === "object") {
     const b = body.bot as Record<string, unknown>;
-    const faqs = Array.isArray(b.faqs)
-      ? normalizeFaqs(b.faqs)
-          .slice(0, 30) // tope sano
-          .map((f) => ({ q: f.q, a: f.a ?? "" }))
-      : undefined;
-    const p = (b.pago && typeof b.pago === "object" ? b.pago : {}) as Record<string, unknown>;
-    const em = (b.emojis && typeof b.emojis === "object" ? b.emojis : {}) as Record<string, unknown>;
-    input.bot = {
-      nombre: str(b.nombre, 60),
-      tono: str(b.tono, 2000),
-      saludo: str(b.saludo, 600),
-      instrucciones: str(b.instrucciones, 4000),
-      escalarWhatsapp: str(b.escalarWhatsapp, 40),
-      pago: {
-        titular: str(p.titular, 120),
-        banco: str(p.banco, 80),
-        clabe: str(p.clabe, 40),
-        cuenta: str(p.cuenta, 40),
-        notas: str(p.notas, 600),
-      },
-      emojis: {
-        nivel: ["nada", "bajo", "medio", "alto"].includes(em.nivel as string)
-          ? (em.nivel as "nada" | "bajo" | "medio" | "alto")
-          : "medio",
-        preferidos: str(em.preferidos, 80),
-      },
-      ...(faqs ? { faqs } : {}),
-    };
+    const tiene = (k: string) => Object.prototype.hasOwnProperty.call(b, k);
+    const bot: BotTrainingInput = {};
+    if (tiene("nombre")) bot.nombre = str(b.nombre, 60) ?? "";
+    if (tiene("tono")) bot.tono = str(b.tono, 2000) ?? "";
+    if (tiene("saludo")) bot.saludo = str(b.saludo, 600) ?? "";
+    if (tiene("instrucciones")) bot.instrucciones = str(b.instrucciones, 4000) ?? "";
+    if (tiene("escalarWhatsapp")) {
+      const d = String(b.escalarWhatsapp ?? "").replace(/\D/g, "").slice(0, 20);
+      if (d && (d.length < 10 || d.length > 13)) {
+        return NextResponse.json({ ok: false, error: "telefono-invalido", campo: "escalarWhatsapp" }, { status: 400 });
+      }
+      bot.escalarWhatsapp = d;
+    }
+    if (tiene("pago") && b.pago && typeof b.pago === "object") {
+      const p = b.pago as Record<string, unknown>;
+      const pago: NonNullable<BotTrainingInput["pago"]> = {};
+      if ("titular" in p) pago.titular = str(p.titular, 120) ?? "";
+      if ("banco" in p) pago.banco = str(p.banco, 80) ?? "";
+      if ("clabe" in p) {
+        const c = String(p.clabe ?? "").replace(/\D/g, "");
+        // Una CLABE mal escrita es dinero de un huésped en una cuenta que no es.
+        if (c && c.length !== 18) {
+          return NextResponse.json({ ok: false, error: "clabe-invalida", campo: "clabe" }, { status: 400 });
+        }
+        pago.clabe = c;
+      }
+      if ("cuenta" in p) pago.cuenta = str(p.cuenta, 40) ?? "";
+      if ("notas" in p) pago.notas = str(p.notas, 600) ?? "";
+      bot.pago = pago;
+    }
+    if (tiene("emojis") && b.emojis && typeof b.emojis === "object") {
+      const em = b.emojis as Record<string, unknown>;
+      bot.emojis = {
+        ...(["nada", "bajo", "medio", "alto"].includes(em.nivel as string)
+          ? { nivel: em.nivel as "nada" | "bajo" | "medio" | "alto" }
+          : {}),
+        ...("preferidos" in em ? { preferidos: str(em.preferidos, 80) ?? "" } : {}),
+      };
+    }
+    // Compat: un cliente viejo manda la lista entera (reemplazo).
+    if (tiene("faqs") && Array.isArray(b.faqs)) {
+      bot.faqs = normalizeFaqs(b.faqs)
+        .slice(0, 40)
+        .map((f) => ({ q: f.q, a: f.a ?? "" }));
+    }
+    if (Object.keys(bot).length) input.bot = bot;
+  }
+
+  // Preguntas frecuentes como DIFERENCIA (base → nuevo): no pisa lo que se
+  // enseñó desde «Corregir» mientras la pantalla estaba abierta.
+  if (body.faqs && typeof body.faqs === "object") {
+    const f = body.faqs as { base?: unknown; nuevo?: unknown };
+    const limpiar = (l: unknown) => normalizeFaqs(l).map((x) => ({ q: x.q, a: x.a ?? "" }));
+    if (Array.isArray(f.base) && Array.isArray(f.nuevo)) {
+      input.faqsCambio = { base: limpiar(f.base), nuevo: limpiar(f.nuevo).slice(0, 40) };
+    }
   }
 
   // Si no se guardó, se dice: el panel enseña "Guardado ✓" y mueve el

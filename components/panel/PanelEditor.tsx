@@ -320,33 +320,7 @@ export function PanelEditor({
   const [resolviendoMapa, setResolviendoMapa] = useState(false);
   const [reviewUrl, setReviewUrl] = useState(""); // link "escribir reseña" de Google (email día 7)
 
-  // Token del bot de WhatsApp (config.agent_token). Se pide al backend solo
-  // cuando el dueño quiere verlo (el endpoint lo genera la primera vez).
-  const [agentToken, setAgentToken] = useState("");
-  const [agentTokenCargando, setAgentTokenCargando] = useState(false);
-  const [agentTokenCopiado, setAgentTokenCopiado] = useState(false);
-  async function verTokenAgente() {
-    setAgentTokenCargando(true);
-    try {
-      const res = await fetch("/api/admin/agent-token");
-      const d = await res.json().catch(() => ({}));
-      if (!res.ok || !d?.token) throw new Error(typeof d?.error === "string" ? d.error : "No se pudo obtener el token.");
-      setAgentToken(String(d.token));
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "No se pudo obtener el token.");
-    } finally {
-      setAgentTokenCargando(false);
-    }
-  }
-  async function copiarTokenAgente() {
-    try {
-      await navigator.clipboard.writeText(agentToken);
-      setAgentTokenCopiado(true);
-      setTimeout(() => setAgentTokenCopiado(false), 2000);
-    } catch {
-      /* clipboard bloqueado: el texto queda seleccionable a mano */
-    }
-  }
+
   const [mapEmbedUrl, setMapEmbedUrl] = useState("");
 
   // Diseño
@@ -3564,52 +3538,25 @@ export function PanelEditor({
             </div>
           </div>
 
-          {/* Agente de WhatsApp: token para conectar el bot del hotel */}
-          {hotelId && (
-            <div className={`${card} space-y-3`}>
+          {/* La asistente de WhatsApp se configura en SU pantalla. Aquí había un
+              segundo bloque con el token («consultando a Kora con un token
+              secreto… Insights → Agentes», que no existe): jerga y un duplicado
+              de lo que ya está en Camila → WhatsApp y ajustes. */}
+          {hotelId && slug && (
+            <div className={`${card} flex flex-wrap items-center justify-between gap-3`}>
               <div className="flex items-center gap-2">
                 <MessageCircle size={18} className="text-kora-primary" />
-                <h2 className="text-lg font-bold text-kora-text">Agente de WhatsApp</h2>
-              </div>
-              <p className="text-sm text-kora-muted">
-                Tu bot de WhatsApp responde a los huéspedes con datos reales de tu
-                hotel (habitaciones, precios y disponibilidad en vivo) consultando
-                a Kora con un token secreto. Las conversaciones que atienda
-                aparecen en Insights → Agentes.
-              </p>
-              {agentToken ? (
-                <div className="flex flex-wrap items-center gap-2">
-                  <input
-                    readOnly
-                    className={`${inputCls} flex-1 min-w-[220px] font-mono text-xs`}
-                    value={agentToken}
-                    onFocus={(e) => e.currentTarget.select()}
-                  />
-                  <button
-                    type="button"
-                    onClick={copiarTokenAgente}
-                    className="btn-press inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-panel-border text-kora-text font-semibold text-sm hover:border-kora-accent transition-colors"
-                  >
-                    {agentTokenCopiado ? <Check size={15} /> : <Copy size={15} />}
-                    {agentTokenCopiado ? "Copiado" : "Copiar"}
-                  </button>
+                <div>
+                  <h2 className="text-lg font-bold text-kora-text">Asistente de WhatsApp</h2>
+                  <p className="text-sm text-kora-muted">Su personalidad, lo que sabe y cómo vende se configuran en su propia pantalla.</p>
                 </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={verTokenAgente}
-                  disabled={agentTokenCargando}
-                  className="btn-press inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-panel-border text-kora-primary font-semibold text-sm hover:border-kora-accent transition-colors disabled:opacity-50"
-                >
-                  {agentTokenCargando ? <Loader2 size={15} className="animate-spin" /> : <Eye size={15} />}
-                  Ver mi token del bot
-                </button>
-              )}
-              <p className="text-xs text-kora-muted">
-                Trátalo como una contraseña: quien lo tenga puede consultar los
-                datos de tu hotel. Tu bot lo manda en cada consulta a{" "}
-                <code className="font-mono">kora-hotel.com/api/agent</code>.
-              </p>
+              </div>
+              <a
+                href={`/panel/${slug}/camila`}
+                className="btn-press inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-panel-border text-kora-primary font-semibold text-sm hover:border-kora-accent transition-colors"
+              >
+                Ir a la asistente
+              </a>
             </div>
           )}
 
@@ -4209,17 +4156,17 @@ export function PanelEditor({
                   </button>
                 ))}
               </div>
-              {/* Pagos unificados: los datos bancarios (transferencia/depósito/OXXO)
-                  viven en Camila → Reglas; desde aquí solo se enlaza para no tener
+              {/* Pagos unificados: los datos bancarios (transferencia/depósito)
+                  viven en la asistente → Cómo vende; desde aquí solo se enlaza para no tener
                   dos formularios que se desincronicen. */}
               {slug ? (
                 <p className="mt-2 text-xs text-kora-muted">
                   ¿Aceptas transferencia o depósito? Captura los datos bancarios una sola vez en{" "}
                   <a
-                    href={`/panel/${slug}/camila`}
+                    href={`/panel/${slug}/camila?tab=vende`}
                     className="font-semibold text-kora-primary underline"
                   >
-                    Camila → Reglas
+                    Asistente de WhatsApp → Cómo vende
                   </a>{" "}
                   y tu asistente los dará al huésped cuando quiera pagar así.
                 </p>

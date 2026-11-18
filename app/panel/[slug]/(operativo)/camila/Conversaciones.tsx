@@ -49,11 +49,13 @@ const ETIQUETAS = ['Nueva', 'Cotizando', 'Reservó', 'Perdida', 'Atender yo'] as
 
 /** El color de cada etiqueta. Se lee de un vistazo o no sirve para filtrar. */
 const COLOR_ETIQUETA: Record<string, string> = {
-  Nueva: 'bg-sky-500/15 text-sky-700 dark:text-sky-300',
-  Cotizando: 'bg-amber-500/15 text-amber-700 dark:text-amber-300',
-  Reservó: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300',
-  Perdida: 'bg-rose-500/15 text-rose-700 dark:text-rose-300',
-  'Atender yo': 'bg-violet-500/15 text-violet-700 dark:text-violet-300',
+  // Los pares de --chip-* cambian con el tema DEL PANEL. Los `dark:` de
+  // Tailwind seguían al tema del sistema operativo, no al botón del panel.
+  Nueva: 'bg-[var(--chip-info-bg)] text-[var(--chip-info-text)]',
+  Cotizando: 'bg-[var(--chip-aviso-bg)] text-[var(--chip-aviso-text)]',
+  Reservó: 'bg-[var(--chip-ok-bg)] text-[var(--chip-ok-text)]',
+  Perdida: 'bg-[var(--chip-mal-bg)] text-[var(--chip-mal-text)]',
+  'Atender yo': 'bg-[var(--chip-morado-bg)] text-[var(--chip-morado-text)]',
 };
 
 /** Cada cuánto se vuelve a preguntar, mientras la pestaña esté a la vista. */
@@ -91,7 +93,17 @@ function enPausa(hasta: string | null): boolean {
   return Number.isFinite(t) && t > Date.now();
 }
 
-export default function Conversaciones({ nombreBot }: { nombreBot: string }) {
+export default function Conversaciones({
+  nombreBot,
+  chatInicial,
+  onCorregido,
+}: {
+  nombreBot: string;
+  /** Abre este chat al cargar: es a donde lleva el aviso de WhatsApp cuando Camila pide a una persona. */
+  chatInicial?: string | null;
+  /** Se guardó una respuesta desde «Corregir»: la pantalla la trae a «Lo que sabe». */
+  onCorregido?: () => void;
+}) {
   const [hilos, setHilos] = useState<Hilo[] | null>(null);
   const [abierto, setAbierto] = useState<Hilo | null>(null);
   const [filtro, setFiltro] = useState<string | null>(null);
@@ -135,6 +147,17 @@ export default function Conversaciones({ nombreBot }: { nombreBot: string }) {
   useEffect(() => {
     void cargar();
   }, [cargar]);
+
+  // El aviso por WhatsApp trae `?chat=…`: se abre ese chat en cuanto llega la lista.
+  const inicialAbierto = useRef(false);
+  useEffect(() => {
+    if (inicialAbierto.current || !chatInicial || !hilos) return;
+    const h = hilos.find((x) => x.chatId === chatInicial || x.chatId.split('@')[0] === chatInicial);
+    if (h) {
+      inicialAbierto.current = true;
+      void abrir(h);
+    }
+  }, [chatInicial, hilos]);
 
   // El refresco. Se salta las vueltas en las que la pestaña no está a la vista:
   // no tiene sentido consultar la base para un panel que nadie está mirando.
@@ -362,7 +385,7 @@ export default function Conversaciones({ nombreBot }: { nombreBot: string }) {
                   onClick={() => void cambiarChat({ pausarMin: enPausa(abierto.pausadoHasta) ? 0 : PAUSA_MIN })}
                   className={`btn-press inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ${
                     enPausa(abierto.pausadoHasta)
-                      ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300'
+                      ? 'bg-[var(--chip-aviso-bg)] text-[var(--chip-aviso-text)]'
                       : 'bg-kora-primary/10 text-kora-primary'
                   }`}
                   title={enPausa(abierto.pausadoHasta)
@@ -423,9 +446,9 @@ export default function Conversaciones({ nombreBot }: { nombreBot: string }) {
                       {t.rol === 'assistant' && t.por !== 'hotel' && (
                         <button
                           onClick={() => setCorrigiendo(t)}
-                          className="btn-press mt-0.5 ml-auto flex items-center gap-1 text-[10px] text-kora-muted hover:text-kora-primary"
+                          className="btn-press mt-1 ml-auto flex items-center gap-1 rounded-full border border-panel-border px-2.5 py-1 text-xs font-semibold text-kora-muted transition-colors hover:border-kora-primary/50 hover:text-kora-primary"
                         >
-                          <Wand2 size={10} /> Corregir
+                          <Wand2 size={12} aria-hidden="true" /> Corregir
                         </button>
                       )}
                     </div>
@@ -435,7 +458,7 @@ export default function Conversaciones({ nombreBot }: { nombreBot: string }) {
 
               {/* Caja de respuesta */}
               <div className="border-t border-panel-contrast/10 p-3 space-y-2">
-                {aviso && <p role="alert" className="text-xs text-amber-700 dark:text-amber-300">{aviso}</p>}
+                {aviso && <p role="alert" className="text-xs text-[var(--chip-aviso-text)]">{aviso}</p>}
                 <div className="flex items-end gap-2">
                   <textarea
                     className="input-kora flex-1 resize-none text-sm"
@@ -475,6 +498,7 @@ export default function Conversaciones({ nombreBot }: { nombreBot: string }) {
           nombreBot={nombreBot}
           preguntaSugerida={preguntaAntesDe(abierto?.turnos ?? [], corrigiendo)}
           onCerrar={() => setCorrigiendo(null)}
+          onGuardado={onCorregido}
         />
       )}
     </div>
@@ -499,11 +523,13 @@ function Corregir({
   nombreBot,
   preguntaSugerida,
   onCerrar,
+  onGuardado,
 }: {
   turno: Turno;
   nombreBot: string;
   preguntaSugerida: string;
   onCerrar: () => void;
+  onGuardado?: () => void;
 }) {
   const [pregunta, setPregunta] = useState(preguntaSugerida);
   const [respuesta, setRespuesta] = useState('');
@@ -522,6 +548,7 @@ function Corregir({
       });
       if (d.ok) {
         setListo(true);
+        onGuardado?.();
         setTimeout(onCerrar, 1400);
       } else {
         setError(d.error || 'No se pudo guardar.');
@@ -564,7 +591,7 @@ function Corregir({
           Puedes verlo y editarlo en Configurar → Reglas de conversación.
         </p>
 
-        {error && <p role="alert" className="text-xs text-rose-600 dark:text-rose-400">{error}</p>}
+        {error && <p role="alert" className="text-xs text-[var(--chip-mal-text)]">{error}</p>}
 
         <div className="flex justify-end gap-2">
           <button onClick={onCerrar} className="btn-press rounded-xl px-4 py-2 text-sm font-semibold text-kora-muted">Cancelar</button>

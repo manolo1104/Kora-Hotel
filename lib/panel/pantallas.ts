@@ -71,7 +71,7 @@ export const PANTALLAS: Pantalla[] = [
   },
   {
     id: "camila",
-    label: "Camila (bot)",
+    label: "Camila · WhatsApp",
     // `bot:leer` va PRIMERO: es el "abridor", el que decide quién puede entrar a
     // la pantalla. `saldo:recargar` es del dueño, así que marcar esta casilla
     // para la encargada no se lo concede (Regla 2 de `permisosDe`), igual que ya

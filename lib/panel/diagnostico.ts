@@ -15,6 +15,17 @@ import type { Politica } from "@/lib/politica";
 import type { HotelRow } from "@/lib/tenant";
 import { REGALO_CAMILA_MENSAJES } from "@/lib/oferta";
 
+/** ¿Hay al menos un valor con contenido? (no basta con que existan las claves) */
+function conContenido(o: unknown): boolean {
+  if (o == null) return false;
+  if (typeof o === "string") return o.trim().length > 0;
+  if (typeof o === "number") return true;
+  if (typeof o === "boolean") return o;
+  if (Array.isArray(o)) return o.some(conContenido);
+  if (typeof o === "object") return Object.values(o as Record<string, unknown>).some(conContenido);
+  return false;
+}
+
 export interface DiagnosticoItem {
   ok: boolean;
   label: string;
@@ -353,19 +364,21 @@ export function diagnosticarHotel(
           tab: "avanzado",
         };
       }
+      // Con CONTENIDO, no con claves: el editor del sitio guarda «mascotas» y
+      // «niños» aunque estén en blanco, y la palomita salía verde vacía.
       return {
-        ok: Object.keys(politicas).length > 0,
+        ok: conContenido(politicas),
         label: "Políticas",
-        aviso: Object.keys(politicas).length
+        aviso: conContenido(politicas)
           ? undefined
           : "Sin esto, Camila no sabe responder sobre cancelaciones, mascotas o niños.",
         tab: "avanzado",
       };
     })(),
     reglas: {
-      ok: Object.keys(reglas).length > 0,
+      ok: conContenido(reglas),
       label: "Reglas de reserva e impuestos",
-      aviso: Object.keys(reglas).length
+      aviso: conContenido(reglas)
         ? undefined
         : "Define anticipo y cancelación para que Camila explique cómo se paga.",
       tab: "avanzado",
@@ -381,12 +394,14 @@ export function diagnosticarHotel(
       tab: "resenas",
     },
     guia: {
-      ok: Object.keys(guia).length > 0,
+      ok: conContenido(guia),
       label: "Guía / recomendaciones",
-      aviso: Object.keys(guia).length
+      aviso: conContenido(guia)
         ? undefined
         : "Con la guía, Camila responde check-in, check-out, wifi y qué visitar.",
-      tab: "contenido",
+      // La guía vive en la pestaña Avanzado del editor; el link mandaba a
+      // «contenido», donde no está.
+      tab: "avanzado",
     },
     accesibilidad: {
       ok: Boolean(accesibilidadHotel || accesibilidadCuartos),
