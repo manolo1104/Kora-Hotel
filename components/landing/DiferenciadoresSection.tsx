@@ -1,4 +1,4 @@
-import { UserCheck, Languages, LifeBuoy, Percent } from "lucide-react";
+import { UserCheck, Languages, LifeBuoy, Percent, CalendarSync } from "lucide-react";
 import { Reveal } from "@/components/shared/Reveal";
 import { GlowCard } from "@/components/shared/GlowCard";
 import { FUNDADOR } from "@/lib/fundador";
@@ -31,6 +31,13 @@ const tiles: Tile[] = [
     span: "",
   },
   {
+    Icon: CalendarSync,
+    titulo: "Convive con tus OTAs",
+    desc: "Se enlaza por iCal con Airbnb, Booking y Expedia (Vrbo): un solo calendario, sin vender dos veces el mismo cuarto.",
+    style: "light",
+    span: "",
+  },
+  {
     Icon: Languages,
     titulo: "100% en español",
     desc: "El sistema, el soporte y la IA, todo en tu idioma.",
@@ -42,7 +49,7 @@ const tiles: Tile[] = [
     titulo: "Soporte directo con el equipo fundador",
     desc: "Hablas con quien construye Kora, no con un call center que te deja en espera.",
     style: "light",
-    span: "sm:col-span-2",
+    span: "lg:col-span-2",
   },
 ];
 

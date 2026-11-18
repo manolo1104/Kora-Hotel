@@ -6,7 +6,9 @@ import { rutaSegura } from "@/lib/api/responder";
 
 import { NextRequest, NextResponse } from "next/server";
 import { getActiveHotel } from "@/lib/panel/active-hotel";
-import { deleteOTACalendar } from "@/lib/db/admin";
+import { deleteOTACalendar, getAllOTACalendars } from "@/lib/db/admin";
+import { borrarBloqueosOTA } from "@/lib/db/availability";
+import { fuenteDe } from "@/lib/canales/ical";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +23,13 @@ export async function DELETE(
   if (no) return no;
 
   const { id } = await params;
+  // Al quitar un canal se quitan también las noches que había cerrado. Antes se
+  // quedaban para siempre: la unidad seguía bloqueada por un Airbnb que ya no
+  // estaba enlazado.
+  const canal = (await getAllOTACalendars(ctx.hotelId)).find((c) => c.id === id);
+  if (canal) {
+    await borrarBloqueosOTA(ctx.hotelId, canal.roomName, fuenteDe({ id, tipo: canal.platform }));
+  }
   await deleteOTACalendar(ctx.hotelId, id);
   return NextResponse.json({ ok: true });
   });

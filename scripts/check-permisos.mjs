@@ -17,10 +17,6 @@ const EXENTAS = new Map([
     "app/api/panel/tour-visto/route.ts",
     "es una preferencia de UI del propio usuario (¿ya vio el tour?), no toca datos del hotel",
   ],
-  [
-    "app/api/cron/ical-sync/route.ts",
-    "es un cron: se autentica con CRON_SECRET y no hay sesión de usuario que tenga rol",
-  ],
 ]);
 
 const archivos = execSync(

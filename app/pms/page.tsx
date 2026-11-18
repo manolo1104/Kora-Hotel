@@ -112,7 +112,7 @@ const FAQS = [
   },
   {
     q: "¿Tiene channel manager?",
-    a: "No, todavía no. Kora no se sincroniza con Booking, Airbnb ni Expedia: esas reservas las registras en el calendario del panel. Si hoy vendes la mayoría de tus noches por varias OTAs a la vez, necesitas un channel manager y Kora no te lo resuelve.",
+    a: "No es un channel manager completo, pero sí se enlaza por iCal con Airbnb, Booking.com y Expedia (Vrbo): lo que vendes allá se bloquea solo en tu calendario cada 15 minutos, y lo que vendes en Kora se cierra allá. iCal mueve fechas, no tarifas. Si vendes la mayoría de tus noches por varias OTAs y necesitas cambiar precios en todas desde un solo lugar, eso sigue siendo trabajo de un channel manager.",
   },
   {
     q: "¿Para qué tamaño de hotel es?",
@@ -129,7 +129,7 @@ const FAQS = [
 ];
 
 const NO_HACE = [
-  "No tiene channel manager: no se sincroniza con Booking, Airbnb ni Expedia.",
+  "No es channel manager: con Airbnb, Booking y Expedia (Vrbo) se enlaza por iCal (fechas ocupadas), no reparte tarifas.",
   "No importa reservas de tu sistema anterior.",
   "No abre cerraduras electrónicas ni se conecta al punto de venta del restaurante.",
 ];

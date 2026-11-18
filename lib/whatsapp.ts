@@ -401,8 +401,8 @@ export const paginasWhatsApp: PaginaWhatsApp[] = [
         // Decía "Sí" hasta el 2 sep 2026, con la pestaña de canales retirada del
         // panel desde el 26 de agosto. Responder que no —y decir qué sí hace—
         // vende peor un minuto y mejor un año.
-        q: "¿Se sincroniza con Booking y Airbnb?",
-        a: "Todavía no. Kora se ocupa de tu canal directo: WhatsApp, tu página de reservas y tu calendario propio. Lo que sí hace hoy es quitarte comisión en cada reserva que entra por ahí, que es de donde sale el ahorro.",
+        q: "¿Camila sabe lo que ya vendí en Booking y Airbnb?",
+        a: "Sí, si enlazas sus calendarios por iCal en tu panel: Kora los lee cada 15 minutos, así que Camila sólo cotiza las noches que de verdad están libres. Y lo que Camila vende se cierra en tus OTAs. Las tarifas las sigues poniendo en cada OTA.",
       },
     ],
     relacionados: [

@@ -355,8 +355,8 @@ export const personas: Persona[] = [
         a: "Sí, con tarifas por temporada y por día. El agente cotiza siempre con la vigente.",
       },
       {
-        q: "¿Se sincroniza con las OTAs?",
-        a: "Todavía no de forma automática. Dentro de Kora sí hay un solo inventario —página, WhatsApp y panel—, y las reservas que entren por una OTA las registras en el panel en segundos y bloquean la fecha igual.",
+        q: "¿Se conecta con las OTAs?",
+        a: "Sí, por iCal con Airbnb, Booking.com y Expedia (Vrbo): lo que vendes allá se bloquea solo en Kora cada 15 minutos, y lo que vendes en tu página, por WhatsApp o en el panel se cierra allá. Mueve fechas, no tarifas: los precios los sigues poniendo en cada OTA.",
       },
     ],
   },

@@ -28,6 +28,7 @@ const featuresKora = [
   "Motor de reservas directo, 0% de comisión",
   "Habitaciones ilimitadas",
   "PMS completo: check-in/out y housekeeping",
+  "Enlace iCal con Airbnb, Booking y Expedia (Vrbo)",
   "Camila: agente de WhatsApp con IA, 24/7",
   `Dashboard con métricas y forecast de ${FORECAST_DIAS} días`,
   "CRM de huéspedes y emails automáticos",

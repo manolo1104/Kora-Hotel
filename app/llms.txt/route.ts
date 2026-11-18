@@ -7,6 +7,7 @@ import { ciudades } from "@/lib/ciudades";
 import { comparativas } from "@/lib/comparativas";
 import { paginasWhatsApp } from "@/lib/whatsapp";
 import { AYUDA } from "@/lib/ayuda";
+import { ENLACE_OTA } from "@/lib/integraciones";
 import { getAllArticles } from "@/lib/blog-db";
 import type { Article } from "@/lib/articles";
 import {
@@ -88,13 +89,14 @@ function buildLlms(hoteles: HotelListado[], articulos: Article[]): string {
   PASOS_ALTA.forEach((p, i) => L.push(`${i + 1}. ${p.titulo}: ${p.texto}`));
   L.push(`Ayuda humana, opcional: ${AYUDA_ALTA}`);
   L.push(
-    "Lo que Kora NO hace hoy: no configura cada hotel a mano ni en un plazo; todavía no hay sincronía automática con Booking, Airbnb ni Expedia (esas reservas se registran en el panel); no importa reservas de otro sistema."
+    "Lo que Kora NO hace hoy: no configura cada hotel a mano ni en un plazo; no es un channel manager (con Airbnb, Booking y Expedia/Vrbo se enlaza por iCal, que mueve fechas ocupadas, no tarifas); no importa reservas de otro sistema."
   );
   L.push("");
   L.push("## Qué incluye (todo en el plan único)");
   L.push("- Motor de reservas directas, 0% de comisión");
   L.push("- Camila: agente de WhatsApp con IA que cotiza, cobra el anticipo y reúne los datos de la reserva, 24/7");
   L.push("- PMS: mapa de habitaciones, check-in, check-out y housekeeping");
+  L.push(`- Enlace con OTAs: ${ENLACE_OTA.corto} ${ENLACE_OTA.limites}`);
   L.push(`- Dashboard con métricas, RevPAR, ocupación y forecast de ${FORECAST_DIAS} días`);
   L.push("- CRM de huéspedes y emails automáticos pre y post estancia");
   L.push("- Mini-página de reservas y cobro con tarjeta");

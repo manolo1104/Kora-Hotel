@@ -28,10 +28,9 @@ const NAV: { seg: PantallaId; label: string; icon: typeof Calendar }[] = [
   { seg: 'pagos',        label: 'Pagos',          icon: CreditCard },
   { seg: 'clientes',     label: 'Clientes',       icon: Users },
   { seg: 'operaciones',  label: 'Operaciones',    icon: ClipboardCheck },
-  // Canales OTA retirado del panel: ver CANALES_OTA_DISPONIBLES en
-  // lib/panel/canales-ota.ts. Los feeds ya pegados en una extranet siguen vivos
-  // a propósito — cortarlos provoca sobreventa.
-  ...(CANALES_OTA_DISPONIBLES ? [{ seg: 'canales' as const, label: 'Canales OTA', icon: Globe2 }] : []),
+  // Enlace iCal con Airbnb/Booking/Expedia. Interruptor único:
+  // CANALES_OTA_DISPONIBLES en lib/panel/canales-ota.ts.
+  ...(CANALES_OTA_DISPONIBLES ? [{ seg: 'canales' as const, label: 'Canales', icon: Globe2 }] : []),
 ];
 
 export default function AdminSidebar({

@@ -49,9 +49,13 @@ const PASOS: PasoTour[] = [
     titulo: "Conecta tus cobros",
     texto: "Vincula tu cuenta para recibir el dinero de las reservas directo, sin comisiones de OTAs.",
   },
-  // El paso de "Canales (OTAs)" se quitó con la pestaña: un tour que señala un
-  // botón que no está deja al hotelero buscándolo. Vuelve si vuelve la pestaña
-  // (CANALES_OTA_DISPONIBLES en lib/panel/canales-ota.ts).
+  // Vuelve con la pestaña (CANALES_OTA_DISPONIBLES en lib/panel/canales-ota.ts).
+  {
+    key: "nav-canales",
+    titulo: "Enlaza Airbnb, Booking y Expedia",
+    texto:
+      "Pega el calendario iCal de cada anuncio y Kora bloquea esas noches sola cada 15 minutos. Así no vendes dos veces el mismo cuarto.",
+  },
   {
     key: "nav-motor",
     titulo: "Ve tu motor en vivo",

@@ -178,7 +178,7 @@ export const glosario: TerminoGlosario[] = [
       // descuenta cada reserva de todos los canales». Kora no tiene channel
       // manager ni sincronía con las OTAs (lib/integraciones.ts): se cuenta lo
       // que sí hace.
-      "La forma más efectiva de evitarlo es llevar un solo inventario. En Kora, tu página de reservas, Camila y tu panel leen la misma disponibilidad, así que una reserva directa cierra la fecha en los tres; las reservas que entran por una OTA las registras en el panel y bloquean la fecha igual. La sincronía automática con las OTAs todavía no existe.",
+      "La forma más efectiva de evitarlo es llevar un solo inventario. En Kora, tu página de reservas, Camila y tu panel leen la misma disponibilidad, así que una reserva directa cierra la fecha en los tres; y enlazando por iCal tus anuncios de Airbnb, Booking o Expedia (Vrbo), lo que vendes allá se bloquea solo en Kora cada 15 minutos (y lo que vendes en Kora se cierra allá).",
     ],
     faqs: [
       {

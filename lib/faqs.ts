@@ -57,9 +57,12 @@ export const faqs: Faq[] = [
   {
     // Decía «Kora se conecta con tus OTAs existentes». La pestaña de canales está
     // retirada del panel desde el 26 ago 2026 (ver lib/integraciones.ts).
-    question: "¿Qué pasa con mis reservas actuales en Booking o Airbnb?",
+    // 18 nov 2026: el enlace por iCal volvió (lib/canales/ical.ts). La
+    // redacción sale de ENLACE_OTA (lib/integraciones.ts) para que todas las
+    // superficies digan lo mismo, límites incluidos.
+    question: "¿Kora se conecta con Airbnb, Booking y Expedia?",
     answer:
-      "Las sigues recibiendo por ahí: Kora no te pide salirte de las OTAs. Hoy no hay sincronía automática con Booking, Airbnb ni Expedia, ni importación automática de reservas: las que ya tienes y las que entren por una OTA las registras en tu panel y bloquean la fecha igual. Lo que ganas es capturar directo, sin comisión, las reservas que hoy se pierden.",
+      "Sí, por iCal, y sin salirte de las OTAs. En tu panel enlazas el calendario de cada anuncio de Airbnb, Booking.com o Expedia (Vrbo) con su habitación: lo que vendes allá se bloquea solo en Kora cada 15 minutos, y lo que vendes en Kora (tu página, Camila o el panel) se cierra allá. Así tienes un solo calendario y dejas de vender dos veces el mismo cuarto. Lo que iCal no hace: no mueve tarifas (esas las sigues poniendo en cada OTA), cada OTA lee el calendario a su ritmo (de 30 minutos a 3 horas) y Booking sólo lo ofrece si cada tipo de habitación tiene una unidad. Si dos reservas llegan a chocar, te avisamos por correo.",
   },
   {
     question: "¿Hay permanencia o contrato?",

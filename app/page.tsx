@@ -6,6 +6,7 @@ import { ProblemSection } from "@/components/landing/ProblemSection";
 import { AgenteSection } from "@/components/landing/AgenteSection";
 import { SolutionSection } from "@/components/landing/SolutionSection";
 import { IntegracionesSection } from "@/components/landing/IntegracionesSection";
+import { CanalesSection } from "@/components/landing/CanalesSection";
 import { ComparisonSection } from "@/components/landing/ComparisonSection";
 import { CalculadoraROI } from "@/components/landing/CalculadoraROI";
 import { SocialProofSection } from "@/components/landing/SocialProofSection";
@@ -152,6 +153,9 @@ export default function HomePage() {
       <MotorReservasSection />
       <DemoMotorSection />
       <SolutionSection />
+      {/* El enlace con Airbnb/Booking/Expedia: contesta el miedo de sumar un
+          canal directo (vender dos veces el mismo cuarto). */}
+      <CanalesSection />
       <DiferenciadoresSection />
       <FundadorSection />
       <IntegracionesSection />

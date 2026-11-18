@@ -1,5 +1,6 @@
 import { construirMetadataBase } from "@/lib/booking/metadata";
 import { NextRequest, NextResponse } from "next/server";
+import { refrescarAntesDeApartar } from "@/lib/canales/ical";
 import type Stripe from "stripe";
 import { z } from "zod";
 import { resolveHotel } from "@/lib/tenant";
@@ -445,6 +446,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   // quien inició la sesión lo conoce. Si el huésped genera un voucher OXXO, el
   // webhook extiende el hold.
   const sessionId = `web_${crypto.randomUUID()}`;
+  // Si algún calendario enlazado (Airbnb, Booking…) lleva >15 min sin leerse,
+  // se lee ahora: el apartado atómico de abajo ve así las noches que acaban de
+  // venderse fuera. Con tope de 4 s y sin lanzar nunca.
+  await refrescarAntesDeApartar(hotel.id);
   const apartado = await apartarUnidades(hotel.id, candidatas, checkin, checkout, sessionId, {
     minutos: 35,
     maxUnidades: topeUnidadesPorSesion(rooms),

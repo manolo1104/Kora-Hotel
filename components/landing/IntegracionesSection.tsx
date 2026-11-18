@@ -18,14 +18,18 @@ export function IntegracionesSection() {
             <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-kora-text">
               Se conecta con lo que ya usas
             </h2>
-            {/* Decía «Tus reservas de Booking […] y tu contabilidad fiscal,
+            {/* 18 nov 2026: vuelve la mención a las OTAs porque el enlace por
+                iCal está encendido (CANALES_OTA_DISPONIBLES). Lo de abajo es
+                la historia de por qué se había quitado.
+                Decía «Tus reservas de Booking […] y tu contabilidad fiscal,
                 todo sincronizado». Ninguna de las dos existe: los canales OTA
                 están retirados del panel (CANALES_OTA_DISPONIBLES) y la
                 facturación CFDI no está conectada a ningún PAC. Ahora dice lo
                 que Kora sí hace, que además es lo que la distingue. */}
             <p className="mt-3 text-kora-muted text-sm max-w-xl mx-auto">
               Kora no te pide cambiar de herramientas: contesta el WhatsApp por
-              el que ya te escriben tus huéspedes y cobra por donde ya cobras.
+              el que ya te escriben tus huéspedes, cobra por donde ya cobras y
+              enlaza por iCal tus calendarios de Airbnb, Booking y Expedia (Vrbo).
             </p>
           </div>
         </Reveal>

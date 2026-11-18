@@ -36,7 +36,8 @@ import {
 // WhatsApp» → «Nosotros configuramos todo, conectamos Booking y Expedia» →
 // «Migración de reservas» → «Capacitación de 30 minutos», con la garantía
 // «Setup en 24 horas o te devolvemos el primer mes». Tres de esos pasos eran
-// falsos: la sincronía con OTAs está apagada (`CANALES_OTA_DISPONIBLES = false`),
+// falsos: la sincronía con OTAs estaba apagada (`CANALES_OTA_DISPONIBLES`; volvió
+// por iCal el 18 nov 2026),
 // no hay importador de reservas y la garantía de 24 h no estaba en los Términos.
 // Y el único botón de la página llevaba a WhatsApp, mientras el alta real es por
 // cuenta propia desde el registro.
@@ -333,9 +334,11 @@ export default function ComoFuncionaPage() {
               Lo que conviene saber
             </h2>
             <p className="text-sm text-kora-muted leading-relaxed">
-              Hoy Kora no importa reservas de otro sistema ni se conecta con
-              Booking o Expedia. Las reservas que ya tienes las registras a mano
-              en tu calendario, y las nuevas te llegan por tu motor de reservas.
+              Kora no importa reservas de otro sistema: las que ya tienes las
+              registras en tu calendario. Con Airbnb, Booking.com y Expedia (Vrbo)
+              se enlaza por iCal desde Panel → Canales, una habitación a la vez:
+              lo que vendes allá se bloquea solo en Kora cada 15 minutos. iCal
+              mueve fechas, no tarifas, y no es un channel manager.
             </p>
           </div>
         </div>

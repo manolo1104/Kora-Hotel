@@ -113,3 +113,50 @@ describe("/precios no cobra por un servicio retirado", () => {
     expect(src).not.toMatch(/titulo:\s*["'][^"']*(sync|sincron)[^"']*["']/i);
   });
 });
+
+// ── Y al revés: con el enlace ENCENDIDO (18 nov 2026) ───────────────────────
+// El defecto simétrico al de septiembre: la pestaña vuelve y quince textos
+// siguen diciendo «todavía no se sincroniza». Eso vende peor y también es
+// mentira.
+describe("con el enlace iCal encendido, el sitio lo dice (y con sus límites)", () => {
+  const SUPERFICIES = [
+    ...PROSA,
+    "lib/soporte/prompt.ts",
+    "lib/glosario.ts",
+    "app/pms/page.tsx",
+    "app/motor-de-reservas/page.tsx",
+    "app/como-funciona/page.tsx",
+    "app/llms-full.txt/route.ts",
+    "public/pricing.md",
+  ];
+
+  it("la rejilla de la portada incluye Airbnb, Booking y Expedia", () => {
+    if (!SINCRONIA_OTA_DISPONIBLE) return;
+    const nombres = INTEGRACIONES.map((i) => i.name).join(" | ");
+    expect(nombres).toMatch(/Airbnb/);
+    expect(nombres).toMatch(/Booking/);
+    expect(nombres).toMatch(/Expedia/);
+  });
+
+  it("el panel sabe enlazar Airbnb", () => {
+    const src = leer("lib/canales/plataformas.ts");
+    expect(src).toMatch(/"airbnb"/);
+  });
+
+  for (const archivo of SUPERFICIES) {
+    it(`${archivo} no dice que no existe`, () => {
+      if (!SINCRONIA_OTA_DISPONIBLE) return;
+      const src = sinComentarios(leer(archivo)).toLowerCase();
+      expect(src).not.toMatch(/todav[íi]a no hay sincron/);
+      expect(src).not.toMatch(/no se sincroniza con (booking|airbnb|expedia)/);
+      expect(src).not.toMatch(/sincron[íi]a autom[áa]tica con (las otas|booking)[^.]*todav[íi]a no existe/);
+    });
+  }
+
+  it("ninguna superficie llama «Expedia» a secas a lo que es Vrbo en la promesa", () => {
+    if (!SINCRONIA_OTA_DISPONIBLE) return;
+    // La promesa canónica nombra Vrbo: Expedia Partner Central no tiene iCal.
+    const src = leer("lib/integraciones.ts");
+    expect(src).toMatch(/Expedia \(Vrbo\)/);
+  });
+});

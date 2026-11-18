@@ -135,7 +135,7 @@ export const ciudades: Ciudad[] = [
       {
         // Ver lib/integraciones.ts: la sincronía con OTAs no existe hoy.
         q: "¿Evita el overbooking entre mi cabaña y las OTAs?",
-        a: "Dentro de Kora, sí: el motor, Camila y tu calendario ven el mismo inventario, así que no se vende dos veces la misma noche. Con Booking o Airbnb todavía no hay sincronía automática; esas reservas las registras en el panel y quedan bloqueadas igual.",
+        a: "Dentro de Kora, sí: el motor, Camila y tu calendario ven el mismo inventario, así que no se vende dos veces la misma noche. Y con Airbnb, Booking o Expedia (Vrbo) se enlaza por iCal: lo que vendes allá se bloquea solo en Kora cada 15 minutos.",
       },
     ],
   },
@@ -225,7 +225,7 @@ export const ciudades: Ciudad[] = [
       },
       {
         q: "¿Convive con Airbnb y Booking?",
-        a: "Sí, convive con ellas. Lo que Kora te da hoy es un canal directo sin comisión con su propio inventario; las reservas que entren por Booking o Airbnb las registras en el panel y bloquean la fecha igual. La sincronía automática con las OTAs todavía no existe.",
+        a: "Sí, convive con ellas. Lo que Kora te da hoy es un canal directo sin comisión con su propio inventario; y enlazas por iCal tus anuncios de Airbnb, Booking o Expedia (Vrbo) para que lo que vendes allá se bloquee solo en Kora, y al revés.",
       },
     ],
   },
@@ -319,7 +319,7 @@ export const ciudades: Ciudad[] = [
       },
       {
         q: "¿Cómo evito el overbooking con Booking y Airbnb?",
-        a: "Dentro de Kora no hay overbooking posible: tu página, Camila y tu panel leen el mismo inventario, así que una reserva directa cierra la fecha en los tres. Con Booking y Airbnb todavía no hay sincronía automática, así que esas reservas se registran en el panel —son segundos— y bloquean igual.",
+        a: "Dentro de Kora no hay overbooking posible: tu página, Camila y tu panel leen el mismo inventario, así que una reserva directa cierra la fecha en los tres. Y si vendes en Airbnb o Booking, enlazas sus calendarios por iCal: Kora los lee cada 15 minutos y bloquea esas noches sola.",
       },
       {
         q: "¿Cuánto tarda el arranque?",

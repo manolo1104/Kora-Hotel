@@ -8,14 +8,19 @@ import { leer } from "@/lib/db/result";
 // manuales, mantenimiento y bloqueos venidos de OTRAS OTAs) y cierran esas
 // fechas en su lado. Así Kora es la fuente de verdad de la disponibilidad.
 //
+// Es por UNIDAD FÍSICA ("Cabaña 2"), no por tipo (K-22): con dos cabañas
+// iguales, cada anuncio de Airbnb/Booking lee SOLO su cabaña. Antes se
+// resolvía contra `tipoNamesOf` y el feed sólo veía la primera unidad.
+//
 // roomId puede llegar como:
-//   - el NOMBRE del cuarto url-encoded ("Suite%20Jungla"), o
-//   - un índice numérico (0..n-1) contra tipoNamesOf(hotel).
-// Se resuelve SIEMPRE contra los cuartos reales del hotel (404 si no coincide).
+//   - el NOMBRE de la unidad url-encoded ("Cabaña%202"). Las URLs ya pegadas
+//     con el nombre del TIPO siguen sirviendo: la 1ª unidad se llama igual.
+//   - un índice numérico (0..n-1) contra unitNamesOf(hotel).
 
 import { NextRequest, NextResponse } from "next/server";
 import { resolveHotel } from "@/lib/tenant";
-import { tipoNamesOf } from "@/lib/booking";
+import { unitNamesOf } from "@/lib/booking";
+import { generarFeed } from "@/lib/canales/ical";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
@@ -23,15 +28,6 @@ export const dynamic = "force-dynamic";
 // Estados de `blocks` que ocupan el cuarto de cara a las OTAs. HOLD (carrito sin
 // pagar) se EXCLUYE a propósito: no queremos cerrar fechas por holds efímeros.
 const OCCUPYING_STATUSES = ["RESERVADO", "BLOQUEADO", "OTA", "MANTENIMIENTO"];
-
-function icalDate(dateStr: string): string {
-  // 'YYYY-MM-DD' → 'YYYYMMDD' (formato DATE de iCal).
-  return dateStr.replace(/-/g, "");
-}
-
-function escapeIcal(str: string): string {
-  return str.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\n/g, "\\n");
-}
 
 interface BlockRow {
   id: string;
@@ -49,7 +45,7 @@ export async function GET(
   const hotel = await resolveHotel(slug);
   if (!hotel) return new NextResponse("Hotel not found", { status: 404 });
 
-  const rooms = tipoNamesOf(hotel);
+  const rooms = unitNamesOf(hotel);
   if (rooms.length === 0) return new NextResponse("Room not found", { status: 404 });
 
   // Resolver roomId → nombre del cuarto.
@@ -87,31 +83,9 @@ export async function GET(
       .gt("checkout", today),
   )) ?? []) as BlockRow[];
 
-  const lines: string[] = [
-    "BEGIN:VCALENDAR",
-    "VERSION:2.0",
-    "PRODID:-//Kora//Channel Manager//ES",
-    "CALSCALE:GREGORIAN",
-    "METHOD:PUBLISH",
-    `X-WR-CALNAME:${escapeIcal(roomName)} - ${escapeIcal(hotel.nombre)}`,
-    "X-WR-TIMEZONE:America/Mexico_City",
-  ];
+  const feed = generarFeed({ slug, hotelNombre: hotel.nombre, unidad: roomName, bloques: blocks });
 
-  for (const b of blocks) {
-    if (!b.checkin || !b.checkout) continue;
-    lines.push("BEGIN:VEVENT");
-    lines.push(`UID:${b.id}-${slug}@kora-hotel.com`);
-    lines.push(`DTSTART;VALUE=DATE:${icalDate(b.checkin)}`);
-    lines.push(`DTEND;VALUE=DATE:${icalDate(b.checkout)}`);
-    lines.push("SUMMARY:No disponible");
-    lines.push("STATUS:CONFIRMED");
-    lines.push("TRANSP:OPAQUE");
-    lines.push("END:VEVENT");
-  }
-
-  lines.push("END:VCALENDAR");
-
-  return new NextResponse(lines.join("\r\n"), {
+  return new NextResponse(feed, {
     headers: {
       "Content-Type": "text/calendar; charset=utf-8",
       "Cache-Control": "no-store",

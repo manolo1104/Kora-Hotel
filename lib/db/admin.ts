@@ -11,6 +11,7 @@
 // SOLO servidor.
 
 import type { Politica } from "@/lib/politica";
+import type { PlataformaIcal } from "@/lib/canales/plataformas";
 import { createBookingAtomic } from "@/lib/db/bookings";
 import { reservaCuenta, type EstadoReserva } from "@/lib/booking/estado-reserva";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -135,8 +136,11 @@ export interface RoomStatus {
 
 export interface OTACalendar {
   id: string;
+  /** Nombre de la UNIDAD física ("Cabaña 2"), no del tipo. */
   roomName: string;
-  platform: "booking_com" | "expedia";
+  platform: PlataformaIcal;
+  /** Nombre libre para «Otro calendario» (p. ej. "Google Calendar"). */
+  etiqueta?: string;
   icalUrl: string;
   active: boolean;
   lastSync: string;
@@ -201,6 +205,7 @@ interface OTAChannelRow {
   room_name: string | null;
   tipo: string | null;
   ical_url: string | null;
+  etiqueta?: string | null;
   active: boolean | null;
   ultima_sync: string | null;
   status: string | null;
@@ -447,6 +452,7 @@ function mapOTACalendar(r: OTAChannelRow): OTACalendar {
     roomName: r.room_name ?? "",
     platform: (r.tipo ?? "booking_com") as OTACalendar["platform"],
     icalUrl: r.ical_url ?? "",
+    ...(r.etiqueta ? { etiqueta: r.etiqueta } : {}),
     active: r.active ?? false,
     lastSync: r.ultima_sync ?? "",
     status: (r.status ?? "pending") as OTACalendar["status"],
@@ -1503,6 +1509,9 @@ export async function saveOTACalendar(
       room_name: cal.roomName,
       tipo: cal.platform,
       ical_url: cal.icalUrl,
+      // Sólo si viene: así guardar un canal de Airbnb/Booking no depende de que
+      // la columna exista (sql/kora-canales-ical.sql la añade).
+      ...(cal.etiqueta ? { etiqueta: cal.etiqueta } : {}),
       active: cal.active,
       ultima_sync: null,
       status: "pending",

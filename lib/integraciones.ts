@@ -37,12 +37,22 @@ export type Integracion = {
 };
 
 /**
- * Las OTAs (Booking, Airbnb, Expedia) NO están en la lista, y no es un olvido:
- * mientras `CANALES_OTA_DISPONIBLES` sea `false` el hotelero no puede conectar
- * ninguna desde el panel. Volverán cuando exista el channel manager, y entonces
- * bastará con añadirlas aquí.
+ * Las OTAs se enlazan por iCal desde el 18 nov 2026 (lib/canales/ical.ts). Salen
+ * de `CANALES_OTA_DISPONIBLES`, no se escriben a mano: si el interruptor se
+ * apaga, desaparecen de la rejilla solas.
+ *
+ * «Expedia (Vrbo)» y no «Expedia» a secas: Expedia Group sólo ofrece iCal en los
+ * anuncios de Vrbo; Expedia Partner Central (hoteles) no tiene iCal.
  */
+const OTAS_ICAL: Integracion[] = [
+  { name: "Airbnb", status: "active", logo: "/integraciones/airbnb.svg" },
+  { name: "Booking.com", status: "active", logo: "/integraciones/bookingdotcom.svg" },
+  { name: "Expedia (Vrbo)", status: "active", logo: "/integraciones/expedia.svg" },
+  { name: "Calendario iCal", status: "active", logo: "/integraciones/googlecalendar.svg" },
+];
+
 export const INTEGRACIONES: Integracion[] = [
+  ...(CANALES_OTA_DISPONIBLES ? OTAS_ICAL : []),
   // ── Lo que funciona hoy, comprobado en el código ──────────────────────────
   {
     // El agente de WhatsApp. `agentes/camila` + /api/agent.
@@ -103,3 +113,17 @@ export const INTEGRACIONES: Integracion[] = [
  * escriba el próximo texto de marketing.
  */
 export const SINCRONIA_OTA_DISPONIBLE = CANALES_OTA_DISPONIBLES;
+
+/**
+ * Cómo se dice el enlace con OTAs en TODAS las superficies (landing, FAQs,
+ * llms.txt, soporte). Una sola redacción para que nadie prometa de más —un
+ * channel manager— ni de menos —«todavía no se sincroniza»—.
+ */
+export const ENLACE_OTA = {
+  /** La promesa, en una frase. */
+  corto:
+    "Kora se enlaza por iCal con Airbnb, Booking.com y Expedia (Vrbo): lo que vendes allá se bloquea solo en Kora cada 15 minutos, y lo que vendes en Kora se cierra allá.",
+  /** Los límites, dichos antes de que el hotelero los descubra. */
+  limites:
+    "No es un channel manager: iCal mueve sólo las fechas ocupadas (las tarifas se siguen poniendo en cada OTA), cada OTA lee el calendario de Kora a su ritmo (de 30 minutos a 3 horas) y Booking sólo ofrece iCal si cada tipo de habitación tiene una unidad y no usas otro channel manager.",
+} as const;

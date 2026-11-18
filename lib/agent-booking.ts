@@ -1,5 +1,6 @@
 import { alertar } from "@/lib/alertas";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { refrescarAntesDeApartar } from "@/lib/canales/ical";
 import { construirMetadataBase } from "@/lib/booking/metadata";
 // Reserva TRANSACCIONAL del bot de WhatsApp (Camila). El bot manda el cuarto +
 // fechas + datos del huésped; aquí se calcula el precio SIEMPRE en el servidor,
@@ -355,6 +356,8 @@ export async function crearLinkReservaAgente(
     }
     await releaseHold(hotel.id, sessionId);
   }
+  // Calendarios enlazados frescos antes de apartar (ver lib/canales/ical.ts).
+  await refrescarAntesDeApartar(hotel.id);
   const apartado = await apartarUnidades(hotel.id, candidatas, input.checkin, input.checkout, sessionId, {
     minutos: HOLD_MIN,
     // El bot ya tiene su tope por hotel (MAX_HOLDS_BOT, arriba) y nunca pide más

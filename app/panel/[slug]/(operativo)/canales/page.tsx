@@ -7,13 +7,13 @@ import { getAllOTACalendars } from "@/lib/db/admin";
 import { requireHotelMember } from "@/lib/tenant";
 import { motivoCierre } from "@/lib/panel/pantallas";
 import { SinPermiso, pantallaDe } from "@/components/panel/SinPermiso";
-import { tipoNamesOf } from "@/lib/booking";
+import { unitNamesOf } from "@/lib/booking";
 import CanalesClient from "./CanalesClient";
 import { redirect } from "next/navigation";
 import { CANALES_OTA_DISPONIBLES } from "@/lib/panel/canales-ota";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Canales OTA · Panel" };
+export const metadata = { title: "Canales · Panel" };
 
 export default async function CanalesPage({
   params,
@@ -37,12 +37,12 @@ export default async function CanalesPage({
       />
     );
   }
-  // Retirada del panel. Se redirige en vez de borrar la pantalla: el día que
-  // vuelva (o llegue el channel manager) es una constante, no un rescate de git.
+  // Interruptor único (lib/panel/canales-ota.ts).
   if (!CANALES_OTA_DISPONIBLES) redirect(`/panel/${slug}/calendario`);
 
   const initial = await getAllOTACalendars(ctx.hotelId);
-  const rooms = tipoNamesOf(ctx.hotel);
+  // Unidades físicas, no tipos: cada anuncio de una OTA es un cuarto concreto.
+  const rooms = unitNamesOf(ctx.hotel);
 
   return <CanalesClient initial={initial} rooms={rooms} slug={slug} />;
 }

@@ -15,6 +15,7 @@ Moneda: MXN (pesos mexicanos). Cobro mensual con tarjeta.
 - Motor de reservas directas, 0% de comisión para Kora
 - Camila: agente de WhatsApp con IA 24/7 (cotiza con tu disponibilidad real, manda el link de pago y arma la reserva)
 - Panel de operación: mapa de habitaciones, calendario, check-in/out y limpieza
+- Enlace por iCal con Airbnb, Booking.com y Expedia (Vrbo): un solo calendario para no vender dos veces el mismo cuarto
 - Métricas del hotel: ocupación, ADR, RevPAR y pronóstico a 7 días
 - Fichero de huéspedes y correos automáticos antes y después de la estancia
 - Mini-página de reservas y cobro con tarjeta (Stripe, el dinero entra directo a tu cuenta)
@@ -23,7 +24,7 @@ Moneda: MXN (pesos mexicanos). Cobro mensual con tarjeta.
 
 ### Qué NO hace Kora hoy (para que nadie se lleve una sorpresa)
 - No importa las reservas que ya tienes en otro sistema: las cargas a mano en tu calendario.
-- No se sincroniza con Booking, Expedia ni Airbnb (no hay channel manager).
+- No es un channel manager: con Airbnb, Booking.com y Expedia (Vrbo) se enlaza por iCal (bloquea fechas en los dos sentidos cada 15 min), pero no reparte tarifas.
 - No cambia tus precios solo (no hay precios dinámicos).
 
 ## Cómo se empieza — tú, desde la web, hoy

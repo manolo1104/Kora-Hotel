@@ -119,8 +119,12 @@ export function Hero() {
               <motion.p {...item(0.12)} className="text-base sm:text-lg text-kora-muted leading-relaxed max-w-[52ch]">
                 Camila contesta en segundos a cualquier hora: consulta tu
                 disponibilidad real, da el precio exacto y manda el link de pago.
-                Con motor de reservas 0% comisión, PMS y CRM incluidos. Crea tu
-                cuenta, carga tu hotel y pruébalo por dentro.
+                Con motor de reservas 0% comisión, PMS y CRM incluidos, y enlazado
+                a tus calendarios de{" "}
+                <a href="#canales" className="font-semibold text-kora-primary underline decoration-kora-accent underline-offset-4">
+                  Airbnb, Booking y Expedia
+                </a>
+                . Crea tu cuenta, carga tu hotel y pruébalo por dentro.
               </motion.p>
 
               <motion.div {...item(0.2)} className="flex flex-col sm:flex-row gap-3">

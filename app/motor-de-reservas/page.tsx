@@ -112,8 +112,8 @@ const FAQS = [
     a: "No. Al registrar tu hotel queda lista su página pública de reservas, con tu logo, tus fotos y tus cuartos. Si ya tienes web, pegas el motor en ella con una sola línea.",
   },
   {
-    q: "¿Se sincroniza con Booking, Airbnb o Expedia?",
-    a: "Todavía no. Kora no tiene channel manager: las reservas que te lleguen por Booking, Airbnb o Expedia las registras tú en el calendario del panel para que el motor no vuelva a vender esas noches. Preferimos decírtelo antes de que lo descubras.",
+    q: "¿Se conecta con Booking, Airbnb o Expedia?",
+    a: "Sí, por iCal. Enlazas el calendario de cada anuncio de Airbnb, Booking.com o Expedia (Vrbo) con su habitación: lo que vendes allá se bloquea solo en el motor cada 15 minutos, y lo que vende el motor se cierra allá. No es un channel manager: mueve fechas, no tarifas, y cada OTA lee el calendario a su ritmo (de 30 minutos a 3 horas). Preferimos decírtelo antes de que lo descubras.",
   },
   {
     q: "¿Puedo probarlo sin cobrarle a nadie?",
@@ -126,7 +126,7 @@ const FAQS = [
 ];
 
 const NO_HACE = [
-  "No se sincroniza con Booking, Airbnb ni Expedia: esas reservas se registran en el panel.",
+  "No es un channel manager: con Airbnb, Booking y Expedia (Vrbo) se enlaza por iCal, que mueve fechas ocupadas pero no tarifas.",
   "No publica tu hotel en Google Hotels ni en metabuscadores.",
   "No importa las reservas que ya tengas en otro sistema: cargas tus cuartos y tarifas, y empiezas desde ahí.",
 ];

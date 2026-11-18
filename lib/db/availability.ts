@@ -590,9 +590,15 @@ export async function unblock(hotelId: string, blockId: string): Promise<{ ok: b
 }
 
 /**
- * Reemplaza TODOS los bloqueos OTA de un cuarto con los nuevos rangos del iCal.
- * Así las cancelaciones en la OTA se reflejan al re-sincronizar. Devuelve cuántos
- * rangos quedaron bloqueados.
+ * Reemplaza TODOS los bloqueos OTA de una unidad/fuente con los nuevos rangos
+ * del iCal. Así las cancelaciones en la OTA se reflejan al re-sincronizar.
+ * Devuelve cuántos rangos quedaron bloqueados.
+ *
+ * Orden a propósito: primero INSERTA los nuevos y sólo después BORRA los
+ * viejos (por id). Antes borraba primero y, si el insert fallaba, se tragaba el
+ * error y devolvía 0: la unidad quedaba sin ningún bloqueo de la OTA —a la
+ * venta en Kora con las noches ya vendidas en Airbnb— y el canal decía «ok».
+ * Ahora cualquier fallo LANZA y el que llama marca el canal en 'error'.
  */
 export async function updateOTABlocks(
   hotelId: string,
@@ -601,28 +607,53 @@ export async function updateOTABlocks(
   dateRanges: Array<{ checkin: string; checkout: string }>,
 ): Promise<number> {
   const supabase = createAdminClient();
-  // Borra los OTA previos de este cuarto/fuente.
-  await supabase
+  const { data: viejos, error: errLeer } = await supabase
+    .from("blocks")
+    .select("id")
+    .eq("hotel_id", hotelId)
+    .eq("habitacion", roomName)
+    .eq("status", "OTA")
+    .eq("fuente_ota", fuenteOta);
+  if (errLeer) throw new Error(`updateOTABlocks leer: ${errLeer.message}`);
+
+  if (dateRanges.length > 0) {
+    const rows = dateRanges.map(({ checkin, checkout }) => ({
+      hotel_id: hotelId,
+      habitacion: roomName,
+      checkin,
+      checkout,
+      status: "OTA",
+      fuente_ota: fuenteOta,
+    }));
+    const { error } = await supabase.from("blocks").insert(rows);
+    if (error) throw new Error(`updateOTABlocks insertar: ${error.message}`);
+  }
+
+  const ids = ((viejos ?? []) as { id: string }[]).map((v) => v.id);
+  if (ids.length > 0) {
+    const { error } = await supabase
+      .from("blocks")
+      .delete()
+      .eq("hotel_id", hotelId)
+      .in("id", ids);
+    if (error) throw new Error(`updateOTABlocks borrar: ${error.message}`);
+  }
+  return dateRanges.length;
+}
+
+/** Borra los bloqueos que trajo un canal (al eliminarlo o cambiarle la unidad). */
+export async function borrarBloqueosOTA(
+  hotelId: string,
+  roomName: string,
+  fuenteOta: string,
+): Promise<void> {
+  const supabase = createAdminClient();
+  const { error } = await supabase
     .from("blocks")
     .delete()
     .eq("hotel_id", hotelId)
     .eq("habitacion", roomName)
     .eq("status", "OTA")
     .eq("fuente_ota", fuenteOta);
-
-  if (dateRanges.length === 0) return 0;
-  const rows = dateRanges.map(({ checkin, checkout }) => ({
-    hotel_id: hotelId,
-    habitacion: roomName,
-    checkin,
-    checkout,
-    status: "OTA",
-    fuente_ota: fuenteOta,
-  }));
-  const { error } = await supabase.from("blocks").insert(rows);
-  if (error) {
-    console.error("updateOTABlocks error:", error);
-    return 0;
-  }
-  return rows.length;
+  if (error) throw new Error(`borrarBloqueosOTA: ${error.message}`);
 }

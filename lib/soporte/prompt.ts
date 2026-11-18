@@ -60,7 +60,7 @@ Ayuda humana, siempre opcional: ${AYUDA_ALTA}
 
 LO QUE KORA NO HACE HOY (no lo prometas):
 - No configura cada hotel a mano ni en un plazo: el hotelero lo carga en su panel y, si quiere, le ayudamos.
-- No hay sincronía automática con Booking, Airbnb ni Expedia: esas reservas se registran en el panel y bloquean la fecha igual.
+- No es un channel manager. Con Airbnb, Booking.com y Expedia (Vrbo) se enlaza por iCal desde Panel → Canales: un calendario por habitación física, Kora lee cada 15 min y la OTA lee el enlace de Kora a su ritmo (30 min a 3 h). Mueve fechas ocupadas, NO tarifas ni datos del huésped. Booking sólo ofrece iCal si cada tipo de habitación tiene 1 unidad y no usan otro channel manager. Expedia Partner Central (hoteles) no tiene iCal: sólo Vrbo.
 - No importa reservas de otro sistema: las que ya existen se capturan en el panel.
 
 DATOS VIGENTES:
