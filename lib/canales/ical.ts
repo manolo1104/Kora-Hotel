@@ -400,6 +400,32 @@ export async function sincronizarTodos(): Promise<ResultadoCanal[]> {
   return porHotel.flat();
 }
 
+// Freno por instancia: en una búsqueda con mucho tráfico, varias peticiones a
+// la vez verían el mismo calendario vencido y lo leerían todas.
+const ultimoIntento = new Map<string, number>();
+const FRENO_MS = 60_000;
+
+/**
+ * Refresco disparado por tráfico (una búsqueda de disponibilidad, abrir el
+ * calendario del panel). Lee sólo los canales con más de 15 min y nunca más de
+ * una vez por minuto por hotel en esta instancia. Pensado para ir dentro de
+ * `after()`: no frena la respuesta.
+ *
+ * Existe porque en Vercel Hobby el cron sólo puede correr una vez al día; con
+ * esto, un hotel con actividad tiene sus OTAs leídas como mucho cada 15 min.
+ */
+export async function refrescarSiHaceFalta(hotelId: string): Promise<void> {
+  const ahora = Date.now();
+  if (ahora - (ultimoIntento.get(hotelId) ?? 0) < FRENO_MS) return;
+  ultimoIntento.set(hotelId, ahora);
+  if (ultimoIntento.size > 2_000) ultimoIntento.clear();
+  try {
+    await sincronizarHotel(hotelId, { soloSiVencido: true });
+  } catch (e) {
+    console.warn("[ical] refresco por tráfico:", e instanceof Error ? e.message : e);
+  }
+}
+
 /**
  * Antes de apartar una reserva: si algún canal del hotel lleva más de 15 min
  * sin leerse, se lee ya. Con tope de tiempo y SIN lanzar nunca — una OTA lenta

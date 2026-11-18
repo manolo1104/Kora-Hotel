@@ -62,7 +62,7 @@ export const faqs: Faq[] = [
     // superficies digan lo mismo, límites incluidos.
     question: "¿Kora se conecta con Airbnb, Booking y Expedia?",
     answer:
-      "Sí, por iCal, y sin salirte de las OTAs. En tu panel enlazas el calendario de cada anuncio de Airbnb, Booking.com o Expedia (Vrbo) con su habitación: lo que vendes allá se bloquea solo en Kora cada 15 minutos, y lo que vendes en Kora (tu página, Camila o el panel) se cierra allá. Así tienes un solo calendario y dejas de vender dos veces el mismo cuarto. Lo que iCal no hace: no mueve tarifas (esas las sigues poniendo en cada OTA), cada OTA lee el calendario a su ritmo (de 30 minutos a 3 horas) y Booking sólo lo ofrece si cada tipo de habitación tiene una unidad. Si dos reservas llegan a chocar, te avisamos por correo.",
+      "Sí, por iCal, y sin salirte de las OTAs. En tu panel enlazas el calendario de cada anuncio de Airbnb, Booking.com o Expedia (Vrbo) con su habitación: lo que vendes allá se bloquea solo en Kora (lo vuelve a revisar justo antes de apartar cada reserva), y lo que vendes en Kora (tu página, Camila o el panel) se cierra allá. Así tienes un solo calendario y dejas de vender dos veces el mismo cuarto. Lo que iCal no hace: no mueve tarifas (esas las sigues poniendo en cada OTA), cada OTA lee el calendario a su ritmo (de 30 minutos a 3 horas) y Booking sólo lo ofrece si cada tipo de habitación tiene una unidad. Si dos reservas llegan a chocar, te avisamos por correo.",
   },
   {
     question: "¿Hay permanencia o contrato?",

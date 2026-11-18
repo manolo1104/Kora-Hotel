@@ -162,7 +162,7 @@ export const comparativas: Comparativa[] = [
       },
       {
         q: "¿Kora evita el overbooking entre Expedia y mis reservas directas?",
-        a: "Entre tus canales de Kora, sí: tu página de reservas, Camila y tu panel comparten un solo inventario, así que una reserva cierra la fecha en los tres. Y tus anuncios de Airbnb, Booking o Expedia (Vrbo) se enlazan por iCal: lo que vendes allá se bloquea solo en Kora cada 15 minutos.",
+        a: "Entre tus canales de Kora, sí: tu página de reservas, Camila y tu panel comparten un solo inventario, así que una reserva cierra la fecha en los tres. Y tus anuncios de Airbnb, Booking o Expedia (Vrbo) se enlazan por iCal: lo que vendes allá se bloquea solo en Kora, que lo revisa antes de apartar cada reserva.",
       },
     ],
   },
@@ -206,7 +206,7 @@ export const comparativas: Comparativa[] = [
         q: "¿Puedo evitar el overbooking entre Vrbo y mis reservas directas?",
         // Decía «Kora sincroniza tu disponibilidad» sin decir con qué: con Vrbo no
         // hay sincronía (ver lib/integraciones.ts). 15 sep 2026.
-        a: "Dentro de Kora, sí: tu página, Camila y tu panel comparten un solo inventario. Y con Vrbo se enlaza por iCal: lo que vendes allá se bloquea solo en Kora cada 15 minutos, y lo que vendes en Kora se cierra en Vrbo.",
+        a: "Dentro de Kora, sí: tu página, Camila y tu panel comparten un solo inventario. Y con Vrbo se enlaza por iCal: lo que vendes allá se bloquea solo en Kora (lo revisa antes de apartar cada reserva), y lo que vendes en Kora se cierra en Vrbo.",
       },
     ],
   },

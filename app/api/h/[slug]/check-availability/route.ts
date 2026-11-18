@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { z } from "zod";
 import { resolveHotel } from "@/lib/tenant";
+import { refrescarSiHaceFalta } from "@/lib/canales/ical";
 import { freeUnitsByType } from "@/lib/db/availability";
 import { ventasPorExperiencia } from "@/lib/db/experiencias";
 import { experienciaFechasDisponibles } from "@/lib/booking";
@@ -33,6 +34,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   const { checkin, checkout } = parsed.data;
 
   // Disponibilidad POR TIPO (cada tipo puede tener varias unidades).
+  // Calendarios de Airbnb/Booking: si llevan >15 min sin leerse, se leen
+  // DESPUÉS de responder (no frena la búsqueda). El apartado vuelve a mirar.
+  after(() => refrescarSiHaceFalta(hotel.id));
   const typesAvail = await freeUnitsByType(hotel.id, hotel, checkin, checkout);
   const types = typesAvail.map((t) => ({
     id: t.id,

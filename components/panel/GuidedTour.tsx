@@ -54,7 +54,7 @@ const PASOS: PasoTour[] = [
     key: "nav-canales",
     titulo: "Enlaza Airbnb, Booking y Expedia",
     texto:
-      "Pega el calendario iCal de cada anuncio y Kora bloquea esas noches sola cada 15 minutos. Así no vendes dos veces el mismo cuarto.",
+      "Pega el calendario iCal de cada anuncio y Kora bloquea esas noches sola y las vuelve a revisar antes de cada reserva. Así no vendes dos veces el mismo cuarto.",
   },
   {
     key: "nav-motor",

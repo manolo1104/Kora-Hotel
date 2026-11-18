@@ -135,7 +135,7 @@ export const ciudades: Ciudad[] = [
       {
         // Ver lib/integraciones.ts: la sincronía con OTAs no existe hoy.
         q: "¿Evita el overbooking entre mi cabaña y las OTAs?",
-        a: "Dentro de Kora, sí: el motor, Camila y tu calendario ven el mismo inventario, así que no se vende dos veces la misma noche. Y con Airbnb, Booking o Expedia (Vrbo) se enlaza por iCal: lo que vendes allá se bloquea solo en Kora cada 15 minutos.",
+        a: "Dentro de Kora, sí: el motor, Camila y tu calendario ven el mismo inventario, así que no se vende dos veces la misma noche. Y con Airbnb, Booking o Expedia (Vrbo) se enlaza por iCal: lo que vendes allá se bloquea solo en Kora, que lo revisa antes de apartar cada reserva.",
       },
     ],
   },
@@ -319,7 +319,7 @@ export const ciudades: Ciudad[] = [
       },
       {
         q: "¿Cómo evito el overbooking con Booking y Airbnb?",
-        a: "Dentro de Kora no hay overbooking posible: tu página, Camila y tu panel leen el mismo inventario, así que una reserva directa cierra la fecha en los tres. Y si vendes en Airbnb o Booking, enlazas sus calendarios por iCal: Kora los lee cada 15 minutos y bloquea esas noches sola.",
+        a: "Dentro de Kora no hay overbooking posible: tu página, Camila y tu panel leen el mismo inventario, así que una reserva directa cierra la fecha en los tres. Y si vendes en Airbnb o Booking, enlazas sus calendarios por iCal: Kora los relee antes de apartar cada reserva y bloquea esas noches sola.",
       },
       {
         q: "¿Cuánto tarda el arranque?",

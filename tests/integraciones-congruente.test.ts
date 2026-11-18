@@ -160,3 +160,23 @@ describe("con el enlace iCal encendido, el sitio lo dice (y con sus límites)", 
     expect(src).toMatch(/Expedia \(Vrbo\)/);
   });
 });
+
+// 18 nov 2026: el primer despliegue con `*/15` en vercel.json lo RECHAZÓ Vercel
+// (plan Hobby: crons sólo diarios). Si el cron no es de 15 min, ningún texto
+// puede prometer «cada 15 minutos».
+describe("la frecuencia que se promete es la que hay", () => {
+  it("nadie promete «cada 15 minutos» mientras el cron sea diario", () => {
+    const vercel = JSON.parse(leer("vercel.json")) as { crons: { path: string; schedule: string }[] };
+    const ical = vercel.crons.find((c) => c.path === "/api/cron/ical-sync");
+    if (ical?.schedule.startsWith("*/15")) return;
+    const archivos = [
+      "lib/integraciones.ts", "lib/faqs.ts", "lib/ciudades.ts", "lib/comparativas.ts", "lib/personas.ts",
+      "lib/whatsapp.ts", "lib/glosario.ts", "app/pms/page.tsx", "app/motor-de-reservas/page.tsx",
+      "app/como-funciona/page.tsx", "app/llms-full.txt/route.ts", "components/landing/CanalesSection.tsx",
+      "components/panel/GuidedTour.tsx", "app/panel/[slug]/(operativo)/canales/CanalesClient.tsx", "public/pricing.md",
+    ];
+    for (const a of archivos) {
+      expect(sinComentarios(leer(a)), a).not.toMatch(/cada 15 min/i);
+    }
+  });
+});

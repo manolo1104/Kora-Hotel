@@ -112,7 +112,7 @@ const FAQS = [
   },
   {
     q: "¿Tiene channel manager?",
-    a: "No es un channel manager completo, pero sí se enlaza por iCal con Airbnb, Booking.com y Expedia (Vrbo): lo que vendes allá se bloquea solo en tu calendario cada 15 minutos, y lo que vendes en Kora se cierra allá. iCal mueve fechas, no tarifas. Si vendes la mayoría de tus noches por varias OTAs y necesitas cambiar precios en todas desde un solo lugar, eso sigue siendo trabajo de un channel manager.",
+    a: "No es un channel manager completo, pero sí se enlaza por iCal con Airbnb, Booking.com y Expedia (Vrbo): lo que vendes allá se bloquea solo en tu calendario (Kora lo revisa justo antes de apartar cada reserva), y lo que vendes en Kora se cierra allá. iCal mueve fechas, no tarifas. Si vendes la mayoría de tus noches por varias OTAs y necesitas cambiar precios en todas desde un solo lugar, eso sigue siendo trabajo de un channel manager.",
   },
   {
     q: "¿Para qué tamaño de hotel es?",

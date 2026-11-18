@@ -185,7 +185,7 @@ export default function CanalesClient({ initial, rooms, slug }: Props) {
         <div>
           <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>Canales</h1>
           <p style={{ margin: '4px 0 0', color: 'var(--clay)', fontSize: 14 }}>
-            Enlaza Airbnb, Booking.com y Expedia (Vrbo) por iCal. Kora lee sus calendarios cada 15 minutos.
+            Enlaza Airbnb, Booking.com y Expedia (Vrbo) por iCal. Kora los vuelve a leer antes de apartar cada reserva.
           </p>
         </div>
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>

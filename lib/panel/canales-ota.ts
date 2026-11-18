@@ -10,8 +10,10 @@
 // REACTIVADO el 18 nov 2026, con los dos arreglados:
 //   1. Un canal = una UNIDAD física. El feed (/api/h/<slug>/ical/<unidad>) y la
 //      entrada (blocks.habitacion) hablan de la misma unidad.
-//   2. Cron cada 15 min (vercel.json) + lectura al momento antes de apartar
-//      una reserva si el calendario tiene más de 15 min (lib/canales/ical.ts).
+//   2. Lectura al momento antes de apartar una reserva si el calendario tiene
+//      más de 15 min, y en segundo plano con cada búsqueda o visita al panel
+//      (lib/canales/ical.ts). El cron es diario y sólo de respaldo: Vercel
+//      Hobby no admite crons más frecuentes.
 //
 // Lo que NO es: un channel manager. iCal sólo mueve fechas ocupadas (no
 // tarifas ni datos del huésped) y cada OTA lee el feed de Kora a su ritmo

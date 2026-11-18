@@ -5,6 +5,8 @@
 
 import { getAllBookings } from "@/lib/admin/sheets-admin";
 import { requireHotelMember } from "@/lib/tenant";
+import { after } from "next/server";
+import { refrescarSiHaceFalta } from "@/lib/canales/ical";
 import { puedeCtx } from "@/lib/panel/permisos";
 import { motivoCierre } from "@/lib/panel/pantallas";
 import { SinPermiso, pantallaDe } from "@/components/panel/SinPermiso";
@@ -35,6 +37,9 @@ export default async function CalendarioPage({
     );
   }
 
+  // Lee los calendarios de Airbnb/Booking vencidos (>15 min) después de
+  // pintar la página; no la frena. Ver refrescarSiHaceFalta.
+  after(() => refrescarSiHaceFalta(ctx.hotelId));
   const bookings = await getAllBookings(ctx.hotelId);
   const rooms = hotelRooms(ctx.hotel);
 

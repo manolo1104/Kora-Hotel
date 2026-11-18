@@ -24,7 +24,7 @@ Moneda: MXN (pesos mexicanos). Cobro mensual con tarjeta.
 
 ### Qué NO hace Kora hoy (para que nadie se lleve una sorpresa)
 - No importa las reservas que ya tienes en otro sistema: las cargas a mano en tu calendario.
-- No es un channel manager: con Airbnb, Booking.com y Expedia (Vrbo) se enlaza por iCal (bloquea fechas en los dos sentidos cada 15 min), pero no reparte tarifas.
+- No es un channel manager: con Airbnb, Booking.com y Expedia (Vrbo) se enlaza por iCal (bloquea fechas en los dos sentidos y relee las OTAs antes de apartar cada reserva), pero no reparte tarifas.
 - No cambia tus precios solo (no hay precios dinámicos).
 
 ## Cómo se empieza — tú, desde la web, hoy

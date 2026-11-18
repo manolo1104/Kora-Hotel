@@ -5,6 +5,8 @@
 
 import { getAllOTACalendars } from "@/lib/db/admin";
 import { requireHotelMember } from "@/lib/tenant";
+import { after } from "next/server";
+import { refrescarSiHaceFalta } from "@/lib/canales/ical";
 import { motivoCierre } from "@/lib/panel/pantallas";
 import { SinPermiso, pantallaDe } from "@/components/panel/SinPermiso";
 import { unitNamesOf } from "@/lib/booking";
@@ -40,6 +42,9 @@ export default async function CanalesPage({
   // Interruptor único (lib/panel/canales-ota.ts).
   if (!CANALES_OTA_DISPONIBLES) redirect(`/panel/${slug}/calendario`);
 
+  // Lee los calendarios de Airbnb/Booking vencidos (>15 min) después de
+  // pintar la página; no la frena. Ver refrescarSiHaceFalta.
+  after(() => refrescarSiHaceFalta(ctx.hotelId));
   const initial = await getAllOTACalendars(ctx.hotelId);
   // Unidades físicas, no tipos: cada anuncio de una OTA es un cuarto concreto.
   const rooms = unitNamesOf(ctx.hotel);

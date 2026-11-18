@@ -356,7 +356,7 @@ export const personas: Persona[] = [
       },
       {
         q: "¿Se conecta con las OTAs?",
-        a: "Sí, por iCal con Airbnb, Booking.com y Expedia (Vrbo): lo que vendes allá se bloquea solo en Kora cada 15 minutos, y lo que vendes en tu página, por WhatsApp o en el panel se cierra allá. Mueve fechas, no tarifas: los precios los sigues poniendo en cada OTA.",
+        a: "Sí, por iCal con Airbnb, Booking.com y Expedia (Vrbo): lo que vendes allá se bloquea solo en Kora (lo revisa antes de apartar cada reserva), y lo que vendes en tu página, por WhatsApp o en el panel se cierra allá. Mueve fechas, no tarifas: los precios los sigues poniendo en cada OTA.",
       },
     ],
   },

@@ -76,7 +76,7 @@ function buildFull(articulos: Article[]): string {
     `- Motor de reservas para hoteles: el huésped ve la disponibilidad real, elige su cuarto y paga en línea (tarjeta u OXXO vía Stripe) en la web del hotel; Kora no cobra comisión por reserva. ${BASE}/motor-de-reservas`
   );
   L.push(
-    `- PMS para hoteles pequeños: calendario de reservas, check-in y check-out, limpieza y mantenimiento por cuarto, huéspedes y equipo con permisos por puesto, en español. Se enlaza por iCal con Airbnb, Booking.com y Expedia (Vrbo) para bloquear fechas en los dos sentidos cada 15 minutos; no es un channel manager (no reparte tarifas). ${BASE}/pms`
+    `- PMS para hoteles pequeños: calendario de reservas, check-in y check-out, limpieza y mantenimiento por cuarto, huéspedes y equipo con permisos por puesto, en español. Se enlaza por iCal con Airbnb, Booking.com y Expedia (Vrbo) para bloquear fechas en los dos sentidos (Kora relee las OTAs justo antes de apartar cada reserva); no es un channel manager (no reparte tarifas). ${BASE}/pms`
   );
   L.push("");
 

@@ -122,7 +122,7 @@ export const SINCRONIA_OTA_DISPONIBLE = CANALES_OTA_DISPONIBLES;
 export const ENLACE_OTA = {
   /** La promesa, en una frase. */
   corto:
-    "Kora se enlaza por iCal con Airbnb, Booking.com y Expedia (Vrbo): lo que vendes allá se bloquea solo en Kora cada 15 minutos, y lo que vendes en Kora se cierra allá.",
+    "Kora se enlaza por iCal con Airbnb, Booking.com y Expedia (Vrbo): lo que vendes allá se bloquea solo en Kora —que relee tus OTAs justo antes de apartar cada reserva— y lo que vendes en Kora se cierra allá.",
   /** Los límites, dichos antes de que el hotelero los descubra. */
   limites:
     "No es un channel manager: iCal mueve sólo las fechas ocupadas (las tarifas se siguen poniendo en cada OTA), cada OTA lee el calendario de Kora a su ritmo (de 30 minutos a 3 horas) y Booking sólo ofrece iCal si cada tipo de habitación tiene una unidad y no usas otro channel manager.",

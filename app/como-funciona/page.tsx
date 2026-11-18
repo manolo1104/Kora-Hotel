@@ -337,7 +337,8 @@ export default function ComoFuncionaPage() {
               Kora no importa reservas de otro sistema: las que ya tienes las
               registras en tu calendario. Con Airbnb, Booking.com y Expedia (Vrbo)
               se enlaza por iCal desde Panel → Canales, una habitación a la vez:
-              lo que vendes allá se bloquea solo en Kora cada 15 minutos. iCal
+              lo que vendes allá se bloquea solo en Kora, que lo revisa justo antes
+              de apartar cada reserva. iCal
               mueve fechas, no tarifas, y no es un channel manager.
             </p>
           </div>

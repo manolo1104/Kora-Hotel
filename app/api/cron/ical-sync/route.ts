@@ -1,6 +1,12 @@
 // Cron GLOBAL del enlace por iCal (Airbnb, Booking, Expedia/Vrbo, otros).
-// Corre cada 15 minutos (vercel.json) — antes era 1 vez al día, y una reserva
-// de Airbnb podía tardar hasta 24 h en cerrar la unidad en Kora.
+// Corre UNA vez al día (vercel.json): el proyecto está en Vercel Hobby, que
+// rechaza el despliegue entero con un cron más frecuente (pasó el 18 nov 2026
+// con */15). Es el RESPALDO. La frescura real la da el tráfico:
+//   · antes de apartar cualquier reserva (motor y Camila) se leen los
+//     calendarios con más de 15 min — `refrescarAntesDeApartar`;
+//   · al buscar disponibilidad y al abrir el calendario o Canales del panel,
+//     en segundo plano — `refrescarSiHaceFalta`.
+// Con Vercel Pro, poner "*/15 * * * *" en vercel.json y listo.
 //
 //  - Protegido por Authorization: Bearer CRON_SECRET.
 //  - La lógica vive en `lib/canales/ical.ts` (la misma que usa el botón

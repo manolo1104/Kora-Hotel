@@ -33,7 +33,7 @@ const PASOS = [
   {
     Icon: RefreshCw,
     titulo: "Kora bloquea sola",
-    texto: "Cada 15 minutos —y justo antes de apartar una reserva— Kora lee tus OTAs y cierra esas noches.",
+    texto: "Justo antes de apartar cada reserva —en tu página o con Camila— Kora vuelve a leer tus OTAs y cierra esas noches.",
   },
 ];
 
@@ -114,7 +114,7 @@ export function CanalesSection() {
               <div className="flex justify-center my-4" aria-hidden="true">
                 <div className="flex items-center gap-2 rounded-full bg-kora-accent/15 px-3 py-1 text-[11px] font-semibold text-kora-accent">
                   <ArrowLeftRight className="w-3.5 h-3.5" />
-                  iCal · cada 15 min
+                  iCal · en los dos sentidos
                 </div>
               </div>
 

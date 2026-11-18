@@ -402,7 +402,7 @@ export const paginasWhatsApp: PaginaWhatsApp[] = [
         // panel desde el 26 de agosto. Responder que no —y decir qué sí hace—
         // vende peor un minuto y mejor un año.
         q: "¿Camila sabe lo que ya vendí en Booking y Airbnb?",
-        a: "Sí, si enlazas sus calendarios por iCal en tu panel: Kora los lee cada 15 minutos, así que Camila sólo cotiza las noches que de verdad están libres. Y lo que Camila vende se cierra en tus OTAs. Las tarifas las sigues poniendo en cada OTA.",
+        a: "Sí, si enlazas sus calendarios por iCal en tu panel: Kora los relee justo antes de apartar cada reserva, así que Camila sólo cotiza las noches que de verdad están libres. Y lo que Camila vende se cierra en tus OTAs. Las tarifas las sigues poniendo en cada OTA.",
       },
     ],
     relacionados: [

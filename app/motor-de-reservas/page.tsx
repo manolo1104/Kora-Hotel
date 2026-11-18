@@ -113,7 +113,7 @@ const FAQS = [
   },
   {
     q: "¿Se conecta con Booking, Airbnb o Expedia?",
-    a: "Sí, por iCal. Enlazas el calendario de cada anuncio de Airbnb, Booking.com o Expedia (Vrbo) con su habitación: lo que vendes allá se bloquea solo en el motor cada 15 minutos, y lo que vende el motor se cierra allá. No es un channel manager: mueve fechas, no tarifas, y cada OTA lee el calendario a su ritmo (de 30 minutos a 3 horas). Preferimos decírtelo antes de que lo descubras.",
+    a: "Sí, por iCal. Enlazas el calendario de cada anuncio de Airbnb, Booking.com o Expedia (Vrbo) con su habitación: lo que vendes allá se bloquea solo en el motor (lo revisa justo antes de apartar cada reserva), y lo que vende el motor se cierra allá. No es un channel manager: mueve fechas, no tarifas, y cada OTA lee el calendario a su ritmo (de 30 minutos a 3 horas). Preferimos decírtelo antes de que lo descubras.",
   },
   {
     q: "¿Puedo probarlo sin cobrarle a nadie?",
